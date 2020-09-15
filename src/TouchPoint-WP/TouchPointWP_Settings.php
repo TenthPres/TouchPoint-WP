@@ -115,10 +115,10 @@ class TouchPointWP_Settings {
 			[
 				'location'    => 'options', // Possible settings: options, menu, submenu.
 				'parent_slug' => 'options-general.php',
-				'page_title'  => __( 'Plugin Settings', 'TouchPoint-WP' ),
-				'menu_title'  => __( 'Plugin Settings', 'TouchPoint-WP' ),
+				'page_title'  => __( 'TouchPoint-WP', 'TouchPoint-WP' ),
+				'menu_title'  => __( 'TouchPoint-WP', 'TouchPoint-WP' ),
 				'capability'  => 'manage_options',
-				'menu_slug'   => $this->parent::TOKEN . '_settings',
+				'menu_slug'   => $this->parent::TOKEN . '_Settings',
 				'function'    => [$this, 'settings_page'],
 				'icon_url'    => '',
 				'position'    => null,
@@ -159,7 +159,7 @@ class TouchPointWP_Settings {
 	 * @return array        Modified links.
 	 */
 	public function add_settings_link( array $links ) {
-		$settings_link = '<a href="options-general.php?page=' . $this->parent::TOKEN . '_settings">' . __( 'Settings', 'TouchPoint-WP' ) . '</a>';
+		$settings_link = '<a href="options-general.php?page=' . $this->parent::TOKEN . '_Settings">' . __( 'Settings', 'TouchPoint-WP' ) . '</a>';
 		array_push( $links, $settings_link );
 		return $links;
 	}
@@ -195,13 +195,25 @@ class TouchPointWP_Settings {
 					'description' => __( 'The web address for your TouchPoint database, without the https or any slashes.', 'TouchPoint-WP' ),
 					'type'        => 'text',
 					'default'     => 'mychurch.tpsdb.com',
-					'placeholder' => __( 'mychurch.tpsdb.com', 'TouchPoint-WP' ),
+					'placeholder' => 'mychurch.tpsdb.com',
 				],
 			],
 		];
 
 		$settings['authentication'] = [
-			
+			'title'       => __( 'Authentication', 'TouchPoint-WP' ),
+			'description' => __( 'Allow users to log into WordPress using TouchPoint.', 'TouchPoint-WP' ),
+			'fields'      => [
+				[
+					'id'          => 'auth_script_name',
+					'label'       => __( 'Authentication Script name', 'TouchPoint-WP' ),
+					'description' => __( 'The filename of the authentication script installed in your TouchPoint 
+											database.', 'TouchPoint-WP' ),
+					'type'        => 'text',
+					'default'     => 'WebAuth',
+					'placeholder' => 'WebAuth'
+				],
+			],
 		];
 
 		/*	$settings['general'] = [
@@ -329,7 +341,7 @@ class TouchPointWP_Settings {
 				), 
 			); */
 
-		$settings = apply_filters( $this->parent::TOKEN . '_settings_fields', $settings );
+		$settings = apply_filters( $this->parent::TOKEN . '_Settings_fields', $settings );
 
 		return $settings;
 	}
@@ -356,7 +368,7 @@ class TouchPointWP_Settings {
 					continue;
 
 				// Add section to page.
-				add_settings_section( $section, $data['title'], [$this, 'settings_section'], $this->parent::TOKEN . '_settings' );
+				add_settings_section( $section, $data['title'], [$this, 'settings_section'], $this->parent::TOKEN . '_Settings' );
 
 				foreach ( $data['fields'] as $field ) {
 
@@ -368,14 +380,14 @@ class TouchPointWP_Settings {
 
 					// Register field.
 					$option_name = $this->base . $field['id'];
-					register_setting( $this->parent::TOKEN . '_settings', $option_name, $validation );
+					register_setting( $this->parent::TOKEN . '_Settings', $option_name, $validation );
 
 					// Add field to page.
 					add_settings_field(
 						$field['id'],
 						$field['label'],
-						[$this->parent->admin, 'display_field'] ,
-						$this->parent::TOKEN . '_settings',
+						[$this->parent->admin, 'display_field'],
+						$this->parent::TOKEN . '_Settings',
 						$section,
 						[
 							'field'  => $field,
@@ -409,8 +421,8 @@ class TouchPointWP_Settings {
 	public function settings_page() {
 
 		// Build page HTML.
-		$html      = '<div class="wrap" id="' . $this->parent::TOKEN . '_settings">' . "\n";
-		$html .= '<h2>' . __( 'Plugin Settings', 'TouchPoint-WP' ) . '</h2>' . "\n";
+		$html      = '<div class="wrap" id="' . $this->parent::TOKEN . '_Settings">' . "\n";
+		$html .= '<h2>' . __( 'TouchPoint-WP Settings', 'TouchPoint-WP' ) . '</h2>' . "\n";
 
 		$tab = '';
 
@@ -428,11 +440,9 @@ class TouchPointWP_Settings {
 
 				// Set tab class.
 				$class = 'nav-tab';
-				if ( ! isset( $_GET['tab'] ) ) {
-					if ( 0 === $c ) {
-						$class .= ' nav-tab-active';
-					}
-				} elseif ( isset( $_GET['tab'] ) && $section == $_GET['tab'] ) { //phpcs:ignore
+				if ( ! isset( $_GET['tab'] ) && 0 === $c ) {
+					$class .= ' nav-tab-active';
+				} elseif ( isset( $_GET['tab'] ) && $section == $_GET['tab'] ) {
 					$class .= ' nav-tab-active';
 				}
 
@@ -455,16 +465,16 @@ class TouchPointWP_Settings {
 
 		// Get settings fields.
 		ob_start();
-		settings_fields( $this->parent::TOKEN . '_settings' );
-		do_settings_sections( $this->parent::TOKEN . '_settings' );
+		settings_fields( $this->parent::TOKEN . '_Settings' );
+		do_settings_sections( $this->parent::TOKEN . '_Settings' );
 		$html .= ob_get_clean();
 
-		$html     .= '<p class="submit">' . "\n";
+		$html .= '<p class="submit">' . "\n";
 		$html .= '<input type="hidden" name="tab" value="' . esc_attr( $tab ) . '" />' . "\n";
 		$html .= '<input name="Submit" type="submit" class="button-primary" value="' . esc_attr( __( 'Save Settings', 'TouchPoint-WP' ) ) . '" />' . "\n";
-		$html     .= '</p>' . "\n";
-		$html         .= '</form>' . "\n";
-		$html             .= '</div>' . "\n";
+		$html .= '</p>' . "\n";
+		$html .= '</form>' . "\n";
+		$html .= '</div>' . "\n";
 
 		echo $html;
 	}

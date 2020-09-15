@@ -26,16 +26,19 @@ class TouchPointWP {
 	public const TOKEN = "TouchPointWP";
 
 	/**
+	 * Text domain for translation files
+	 */
+	public const TEXT_DOMAIN = "TouchPoint-WP";
+
+	/**
 	 * The singleton.
 	 */
 	private static ?TouchPointWP $_instance = null;
 
-//	/**  KURTZ remove? */
-//	 * Local instance of WordPress_Plugin_Template_Admin_API
-//	 *
-//	 * @var WordPress_Plugin_Template_Admin_API|null
-//	 */
-//	public $admin = null;
+	/**
+	 * The admin object.
+	 */
+	public ?TouchPointWP_Admin $admin = null;
 
 	/**
 	 * Settings object
@@ -85,40 +88,48 @@ class TouchPointWP {
 		register_activation_hook( $this->file, [ $this, 'install' ] );
 
 		// Load frontend JS & CSS.
-		add_action( 'wp_enqueue_scripts', [$this, 'enqueue_styles'] , 10 );
-		add_action( 'wp_enqueue_scripts', [$this, 'enqueue_scripts'] , 10 );
+//		add_action( 'wp_enqueue_scripts', [$this, 'enqueue_styles'] , 10 ); // TODO restore?
+//		add_action( 'wp_enqueue_scripts', [$this, 'enqueue_scripts'] , 10 ); // TODO restore?
 
 		// Load admin JS & CSS.
-		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_scripts'], 10, 1 );
-		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_styles'], 10, 1 );
+//		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_scripts'], 10, 1 ); // TODO restore?
+//		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_styles'], 10, 1 ); // TODO restore?
 
-//		// Load API for generic admin functions.
-//		if ( is_admin() ) {  // KURTZ remove?
-//			$this->admin = new WordPress_Plugin_Template_Admin_API();
-//		}
+		// Load API for generic admin functions.
+		if ( is_admin() ) {
+			$this->admin = new TouchPointWP_Admin();
+		}
 
 		// Handle localisation.
 		$this->load_plugin_textdomain();
 		add_action( 'init', [$this, 'load_localisation'], 0 );
 	}
 
+	public static function init() {
+		$instance = self::instance( __FILE__ );
+
+		if ( is_null( $instance->settings ) ) {
+			$instance->settings = TouchPointWP_Settings::instance( $instance );
+		}
+
+		return $instance;
+	}
+
 	/**
 	 * Load plugin localisation
 	 */
 	public function load_localisation() {
-		load_plugin_textdomain( 'touchpoint-wp', false, dirname( plugin_basename( $this->file ) ) . '/lang/' );
+		load_plugin_textdomain( self::TEXT_DOMAIN, false, dirname( plugin_basename( $this->file ) ) . '/lang/' );
 	}
 
 	/**
 	 * Load plugin textdomain
 	 */
 	public function load_plugin_textdomain() {
-		$domain = 'touchpoint-wp';
+		$locale = apply_filters( 'plugin_locale', get_locale(), self::TEXT_DOMAIN );
 
-		$locale = apply_filters( 'plugin_locale', get_locale(), $domain );
-
-		load_textdomain( $domain, WP_LANG_DIR . '/' . $domain . '/' . $domain . '-' . $locale . '.mo' );
-		load_plugin_textdomain( $domain, false, dirname( plugin_basename( $this->file ) ) . '/lang/' );
+		load_textdomain( self::TEXT_DOMAIN, WP_LANG_DIR . '/' . self::TEXT_DOMAIN . '/' . self::TEXT_DOMAIN . '-' . $locale . '.mo' );
+		load_plugin_textdomain( self::TEXT_DOMAIN, false, dirname( plugin_basename( $this->file ) ) . '/lang/' );
 	}
 
 	/**
