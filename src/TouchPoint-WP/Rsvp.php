@@ -8,36 +8,74 @@ namespace tp\TouchPointWP;
  * @package tp\TouchPointWP
  */
 
+//if ( ! defined( 'ABSPATH' ) ) { // TODO restore
+//    exit;
+//}
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    Rsvp::handleApiRequest();
 }
+
 
 /**
  * The Auth-handling class.
  */
-class Rsvp
+abstract class Rsvp
 {
-    public const SHORTCODE = "TouchPoint-RSVP";
+    public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "RSVP";
 
-    public static function register() {
+    private static bool $_isInitiated = false;
+
+    public static function init()
+    {
+        if (self::$_isInitiated)
+            return;
+
+        self::$_isInitiated = true;
+
+        self::registerShortcode();
+
+        wp_register_script(TouchPointWP::SHORTCODE_PREFIX . 'rsvp',
+                           TouchPointWP::instance()->assets_url . 'js/rsvp.js',
+                           [TouchPointWP::SHORTCODE_PREFIX . 'base'],
+                           TouchPointWP::VERSION, true);
+
+        add_action('wp_enqueue_scripts', 'tp\\TouchPointWP\\Rsvp::enqueueScripts');
+    }
+
+    public static function registerShortcode()
+    {
         if (! shortcode_exists(self::SHORTCODE))
             add_shortcode(self::SHORTCODE, 'tp\\TouchPointWP\\Rsvp::shortcode');
     }
 
-    public static function unregister() {
+    public static function unregisterShortcode()
+    {
         if (shortcode_exists(self::SHORTCODE))
             remove_shortcode(self::SHORTCODE);
     }
 
-    public static function shortcode(array $params = [], string $content = "RSVP")
+    public static function enqueueScripts() {
+        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'rsvp');
+    }
+
+    /**
+     * @param array $params
+     * @param string $content
+     *
+     * @return string
+     */
+    public static function shortcode(array $params, string $content)
     {
+
         // standardize parameters
         $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
-        $params = array_merge([
-            'class' => 'TouchPoint-RSVP btn'
-                              ], $params);
+        $params = shortcode_atts([
+            'class' => 'TouchPoint-RSVP btn',
+            'meetingid' => null
+                              ], $params, self::SHORTCODE);
+        $content = $content === '' ? __("RSVP", TouchPointWP::TEXT_DOMAIN) : $content;
 
         // Verify that meeting ID is provided
         if (!isset($params['meetingid']) || !is_numeric($params['meetingid'])) {
@@ -45,17 +83,25 @@ class Rsvp
             return "<!-- Can't add an RSVP link without a proper Meeting ID in a meetingId parameter. -->" . $content;
         }
 
-        // TODO verify that the meeting is real
-        $orgId = 0; // TODO get real orgId.
+        $meetingId = intval($params['meetingid']);
 
         // get any nesting
         $content = do_shortcode($content);
 
-        $href = TouchPointWP::instance()->host . "\\OnlineReg\\" . $orgId;
+
+
+        $href = TouchPointWP::instance()->host . "\\Meeting\\" . $meetingId; // TODO consider options for refering to the registration instead.  Do not make API calls here.
 
         // create the link
-        $content = "<a href=\"" . $href . "\" class=\"" . $params['class'] . "\" onclick=\"TouchPointWP.RSVP.btnClick(this)\" data-load-library=\"TouchPoint-WP-RSVP\">" . $content . "</a>";
+        $content = "<a href=\"" . $href . "\" class=\"" . $params['class'] . "\" onclick=\"TouchPointWP.RSVP.btnClick(this)\" onmouseover=\"TouchPointWP.RSVP.preload(this)\" data-touchpoint-mtg=\"$meetingId\">$content</a>";
 
         return $content;
+    }
+
+    public static function handleApiRequest() {
+        // TODO this.
+//        wp_remote_post()
+        TouchPointWP::getApiCredentials();
+        echo json_encode($_GET);
     }
 }

@@ -30,6 +30,11 @@ class TouchPointWP {
 	 */
 	public const TEXT_DOMAIN = "TouchPoint-WP";
 
+    /**
+     * Prefix to use for all shortcodes.
+     */
+	public const SHORTCODE_PREFIX = "TP-";
+
 	/**
 	 * The singleton.
 	 */
@@ -60,8 +65,8 @@ class TouchPointWP {
 	 */
 	public string $assets_dir;
 
-	/**  KURTZ remove?
-	 * The plugin assets URL.
+	/**
+	 * The plugin assets URL, with trailing slash.
 	 */
 	public string $assets_url;
 
@@ -69,6 +74,11 @@ class TouchPointWP {
 	 * Suffix for JavaScripts.
 	 */
 	public string $script_suffix;
+
+    /**
+     * @var Rsvp The RSVP object for the RSVP tool, if feature is enabled.
+     */
+	public Rsvp $rsvp;
 
 	/**
 	 * Constructor function.
@@ -100,17 +110,32 @@ class TouchPointWP {
 			$this->admin = new TouchPointWP_Admin();
 		}
 
+        wp_register_script(self::SHORTCODE_PREFIX . 'base',
+                           $this->assets_url . 'js/base.js',   //
+                           [],
+                           self::VERSION, true);
+
 		// Handle localisation.
 		$this->load_plugin_textdomain();
 		add_action( 'init', [$this, 'load_localisation'], 0 );
+
+		// Load RSVP tool if enabled.
+        if (get_option('tp_enable_rsvp') === "on") {
+            require_once 'Rsvp.php';
+        }
 	}
 
-	public static function init() {
-		$instance = self::instance( __FILE__ );
+	public static function init($file) {
+		$instance = self::instance($file);
 
 		if ( is_null( $instance->settings ) ) {
 			$instance->settings = TouchPointWP_Settings::instance( $instance );
 		}
+
+        // Load RSVP tool if enabled.
+        if (get_option('tp_enable_rsvp') === "on") {
+            Rsvp::init();
+        }
 
 		return $instance;
 	}
@@ -177,5 +202,12 @@ class TouchPointWP {
 	private function _log_version_number() {
 		update_option(self::TOKEN . '_version', self::VERSION );
 	}
+
+	public static function getApiCredentials() {
+	    return (object)[
+	        'user' => get_option('tp_api_user'),
+            'pass' => get_option('tp_api_pass')
+        ];
+    }
 
 }

@@ -133,7 +133,7 @@ class TouchPointWP_Settings {
 	 *
 	 * @return array
 	 */
-	public function configure_settings( $settings = array() ) {
+	public function configure_settings( $settings = [] ) {
 		return $settings;
 	}
 
@@ -148,6 +148,7 @@ class TouchPointWP_Settings {
 		// If you're not including an image upload then you can leave this function call out.
 		wp_enqueue_media();
 
+		// TODO this this out.  Most of this is not relevant.
 		wp_register_script( $this->parent::TOKEN . '-settings-js', $this->parent->assets_url . 'js/settings' . $this->parent->script_suffix . '.js', ['jquery'], '1.0.0', true );
 		wp_enqueue_script( $this->parent::TOKEN . '-settings-js' );
 	}
@@ -173,7 +174,7 @@ class TouchPointWP_Settings {
 
 		$settings['basic'] = [
 			'title'       => __( 'Basic Settings', 'TouchPoint-WP' ),
-			'description' => __( 'Connect to TouchPoint and choose your options.', 'TouchPoint-WP' ),
+			'description' => __( 'Connect to TouchPoint and choose which features you with to use.', 'TouchPoint-WP' ),
 			'fields'      => [
 				[
 					'id'          => 'enable_authentication',
@@ -182,6 +183,13 @@ class TouchPointWP_Settings {
 					'type'        => 'checkbox',
 					'default'     => '',
 				],
+                [
+                    'id'          => 'enable_rsvp',
+                    'label'       => __( 'Enable RSVP Tool', 'TouchPoint-WP' ),
+                    'description' => __( 'Add a crazy-simple RSVP button to WordPress event pages.', 'TouchPoint-WP' ),
+                    'type'        => 'checkbox',
+                    'default'     => '',
+                ],
 				[
 					'id'          => 'enable_small_groups',
 					'label'       => __( 'Enable Small Groups', 'TouchPoint-WP' ),
@@ -197,6 +205,22 @@ class TouchPointWP_Settings {
 					'default'     => 'mychurch.tpsdb.com',
 					'placeholder' => 'mychurch.tpsdb.com',
 				],
+                [
+                    'id'          => 'api_user',
+                    'label'       => __( 'TouchPoint API User name', 'TouchPoint-WP' ),
+                    'description' => __( 'The username of a user account in TouchPoint with API permissions.  Required for RSVP tool.', 'TouchPoint-WP' ),
+                    'type'        => 'text',
+                    'default'     => '',
+                    'placeholder' => '',
+                ],
+                [
+                    'id'          => 'api_pass',
+                    'label'       => __( 'TouchPoint API User Password', 'TouchPoint-WP' ),
+                    'description' => __( 'The password of a user account in TouchPoint with API permissions.', 'TouchPoint-WP' ),
+                    'type'        => 'password',
+                    'default'     => '',
+                    'placeholder' => '',
+                ],
 			],
 		];
 
@@ -410,7 +434,7 @@ class TouchPointWP_Settings {
 	 */
 	public function settings_section( array $section ) {
 		$html = '<p> ' . $this->settings[ $section['id'] ]['description'] . '</p>' . "\n";
-		echo $html; //phpcs:ignore
+		echo $html;
 	}
 
 	/**
