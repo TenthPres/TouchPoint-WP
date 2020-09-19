@@ -1,30 +1,34 @@
 {
-    "name": "tenthpres/touchpoint-wp",
-    "description": "A WordPress Plugin for integrating with TouchPoint Church Management Software.",
-    "license": "AGPL-3.0-or-later",
-    "type": "wordpress-plugin",
-    "keywords": [
-        "wordpress", "wp", "TouchPoint", "ChMS", "Church Management"
-    ],
-    "authors": [
-        {
-            "name": "James K.",
-            "email": "jkrrv@jkrrv.org"
-        }
-    ],
-    "support": {
-        "issues": "https://github.com/TenthPres/TouchPoint-WP"
-    },
-    "autoload": {
-        "psr-4": {
-            "tp\\TouchPointWP\\": "src/TouchPoint-WP"
-        }
-    },
-    "require": {
-        "php": ">=7.4.0",
-        "composer/installers": "~1.0"
-    },
-    "require-dev": {
-
+  "name": "tenthpres/touchpoint-wp",
+  "description": "A WordPress Plugin for integrating with TouchPoint Church Management Software.",
+  "license": "AGPL-3.0-or-later",
+  "type": "wordpress-plugin",
+  "keywords": [
+    "wordpress",
+    "wp",
+    "TouchPoint",
+    "ChMS",
+    "Church Management"
+  ],
+  "authors": [
+    {
+      "name": "James K.",
+      "email": "jkrrv@jkrrv.org"
     }
+  ],
+  "support": {
+    "issues": "https://github.com/TenthPres/TouchPoint-WP/issues"
+  },
+  "autoload": {
+    "psr-4": {
+      "tp\\TouchPointWP\\": "src/TouchPoint-WP"
+    }
+  },
+  "require": {
+    "php": ">=7.4.0",
+    "composer/installers": "~1.0",
+    "ext-json": "*"
+  },
+  "require-dev": {
+  }
 }
