@@ -28,11 +28,6 @@ class TouchPointWP_Settings {
 	public ?TouchPointWP $parent = null;
 
 	/**
-	 * Prefix for plugin settings.
-	 */
-	public string $base;
-
-	/**
 	 * Available settings for plugin.
 	 */
 	public array $settings = [];
@@ -44,8 +39,6 @@ class TouchPointWP_Settings {
 	 */
 	public function __construct(TouchPointWP $parent) {
 		$this->parent = $parent;
-
-		$this->base = 'tp_';
 
 		// Initialise settings.
 		add_action( 'init', [$this, 'init_settings'], 11 );
@@ -66,7 +59,7 @@ class TouchPointWP_Settings {
 		);
 
 		// Configure placement of plugin settings page. See readme for implementation.
-		add_filter( $this->base . 'menu_settings', [$this, 'configure_settings'] );
+		add_filter( TouchPointWP::SETTINGS_PREFIX . 'menu_settings', [$this, 'configure_settings'] );
 	}
 
 	/**
@@ -111,7 +104,7 @@ class TouchPointWP_Settings {
 	 */
 	private function menu_settings() {
 		return apply_filters(
-			$this->base . 'menu_settings',
+			TouchPointWP::SETTINGS_PREFIX . 'menu_settings',
 			[
 				'location'    => 'options', // Possible settings: options, menu, submenu.
 				'parent_slug' => 'options-general.php',
@@ -403,7 +396,7 @@ class TouchPointWP_Settings {
 					}
 
 					// Register field.
-					$option_name = $this->base . $field['id'];
+					$option_name = TouchPointWP::SETTINGS_PREFIX . $field['id'];
 					register_setting( $this->parent::TOKEN . '_Settings', $option_name, $validation );
 
 					// Add field to page.
@@ -415,7 +408,7 @@ class TouchPointWP_Settings {
 						$section,
 						[
 							'field'  => $field,
-							'prefix' => $this->base,
+							'prefix' => TouchPointWP::SETTINGS_PREFIX,
 						]
 					);
 				}

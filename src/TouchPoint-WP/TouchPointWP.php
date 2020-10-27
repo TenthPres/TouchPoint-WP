@@ -35,6 +35,11 @@ class TouchPointWP {
      */
 	public const SHORTCODE_PREFIX = "TP-";
 
+    /**
+     * Prefix to use for all settings.
+     */
+    public const SETTINGS_PREFIX = "tp_";
+
 	/**
 	 * The singleton.
 	 */
@@ -120,7 +125,7 @@ class TouchPointWP {
 		add_action( 'init', [$this, 'load_localisation'], 0 );
 
 		// Load RSVP tool if enabled.
-        if (get_option('tp_enable_rsvp') === "on") {
+        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
             require_once 'Rsvp.php';
         }
 	}
@@ -133,7 +138,7 @@ class TouchPointWP {
 		}
 
         // Load RSVP tool if enabled.
-        if (get_option('tp_enable_rsvp') === "on") {
+        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
             Rsvp::init();
         }
 
@@ -196,6 +201,13 @@ class TouchPointWP {
 		$this->_log_version_number();
 	}
 
+    /**
+     * @return string The URL of the TouchPoint instance.
+     */
+	public function host() {
+	    return "https://" . get_option(self::SETTINGS_PREFIX . "host");
+    }
+
 	/**
 	 * Log the plugin version number.
 	 */
@@ -205,8 +217,8 @@ class TouchPointWP {
 
 	public static function getApiCredentials() {
 	    return (object)[
-	        'user' => get_option('tp_api_user'),
-            'pass' => get_option('tp_api_pass')
+	        'user' => get_option(self::SETTINGS_PREFIX . 'api_user'),
+            'pass' => get_option(self::SETTINGS_PREFIX . 'api_pass')
         ];
     }
 
