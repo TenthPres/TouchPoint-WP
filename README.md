@@ -2,8 +2,8 @@
 A WordPress Plugin for integrating with [TouchPoint Church Management Software](https://github.com/bvcms/bvcms).
 
 Developed by [Tenth Presbyterian Church](https://tenth.org) for their website and released under the AGPL License. This 
-plugin is not developed or supported by TouchPoint.  While their support team is excellent, they won't be able to help 
-you with this. 
+plugin is not developed or supported by TouchPoint.  While their support team is stellar, they probably won't be able to 
+help you with this. 
 
 To install this plugin for your church website, you will need significant configuration of your TouchPoint database, 
 depending somewhat on which features you intend to use.  See the sections below for installation instructions for each 
@@ -12,8 +12,14 @@ please, keep your environment up to date.
 
 Some features require other plugins, which may or may not be free.  
 
-## Existing Features
-(literally none yet)
+Some features also require a TouchPoint user account with API-level access.  New TouchPoint databases do not have one by
+default.  If your church doesn't have one, have your admin open a support ticket with TouchPoint to create one, 
+referencing this plugin. 
+
+## Features
+### Crazy-Simple RSVP interface
+Let folks RSVP for an event for each member in their family (and, optionally, related families) in just a few clicks.
+No login required, just an email address and zip code. 
 
 ## Future Features
 - Authenticate
@@ -22,7 +28,6 @@ Some features require other plugins, which may or may not be free.
     - Track viewership of webpages and web resources non-anonymously.  (Know who attended your virtual worship service.)
     - Sync WordPress Permissions with TouchPoint orgs or roles. 
 - Events (Requires [The Events Calendar from ModernTribe](https://theeventscalendar.com/)) 
-    - Crazy-simple RSVP Interface for events
     - Link TouchPoint Meetings with Calendar events (Requires Pro version of The Events Calendar)
     - Improved display of events in TouchPoint custom mobile apps. 
 - Small Groups

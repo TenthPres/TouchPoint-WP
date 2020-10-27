@@ -79,7 +79,7 @@ abstract class Rsvp
 
         // Verify that meeting ID is provided
         if (!isset($params['meetingid']) || !is_numeric($params['meetingid'])) {
-            _doing_it_wrong(__FUNCTION__, "No Meeting ID was provided.", TouchPointWP::VERSION);
+            _doing_it_wrong(__FUNCTION__, "A valid Meeting ID was not provided in the TP-RSVP shortcode.", TouchPointWP::VERSION);
             return "<!-- Can't add an RSVP link without a proper Meeting ID in a meetingId parameter. -->" . $content;
         }
 
@@ -90,7 +90,7 @@ abstract class Rsvp
 
 
 
-        $href = TouchPointWP::instance()->host . "\\Meeting\\" . $meetingId; // TODO consider options for refering to the registration instead.  Do not make API calls here.
+        $href = TouchPointWP::instance()->host() . "/Meeting/" . $meetingId; // TODO consider options for referring to the registration instead.  Do not make API calls here.
 
         // create the link
         $content = "<a href=\"" . $href . "\" class=\"" . $params['class'] . "\" onclick=\"TouchPointWP.RSVP.btnClick(this)\" onmouseover=\"TouchPointWP.RSVP.preload(this)\" data-touchpoint-mtg=\"$meetingId\">$content</a>";
