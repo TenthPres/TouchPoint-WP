@@ -40,6 +40,8 @@ class TouchPointWP {
      */
     public const SETTINGS_PREFIX = "tp_";
 
+    public const DEFAULT_IP_WHITELIST = '20.185.150.52\n20.42.89.106';
+
 	/**
 	 * The singleton.
 	 */
@@ -81,9 +83,14 @@ class TouchPointWP {
 	public string $script_suffix;
 
     /**
-     * @var Rsvp The RSVP object for the RSVP tool, if feature is enabled.
+     * @var ?Rsvp The RSVP object for the RSVP tool, if feature is enabled.
      */
-	public Rsvp $rsvp;
+	protected ?Rsvp $rsvp = null;
+
+    /**
+     * @var ?Auth The Auth object for the Authentication tool, if feature is enabled.
+     */
+    protected ?Auth $auth = null;
 
 	/**
 	 * Constructor function.
@@ -103,8 +110,7 @@ class TouchPointWP {
 		register_activation_hook( $this->file, [ $this, 'install' ] );
 
 		// Load frontend JS & CSS.
-//		add_action( 'wp_enqueue_scripts', [$this, 'enqueue_styles'] , 10 ); // TODO restore?
-//		add_action( 'wp_enqueue_scripts', [$this, 'enqueue_scripts'] , 10 ); // TODO restore?
+		add_action( 'wp_register_scripts', [$this, 'registerScriptsAndStyles'] , 10 );
 
 		// Load admin JS & CSS.
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_scripts'], 10, 1 ); // TODO restore?
@@ -115,14 +121,14 @@ class TouchPointWP {
 			$this->admin = new TouchPointWP_Admin();
 		}
 
-        wp_register_script(self::SHORTCODE_PREFIX . 'base',
-                           $this->assets_url . 'js/base.js',   //
-                           [],
-                           self::VERSION, true);
-
 		// Handle localisation.
 		$this->load_plugin_textdomain();
 		add_action( 'init', [$this, 'load_localisation'], 0 );
+
+        // Load Auth tool if enabled.
+        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
+            require_once 'Auth.php';
+        }
 
 		// Load RSVP tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
@@ -137,13 +143,33 @@ class TouchPointWP {
 			$instance->settings = TouchPointWP_Settings::instance( $instance );
 		}
 
+        // Load Auth tool if enabled.
+        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
+            $instance->Auth = Auth::init($instance);
+        }
+
         // Load RSVP tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
-            Rsvp::init();
+            $instance->Rsvp = Rsvp::init($instance);
         }
 
 		return $instance;
 	}
+
+	public function registerScriptsAndStyles() {
+        wp_register_script(self::SHORTCODE_PREFIX . 'base',
+                           $this->assets_url . 'js/base.js',   //
+                           [],
+                           self::VERSION, true);
+
+        if (!!$this->auth) {
+            Auth::registerScriptsAndStyles();
+        }
+
+        if (!!$this->rsvp) {
+            Rsvp::registerScriptsAndStyles();
+        }
+    }
 
 	/**
 	 * Load plugin localisation
@@ -205,7 +231,7 @@ class TouchPointWP {
      * @return string The URL of the TouchPoint instance.
      */
 	public function host() {
-	    return "https://" . get_option(self::SETTINGS_PREFIX . "host");
+	    return "https://" . $this->settings->host;
     }
 
 	/**
@@ -215,10 +241,10 @@ class TouchPointWP {
 		update_option(self::TOKEN . '_version', self::VERSION );
 	}
 
-	public static function getApiCredentials() {
+	public function getApiCredentials() {
 	    return (object)[
-	        'user' => get_option(self::SETTINGS_PREFIX . 'api_user'),
-            'pass' => get_option(self::SETTINGS_PREFIX . 'api_pass')
+	        'user' => $this->settings->api_user,
+            'pass' => $this->settings->api_pass
         ];
     }
 

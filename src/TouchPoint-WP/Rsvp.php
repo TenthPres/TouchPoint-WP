@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * The Auth-handling class.
  */
-abstract class Rsvp
+abstract class Rsvp extends Component
 {
     public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "RSVP";
 
@@ -28,24 +28,29 @@ abstract class Rsvp
     public static function init()
     {
         if (self::$_isInitiated)
-            return;
+            return true;
 
         self::$_isInitiated = true;
 
         self::registerShortcode();
 
-        wp_register_script(TouchPointWP::SHORTCODE_PREFIX . 'rsvp',
-                           TouchPointWP::instance()->assets_url . 'js/rsvp.js',
-                           [TouchPointWP::SHORTCODE_PREFIX . 'base'],
-                           TouchPointWP::VERSION, true);
-
         add_action('wp_enqueue_scripts', 'tp\\TouchPointWP\\Rsvp::enqueueScripts');
+
+        return true;
     }
 
     public static function registerShortcode()
     {
         if (! shortcode_exists(self::SHORTCODE))
             add_shortcode(self::SHORTCODE, 'tp\\TouchPointWP\\Rsvp::shortcode');
+    }
+
+    public static function registerScriptsAndStyles()
+    {
+        wp_register_script(TouchPointWP::SHORTCODE_PREFIX . 'rsvp',
+                           TouchPointWP::instance()->assets_url . 'js/rsvp.js',
+                           [TouchPointWP::SHORTCODE_PREFIX . 'base'],
+                           TouchPointWP::VERSION, true);
     }
 
     public static function unregisterShortcode()

@@ -172,7 +172,8 @@ class TouchPointWP_Settings {
 				[
 					'id'          => 'enable_authentication',
 					'label'       => __( 'Enable Authentication', 'TouchPoint-WP' ),
-					'description' => __( 'Allow TouchPoint users to sign into this website with TouchPoint.', 'TouchPoint-WP' ),
+					'description' => __( 'Allow TouchPoint users to sign into this website with TouchPoint.',
+                                         'TouchPoint-WP' ),
 					'type'        => 'checkbox',
 					'default'     => '',
 				],
@@ -186,14 +187,16 @@ class TouchPointWP_Settings {
 				[
 					'id'          => 'enable_small_groups',
 					'label'       => __( 'Enable Small Groups', 'TouchPoint-WP' ),
-					'description' => __( 'Load Small Groups from TouchPoint for a web-based Small Group finder.', 'TouchPoint-WP' ),
+					'description' => __( 'Load Small Groups from TouchPoint for a web-based Small Group finder.',
+                                         'TouchPoint-WP' ),
 					'type'        => 'checkbox',
 					'default'     => '',
 				],
 				[
 					'id'          => 'host',
 					'label'       => __( 'TouchPoint Host Name', 'TouchPoint-WP' ),
-					'description' => __( 'The web address for your TouchPoint database, without the https or any slashes.', 'TouchPoint-WP' ),
+					'description' => __( 'The web address for your TouchPoint database, without the https or any slashes.',
+                                         'TouchPoint-WP' ),
 					'type'        => 'text',
 					'default'     => 'mychurch.tpsdb.com',
 					'placeholder' => 'mychurch.tpsdb.com',
@@ -201,7 +204,8 @@ class TouchPointWP_Settings {
                 [
                     'id'          => 'api_user',
                     'label'       => __( 'TouchPoint API User name', 'TouchPoint-WP' ),
-                    'description' => __( 'The username of a user account in TouchPoint with API permissions.  Required for RSVP tool.', 'TouchPoint-WP' ),
+                    'description' => __( 'The username of a user account in TouchPoint with API permissions.  Required 
+                                         for RSVP tool.', 'TouchPoint-WP' ),
                     'type'        => 'text',
                     'default'     => '',
                     'placeholder' => '',
@@ -209,10 +213,19 @@ class TouchPointWP_Settings {
                 [
                     'id'          => 'api_pass',
                     'label'       => __( 'TouchPoint API User Password', 'TouchPoint-WP' ),
-                    'description' => __( 'The password of a user account in TouchPoint with API permissions.', 'TouchPoint-WP' ),
-                    'type'        => 'password',
+                    'description' => __( 'The password of a user account in TouchPoint with API permissions.',
+                                         'TouchPoint-WP' ),
+                    'type'        => 'text_secret',
                     'default'     => '',
                     'placeholder' => '',
+                ],
+                [
+                    'id'          => 'ip_whitelist',
+                    'label'       => __( 'TouchPoint Server IP Addresses', 'TouchPoint-WP' ),
+                    'description' => __( 'One IP address per line.  Leave default unless you know what you\'re doing.', 'TouchPoint-WP' ),
+                    'type'        => 'textarea',
+                    'default'     => '',
+                    'placeholder' => TouchPointWP::DEFAULT_IP_WHITELIST,
                 ],
 			],
 		];
@@ -230,6 +243,46 @@ class TouchPointWP_Settings {
 					'default'     => 'WebAuth',
 					'placeholder' => 'WebAuth'
 				],
+                [
+                    'id'          => 'auth_default',
+                    'label'       => __( 'Make TouchPoint the default authentication method.', 'TouchPoint-WP' ),
+                    'description' => __( 'By checking this box, the TouchPoint login page will become the default.  This
+                                           will make it significantly easier to sign in with TouchPoint credentials, and 
+                                           significantly harder to sign in with anything else.', 'TouchPoint-WP' ),
+                    'type'        => 'checkbox',
+                    'default'     => '',
+                ],
+                [
+                    'id'          => 'auth_display_name',
+                    'label'       => __( 'Display Name', 'TouchPoint-WP' ),
+                    'description' => __( 'Shows on the WordPress login screen.', 'TouchPoint-WP' ),
+                    'type'        => 'text',
+                    'default'     => 'TouchPoint',
+                    'placeholder' => 'TouchPoint'
+                ],
+                [
+                    'id'          => 'auth_full_logout',
+                    'label'       => __( 'Enable full logout', 'TouchPoint-WP' ),
+                    'description' => __( 'Logout of TouchPoint when logging out of WordPress.', 'TouchPoint-WP' ),
+                    'type'        => 'checkbox',
+                    'default'     => 'on',
+                ],
+                [
+                    'id'          => 'auth_auto_provision',
+                    'label'       => __( 'Enable Auto-Provisioning', 'TouchPoint-WP' ),
+                    'description' => __( 'Automatically create WordPress users, if needed, to match authenticated 
+                                            TouchPoint users.', 'TouchPoint-WP' ),
+                    'type'        => 'checkbox',
+                    'default'     => 'on',
+                ],
+                [
+                    'id'          => 'auth_background',
+                    'label'       => __( 'Enable Auto-Sign in', 'TouchPoint-WP' ),
+                    'description' => __( 'Automatically sign in WordPress users when already signed into TouchPoint.',
+                                         'TouchPoint-WP' ),
+                    'type'        => 'checkbox',
+                    'default'     => 'on',
+                ],
 			],
 		];
 
@@ -362,6 +415,47 @@ class TouchPointWP_Settings {
 
 		return $settings;
 	}
+
+    /**
+     * @param string $what The field to get a value for
+     *
+     * @return false|mixed  The value, if set.  False if not set.
+     */
+	public function __get(string $what) {
+	    // TODO does not reflect defaults which have not yet been saved.
+        return get_option(TouchPointWP::SETTINGS_PREFIX . $what, false);
+    }
+
+    /**
+     * @param string $what
+     * @param mixed  $value
+     *
+     * @return false|mixed
+     */
+    protected function set(string $what, $value) {
+	    return (update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, true) ? $value : false);
+    }
+
+
+    /**
+     * Get or generate an API key for use with TouchPoint
+     *
+     * @return string
+     */
+    public function getApiKey() {
+        $k = $this->__get('api_secret_key');
+        if ($k === false) {
+            $k = $this->replaceApiKey();
+        }
+        return $k;
+    }
+
+    /**
+     * @return string
+     */
+    protected function replaceApiKey() {
+        return $this->set('api_secret_key', com_create_guid());
+    }
 
 	/**
 	 * Register plugin settings
