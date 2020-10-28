@@ -81,7 +81,6 @@ class Auth extends Component
 
     public static function registerScriptsAndStyles()
     {
-
     }
 
     /**
@@ -123,6 +122,16 @@ class Auth extends Component
     }
 
     /**
+     * Get a random string with a timestamp on the end.
+     *
+     * @return string
+     */
+    protected static function generateAntiForgeryId()
+    {
+        return strtolower(substr(com_create_guid(), 1, 36) . "-" . dechex(time() + self::LOGIN_TIMEOUT));
+    }
+
+    /**
      * Generates the URL for logging out of TouchPoint. (Does not log out of WordPress.)
      */
     public function getLogoutUrl()
@@ -148,9 +157,8 @@ class Auth extends Component
 
         // If 'loginToken' is present, this is the Authorization Response looping back through TouchPoint.
         if (isset($_GET['loginToken'])) {
-
             // Verify that the login token is valid.
-            if (! Auth::AntiForgeryTimestampIsValid($_GET['loginToken'])) {
+            if ( ! Auth::AntiForgeryTimestampIsValid($_GET['loginToken'])) {
                 return new WP_Error(
                     'expired_login_token',
                     __('Your login credential expired.', 'TouchPoint-WP')
@@ -190,7 +198,7 @@ class Auth extends Component
             }
 
             // Verify that LST from Meta (from TouchPoint) matches Session.  Prevents login by link sharing.
-            if (! $lst === $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'auth_sessionToken']) {
+            if ( ! $lst === $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'auth_sessionToken']) {
                 return new WP_Error(
                     [
                         'LST_not_recognized',
@@ -200,13 +208,12 @@ class Auth extends Component
             }
 
             return $user;
-
         } elseif (isset($_GET['action']) && $_GET['action'] === 'touchpoint') { // TODO move to an API endpoint.
             // The TouchPoint script is posting data to WordPress.
 
             // Check that the application secret is valid.
             if (getallheaders()['X-API-KEY'] !== $this->tpwp->settings->getApiKey()) {
-                return new WP_Error(
+                self::apiError(
                     'invalid_key',
                     __('ERROR: Access denied.  API Key is not valid.', 'TouchPoint-WP')
                 );
@@ -230,7 +237,7 @@ class Auth extends Component
             }
 
             // The attempt was probably blocked by IP.
-            return new WP_Error(
+            self::apiError(
                 'remote_forbidden',
                 __('ERROR: Access denied.  Remote forbidden.', 'TouchPoint-WP')
             );
@@ -244,9 +251,34 @@ class Auth extends Component
     }
 
     /**
+     * @param string $afid Anti-forgery ID.
+     *
+     * @return bool True if the timestamp hasn't expired yet.
+     */
+    protected static function AntiForgeryTimestampIsValid(string $afid)
+    {
+        $afidTime = hexdec(substr($afid, 37));
+
+        return ($afidTime <= time() + self::LOGIN_TIMEOUT) && $afidTime >= time();
+    }
+
+    protected static function apiError($code, $message)
+    {
+        echo json_encode(
+            [
+                'status'  => 'failure',
+                'code'    => $code,
+                'message' => $message
+            ]
+        );
+
+        exit(1);
+    }
+
+    /**
      * @param string $data Data POSTed by TouchPoint
      *
-     * @return WP_Error  Prints response and terminates on success, or returns \WP_Error if an error occurred.
+     * @return void Prints response and terminates.
      */
     protected function handleTouchPointAuthData(string $data)
     {
@@ -258,12 +290,10 @@ class Auth extends Component
         }
 
         // Make sure sessionToken is valid
-        if (!isset($data->sessionToken) || !Auth::AntiForgeryTimestampIsValid($data->sessionToken)) {
-            return new WP_Error(
-                [
-                    'no_session_token',
-                    __('You don\'t appear to have a current session on our website.', 'TouchPoint-WP')
-                ]
+        if ( ! isset($data->sessionToken) || ! Auth::AntiForgeryTimestampIsValid($data->sessionToken)) {
+            self::apiError(
+                'no_session_token',
+                __('You don\'t appear to have a current session on our website.', 'TouchPoint-WP')
             );
         }
 
@@ -271,11 +301,9 @@ class Auth extends Component
         $user = $this->getWpUserFromTouchPointData($data);
 
         if ($user === false) {
-            return new WP_Error(
-                [
-                    'no_account',
-                    __('No user account found.  Consider enabling auto-provisioning.', 'TouchPoint-WP')
-                ]
+            self::apiError(
+                'no_account',
+                __('No user account found.  Consider enabling auto-provisioning.', 'TouchPoint-WP')
             );
         }
 
@@ -295,38 +323,15 @@ class Auth extends Component
         if ( ! (update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginToken', $resp['userLoginToken']) &&
                 update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginSessionToken', $data->sessionToken))
         ) {
-            return new WP_Error(
-                [
-                    'meta_update_failed',
-                    __('Unable to save tokens to user profile.', 'TouchPoint-WP')
-                ]
+            self::apiError(
+                'meta_update_failed',
+                __('Unable to save tokens to user profile.', 'TouchPoint-WP')
             );
         }
 
         echo json_encode($resp);
 
         exit(0);
-    }
-
-    /**
-     * Get a random string with a timestamp on the end.
-     *
-     * @return string
-     */
-    protected static function generateAntiForgeryId()
-    {
-        return strtolower(substr(com_create_guid(), 1, 36) . "-" . dechex(time() + self::LOGIN_TIMEOUT));
-    }
-
-    /**
-     * @param string $afid Anti-forgery ID.
-     *
-     * @return bool True if the timestamp hasn't expired yet.
-     */
-    protected static function AntiForgeryTimestampIsValid(string $afid)
-    {
-        $afidTime = hexdec(substr($afid, 37));
-        return ($afidTime <= time() + self::LOGIN_TIMEOUT) && $afidTime >= time();
     }
 
     /**
@@ -361,7 +366,7 @@ class Auth extends Component
 
         if ($this->tpwp->settings->auth_auto_provision === 'on') {
             // Provision a new user, since we were unsuccessful in finding one.
-            $uid = wp_create_user($this->generateUserName($data->p), com_create_guid(), $data->p->obj->EmailAddress);
+            $uid = wp_create_user(self::generateUserName($data->p), com_create_guid(), $data->p->obj->EmailAddress);
             if (is_numeric($uid)) { // user was successfully generated.
                 return new WP_User($uid);
             }
@@ -378,11 +383,11 @@ class Auth extends Component
      *
      * @return string  A viable, available username.
      */
-    protected function generateUserName(object $pData)
+    protected static function generateUserName(object $pData)
     {
         // Best.  Matches TouchPoint username.  However, it's possible users won't have usernames.
-        if (isset($data->p->obj->Usernames[0])) {
-            $try = $data->p->obj->Usernames[0];
+        if (isset($pData->obj->Usernames[0])) {
+            $try = $pData->obj->Usernames[0];
             if ( ! username_exists($try)) {
                 return $try;
             }
@@ -405,8 +410,15 @@ class Auth extends Component
         return "touchpoint-" . $pData->obj->PeopleId;
     }
 
-    protected function updateWpUserWithTouchPointData($user, $pData)
+    protected function updateWpUserWithTouchPointData(WP_User $user, $pData)
     {
+        update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'peopleId', $pData->obj->PeopleId);
+
+        update_user_meta($user->ID, 'nickname', $pData->obj->Name);
+        update_user_meta($user->ID, 'first_name', $pData->obj->FirstName);
+        update_user_meta($user->ID, 'last_name', $pData->obj->LastName);
+
+//        update_user_meta($user->ID, 'description', $pData->ev->bio);  TODO import bios.
     }
 
 }
