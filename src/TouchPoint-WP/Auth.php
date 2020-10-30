@@ -14,7 +14,7 @@ use WP_User_Query;
  */
 
 if ( ! defined('ABSPATH')) {
-    exit(1); // TODO evaluate API options.
+    exit(1);
 }
 
 /**
@@ -22,7 +22,9 @@ if ( ! defined('ABSPATH')) {
  */
 class Auth extends Component
 {
-    protected const LOGIN_TIMEOUT = 600; // number of seconds during which the user login tokens are valid. // TODO make session token valid longer than login token
+    protected const LOGIN_TIMEOUT = 30; // number of seconds during which the user login tokens are valid.
+    protected const SESSION_TIMEOUT = 600; // number of seconds during which the login link is valid (amount of time
+                                           // before the login page (silently) expires.
 
     private static ?Auth $_singleton = null;
     private TouchPointWP $tpwp;
@@ -110,7 +112,7 @@ class Auth extends Component
      */
     public function getLoginUrl()
     {
-        $antiforgeryId                                                 = self::generateAntiForgeryId();
+        $antiforgeryId                                                 = self::generateAntiForgeryId(self::SESSION_TIMEOUT);
         $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'auth_sessionToken'] = $antiforgeryId;
 
         return $this->tpwp->host() . '/PyScript/' . $this->tpwp->settings->auth_script_name . '?' . http_build_query(
@@ -124,11 +126,13 @@ class Auth extends Component
     /**
      * Get a random string with a timestamp on the end.
      *
+     * @param int $timeout  How long the token should last.
+     *
      * @return string
      */
-    protected static function generateAntiForgeryId()
+    protected static function generateAntiForgeryId(int $timeout)
     {
-        return strtolower(substr(com_create_guid(), 1, 36) . "-" . dechex(time() + self::LOGIN_TIMEOUT));
+        return strtolower(substr(com_create_guid(), 1, 36) . "-" . dechex(time() + $timeout));
     }
 
     /**
@@ -158,7 +162,7 @@ class Auth extends Component
         // If 'loginToken' is present, this is the Authorization Response looping back through TouchPoint.
         if (isset($_GET['loginToken'])) {
             // Verify that the login token is valid.
-            if ( ! Auth::AntiForgeryTimestampIsValid($_GET['loginToken'])) {
+            if ( ! Auth::AntiForgeryTimestampIsValid($_GET['loginToken'], self::LOGIN_TIMEOUT)) {
                 return new WP_Error(
                     'expired_login_token',
                     __('Your login credential expired.', 'TouchPoint-WP')
@@ -253,16 +257,24 @@ class Auth extends Component
     /**
      * @param string $afid Anti-forgery ID.
      *
+     * @param int    $timeout
+     *
      * @return bool True if the timestamp hasn't expired yet.
      */
-    protected static function AntiForgeryTimestampIsValid(string $afid)
+    protected static function AntiForgeryTimestampIsValid(string $afid, int $timeout)
     {
         $afidTime = hexdec(substr($afid, 37));
 
-        return ($afidTime <= time() + self::LOGIN_TIMEOUT) && $afidTime >= time();
+        return ($afidTime <= time() + $timeout) && $afidTime >= time();
     }
 
-    protected static function apiError($code, $message)
+    /**
+     * Print a JSON object that reflects an API Error, and exit.
+     *
+     * @param $code
+     * @param $message
+     */
+    protected static function apiError($code, $message) // TODO potentially move to an API endpoint.
     {
         echo json_encode(
             [
@@ -290,7 +302,8 @@ class Auth extends Component
         }
 
         // Make sure sessionToken is valid
-        if ( ! isset($data->sessionToken) || ! Auth::AntiForgeryTimestampIsValid($data->sessionToken)) {
+        if ( ! isset($data->sessionToken) ||
+             ! Auth::AntiForgeryTimestampIsValid($data->sessionToken, self::SESSION_TIMEOUT)) {
             self::apiError(
                 'no_session_token',
                 __('You don\'t appear to have a current session on our website.', 'TouchPoint-WP')
@@ -314,7 +327,7 @@ class Auth extends Component
         // Generate login token and response.
         $resp = [
             'status'         => 'success',
-            'userLoginToken' => $this->generateAntiForgeryId(),
+            'userLoginToken' => $this->generateAntiForgeryId(self::LOGIN_TIMEOUT),
             'wpid'           => $user->ID
         ];
 
@@ -335,11 +348,13 @@ class Auth extends Component
     }
 
     /**
-     * @param $data
+     * Find or create (if provisioning is enabled) a WP user to match the data from TouchPoint
      *
-     * @return false|WP_User
+     * @param object $data
+     *
+     * @return false|WP_User  The WP user object, or false on failure.
      */
-    protected function getWpUserFromTouchPointData($data)
+    protected function getWpUserFromTouchPointData(object $data)
     {
         // Find user based on WordPress ID
         if (isset($data->p->wpid) && $data->p->wpid > 0) {
@@ -363,6 +378,9 @@ class Auth extends Component
                 return $q->get_results()[0];
             }
         }
+
+        // TODO figure out what to do with TP users without an email address
+        // TODO figure out what to do with TP users with an "inactive" primary email address.
 
         if ($this->tpwp->settings->auth_auto_provision === 'on') {
             // Provision a new user, since we were unsuccessful in finding one.
@@ -412,9 +430,14 @@ class Auth extends Component
         return "touchpoint-" . $pData->obj->PeopleId;
     }
 
-    protected function updateWpUserWithTouchPointData(WP_User $user, $pData)
+    /**
+     * @param WP_User $user The User object to update.
+     * @param object  $pData The person data object from TouchPoint.
+     */
+    protected function updateWpUserWithTouchPointData(WP_User $user, object $pData)
     {
-        // TODO add filter to prevent email change emails.   (send_password_change_email)
+        // Prevent password change email.
+        add_filter('send_password_change_email', '__return_false');
 
         wp_update_user(
             [
@@ -428,6 +451,9 @@ class Auth extends Component
                 TouchPointWP::SETTINGS_PREFIX . 'peopleId' => $pData->obj->PeopleId
             ]
         );
+
+        // Restores password change email, so password changes though other mechanisms still work.
+        remove_filter('send_password_change_email', '__return_false');
 
 //        update_user_meta($user->ID, 'description', $pData->ev->bio);  TODO import bios or other Extra Values.
     }
