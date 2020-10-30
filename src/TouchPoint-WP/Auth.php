@@ -22,7 +22,7 @@ if ( ! defined('ABSPATH')) {
  */
 class Auth extends Component
 {
-    protected const LOGIN_TIMEOUT = 20000; // number of seconds during which the user login token is valid. TODO lower to 20 seconds or something reasonable
+    protected const LOGIN_TIMEOUT = 600; // number of seconds during which the user login tokens are valid. // TODO make session token valid longer than login token
 
     private static ?Auth $_singleton = null;
     private TouchPointWP $tpwp;
@@ -368,6 +368,8 @@ class Auth extends Component
             // Provision a new user, since we were unsuccessful in finding one.
             $uid = wp_create_user(self::generateUserName($data->p), com_create_guid(), $data->p->obj->EmailAddress);
             if (is_numeric($uid)) { // user was successfully generated.
+                update_user_meta($uid, 'created_by', 'TouchPoint-WP');
+
                 return new WP_User($uid);
             }
         }
@@ -412,13 +414,22 @@ class Auth extends Component
 
     protected function updateWpUserWithTouchPointData(WP_User $user, $pData)
     {
-        update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'peopleId', $pData->obj->PeopleId);
+        // TODO add filter to prevent email change emails.   (send_password_change_email)
 
-        update_user_meta($user->ID, 'nickname', $pData->obj->Name);
-        update_user_meta($user->ID, 'first_name', $pData->obj->FirstName);
-        update_user_meta($user->ID, 'last_name', $pData->obj->LastName);
+        wp_update_user(
+            [
+                'ID'         => $user->ID,
 
-//        update_user_meta($user->ID, 'description', $pData->ev->bio);  TODO import bios.
+                'user_email' => $pData->obj->EmailAddress,
+                'nickname'   => $pData->obj->Name,
+                'first_name' => $pData->obj->FirstName,
+                'last_name'  => $pData->obj->LastName,
+
+                TouchPointWP::SETTINGS_PREFIX . 'peopleId' => $pData->obj->PeopleId
+            ]
+        );
+
+//        update_user_meta($user->ID, 'description', $pData->ev->bio);  TODO import bios or other Extra Values.
     }
 
 }
