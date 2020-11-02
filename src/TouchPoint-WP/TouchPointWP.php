@@ -40,7 +40,7 @@ class TouchPointWP {
      */
     public const SETTINGS_PREFIX = "tp_";
 
-    public const DEFAULT_IP_WHITELIST = '20.185.150.52\n20.42.89.106';
+    public const DEFAULT_IP_WHITELIST = "20.185.150.52\n20.42.89.106";
 
 	/**
 	 * The singleton.
@@ -109,7 +109,7 @@ class TouchPointWP {
 
 		register_activation_hook( $this->file, [ $this, 'install' ] );
 
-		// Load frontend JS & CSS.
+		// Register frontend JS & CSS.
 		add_action( 'wp_register_scripts', [$this, 'registerScriptsAndStyles'] , 10 );
 
 		// Load admin JS & CSS.
@@ -248,4 +248,49 @@ class TouchPointWP {
         ];
     }
 
+    /**
+     * Get or generate an API key for use with TouchPoint
+     *
+     * @return string
+     */
+    public function getApiKey() {
+        $k = $this->settings->__get('api_secret_key');
+        if ($k === false) {
+            $k = $this->replaceApiKey();
+        }
+        return $k;
+    }
+
+    /**
+     * @return string
+     */
+    public function replaceApiKey() {
+        return $this->settings->set('api_secret_key', com_create_guid());
+    }
+
+    /**
+     * Get a random string with a timestamp on the end.
+     *
+     * @param int $timeout  How long the token should last.
+     *
+     * @return string
+     */
+    public static function generateAntiForgeryId(int $timeout)
+    {
+        return strtolower(substr(com_create_guid(), 1, 36) . "-" . dechex(time() + $timeout));
+    }
+
+    /**
+     * @param string $afid Anti-forgery ID.
+     *
+     * @param int    $timeout
+     *
+     * @return bool True if the timestamp hasn't expired yet.
+     */
+    public static function AntiForgeryTimestampIsValid(string $afid, int $timeout)
+    {
+        $afidTime = hexdec(substr($afid, 37));
+
+        return ($afidTime <= time() + $timeout) && $afidTime >= time();
+    }
 }
