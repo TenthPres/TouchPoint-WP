@@ -432,29 +432,8 @@ class TouchPointWP_Settings {
      *
      * @return false|mixed
      */
-    protected function set(string $what, $value) {
+    public function set(string $what, $value) {
 	    return (update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, true) ? $value : false);
-    }
-
-
-    /**
-     * Get or generate an API key for use with TouchPoint
-     *
-     * @return string
-     */
-    public function getApiKey() {
-        $k = $this->__get('api_secret_key');
-        if ($k === false) {
-            $k = $this->replaceApiKey();
-        }
-        return $k;
-    }
-
-    /**
-     * @return string
-     */
-    protected function replaceApiKey() {
-        return $this->set('api_secret_key', com_create_guid());
     }
 
 	/**

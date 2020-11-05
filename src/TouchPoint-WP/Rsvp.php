@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * The Auth-handling class.
  */
-abstract class Rsvp extends Component
+abstract class Rsvp
 {
     public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "RSVP";
 
@@ -34,7 +34,11 @@ abstract class Rsvp extends Component
 
         self::registerShortcode();
 
-        add_action('wp_enqueue_scripts', 'tp\\TouchPointWP\\Rsvp::enqueueScripts');
+        // Register frontend JS & CSS.
+        add_action( 'wp_register_scripts', [__CLASS__, 'registerScriptsAndStyles'] , 10 );
+
+        // Enqueue scripts
+        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueueScripts']);
 
         return true;
     }

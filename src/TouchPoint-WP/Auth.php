@@ -20,11 +20,11 @@ if ( ! defined('ABSPATH')) {
 /**
  * The Auth-handling class.
  */
-class Auth extends Component
+class Auth extends \WP_REST_Controller
 {
-    protected const LOGIN_TIMEOUT = 30; // number of seconds during which the user login tokens are valid.
-    protected const SESSION_TIMEOUT = 600; // number of seconds during which the login link is valid (amount of time
-                                           // before the login page (silently) expires.
+    protected const LOGIN_TIMEOUT = 30;     // number of seconds during which the user login tokens are valid.
+    protected const SESSION_TIMEOUT = 600;  // number of seconds during which the login link is valid (amount of time
+    // before the login page (silently) expires).
 
     private static ?Auth $_singleton = null;
     private TouchPointWP $tpwp;
@@ -40,6 +40,9 @@ class Auth extends Component
 
         // Start the session
         add_action('login_init', [$this, 'startSession'], 10);
+
+        // Load frontend JS & CSS.
+        add_action('wp_register_scripts', [$this, 'registerScriptsAndStyles'], 10);
 
         // The authenticate filter
         add_filter('authenticate', [$this, 'authenticate'], 1, 3);
@@ -112,7 +115,8 @@ class Auth extends Component
      */
     public function getLoginUrl()
     {
-        $antiforgeryId                                                 = self::generateAntiForgeryId(self::SESSION_TIMEOUT);
+        $antiforgeryId = TouchPointWP::generateAntiForgeryId(self::SESSION_TIMEOUT);
+
         $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'auth_sessionToken'] = $antiforgeryId;
 
         return $this->tpwp->host() . '/PyScript/' . $this->tpwp->settings->auth_script_name . '?' . http_build_query(
@@ -121,18 +125,6 @@ class Auth extends Component
                     'sessionToken' => $antiforgeryId
                 ]
             );
-    }
-
-    /**
-     * Get a random string with a timestamp on the end.
-     *
-     * @param int $timeout  How long the token should last.
-     *
-     * @return string
-     */
-    protected static function generateAntiForgeryId(int $timeout)
-    {
-        return strtolower(substr(com_create_guid(), 1, 36) . "-" . dechex(time() + $timeout));
     }
 
     /**
@@ -147,8 +139,8 @@ class Auth extends Component
      * Authenticates the user with TouchPoint
      *
      * @param WP_User|WP_Error $user A WP_User, if the user has already authenticated.
-     * @param string           $username The username provided during form-based sign in. Not used.
-     * @param string           $password The password provided during form-based sign in. Not used.
+     * @param mixed            $username The username provided during form-based sign in. Not used.
+     * @param mixed            $password The password provided during form-based sign in. Not used.
      *
      * @return WP_User|WP_Error The authenticated WP_User, or a WP_Error if there were errors.
      */
@@ -162,7 +154,7 @@ class Auth extends Component
         // If 'loginToken' is present, this is the Authorization Response looping back through TouchPoint.
         if (isset($_GET['loginToken'])) {
             // Verify that the login token is valid.
-            if ( ! Auth::AntiForgeryTimestampIsValid($_GET['loginToken'], self::LOGIN_TIMEOUT)) {
+            if ( ! TouchPointWP::AntiForgeryTimestampIsValid($_GET['loginToken'], self::LOGIN_TIMEOUT)) {
                 return new WP_Error(
                     'expired_login_token',
                     __('Your login credential expired.', 'TouchPoint-WP')
@@ -216,34 +208,36 @@ class Auth extends Component
             // The TouchPoint script is posting data to WordPress.
 
             // Check that the application secret is valid.
-            if (getallheaders()['X-API-KEY'] !== $this->tpwp->settings->getApiKey()) {
+            if (getallheaders()['X-API-KEY'] !== $this->tpwp->getApiKey()) {
                 self::apiError(
                     'invalid_key',
                     __('ERROR: Access denied.  API Key is not valid.', 'TouchPoint-WP')
                 );
             }
 
-            // Get POSTed data
+            // Get data POSTed by TouchPoint
             $input = file_get_contents('php://input');
 
             // Check that request is coming from an allowed IP.
-            $ips = str_replace('\r', '', ($this->tpwp->settings->ip_whitelist ?: TouchPointWP::DEFAULT_IP_WHITELIST));
-            $ips = explode('\n', $ips);
+            $ips = str_replace("\r", '', ($this->tpwp->settings->ip_whitelist ?: TouchPointWP::DEFAULT_IP_WHITELIST));
+            $ips = explode("\n", $ips);
             if (isset($_SERVER['REMOTE_ADDR'])) {
                 if ((WP_DEBUG && $_SERVER['REMOTE_ADDR'] === "127.0.0.1") || in_array($_SERVER['REMOTE_ADDR'], $ips)) {
-                    return $this->handleTouchPointAuthData($input);
+                    $this->handleTouchPointAuthData($input); // terminates
                 }
             }
             if (isset(getallheaders()['x-real-ip'])) {
                 if (in_array(getallheaders()['x-real-ip'], $ips)) {
-                    return $this->handleTouchPointAuthData($input);
+                    $this->handleTouchPointAuthData($input); // terminates
                 }
             }
+
+            var_dump($ips);
 
             // The attempt was probably blocked by IP.
             self::apiError(
                 'remote_forbidden',
-                __('ERROR: Access denied.  Remote forbidden.', 'TouchPoint-WP')
+                sprintf(__('ERROR: Access denied.  Remote forbidden. (%s)', 'TouchPoint-WP'), $_SERVER['REMOTE_ADDR'])
             );
         }
 
@@ -252,20 +246,6 @@ class Auth extends Component
         }
 
         return $user;
-    }
-
-    /**
-     * @param string $afid Anti-forgery ID.
-     *
-     * @param int    $timeout
-     *
-     * @return bool True if the timestamp hasn't expired yet.
-     */
-    protected static function AntiForgeryTimestampIsValid(string $afid, int $timeout)
-    {
-        $afidTime = hexdec(substr($afid, 37));
-
-        return ($afidTime <= time() + $timeout) && $afidTime >= time();
     }
 
     /**
@@ -303,7 +283,7 @@ class Auth extends Component
 
         // Make sure sessionToken is valid
         if ( ! isset($data->sessionToken) ||
-             ! Auth::AntiForgeryTimestampIsValid($data->sessionToken, self::SESSION_TIMEOUT)) {
+             ! TouchPointWP::AntiForgeryTimestampIsValid($data->sessionToken, self::SESSION_TIMEOUT)) {
             self::apiError(
                 'no_session_token',
                 __('You don\'t appear to have a current session on our website.', 'TouchPoint-WP')
@@ -327,7 +307,7 @@ class Auth extends Component
         // Generate login token and response.
         $resp = [
             'status'         => 'success',
-            'userLoginToken' => $this->generateAntiForgeryId(self::LOGIN_TIMEOUT),
+            'userLoginToken' => TouchPointWP::generateAntiForgeryId(self::LOGIN_TIMEOUT),
             'wpid'           => $user->ID
         ];
 
@@ -441,7 +421,7 @@ class Auth extends Component
 
         wp_update_user(
             [
-                'ID'         => $user->ID,
+                'ID' => $user->ID,
 
                 'user_email' => $pData->obj->EmailAddress,
                 'nickname'   => $pData->obj->Name,
@@ -454,7 +434,6 @@ class Auth extends Component
 
         // Restores password change email, so password changes though other mechanisms still work.
         remove_filter('send_password_change_email', '__return_false');
-
 //        update_user_meta($user->ID, 'description', $pData->ev->bio);  TODO import bios or other Extra Values.
     }
 
