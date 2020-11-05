@@ -221,8 +221,8 @@ class TouchPointWP_Settings {
                 ],
                 [
                     'id'          => 'ip_whitelist',
-                    'label'       => __( 'TouchPoint Server IP Addresses', 'TouchPoint-WP' ),
-                    'description' => __( 'One IP address per line.  Leave default unless you know what you\'re doing.', 'TouchPoint-WP' ),
+                    'label'       => __( 'TouchPoint Server Outgoing IP Addresses', 'TouchPoint-WP' ),
+                    'description' => __( 'One IP address per line.  You should probably only use this if you\'re self-hosting and thereby control the outgoing IPs from TouchPoint.', 'TouchPoint-WP' ),
                     'type'        => 'textarea',
                     'default'     => '',
                     'placeholder' => TouchPointWP::DEFAULT_IP_WHITELIST,

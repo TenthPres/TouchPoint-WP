@@ -40,7 +40,7 @@ class TouchPointWP {
      */
     public const SETTINGS_PREFIX = "tp_";
 
-    public const DEFAULT_IP_WHITELIST = "20.185.150.52\n20.42.89.106";
+    public const DEFAULT_IP_WHITELIST = "Leave blank unless you know what you're doing.";
 
 	/**
 	 * The singleton.

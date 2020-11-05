@@ -112,23 +112,6 @@ class Auth extends \WP_REST_Controller
     }
 
     /**
-     *
-     *
-     * @param string $url
-     *
-     * @return string
-     */
-    public function changeProfileUrl(string $url) {
-        if ($this->tpwp->settings->auth_change_profile_urls === 'on') {
-            $userId   = get_current_user_id();
-            $peopleId = intval(get_user_meta($userId, TouchPointWP::SETTINGS_PREFIX . 'peopleId', true));
-
-            return $this->tpwp->host() . '/Person2/' . $peopleId;
-        }
-        return $url;
-    }
-
-    /**
      * Generates the URL used to initiate a sign-in with TouchPoint.
      *
      * @return string The authorization URL used for a TouchPoint login.
@@ -153,6 +136,25 @@ class Auth extends \WP_REST_Controller
     public function getLogoutUrl()
     {
         return $this->tpwp->host() . "/Account/LogOff/";
+    }
+
+    /**
+     *
+     *
+     * @param string $url
+     *
+     * @return string
+     */
+    public function changeProfileUrl(string $url)
+    {
+        if ($this->tpwp->settings->auth_change_profile_urls === 'on') {
+            $userId   = get_current_user_id();
+            $peopleId = intval(get_user_meta($userId, TouchPointWP::SETTINGS_PREFIX . 'peopleId', true));
+
+            return $this->tpwp->host() . '/Person2/' . $peopleId;
+        }
+
+        return $url;
     }
 
     /**
@@ -239,33 +241,39 @@ class Auth extends \WP_REST_Controller
             $input = file_get_contents('php://input');
 
             // Check that request is coming from an allowed IP.
-            $ips = str_replace("\r", '', ($this->tpwp->settings->ip_whitelist ?: TouchPointWP::DEFAULT_IP_WHITELIST));
-            $ips = explode("\n", $ips);
-            if (isset($_SERVER['REMOTE_ADDR'])) {
-                if ((WP_DEBUG && $_SERVER['REMOTE_ADDR'] === "127.0.0.1") || in_array($_SERVER['REMOTE_ADDR'], $ips)) {
-                    $this->handleTouchPointAuthData($input); // terminates
-                }
-            }
-            if (isset(getallheaders()['x-real-ip'])) {
-                if (in_array(getallheaders()['x-real-ip'], $ips)) {
-                    $this->handleTouchPointAuthData($input); // terminates
-                }
-            }
+            $ips = ($this->tpwp->settings->ip_whitelist ?: TouchPointWP::DEFAULT_IP_WHITELIST);
+            if ($ips === TouchPointWP::DEFAULT_IP_WHITELIST) { // if we shouldn't filter by IP...
+                $this->handleTouchPointAuthData($input); // terminates
+            } else {
+                $ips = str_replace("\r", '', $ips);
+                $ips = explode("\n", $ips);
 
-            var_dump($ips);
+                if (isset($_SERVER['REMOTE_ADDR'])) {
+                    if ((WP_DEBUG && $_SERVER['REMOTE_ADDR'] === "127.0.0.1") || in_array(
+                            $_SERVER['REMOTE_ADDR'],
+                            $ips
+                        )) {
+                        $this->handleTouchPointAuthData($input); // terminates
+                    }
+                }
+                if (isset(getallheaders()['x-real-ip'])) {
+                    if (in_array(getallheaders()['x-real-ip'], $ips)) {
+                        $this->handleTouchPointAuthData($input); // terminates
+                    }
+                }
 
-            // The attempt was probably blocked by IP.
-            self::apiError(
-                'remote_forbidden',
-                sprintf(__('ERROR: Access denied.  Remote forbidden. (%s)', 'TouchPoint-WP'), $_SERVER['REMOTE_ADDR'])
-            );
+                // The attempt was probably blocked by IP.
+                self::apiError(
+                    'remote_forbidden',
+                    sprintf(
+                        __('ERROR: Access denied.  Remote forbidden. (%s)', 'TouchPoint-WP'),
+                        $_SERVER['REMOTE_ADDR']
+                    )
+                );
+            }
         }
 
-        if (is_a($user, 'WP_User')) {
-            $_SESSION['TouchPoint-WP_signed_in_with_auth'] = true;
-        }
-
-        return $user;
+        return $user;  // functionally, "do nothing"
     }
 
     /**
