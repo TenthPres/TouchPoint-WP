@@ -283,6 +283,15 @@ class TouchPointWP_Settings {
                     'type'        => 'checkbox',
                     'default'     => 'on',
                 ],
+                [
+                    'id'          => 'auth_change_profile_urls',
+                    'label'       => __( 'Change \'Edit Profile\' links', 'TouchPoint-WP' ),
+                    'description' => __( '"Edit Profile" links will take the user to their TouchPoint profile, instead of 
+                                            their WordPress profile.',
+                                         'TouchPoint-WP' ),
+                    'type'        => 'checkbox',
+                    'default'     => 'on',
+                ],
 			],
 		];
 

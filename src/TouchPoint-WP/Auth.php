@@ -50,6 +50,9 @@ class Auth extends \WP_REST_Controller
         // Add the link to the organization's sign-in page
         add_action('login_form', [$this, 'printLoginLink']);
 
+        // Reroute 'edit profile' links to the user's TouchPoint profile.
+        add_filter('edit_profile_url', [$this, 'changeProfileUrl']);
+
         // Clear session variables when logging out
 //        add_action( 'wp_logout', [$this, 'logout'] );
 
@@ -106,6 +109,23 @@ class Auth extends \WP_REST_Controller
             $this->getLoginUrl(),
             $this->getLogoutUrl()
         );
+    }
+
+    /**
+     *
+     *
+     * @param string $url
+     *
+     * @return string
+     */
+    public function changeProfileUrl(string $url) {
+        if ($this->tpwp->settings->auth_change_profile_urls === 'on') {
+            $userId   = get_current_user_id();
+            $peopleId = intval(get_user_meta($userId, TouchPointWP::SETTINGS_PREFIX . 'peopleId', true));
+
+            return $this->tpwp->host() . '/Person2/' . $peopleId;
+        }
+        return $url;
     }
 
     /**
@@ -179,7 +199,7 @@ class Auth extends \WP_REST_Controller
             $user = $q->get_results()[0];
 
             // Get loginSessionToken
-            $lst = get_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginSessionToken');
+            $lst = get_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginSessionToken', true);
 
             // Remove meta fields
             if ( ! (update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginToken', null) &&
@@ -356,6 +376,8 @@ class Auth extends \WP_REST_Controller
             );
             if ($q->get_total() === 1) {
                 return $q->get_results()[0];
+            } else {
+                // TODO figure out an error to put here.
             }
         }
 
