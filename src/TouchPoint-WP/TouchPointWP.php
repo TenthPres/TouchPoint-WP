@@ -36,6 +36,11 @@ class TouchPointWP {
 	public const SHORTCODE_PREFIX = "TP-";
 
     /**
+     * Prefix to use for all filters and hooks.
+     */
+    public const HOOK_PREFIX = "tp_";
+
+    /**
      * Prefix to use for all settings.
      */
     public const SETTINGS_PREFIX = "tp_";

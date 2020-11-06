@@ -42,7 +42,7 @@ class Auth extends \WP_REST_Controller
         add_action('login_init', [$this, 'startSession'], 10);
 
         // Load frontend JS & CSS.
-        add_action('wp_register_scripts', [$this, 'registerScriptsAndStyles'], 10);
+//        add_action('wp_register_scripts', [$this, 'registerScriptsAndStyles'], 10);
 
         // The authenticate filter
         add_filter('authenticate', [$this, 'authenticate'], 1, 3);
@@ -57,7 +57,7 @@ class Auth extends \WP_REST_Controller
 //        add_action( 'wp_logout', [$this, 'logout'] );
 
         // If configured, bypass the login form and redirect straight to TouchPoint
-//        add_action( 'login_init', 'tp\\TouchPointWP\\Auth::save_redirect_and_maybe_bypass_login', 20 );
+        add_action( 'login_init', [$this, 'redirectLoginFormMaybe'], 20 );
 
         // Redirect user back to original location
 //        add_filter( 'login_redirect', 'tp\\TouchPointWP\\Auth::redirect_after_login', 20, 3 );
@@ -85,10 +85,6 @@ class Auth extends \WP_REST_Controller
         if ( ! session_id()) {
             session_start();
         }
-    }
-
-    public static function registerScriptsAndStyles()
-    {
     }
 
     /**
@@ -124,10 +120,29 @@ class Auth extends \WP_REST_Controller
 
         return $this->tpwp->host() . '/PyScript/' . $this->tpwp->settings->auth_script_name . '?' . http_build_query(
                 [
-                    'redirect_to'  => $_GET['redirect_to'],
+                    'redirect_to'  => isset($_GET['redirect_to']) ? $_GET['redirect_to'] : get_site_url(),
                     'sessionToken' => $antiforgeryId
                 ]
             );
+    }
+
+    /**
+     * Determines whether to redirect to the TouchPoint login automatically, and does so if appropriate.
+     */
+    public function redirectLoginFormMaybe() {
+        $redirect = apply_filters(
+            TouchPointWP::HOOK_PREFIX . 'auto_redirect_login',
+            ($this->tpwp->settings->auth_default === 'on')
+        );
+
+        if (isset($_GET[TouchPointWP::HOOK_PREFIX . 'no_redirect'])) {
+            $redirect = false;
+        }
+
+        if ($this->wantsToLogin() && $redirect) {
+            wp_redirect( $this->getLoginUrl() );
+            die();
+        }
     }
 
     /**
@@ -293,6 +308,31 @@ class Auth extends \WP_REST_Controller
         );
 
         exit(1);
+    }
+
+    /**
+     * Checks to determine if the user wants to login.
+     *
+     * This is meant to handle a variety of oddities in how WordPress sometimes--but not always--makes intent clear.
+     *
+     * @return bool Whether or not the user is trying to log in to the site
+     */
+    private function wantsToLogin() {
+        $wants_to_login = false;
+        // redirect back from TouchPoint after a successful login
+        if (isset($_GET['loginToken'])) {
+            return false;
+        }
+
+        // Default WordPress behavior
+        $action = isset( $_REQUEST['action'] ) ? $_REQUEST['action'] : 'login';
+        // Exceptions
+        $action = isset( $_GET['loggedout'] ) ? 'loggedout' : $action;
+        if( 'login' == $action ) {
+            $wants_to_login = true;
+        }
+
+        return $wants_to_login;
     }
 
     /**

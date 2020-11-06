@@ -50,3 +50,18 @@ This plugin uses PSR-12 coding standards, which are significantly different from
 Several plugins have lended structure or code snippets to this plugin:
 - [Plugin Template from hlashbrooke](https://github.com/hlashbrooke/WordPress-Plugin-Template) (GPLv2)
 - [AAD SSO from psignoret](https://github.com/psignoret/aad-sso-wordpress) (MIT)
+
+
+## Usage Notes
+
+### Authentication
+
+#### Special URL parameters
+`tp_no_redirect`  If added to the url for the WordPress login, the user will not be redirected to the TouchPoint login 
+page regardless of whether TouchPoint is set as the default login mechanism. 
+
+#### Filters
+
+`tp_auto_redirect_login`  If the option to use TouchPoint as the default login mechanism is enabled, this filter 
+allows more specificity as to when you want this redirect to happen.  Be default, this feature is disabled.  However, 
+once enabled, by default, the plugin will redirect all login requests to TouchPoint. 

@@ -246,9 +246,10 @@ class TouchPointWP_Settings {
                 [
                     'id'          => 'auth_default',
                     'label'       => __( 'Make TouchPoint the default authentication method.', 'TouchPoint-WP' ),
-                    'description' => __( 'By checking this box, the TouchPoint login page will become the default.  This
-                                           will make it significantly easier to sign in with TouchPoint credentials, and 
-                                           significantly harder to sign in with anything else.', 'TouchPoint-WP' ),
+                    'description' => __( 'By checking this box, the TouchPoint login page will become the default.  To
+                                            prevent the redirect and reach the standard TouchPoint login page, add \'' .
+                                         TouchPointWP::HOOK_PREFIX . 'no_redirect\' as a URL parameter.',
+                                         'TouchPoint-WP' ),
                     'type'        => 'checkbox',
                     'default'     => '',
                 ],
