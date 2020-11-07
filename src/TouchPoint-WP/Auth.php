@@ -3,6 +3,7 @@
 namespace tp\TouchPointWP;
 
 use WP_Error;
+use WP_REST_Controller;
 use WP_User;
 use WP_User_Query;
 
@@ -20,7 +21,7 @@ if ( ! defined('ABSPATH')) {
 /**
  * The Auth-handling class.
  */
-class Auth extends \WP_REST_Controller
+class Auth extends WP_REST_Controller
 {
     protected const LOGIN_TIMEOUT = 30;     // number of seconds during which the user login tokens are valid.
     protected const SESSION_TIMEOUT = 600;  // number of seconds during which the login link is valid (amount of time
@@ -93,11 +94,13 @@ class Auth extends \WP_REST_Controller
     public function printLoginLink()
     {
         $html = '<p class="touchpoint-wp-auth-form-text">';
+        /** @noinspection HtmlUnknownTarget */
         $html .= '<a href="%s">';
         $html .= sprintf(
             __('Sign in with your %s account', 'TouchPoint-WP'),
             htmlentities($this->tpwp->settings->auth_display_name)
         );
+        /** @noinspection HtmlUnknownTarget */
         $html .= '</a><br /><a class="dim" href="%s">'
                  . __('Sign out', 'TouchPoint-WP') . '</a></p>';
         printf(
@@ -111,6 +114,7 @@ class Auth extends \WP_REST_Controller
      * Generates the URL used to initiate a sign-in with TouchPoint.
      *
      * @return string The authorization URL used for a TouchPoint login.
+     * @noinspection SpellCheckingInspection
      */
     public function getLoginUrl()
     {
@@ -180,6 +184,8 @@ class Auth extends \WP_REST_Controller
      * @param mixed            $password The password provided during form-based sign in. Not used.
      *
      * @return WP_User|WP_Error The authenticated WP_User, or a WP_Error if there were errors.
+     *
+     * @noinspection PhpUnusedParameterInspection  We don't use the username or password, but they're in the WP API.
      */
     public function authenticate($user, $username, $password)
     {
@@ -373,6 +379,7 @@ class Auth extends \WP_REST_Controller
 
 
         // Generate login token and response.
+        /** @noinspection SpellCheckingInspection */
         $resp = [
             'status'         => 'success',
             'userLoginToken' => TouchPointWP::generateAntiForgeryId(self::LOGIN_TIMEOUT),

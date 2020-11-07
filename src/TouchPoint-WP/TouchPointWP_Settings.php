@@ -14,6 +14,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Settings class.
+ *
+ * @property-read string host       The base URL for the TouchPoint instance
+ * @property-read string api_user   Username of a user account with API access
+ * @property-read string api_pass   Password for a user account with API access
+ * @property-read string ip_whitelist TouchPoint Server IPs
+ *
+ * @property-read string auth_display_name  What the church calls TouchPoint
+ * @property-read string auth_script_name   The name of the Python script within TouchPoint
+ * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
+ * @property-read string auth_change_profile_urls Enabled to indicate the profiles should be located on TouchPoint
+ * @property-read string auth_auto_provision Enabled to indicate that new users should be created automatically.
  */
 class TouchPointWP_Settings {
 
@@ -244,6 +255,14 @@ class TouchPointWP_Settings {
 					'placeholder' => 'WebAuth'
 				],
                 [
+                    'id'          => 'auth_display_name',
+                    'label'       => __( 'Display Name', 'TouchPoint-WP' ),
+                    'description' => __( 'What you call TouchPoint.  Shows on the WordPress login screen.', 'TouchPoint-WP' ),
+                    'type'        => 'text',
+                    'default'     => 'TouchPoint',
+                    'placeholder' => 'TouchPoint'
+                ],
+                [
                     'id'          => 'auth_default',
                     'label'       => __( 'Make TouchPoint the default authentication method.', 'TouchPoint-WP' ),
                     'description' => __( 'By checking this box, the TouchPoint login page will become the default.  To
@@ -254,21 +273,6 @@ class TouchPointWP_Settings {
                     'default'     => '',
                 ],
                 [
-                    'id'          => 'auth_display_name',
-                    'label'       => __( 'Display Name', 'TouchPoint-WP' ),
-                    'description' => __( 'Shows on the WordPress login screen.', 'TouchPoint-WP' ),
-                    'type'        => 'text',
-                    'default'     => 'TouchPoint',
-                    'placeholder' => 'TouchPoint'
-                ],
-                [
-                    'id'          => 'auth_full_logout',
-                    'label'       => __( 'Enable full logout', 'TouchPoint-WP' ),
-                    'description' => __( 'Logout of TouchPoint when logging out of WordPress.', 'TouchPoint-WP' ),
-                    'type'        => 'checkbox',
-                    'default'     => 'on',
-                ],
-                [
                     'id'          => 'auth_auto_provision',
                     'label'       => __( 'Enable Auto-Provisioning', 'TouchPoint-WP' ),
                     'description' => __( 'Automatically create WordPress users, if needed, to match authenticated 
@@ -277,7 +281,7 @@ class TouchPointWP_Settings {
                     'default'     => 'on',
                 ],
                 [
-                    'id'          => 'auth_background',
+                    'id'          => 'auth_background', // TODO this.
                     'label'       => __( 'Enable Auto-Sign in', 'TouchPoint-WP' ),
                     'description' => __( 'Automatically sign in WordPress users when already signed into TouchPoint.',
                                          'TouchPoint-WP' ),
@@ -290,6 +294,13 @@ class TouchPointWP_Settings {
                     'description' => __( '"Edit Profile" links will take the user to their TouchPoint profile, instead of 
                                             their WordPress profile.',
                                          'TouchPoint-WP' ),
+                    'type'        => 'checkbox',
+                    'default'     => 'on',
+                ],
+                [
+                    'id'          => 'auth_full_logout', // TODO this.
+                    'label'       => __( 'Enable full logout', 'TouchPoint-WP' ),
+                    'description' => __( 'Logout of TouchPoint when logging out of WordPress.', 'TouchPoint-WP' ),
                     'type'        => 'checkbox',
                     'default'     => 'on',
                 ],
@@ -381,7 +392,7 @@ class TouchPointWP_Settings {
 	
 			$settings['extra'] = array(
 				'title'       => __( 'Extra', 'TouchPoint-WP' ),
-				'description' => __( 'These are some extra input fields that maybe aren\'t as common as the others.', 'TouchPoint-WP' ),
+				'description' => __( "These are some extra input fields that maybe aren't as common as the others.", 'TouchPoint-WP' ),
 				'fields'      => array(
 					array(
 						'id'          => 'number_field',
@@ -401,7 +412,7 @@ class TouchPointWP_Settings {
 					array(
 						'id'          => 'an_image',
 						'label'       => __( 'An Image', 'TouchPoint-WP' ),
-						'description' => __( 'This will upload an image to your media library and store the attachment ID in the option field. Once you have uploaded an imge the thumbnail will display above these buttons.', 'TouchPoint-WP' ),
+						'description' => __( 'This will upload an image to your media library and store the attachment ID in the option field. Once you have uploaded an image the thumbnail will display above these buttons.', 'TouchPoint-WP' ),
 						'type'        => 'image',
 						'default'     => '',
 						'placeholder' => '',
@@ -561,7 +572,8 @@ class TouchPointWP_Settings {
 			$html .= '</h2>' . "\n";
 		}
 
-		$html .= '<form method="post" action="options.php" enctype="multipart/form-data">' . "\n";
+        /** @noinspection HtmlUnknownTarget */
+        $html .= '<form method="post" action="options.php" enctype="multipart/form-data">' . "\n";
 
 		// Get settings fields.
 		ob_start();

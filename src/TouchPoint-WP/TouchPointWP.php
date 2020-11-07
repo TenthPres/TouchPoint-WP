@@ -155,7 +155,7 @@ class TouchPointWP {
 
         // Load RSVP tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
-            $instance->Rsvp = Rsvp::init($instance);
+            $instance->Rsvp = Rsvp::init();
         }
 
 		return $instance;
@@ -219,10 +219,10 @@ class TouchPointWP {
 	}
 
 	/**
-	 * don't unserialize.
+	 * don't deserialize.
 	 */
 	public function __wakeup() {
-		_doing_it_wrong( __FUNCTION__, esc_html( __( 'Unserializing TouchPointWP is questionable.  Don\'t do it.') ), esc_attr( self::VERSION ) );
+		_doing_it_wrong( __FUNCTION__, esc_html( __( 'Deserializing TouchPointWP is questionable.  Don\'t do it.') ), esc_attr( self::VERSION ) );
 	}
 
 	/**
@@ -236,7 +236,7 @@ class TouchPointWP {
      * @return string The URL of the TouchPoint instance.
      */
 	public function host() {
-	    return "https://" . $this->settings->host;
+        return "https://" . $this->settings->host;
     }
 
 	/**
@@ -286,16 +286,16 @@ class TouchPointWP {
     }
 
     /**
-     * @param string $afid Anti-forgery ID.
+     * @param string $afId Anti-forgery ID.
      *
      * @param int    $timeout
      *
      * @return bool True if the timestamp hasn't expired yet.
      */
-    public static function AntiForgeryTimestampIsValid(string $afid, int $timeout)
+    public static function AntiForgeryTimestampIsValid(string $afId, int $timeout)
     {
-        $afidTime = hexdec(substr($afid, 37));
+        $afIdTime = hexdec(substr($afId, 37));
 
-        return ($afidTime <= time() + $timeout) && $afidTime >= time();
+        return ($afIdTime <= time() + $timeout) && $afIdTime >= time();
     }
 }

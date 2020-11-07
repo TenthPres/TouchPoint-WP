@@ -27,8 +27,7 @@
   "require": {
     "php": ">=7.4.0",
     "composer/installers": "~1.0",
-    "ext-json": "*",
-    "ext-apache": "*"
+    "ext-json": "*"
   },
   "require-dev": {
   }
