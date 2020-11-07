@@ -54,7 +54,7 @@ class Auth extends \WP_REST_Controller
         add_filter('edit_profile_url', [$this, 'changeProfileUrl']);
 
         // Clear session variables when logging out
-//        add_action( 'wp_logout', [$this, 'logout'] );
+//        add_action( 'wp_logout', [$this, 'logout'] ); // TODO this
 
         // If configured, bypass the login form and redirect straight to TouchPoint
         add_action( 'login_init', [$this, 'redirectLoginFormMaybe'], 20 );
@@ -424,9 +424,7 @@ class Auth extends \WP_REST_Controller
             );
             if ($q->get_total() === 1) {
                 return $q->get_results()[0];
-            } else {
-                // TODO figure out an error to put here.
-            }
+            } // if the person isn't properly found, continue to provisioning.
         }
 
         // TODO figure out what to do with TP users without an email address
