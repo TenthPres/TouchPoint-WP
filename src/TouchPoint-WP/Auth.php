@@ -58,7 +58,7 @@ class Auth extends WP_REST_Controller
 //        add_action( 'wp_logout', [$this, 'logout'] ); // TODO this
 
         // If configured, bypass the login form and redirect straight to TouchPoint
-        add_action( 'login_init', [$this, 'redirectLoginFormMaybe'], 20 );
+        add_action('login_init', [$this, 'redirectLoginFormMaybe'], 20);
 
         // Redirect user back to original location
 //        add_filter( 'login_redirect', 'tp\\TouchPointWP\\Auth::redirect_after_login', 20, 3 );
@@ -131,9 +131,18 @@ class Auth extends WP_REST_Controller
     }
 
     /**
+     * Generates the URL for logging out of TouchPoint. (Does not log out of WordPress.)
+     */
+    public function getLogoutUrl()
+    {
+        return $this->tpwp->host() . "/Account/LogOff/";
+    }
+
+    /**
      * Determines whether to redirect to the TouchPoint login automatically, and does so if appropriate.
      */
-    public function redirectLoginFormMaybe() {
+    public function redirectLoginFormMaybe()
+    {
         $redirect = apply_filters(
             TouchPointWP::HOOK_PREFIX . 'auto_redirect_login',
             ($this->tpwp->settings->auth_default === 'on')
@@ -144,21 +153,39 @@ class Auth extends WP_REST_Controller
         }
 
         if ($this->wantsToLogin() && $redirect) {
-            wp_redirect( $this->getLoginUrl() );
+            wp_redirect($this->getLoginUrl());
             die();
         }
     }
 
     /**
-     * Generates the URL for logging out of TouchPoint. (Does not log out of WordPress.)
+     * Checks to determine if the user wants to login.
+     *
+     * This is meant to handle a variety of oddities in how WordPress sometimes--but not always--makes intent clear.
+     *
+     * @return bool Whether or not the user is trying to log in to the site
      */
-    public function getLogoutUrl()
+    private function wantsToLogin()
     {
-        return $this->tpwp->host() . "/Account/LogOff/";
+        $wants_to_login = false;
+        // redirect back from TouchPoint after a successful login
+        if (isset($_GET['loginToken'])) {
+            return false;
+        }
+
+        // Default WordPress behavior
+        $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'login';
+        // Exceptions
+        $action = isset($_GET['loggedout']) ? 'loggedout' : $action;
+        if ('login' == $action) {
+            $wants_to_login = true;
+        }
+
+        return $wants_to_login;
     }
 
     /**
-     *
+     * Replace the default WordPress profile link with a link to the user's TouchPoint profile.
      *
      * @param string $url
      *
@@ -169,10 +196,10 @@ class Auth extends WP_REST_Controller
         if ($this->tpwp->settings->auth_change_profile_urls === 'on') {
             $userId   = get_current_user_id();
             $peopleId = intval(get_user_meta($userId, TouchPointWP::SETTINGS_PREFIX . 'peopleId', true));
-
-            return $this->tpwp->host() . '/Person2/' . $peopleId;
+            if ($peopleId > 0) { // make sure we have a PeopleId.  Users aren't necessarily TouchPoint users.
+                return $this->tpwp->host() . '/Person2/' . $peopleId;
+            }
         }
-
         return $url;
     }
 
@@ -314,31 +341,6 @@ class Auth extends WP_REST_Controller
         );
 
         exit(1);
-    }
-
-    /**
-     * Checks to determine if the user wants to login.
-     *
-     * This is meant to handle a variety of oddities in how WordPress sometimes--but not always--makes intent clear.
-     *
-     * @return bool Whether or not the user is trying to log in to the site
-     */
-    private function wantsToLogin() {
-        $wants_to_login = false;
-        // redirect back from TouchPoint after a successful login
-        if (isset($_GET['loginToken'])) {
-            return false;
-        }
-
-        // Default WordPress behavior
-        $action = isset( $_REQUEST['action'] ) ? $_REQUEST['action'] : 'login';
-        // Exceptions
-        $action = isset( $_GET['loggedout'] ) ? 'loggedout' : $action;
-        if( 'login' == $action ) {
-            $wants_to_login = true;
-        }
-
-        return $wants_to_login;
     }
 
     /**

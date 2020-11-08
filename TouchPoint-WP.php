@@ -26,29 +26,31 @@ Requires PHP:       7.4
 namespace tp\TouchPointWP;
 
 // die if called directly.
-if ( ! defined( 'WPINC' ) ) {
-	die;
+if ( ! defined('WPINC')) {
+    die;
 }
 
 /*** Utility functions ***/
 
-if ( ! function_exists( 'com_create_guid' ) ) {
+if ( ! function_exists('com_create_guid')) {
     /**
      * Generates a Microsoft-friendly globally unique identifier ( Guid ).
      *
      * @return string A new random globally unique identifier.
      */
-    function com_create_guid() {
-        mt_srand( ( double )microtime() * 10000 );
-        $char = strtoupper( md5( uniqid( rand(), true ) ) );
-        $hyphen = chr( 45 ); // "-"
-        return chr( 123 ) // "{"
-                .substr( $char, 0, 8 ) . $hyphen
-                .substr( $char, 8, 4 ) . $hyphen
-                .substr( $char, 12, 4 ) . $hyphen
-                .substr( $char, 16, 4 ) . $hyphen
-                .substr( $char, 20, 12 )
-                .chr( 125 ); // "}"
+    function com_create_guid()
+    {
+        mt_srand(( double )microtime() * 10000);
+        $char   = strtoupper(md5(uniqid(rand(), true)));
+        $hyphen = chr(45); // "-"
+
+        return chr(123) // "{"
+               . substr($char, 0, 8) . $hyphen
+               . substr($char, 8, 4) . $hyphen
+               . substr($char, 12, 4) . $hyphen
+               . substr($char, 16, 4) . $hyphen
+               . substr($char, 20, 12)
+               . chr(125); // "}"
     }
 }
 
@@ -69,11 +71,11 @@ if ( ! function_exists('getallheaders')) {
 
 
 /*** Load everything **/
-if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
-	require_once __DIR__ . '/vendor/autoload.php';
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
 } else {
-	require_once __DIR__ . "src/TouchPoint-WP/TouchPointWP.php";
-	require_once __DIR__ . "src/TouchPoint-WP/TouchPointWP_Settings.php";
+    require_once __DIR__ . "src/TouchPoint-WP/TouchPointWP.php";
+    require_once __DIR__ . "src/TouchPoint-WP/TouchPointWP_Settings.php";
 }
 
 /*** Init ***/
