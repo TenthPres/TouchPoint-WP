@@ -5,10 +5,8 @@ Developed by [Tenth Presbyterian Church](https://tenth.org) for their website an
 plugin is not developed or supported by TouchPoint.  While their support team is stellar, they probably won't be able to 
 help you with this. 
 
-To install this plugin for your church website, you will need significant configuration of your TouchPoint database, 
-depending on which features you intend to use.  See the sections below for installation instructions for each feature.  
-Also, we will not deliberately maintain backwards compatibility for older versions of WordPress or PHP.  So, please, 
-keep your environment up to date. 
+Making this work requires significant configurations of your TouchPoint database.  We've scripted what we can, and the 
+remainder is in [the Installation Instructions](https://github.com/TenthPres/TouchPoint-WP/wiki/Installation).  
 
 Some features require other plugins, which may or may not be free.  
 
