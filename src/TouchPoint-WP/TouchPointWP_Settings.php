@@ -26,6 +26,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
  * @property-read string auth_change_profile_urls Enabled to indicate the profiles should be located on TouchPoint
  * @property-read string auth_auto_provision Enabled to indicate that new users should be created automatically.
+ * @property-read string auth_prevent_admin_bar Enabled to prevent Admin Bar to appearing on webpages for users who don't have special roles.
  */
 class TouchPointWP_Settings
 {
@@ -160,8 +161,7 @@ class TouchPointWP_Settings
                     'id'          => 'api_user',
                     'label'       => __('TouchPoint API User name', 'TouchPoint-WP'),
                     'description' => __(
-                        'The username of a user account in TouchPoint with API permissions.  Required 
-                                         for RSVP tool.',
+                        'The username of a user account in TouchPoint with API permissions.  Required for RSVP tool.',
                         'TouchPoint-WP'
                     ),
                     'type'        => 'text',
@@ -201,8 +201,7 @@ class TouchPointWP_Settings
                     'id'          => 'auth_script_name',
                     'label'       => __('Authentication Script name', 'TouchPoint-WP'),
                     'description' => __(
-                        'The filename of the authentication script installed in your TouchPoint 
-											database.',
+                        'The filename of the authentication script installed in your TouchPoint database.',
                         'TouchPoint-WP'
                     ),
                     'type'        => 'text',
@@ -224,9 +223,7 @@ class TouchPointWP_Settings
                     'id'          => 'auth_default',
                     'label'       => __('Make TouchPoint the default authentication method.', 'TouchPoint-WP'),
                     'description' => __(
-                        'By checking this box, the TouchPoint login page will become the default.  To
-                                            prevent the redirect and reach the standard TouchPoint login page, add \'' .
-                        TouchPointWP::HOOK_PREFIX . 'no_redirect\' as a URL parameter.',
+                        'By checking this box, the TouchPoint login page will become the default.  To prevent the redirect and reach the standard TouchPoint login page, add \'' . TouchPointWP::HOOK_PREFIX . 'no_redirect\' as a URL parameter.',
                         'TouchPoint-WP'
                     ),
                     'type'        => 'checkbox',
@@ -236,8 +233,7 @@ class TouchPointWP_Settings
                     'id'          => 'auth_auto_provision',
                     'label'       => __('Enable Auto-Provisioning', 'TouchPoint-WP'),
                     'description' => __(
-                        'Automatically create WordPress users, if needed, to match authenticated 
-                                            TouchPoint users.',
+                        'Automatically create WordPress users, if needed, to match authenticated TouchPoint users.',
                         'TouchPoint-WP'
                     ),
                     'type'        => 'checkbox',
@@ -257,8 +253,7 @@ class TouchPointWP_Settings
                     'id'          => 'auth_change_profile_urls',
                     'label'       => __('Change \'Edit Profile\' links', 'TouchPoint-WP'),
                     'description' => __(
-                        '"Edit Profile" links will take the user to their TouchPoint profile, instead of 
-                                            their WordPress profile.',
+                        '"Edit Profile" links will take the user to their TouchPoint profile, instead of their WordPress profile.',
                         'TouchPoint-WP'
                     ),
                     'type'        => 'checkbox',
@@ -270,6 +265,16 @@ class TouchPointWP_Settings
                     'description' => __('Logout of TouchPoint when logging out of WordPress.', 'TouchPoint-WP'),
                     'type'        => 'checkbox',
                     'default'     => 'on',
+                ],
+                [
+                    'id'          => 'auth_prevent_admin_bar',
+                    'label'       => __('Prevent Subscriber Admin Bar', 'TouchPoint-WP'),
+                    'description' => __(
+                        'By enabling this option, users who can\'t edit anything won\'t see the Admin bar.',
+                        'TouchPoint-WP'
+                    ),
+                    'type'        => 'checkbox',
+                    'default'     => '',
                 ],
             ],
         ];

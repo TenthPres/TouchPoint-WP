@@ -62,4 +62,8 @@ page regardless of whether TouchPoint is set as the default login mechanism.
 
 `tp_auto_redirect_login`  If the option to use TouchPoint as the default login mechanism is enabled, this filter 
 allows more specificity as to when you want this redirect to happen.  Be default, this feature is disabled.  However, 
-once enabled, by default, the plugin will redirect all login requests to TouchPoint. 
+once enabled, by default, the plugin will redirect all login requests to TouchPoint.
+
+`tp_prevent_admin_bar`  If the option to Prevent Subscriber Admin Bar is enabled, this filter allows more specificity as
+to whether to show the admin bar.  By default, if this option is enabled, the admin bar will be hidden for any user with
+the 'subscriber' role. 

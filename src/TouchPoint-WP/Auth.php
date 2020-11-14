@@ -60,6 +60,10 @@ class Auth extends WP_REST_Controller
         // If configured, bypass the login form and redirect straight to TouchPoint
         add_action('login_init', [$this, 'redirectLoginFormMaybe'], 20);
 
+        // If configured, prevent admin bar from appearing for subscribers
+        add_action('after_setup_theme', [$this, 'removeAdminBarMaybe']);
+
+
         // Redirect user back to original location
 //        add_filter( 'login_redirect', 'tp\\TouchPointWP\\Auth::redirect_after_login', 20, 3 );
     }
@@ -155,6 +159,21 @@ class Auth extends WP_REST_Controller
         if ($this->wantsToLogin() && $redirect) {
             wp_redirect($this->getLoginUrl());
             die();
+        }
+    }
+
+    /**
+     * Prevents the admin bar from being displayed for users who can't edit or change anything.
+     */
+    public function removeAdminBarMaybe()
+    {
+        $removeBar = apply_filters(
+            TouchPointWP::HOOK_PREFIX . 'prevent_admin_bar',
+            ($this->tpwp->settings->auth_prevent_admin_bar === 'on') && current_user_can('subscriber') && ! is_admin()
+        );
+
+        if ($removeBar) {
+            show_admin_bar(false);
         }
     }
 
