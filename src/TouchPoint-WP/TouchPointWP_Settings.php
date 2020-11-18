@@ -27,6 +27,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string auth_change_profile_urls Enabled to indicate the profiles should be located on TouchPoint
  * @property-read string auth_auto_provision Enabled to indicate that new users should be created automatically.
  * @property-read string auth_prevent_admin_bar Enabled to prevent Admin Bar to appearing on webpages for users who don't have special roles.
+ * @property-read string auth_full_logout   Enabled to indicate that logging out of WordPress should also log the user out of TouchPoint.
  */
 class TouchPointWP_Settings
 {

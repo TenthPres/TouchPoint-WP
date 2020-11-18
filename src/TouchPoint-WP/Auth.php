@@ -42,9 +42,6 @@ class Auth extends WP_REST_Controller
         // Start the session
         add_action('login_init', [$this, 'startSession'], 10);
 
-        // Load frontend JS & CSS.
-//        add_action('wp_register_scripts', [$this, 'registerScriptsAndStyles'], 10);
-
         // The authenticate filter
         add_filter('authenticate', [$this, 'authenticate'], 1, 3);
 
@@ -55,17 +52,16 @@ class Auth extends WP_REST_Controller
         add_filter('edit_profile_url', [$this, 'changeProfileUrl']);
 
         // Clear session variables when logging out
-//        add_action( 'wp_logout', [$this, 'logout'] ); // TODO this
+        add_action( 'wp_logout', [$this, 'logout'] );
+
+        // Auto Login content, when appropriate.
+        add_action( 'wp_footer', [$this, 'footer'] );
 
         // If configured, bypass the login form and redirect straight to TouchPoint
         add_action('login_init', [$this, 'redirectLoginFormMaybe'], 20);
 
         // If configured, prevent admin bar from appearing for subscribers
         add_action('after_setup_theme', [$this, 'removeAdminBarMaybe']);
-
-
-        // Redirect user back to original location
-//        add_filter( 'login_redirect', 'tp\\TouchPointWP\\Auth::redirect_after_login', 20, 3 );
     }
 
     /**
@@ -90,6 +86,32 @@ class Auth extends WP_REST_Controller
         if ( ! session_id()) {
             session_start();
         }
+    }
+
+    /**
+     * Clear variables and potentially create a flag for the logout of TouchPoint.
+     */
+    public function logout()
+    {
+        session_destroy(); // clear all existing variables
+        if ($this->tpwp->settings->auth_full_logout === "on") {
+            $redir = $this->tpwp->host() . '/PyScript/' . $this->tpwp->settings->auth_script_name . '?' . http_build_query(
+                    [
+                        'redirect_to'  => isset($_GET['redirect_to']) ? $_GET['redirect_to'] : get_site_url(),
+                        'action' => "logout"
+                    ]
+                );
+            wp_redirect($redir);
+            die;
+        }
+    }
+
+    /**
+     * Placeholder for automatic login.
+     */
+    public function footer()
+    {
+        // echo to print in footer
     }
 
     /**
@@ -129,7 +151,8 @@ class Auth extends WP_REST_Controller
         return $this->tpwp->host() . '/PyScript/' . $this->tpwp->settings->auth_script_name . '?' . http_build_query(
                 [
                     'redirect_to'  => isset($_GET['redirect_to']) ? $_GET['redirect_to'] : get_site_url(),
-                    'sessionToken' => $antiforgeryId
+                    'sessionToken' => $antiforgeryId,
+                    'action' => "login"
                 ]
             );
     }
