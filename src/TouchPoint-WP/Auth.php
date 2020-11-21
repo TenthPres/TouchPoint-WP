@@ -23,7 +23,8 @@ if ( ! defined('ABSPATH')) {
  */
 class Auth extends WP_REST_Controller
 {
-    protected const LOGIN_TIMEOUT = 30;     // number of seconds during which the user login tokens are valid.
+    protected const LOGIN_TIMEOUT_STANDARD = 30;     // number of seconds during which the user login tokens are valid.
+    protected const LOGIN_TIMEOUT_LINK = 10;     // number of seconds during which the user link tokens are valid.
     protected const SESSION_TIMEOUT = 600;  // number of seconds during which the login link is valid (amount of time
     // before the login page (silently) expires).
 
@@ -266,7 +267,7 @@ class Auth extends WP_REST_Controller
         // If 'loginToken' is present, this is the Authorization Response looping back through TouchPoint.
         if (isset($_GET['loginToken'])) {
             // Verify that the login token is valid.
-            if ( ! TouchPointWP::AntiForgeryTimestampIsValid($_GET['loginToken'], self::LOGIN_TIMEOUT)) {
+            if ( ! TouchPointWP::AntiForgeryTimestampIsValid($_GET['loginToken'], self::LOGIN_TIMEOUT_STANDARD)) {
                 return new WP_Error(
                     'expired_login_token',
                     __('Your login credential expired.', 'TouchPoint-WP')
@@ -393,19 +394,25 @@ class Auth extends WP_REST_Controller
     protected function handleTouchPointAuthData(string $data)
     {
         $data = json_decode($data);
-
-        // work-around to format data until PR #1127 is merged.  TODO remove after PR #1127 is merged.
-        if (is_array($data) && count($data) === 1) {
-            $data = json_decode($data[0]);
-        }
+        $data = json_decode($data);
+        $isFromLink = false;
 
         // Make sure sessionToken is valid
         if ( ! isset($data->sessionToken) ||
              ! TouchPointWP::AntiForgeryTimestampIsValid($data->sessionToken, self::SESSION_TIMEOUT)) {
-            self::apiError(
-                'no_session_token',
-                __('You don\'t appear to have a current session on our website.', 'TouchPoint-WP')
-            );
+            // invalid or missing.
+
+            if (isset($data->linkedRequest) &&
+                $data->linkedRequest === true) { // TODO add a test of whether links are allowed
+                $isFromLink = true;
+
+            } else {
+                var_dump($data);
+                self::apiError(
+                    'no_session_token',
+                    __('You don\'t appear to have a current session on our website.', 'TouchPoint-WP')
+                );
+            }
         }
 
         // get user.  Returns WP_User if one is found or created, false otherwise.
@@ -419,21 +426,21 @@ class Auth extends WP_REST_Controller
         }
 
         // Update user with current data.
-        $this->updateWpUserWithTouchPointData($user, $data->p);
+        $this->updateWpUserWithTouchPointData($user, $data->u);
 
 
         // Generate login token and response.
         /** @noinspection SpellCheckingInspection */
         $resp = [
             'status'         => 'success',
-            'userLoginToken' => TouchPointWP::generateAntiForgeryId(self::LOGIN_TIMEOUT),
+            'userLoginToken' => TouchPointWP::generateAntiForgeryId($isFromLink ? self::LOGIN_TIMEOUT_LINK : self::LOGIN_TIMEOUT_STANDARD),
             'wpid'           => $user->ID
         ];
 
         // TODO periodically send an updated API Key.
 
-        if ( ! (update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginToken', $resp['userLoginToken']) &&
-                update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginSessionToken', $data->sessionToken))
+        if ( ! update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginToken', $resp['userLoginToken']) ||
+                (!$isFromLink && !update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginSessionToken', $data->sessionToken))
         ) {
             self::apiError(
                 'meta_update_failed',
@@ -456,20 +463,20 @@ class Auth extends WP_REST_Controller
     protected function getWpUserFromTouchPointData(object $data)
     {
         // Find user based on WordPress ID
-        if (isset($data->p->wpid) && $data->p->wpid > 0) {
-            $user = get_user_by('id', $data->p->wpid);
-            if ( ! ! $user) // verify that a user was found.
+        if (isset($data->u->wpid) && $data->u->wpid > 0) {
+            $user = get_user_by('id', $data->u->wpid);
+            if ( ! ! $user) // verify that a user was found.  TODO verify that other things match, too.
             {
                 return $user;
             }
         }
 
         // Find user based on PeopleId
-        if (isset($data->p->obj->PeopleId)) {
+        if (isset($data->u->PeopleId)) {
             $q = new WP_User_Query(
                 [
                     'meta_key'     => TouchPointWP::SETTINGS_PREFIX . 'peopleId',
-                    'meta_value'   => $data->p->obj->PeopleId,
+                    'meta_value'   => $data->u->PeopleId,
                     'meta_compare' => '='
                 ]
             );
@@ -483,7 +490,7 @@ class Auth extends WP_REST_Controller
 
         if ($this->tpwp->settings->auth_auto_provision === 'on') {
             // Provision a new user, since we were unsuccessful in finding one.
-            $uid = wp_create_user(self::generateUserName($data->p), com_create_guid(), $data->p->obj->EmailAddress);
+            $uid = wp_create_user(self::generateUserName($data->u), com_create_guid(), $data->u->EmailAddress);
             if (is_numeric($uid)) { // user was successfully generated.
                 update_user_meta($uid, 'created_by', 'TouchPoint-WP');
 
@@ -505,8 +512,8 @@ class Auth extends WP_REST_Controller
     protected static function generateUserName(object $pData)
     {
         // Best.  Matches TouchPoint username.  However, it's possible users won't have usernames.
-        if (isset($pData->obj->Usernames[0])) {
-            $try = $pData->obj->Usernames[0];
+        if (isset($pData->Usernames[0])) {
+            $try = $pData->Usernames[0];
             if ( ! username_exists($try)) {
                 return $try;
             }
@@ -542,12 +549,12 @@ class Auth extends WP_REST_Controller
             [
                 'ID' => $user->ID,
 
-                'user_email' => $pData->obj->EmailAddress,
-                'nickname'   => $pData->obj->Name,
-                'first_name' => $pData->obj->FirstName,
-                'last_name'  => $pData->obj->LastName,
+                'user_email' => $pData->EmailAddress,
+                'nickname'   => $pData->Name,
+                'first_name' => $pData->FirstName,
+                'last_name'  => $pData->LastName,
 
-                TouchPointWP::SETTINGS_PREFIX . 'peopleId' => $pData->obj->PeopleId
+                TouchPointWP::SETTINGS_PREFIX . 'peopleId' => $pData->PeopleId
             ]
         );
 
