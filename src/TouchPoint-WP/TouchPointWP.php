@@ -99,6 +99,17 @@ class TouchPointWP
     protected ?Auth $auth = null;
 
     /**
+     * @var ?bool True after the Small Group feature is loaded.
+     */
+//    protected ?SmallGroup $smallGroup = null; // TODO standardize types
+    protected ?bool $smallGroup = null;
+
+    /**
+     * @var ?\WP_Http Object for API requests.
+     */
+    private ?\WP_Http $httpClient = null;
+
+    /**
      * Constructor function.
      *
      * @param string $file
@@ -140,6 +151,11 @@ class TouchPointWP
         if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
             require_once 'Rsvp.php';
         }
+
+        // Load Small Group tool if enabled.
+        if (get_option(self::SETTINGS_PREFIX . 'enable_small_group') === "on") {
+            require_once 'SmallGroup.php';
+        }
     }
 
     /**
@@ -156,7 +172,7 @@ class TouchPointWP
         load_plugin_textdomain(self::TEXT_DOMAIN, false, dirname(plugin_basename($this->file)) . '/lang/');
     }
 
-    public static function init($file)
+    public static function load($file)
     {
         $instance = self::instance($file);
 
@@ -166,12 +182,17 @@ class TouchPointWP
 
         // Load Auth tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
-            $instance->Auth = Auth::init($instance);
+            $instance->Auth = Auth::load($instance);
         }
 
         // Load RSVP tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
-            $instance->Rsvp = Rsvp::init();
+            $instance->Rsvp = Rsvp::load();
+        }
+
+        // Load Auth tool if enabled.
+        if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
+            $instance->smallGroup = SmallGroup::load($instance);
         }
 
         return $instance;
@@ -326,5 +347,75 @@ class TouchPointWP
     public function replaceApiKey()
     {
         return $this->settings->set('api_secret_key', com_create_guid());
+    }
+
+
+    /**
+     * Returns an array of objects that correspond to divisions.  Each Division has a name and an id.  The name is both the Program and Division.
+     *
+     * @returns object[]
+     */
+    public function getDivisions() {
+        $divsObj = $this->settings->__get('meta_divisions');
+        if ($divsObj === false) {
+            $divsObj = $this->updateDivisions();
+        } else {
+            $divsObj = json_decode($divsObj);
+        }
+        if (strtotime($divsObj->_updated) < time() - 86400) {
+            $divsObj = $this->updateDivisions();
+        }
+        return $divsObj->divs;
+    }
+
+    public function getDivisionsAsKVArray() {
+        $r = [];
+        foreach ($this->getDivisions() as $d) {
+            $r['div'.$d->id] = $d->name;
+        }
+        return $r;
+    }
+
+    /**
+     * @return false|object Update the divisions if they're stale.
+     */
+    private function updateDivisions() {
+        $return = $this->apiGet('Divisions');
+
+        if ($return instanceof \WP_Error)
+            return false;
+
+        $obj = (object)[
+            '_updated' => date('c'),
+            'divs' => json_decode($return['body'])->data->results
+        ];
+
+        $this->settings->set("meta_divisions", json_encode($obj));
+
+        return $obj;
+    }
+
+    /**
+     * @return \WP_Http|null
+     */
+    private function getHttpClient() {
+        if ($this->httpClient === null)
+            $this->httpClient = new \WP_Http();
+        return $this->httpClient;
+    }
+
+    public function apiGet($command) {
+        return $this->getHttpClient()->request(
+//            "https://" . $this->settings->host . "/PythonApi/" . $this->settings->script_name . "/" . $command,
+            "https://" . $this->settings->host . "/PythonApi/" . "WebApi" . "?a=" . $command, // TODO make script name dynamic
+            [
+                'method' => 'GET',
+                'headers' => [
+                    'Authorization' => 'Basic ' . base64_encode(
+                            $this->settings->api_user . ':' . $this->settings->api_pass
+                        )
+                ]
+            ]
+        );
     }
 }

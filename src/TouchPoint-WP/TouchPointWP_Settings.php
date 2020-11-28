@@ -28,6 +28,10 @@ if ( ! defined('ABSPATH')) {
  * @property-read string auth_auto_provision Enabled to indicate that new users should be created automatically.
  * @property-read string auth_prevent_admin_bar Enabled to prevent Admin Bar to appearing on webpages for users who don't have special roles.
  * @property-read string auth_full_logout   Enabled to indicate that logging out of WordPress should also log the user out of TouchPoint.
+ *
+ * @property-read string sg_name_plural     What small groups should be called, plural (e.g. "Small Groups" or "Life Groups")
+ * @property-read string sg_name_singular   What a small group should be called, singular (e.g. "Small Group" or "Life Group")
+ * @property-read string sg_slug            Slug for Small Group posts (e.g. "smallgroups" for church.org/smallgroups)
  */
 class TouchPointWP_Settings
 {
@@ -106,16 +110,19 @@ class TouchPointWP_Settings
      */
     public function init_settings()
     {
-        $this->settings = $this->settings_fields();
+        $this->settings = $this->settingsFields();
     }
 
     /**
      * Build settings fields
      *
+     * @param bool $includeAll Set to true to return all settings parameters, including those for disabled features.
+     *
      * @return array Fields to be displayed on settings page
      */
-    private function settings_fields()
+    private function settingsFields(bool $includeAll = false)
     {
+        $settings = [];
         $settings['basic'] = [
             'title'       => __('Basic Settings', 'TouchPoint-WP'),
             'description' => __('Connect to TouchPoint and choose which features you with to use.', 'TouchPoint-WP'),
@@ -130,13 +137,13 @@ class TouchPointWP_Settings
                     'type'        => 'checkbox',
                     'default'     => '',
                 ],
-                [
-                    'id'          => 'enable_rsvp',
-                    'label'       => __('Enable RSVP Tool', 'TouchPoint-WP'),
-                    'description' => __('Add a crazy-simple RSVP button to WordPress event pages.', 'TouchPoint-WP'),
-                    'type'        => 'checkbox',
-                    'default'     => '',
-                ],
+//                [
+//                    'id'          => 'enable_rsvp',
+//                    'label'       => __('Enable RSVP Tool', 'TouchPoint-WP'),
+//                    'description' => __('Add a crazy-simple RSVP button to WordPress event pages.', 'TouchPoint-WP'),
+//                    'type'        => 'checkbox',
+//                    'default'     => '',
+//                ],
                 [
                     'id'          => 'enable_small_groups',
                     'label'       => __('Enable Small Groups', 'TouchPoint-WP'),
@@ -162,7 +169,7 @@ class TouchPointWP_Settings
                     'id'          => 'api_user',
                     'label'       => __('TouchPoint API User name', 'TouchPoint-WP'),
                     'description' => __(
-                        'The username of a user account in TouchPoint with API permissions.  Required for RSVP tool.',
+                        'The username of a user account in TouchPoint with API permissions.  Required for all tools except Authentication.',
                         'TouchPoint-WP'
                     ),
                     'type'        => 'text',
@@ -194,91 +201,148 @@ class TouchPointWP_Settings
             ],
         ];
 
-        $settings['authentication'] = [
-            'title'       => __('Authentication', 'TouchPoint-WP'),
-            'description' => __('Allow users to log into WordPress using TouchPoint.', 'TouchPoint-WP'),
-            'fields'      => [
-                [
-                    'id'          => 'auth_script_name',
-                    'label'       => __('Authentication Script name', 'TouchPoint-WP'),
-                    'description' => __(
-                        'The filename of the authentication script installed in your TouchPoint database.',
-                        'TouchPoint-WP'
-                    ),
-                    'type'        => 'text',
-                    'default'     => 'WebAuth',
-                    'placeholder' => 'WebAuth'
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on" || $includeAll) {
+            $settings['authentication'] = [
+                'title'       => __('Authentication', 'TouchPoint-WP'),
+                'description' => __('Allow users to log into WordPress using TouchPoint.', 'TouchPoint-WP'),
+                'fields'      => [
+                    [
+                        'id'          => 'auth_script_name',
+                        'label'       => __('Authentication Script name', 'TouchPoint-WP'),
+                        'description' => __(
+                            'The filename of the authentication script installed in your TouchPoint database.',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'WebAuth',
+                        'placeholder' => 'WebAuth'
+                    ],
+                    [
+                        'id'          => 'auth_display_name',
+                        'label'       => __('Display Name', 'TouchPoint-WP'),
+                        'description' => __(
+                            'What you call TouchPoint.  Shows on the WordPress login screen.',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'TouchPoint',
+                        'placeholder' => 'TouchPoint'
+                    ],
+                    [
+                        'id'          => 'auth_default',
+                        'label'       => __('Make TouchPoint the default authentication method.', 'TouchPoint-WP'),
+                        'description' => __(
+                            'By checking this box, the TouchPoint login page will become the default.  To prevent the redirect and reach the standard TouchPoint login page, add \'' . TouchPointWP::HOOK_PREFIX . 'no_redirect\' as a URL parameter.',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'checkbox',
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'auth_auto_provision',
+                        'label'       => __('Enable Auto-Provisioning', 'TouchPoint-WP'),
+                        'description' => __(
+                            'Automatically create WordPress users, if needed, to match authenticated TouchPoint users.',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'checkbox',
+                        'default'     => 'on',
+                    ],
+                    [
+                        'id'          => 'auth_background', // TODO this.
+                        'label'       => __('Enable Auto-Sign in', 'TouchPoint-WP'),
+                        'description' => __(
+                            'Automatically sign in WordPress users when already signed into TouchPoint.',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'checkbox',
+                        'default'     => 'on',
+                    ],
+                    [
+                        'id'          => 'auth_change_profile_urls',
+                        'label'       => __('Change \'Edit Profile\' links', 'TouchPoint-WP'),
+                        'description' => __(
+                            '"Edit Profile" links will take the user to their TouchPoint profile, instead of their WordPress profile.',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'checkbox',
+                        'default'     => 'on',
+                    ],
+                    [
+                        'id'          => 'auth_full_logout', // TODO this.
+                        'label'       => __('Enable full logout', 'TouchPoint-WP'),
+                        'description' => __('Logout of TouchPoint when logging out of WordPress.', 'TouchPoint-WP'),
+                        'type'        => 'checkbox',
+                        'default'     => 'on',
+                    ],
+                    [
+                        'id'          => 'auth_prevent_admin_bar',
+                        'label'       => __('Prevent Subscriber Admin Bar', 'TouchPoint-WP'),
+                        'description' => __(
+                            'By enabling this option, users who can\'t edit anything won\'t see the Admin bar.',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'checkbox',
+                        'default'     => '',
+                    ],
                 ],
-                [
-                    'id'          => 'auth_display_name',
-                    'label'       => __('Display Name', 'TouchPoint-WP'),
-                    'description' => __(
-                        'What you call TouchPoint.  Shows on the WordPress login screen.',
-                        'TouchPoint-WP'
-                    ),
-                    'type'        => 'text',
-                    'default'     => 'TouchPoint',
-                    'placeholder' => 'TouchPoint'
+            ];
+        }
+
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on" || $includeAll) {
+            $settings['small_groups'] = [
+                'title'       => __('Small Groups', 'TouchPoint-WP'),
+                'description' => __('Import Small Groups from TouchPoint to your website.', 'TouchPoint-WP'),
+                'fields'      => [
+                    [
+                        'id'          => 'sg_divisions',
+                        'label'       => __( 'Divisions to Import', 'TouchPoint-WP' ),
+                        'description' => __(
+                            'Organizations from these divisions will be imported as small groups.',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'checkbox_multi',
+                        'options'     => $this->parent->getDivisionsAsKVArray(),
+                        'default'     => [],
+                    ],
+                    [
+                        'id'          => 'sg_name_plural',
+                        'label'       => __('Small Groups Name (Plural)', 'TouchPoint-WP'),
+                        'description' => __(
+                            'What you call small groups at your church',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Small Groups',
+                        'placeholder' => 'Small Groups'
+                    ],
+                    [
+                        'id'          => 'sg_name_singular',
+                        'label'       => __('Small Groups Name (Singular)', 'TouchPoint-WP'),
+                        'description' => __(
+                            'What you call small groups at your church',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Small Group',
+                        'placeholder' => 'Small Group'
+                    ],
+                    [
+                        'id'          => 'sg_slug',
+                        'label'       => __('Small Groups Slug', 'TouchPoint-WP'),
+                        'description' => __(
+                            'The root path for Small Group pages',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'smallgroups',
+                        'placeholder' => 'smallgroups'
+                    ],
                 ],
-                [
-                    'id'          => 'auth_default',
-                    'label'       => __('Make TouchPoint the default authentication method.', 'TouchPoint-WP'),
-                    'description' => __(
-                        'By checking this box, the TouchPoint login page will become the default.  To prevent the redirect and reach the standard TouchPoint login page, add \'' . TouchPointWP::HOOK_PREFIX . 'no_redirect\' as a URL parameter.',
-                        'TouchPoint-WP'
-                    ),
-                    'type'        => 'checkbox',
-                    'default'     => '',
-                ],
-                [
-                    'id'          => 'auth_auto_provision',
-                    'label'       => __('Enable Auto-Provisioning', 'TouchPoint-WP'),
-                    'description' => __(
-                        'Automatically create WordPress users, if needed, to match authenticated TouchPoint users.',
-                        'TouchPoint-WP'
-                    ),
-                    'type'        => 'checkbox',
-                    'default'     => 'on',
-                ],
-                [
-                    'id'          => 'auth_background', // TODO this.
-                    'label'       => __('Enable Auto-Sign in', 'TouchPoint-WP'),
-                    'description' => __(
-                        'Automatically sign in WordPress users when already signed into TouchPoint.',
-                        'TouchPoint-WP'
-                    ),
-                    'type'        => 'checkbox',
-                    'default'     => 'on',
-                ],
-                [
-                    'id'          => 'auth_change_profile_urls',
-                    'label'       => __('Change \'Edit Profile\' links', 'TouchPoint-WP'),
-                    'description' => __(
-                        '"Edit Profile" links will take the user to their TouchPoint profile, instead of their WordPress profile.',
-                        'TouchPoint-WP'
-                    ),
-                    'type'        => 'checkbox',
-                    'default'     => 'on',
-                ],
-                [
-                    'id'          => 'auth_full_logout', // TODO this.
-                    'label'       => __('Enable full logout', 'TouchPoint-WP'),
-                    'description' => __('Logout of TouchPoint when logging out of WordPress.', 'TouchPoint-WP'),
-                    'type'        => 'checkbox',
-                    'default'     => 'on',
-                ],
-                [
-                    'id'          => 'auth_prevent_admin_bar',
-                    'label'       => __('Prevent Subscriber Admin Bar', 'TouchPoint-WP'),
-                    'description' => __(
-                        'By enabling this option, users who can\'t edit anything won\'t see the Admin bar.',
-                        'TouchPoint-WP'
-                    ),
-                    'type'        => 'checkbox',
-                    'default'     => '',
-                ],
-            ],
-        ];
+            ];
+        }
+
+
 
         /*	$settings['general'] = [
                 'title'       => __( 'Standard', 'TouchPoint-WP' ),
@@ -495,7 +559,7 @@ class TouchPointWP_Settings
     {
         // We're including the WP media scripts here because they're needed for the image upload field.
         // If you're not including an image upload then you can leave this function call out.
-        wp_enqueue_media();
+        wp_enqueue_media(); // todo remove?
 
         // TODO this this out.  Most of this is not relevant.
         wp_register_script(

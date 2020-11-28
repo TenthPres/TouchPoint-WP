@@ -26,7 +26,7 @@ abstract class Rsvp
 
     private static bool $_isInitiated = false;
 
-    public static function init()
+    public static function load()
     {
         if (self::$_isInitiated) {
             return true;

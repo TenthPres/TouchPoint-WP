@@ -78,5 +78,5 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP_Settings.php";
 }
 
-/*** Init ***/
-TouchPointWP::init(__FILE__);
+/*** Load (set action hooks, etc.) ***/
+TouchPointWP::load(__FILE__);
