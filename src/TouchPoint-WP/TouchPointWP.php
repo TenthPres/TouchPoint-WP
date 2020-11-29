@@ -2,6 +2,8 @@
 
 namespace tp\TouchPointWP;
 
+use WP_Error;
+
 if ( ! defined('ABSPATH')) {
     exit;
 }
@@ -362,12 +364,17 @@ class TouchPointWP
         } else {
             $divsObj = json_decode($divsObj);
         }
-        if (strtotime($divsObj->_updated) < time() - 86400) {
+        if (true || strtotime($divsObj->_updated) < time() - 86400) {
             $divsObj = $this->updateDivisions();
         }
         return $divsObj->divs;
     }
 
+    /**
+     * Format the list of divisions into an array with form-name-friendly IDs as the key.
+     *
+     * @return string[]
+     */
     public function getDivisionsAsKVArray() {
         $r = [];
         foreach ($this->getDivisions() as $d) {
@@ -382,12 +389,12 @@ class TouchPointWP
     private function updateDivisions() {
         $return = $this->apiGet('Divisions');
 
-        if ($return instanceof \WP_Error)
+        if ($return instanceof WP_Error)
             return false;
 
         $obj = (object)[
             '_updated' => date('c'),
-            'divs' => json_decode($return['body'])->data->results
+            'divs' => json_decode($return['body'])->data->data
         ];
 
         $this->settings->set("meta_divisions", json_encode($obj));
@@ -404,10 +411,22 @@ class TouchPointWP
         return $this->httpClient;
     }
 
-    public function apiGet($command) {
+    /**
+     * @param string $command The thing to get
+     * @param ?array $parameters URL parameters to be added.
+     *
+     * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
+     * Data is generally in json_decode($response['body'])->data->data
+     */
+    public function apiGet(string $command, ?array $parameters = null) {
+        if (!is_array($parameters)) {
+            $parameters = (array)$parameters;
+        }
+
+        $parameters['a'] = $command;
+
         return $this->getHttpClient()->request(
-//            "https://" . $this->settings->host . "/PythonApi/" . $this->settings->script_name . "/" . $command,
-            "https://" . $this->settings->host . "/PythonApi/" . "WebApi" . "?a=" . $command, // TODO make script name dynamic
+            "https://" . $this->settings->host . "/PythonApi/" . "WebApi" . "?" . http_build_query($parameters), // TODO make script name dynamic
             [
                 'method' => 'GET',
                 'headers' => [

@@ -32,6 +32,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string sg_name_plural     What small groups should be called, plural (e.g. "Small Groups" or "Life Groups")
  * @property-read string sg_name_singular   What a small group should be called, singular (e.g. "Small Group" or "Life Group")
  * @property-read string sg_slug            Slug for Small Group posts (e.g. "smallgroups" for church.org/smallgroups)
+ * @property-read string[] sg_divisions     Organizations that are within these divisions should be imported from TouchPoint as Small Groups.
  */
 class TouchPointWP_Settings
 {

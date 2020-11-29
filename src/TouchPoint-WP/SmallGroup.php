@@ -67,6 +67,58 @@ abstract class SmallGroup
             'can_export' => false,
             'delete_with_user' => false
         ]);
+        self::updateSmallGroupsFromTouchPoint();
+    }
+
+
+
+    public static function updateSmallGroupsFromTouchPoint()
+    {
+        $divs = implode(',', self::$tpwp->settings->sg_divisions);
+        $divs = str_replace('div','', $divs);
+        $response = self::$tpwp->apiGet("OrgsForDivs", ['divs' => $divs]);
+
+        if ($response instanceof \WP_Error)
+            return false;
+
+        $orgData = json_decode($response['body'])->data->data;
+
+        foreach ($orgData as $org) {
+            set_time_limit(10);
+
+            $q = new \WP_Query([
+                'post_type' => self::POST_TYPE,
+                'meta_key'    => TouchPointWP::SETTINGS_PREFIX . "OrgId",
+                'meta_value'  => $org->organizationId
+                               ]);
+            $post = $q->get_posts();
+            if (count($post) > 0) { // post exists already.
+                $post = $post[0];
+            } else {
+                $post = wp_insert_post([ // create new
+                    'post_type' => self::POST_TYPE,
+                    'post_name' => $org->name,
+                    'meta_input' => [
+                        TouchPointWP::SETTINGS_PREFIX . "OrgId" => $org->organizationId
+                    ]
+                                       ]);
+                $post = get_post($post);
+            }
+
+            // TODO check for $post being an instanceof WP_Error and report that something went wrong.
+
+            $post->post_content = $org->description; // TODO filter out style and script tags (and others?)
+
+            if ($post->post_title != $org->name) // only update if there's a change.  Otherwise, urls increment.
+                $post->post_title = $org->name;
+
+            $post->post_status = 'publish';
+
+            wp_update_post($post);
+
+        }
+
+        return count($orgData);
     }
 
 
