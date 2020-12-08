@@ -437,4 +437,33 @@ class TouchPointWP
             ]
         );
     }
+
+
+    public static function getDayOfWeekNameForNumber(int $dayNum)
+    {
+        $names = [
+            __('Sunday'),
+            __('Monday'),
+            __('Tuesday'),
+            __('Wednesday'),
+            __('Thursday'),
+            __('Friday'),
+            __('Saturday'),
+        ];
+        return $names[$dayNum % 7];
+    }
+
+    public static function getDayOfWeekShortForNumber(int $dayNum)
+    {
+        $names = [
+            __('Sun'),
+            __('Mon'),
+            __('Tue'),
+            __('Wed'),
+            __('Thu'),
+            __('Fri'),
+            __('Sat'),
+        ];
+        return $names[$dayNum % 7];
+    }
 }
