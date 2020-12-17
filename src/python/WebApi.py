@@ -30,7 +30,13 @@ elif (Data.a == "OrgsForDivs"):
     os2.schedTime as sched2Time,
     os2.schedDay as sched2Day,
     os2.nextMeetingDate as sched2NextMeeting,
-    m.meetingDate as meetNextMeeting
+    m.meetingDate as meetNextMeeting,
+    (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
+        LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0)) as marital_denom,
+    (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
+        LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId IN (20)) as marital_married,
+    (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
+        LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0, 20)) as marital_single
     FROM Organizations o
     LEFT JOIN OrgSchedule AS os1 ON
         (o.OrganizationId = os1.OrganizationId AND
