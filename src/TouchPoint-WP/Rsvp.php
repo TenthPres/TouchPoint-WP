@@ -26,7 +26,7 @@ abstract class Rsvp
 
     private static bool $_isInitiated = false;
 
-    public static function load()
+    public static function load(): bool
     {
         if (self::$_isInitiated) {
             return true;
@@ -108,7 +108,7 @@ abstract class Rsvp
             return "<!-- Can't add an RSVP link without a proper Meeting ID in a meetingId parameter. -->" . $content;
         }
 
-        $meetingId = intval($params['meetingid']);
+        $meetingId = (int)($params['meetingid']);
 
         // get any nesting
         $content = do_shortcode($content);

@@ -238,7 +238,7 @@ class Auth extends WP_REST_Controller
     {
         if ($this->tpwp->settings->auth_change_profile_urls === 'on') {
             $userId   = get_current_user_id();
-            $peopleId = intval(get_user_meta($userId, TouchPointWP::SETTINGS_PREFIX . 'peopleId', true));
+            $peopleId = (int)(get_user_meta($userId, TouchPointWP::SETTINGS_PREFIX . 'peopleId', true));
             if ($peopleId > 0) { // make sure we have a PeopleId.  Users aren't necessarily TouchPoint users.
                 return $this->tpwp->host() . '/Person2/' . $peopleId;
             }
@@ -440,7 +440,7 @@ class Auth extends WP_REST_Controller
         // TODO periodically send an updated API Key.
 
         if ( ! update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginToken', $resp['userLoginToken']) ||
-                (!$isFromLink && !update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginSessionToken', $data->sessionToken))
+             (!$isFromLink && !update_user_meta($user->ID, TouchPointWP::SETTINGS_PREFIX . 'loginSessionToken', $data->sessionToken))
         ) {
             self::apiError(
                 'meta_update_failed',

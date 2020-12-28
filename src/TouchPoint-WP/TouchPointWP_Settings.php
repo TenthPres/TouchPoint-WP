@@ -19,6 +19,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string host       The base URL for the TouchPoint instance
  * @property-read string api_user   Username of a user account with API access
  * @property-read string api_pass   Password for a user account with API access
+ * @property-read string api_script_name The name of the script loaded into TouchPoint for API Interfacing.
  * @property-read string ip_whitelist TouchPoint Server IPs
  *
  * @property-read string auth_display_name  What the church calls TouchPoint
@@ -52,6 +53,8 @@ class TouchPointWP_Settings
      */
     public array $settings = [];
 
+    private const UNDEFINED_PLACEHOLDER = INF;
+
     /**
      * Constructor function.
      *
@@ -62,10 +65,10 @@ class TouchPointWP_Settings
         $this->parent = $parent;
 
         // Initialise settings.
-        add_action('init', [$this, 'init_settings'], 11);
+        add_action('init', [$this, 'initSettings'], 11);
 
         // Register plugin settings.
-        add_action('admin_init', [$this, 'register_settings']);
+        add_action('admin_init', [$this, 'registerSettings']);
 
         // Add settings page to menu.
         add_action('admin_menu', [$this, 'add_menu_item']);
@@ -95,7 +98,7 @@ class TouchPointWP_Settings
      * @static
      * @see TouchPointWP()
      */
-    public static function instance(TouchPointWP $parent)
+    public static function instance(TouchPointWP $parent): TouchPointWP_Settings
     {
         if (is_null(self::$_instance)) {
             self::$_instance = new self($parent);
@@ -109,7 +112,7 @@ class TouchPointWP_Settings
      *
      * @return void
      */
-    public function init_settings()
+    public function initSettings()
     {
         $this->settings = $this->settingsFields();
     }
@@ -121,7 +124,7 @@ class TouchPointWP_Settings
      *
      * @return array Fields to be displayed on settings page
      */
-    private function settingsFields(bool $includeAll = false)
+    private function settingsFields(bool $includeAll = false, bool $includeDetail = true): array
     {
         $settings = [];
         $settings['basic'] = [
@@ -133,7 +136,7 @@ class TouchPointWP_Settings
                     'label'       => __('Enable Authentication', 'TouchPoint-WP'),
                     'description' => __(
                         'Allow TouchPoint users to sign into this website with TouchPoint.',
-                        'TouchPoint-WP'
+                        TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
@@ -150,7 +153,7 @@ class TouchPointWP_Settings
                     'label'       => __('Enable Small Groups', 'TouchPoint-WP'),
                     'description' => __(
                         'Load Small Groups from TouchPoint for a web-based Small Group finder.',
-                        'TouchPoint-WP'
+                        TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
@@ -160,18 +163,19 @@ class TouchPointWP_Settings
                     'label'       => __('TouchPoint Host Name', 'TouchPoint-WP'),
                     'description' => __(
                         'The web address for your TouchPoint database, without the https or any slashes.',
-                        'TouchPoint-WP'
+                        TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'text',
                     'default'     => 'mychurch.tpsdb.com',
                     'placeholder' => 'mychurch.tpsdb.com',
+                    'callback'    => [$this, 'validation_lowercase']
                 ],
                 [
                     'id'          => 'api_user',
                     'label'       => __('TouchPoint API User name', 'TouchPoint-WP'),
                     'description' => __(
                         'The username of a user account in TouchPoint with API permissions.  Required for all tools except Authentication.',
-                        'TouchPoint-WP'
+                        TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'text',
                     'default'     => '',
@@ -182,18 +186,30 @@ class TouchPointWP_Settings
                     'label'       => __('TouchPoint API User Password', 'TouchPoint-WP'),
                     'description' => __(
                         'The password of a user account in TouchPoint with API permissions.',
-                        'TouchPoint-WP'
+                        TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'text_secret',
                     'default'     => '',
-                    'placeholder' => '',
+                    'placeholder' => ($this->api_pass == '' ? '' : __('password saved', TouchPointWP::TEXT_DOMAIN)),
+                    'callback'    => [$this, 'validation_api_pass']
+                ],
+                [
+                    'id'          => 'api_script_name',
+                    'label'       => __('TouchPoint API Script Name', 'TouchPoint-WP'),
+                    'description' => __(
+                        'The name of the Python script loaded into TouchPoint.  Download the scripts below.',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'WebApi',
+                    'placeholder' => ''
                 ],
                 [
                     'id'          => 'ip_whitelist',
-                    'label'       => __('TouchPoint Server Outgoing IP Addresses', 'TouchPoint-WP'),
+                    'label'       => __('TouchPoint Server Outgoing IP Addresses', TouchPointWP::TEXT_DOMAIN),
                     'description' => __(
                         'One IP address per line.  You should probably only use this if you\'re self-hosting and thereby control the outgoing IPs from TouchPoint.',
-                        'TouchPoint-WP'
+                        TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'textarea',
                     'default'     => '',
@@ -204,15 +220,15 @@ class TouchPointWP_Settings
 
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on" || $includeAll) {
             $settings['authentication'] = [
-                'title'       => __('Authentication', 'TouchPoint-WP'),
-                'description' => __('Allow users to log into WordPress using TouchPoint.', 'TouchPoint-WP'),
+                'title'       => __('Authentication', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Allow users to log into WordPress using TouchPoint.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
                     [
                         'id'          => 'auth_script_name',
-                        'label'       => __('Authentication Script name', 'TouchPoint-WP'),
+                        'label'       => __('Authentication Script name', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'The filename of the authentication script installed in your TouchPoint database.',
-                            'TouchPoint-WP'
+                            TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'text',
                         'default'     => 'WebAuth',
@@ -220,10 +236,10 @@ class TouchPointWP_Settings
                     ],
                     [
                         'id'          => 'auth_display_name',
-                        'label'       => __('Display Name', 'TouchPoint-WP'),
+                        'label'       => __('Display Name', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'What you call TouchPoint.  Shows on the WordPress login screen.',
-                            'TouchPoint-WP'
+                            TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'text',
                         'default'     => 'TouchPoint',
@@ -231,57 +247,57 @@ class TouchPointWP_Settings
                     ],
                     [
                         'id'          => 'auth_default',
-                        'label'       => __('Make TouchPoint the default authentication method.', 'TouchPoint-WP'),
+                        'label'       => __('Make TouchPoint the default authentication method.', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'By checking this box, the TouchPoint login page will become the default.  To prevent the redirect and reach the standard TouchPoint login page, add \'' . TouchPointWP::HOOK_PREFIX . 'no_redirect\' as a URL parameter.',
-                            'TouchPoint-WP'
+                            TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox',
                         'default'     => '',
                     ],
                     [
                         'id'          => 'auth_auto_provision',
-                        'label'       => __('Enable Auto-Provisioning', 'TouchPoint-WP'),
+                        'label'       => __('Enable Auto-Provisioning', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'Automatically create WordPress users, if needed, to match authenticated TouchPoint users.',
-                            'TouchPoint-WP'
+                            TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox',
                         'default'     => 'on',
                     ],
                     [
                         'id'          => 'auth_background', // TODO this.
-                        'label'       => __('Enable Auto-Sign in', 'TouchPoint-WP'),
+                        'label'       => __('Enable Auto-Sign in', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'Automatically sign in WordPress users when already signed into TouchPoint.',
-                            'TouchPoint-WP'
+                            TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox',
                         'default'     => 'on',
                     ],
                     [
                         'id'          => 'auth_change_profile_urls',
-                        'label'       => __('Change \'Edit Profile\' links', 'TouchPoint-WP'),
+                        'label'       => __('Change \'Edit Profile\' links', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             '"Edit Profile" links will take the user to their TouchPoint profile, instead of their WordPress profile.',
-                            'TouchPoint-WP'
+                            TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox',
                         'default'     => 'on',
                     ],
                     [
                         'id'          => 'auth_full_logout', // TODO this.
-                        'label'       => __('Enable full logout', 'TouchPoint-WP'),
-                        'description' => __('Logout of TouchPoint when logging out of WordPress.', 'TouchPoint-WP'),
+                        'label'       => __('Enable full logout', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __('Logout of TouchPoint when logging out of WordPress.', TouchPointWP::TEXT_DOMAIN),
                         'type'        => 'checkbox',
                         'default'     => 'on',
                     ],
                     [
                         'id'          => 'auth_prevent_admin_bar',
-                        'label'       => __('Prevent Subscriber Admin Bar', 'TouchPoint-WP'),
+                        'label'       => __('Prevent Subscriber Admin Bar', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'By enabling this option, users who can\'t edit anything won\'t see the Admin bar.',
-                            'TouchPoint-WP'
+                            TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox',
                         'default'     => '',
@@ -292,26 +308,26 @@ class TouchPointWP_Settings
 
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on" || $includeAll) {
             $settings['small_groups'] = [
-                'title'       => __('Small Groups', 'TouchPoint-WP'),
-                'description' => __('Import Small Groups from TouchPoint to your website.', 'TouchPoint-WP'),
+                'title'       => __('Small Groups', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Import Small Groups from TouchPoint to your website.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
                     [
                         'id'          => 'sg_divisions',
-                        'label'       => __( 'Divisions to Import', 'TouchPoint-WP' ),
+                        'label'       => __('Divisions to Import', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'Organizations from these divisions will be imported as small groups.',
-                            'TouchPoint-WP'
+                            TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
-                        'options'     => $this->parent->getDivisionsAsKVArray(),
+                        'options'     => $includeDetail ? $this->parent->getDivisionsAsKVArray() : [],
                         'default'     => [],
                     ],
                     [
                         'id'          => 'sg_name_plural',
-                        'label'       => __('Small Groups Name (Plural)', 'TouchPoint-WP'),
+                        'label'       => __('Small Groups Name (Plural)', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'What you call small groups at your church',
-                            'TouchPoint-WP'
+                            TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'text',
                         'default'     => 'Small Groups',
@@ -319,10 +335,10 @@ class TouchPointWP_Settings
                     ],
                     [
                         'id'          => 'sg_name_singular',
-                        'label'       => __('Small Groups Name (Singular)', 'TouchPoint-WP'),
+                        'label'       => __('Small Groups Name (Singular)', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
-                            'What you call small groups at your church',
-                            'TouchPoint-WP'
+                            'What you call a small group at your church',
+                            TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'text',
                         'default'     => 'Small Group',
@@ -330,14 +346,15 @@ class TouchPointWP_Settings
                     ],
                     [
                         'id'          => 'sg_slug',
-                        'label'       => __('Small Groups Slug', 'TouchPoint-WP'),
+                        'label'       => __('Small Groups Slug', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'The root path for Small Group pages',
-                            'TouchPoint-WP'
+                            TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'text',
                         'default'     => 'smallgroups',
-                        'placeholder' => 'smallgroups'
+                        'placeholder' => 'smallgroups',
+                        'callback'    => [$this, 'validation_lowercase']
                     ],
                 ],
             ];
@@ -346,52 +363,52 @@ class TouchPointWP_Settings
 
 
         /*	$settings['general'] = [
-                'title'       => __( 'Standard', 'TouchPoint-WP' ),
-                'description' => __( 'These are fairly standard form input fields.', 'TouchPoint-WP' ),
+                'title'       => __( 'Standard', TouchPointWP::TEXT_DOMAIN ),
+                'description' => __( 'These are fairly standard form input fields.', TouchPointWP::TEXT_DOMAIN ),
                 'fields'      => [
                     [
                         'id'          => 'text_field',
-                        'label'       => __( 'Some Text', 'TouchPoint-WP' ),
-                        'description' => __( 'This is a standard text field.', 'TouchPoint-WP' ),
+                        'label'       => __( 'Some Text', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'This is a standard text field.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'text',
                         'default'     => '',
-                        'placeholder' => __( 'Placeholder text', 'TouchPoint-WP' ),
+                        'placeholder' => __( 'Placeholder text', TouchPointWP::TEXT_DOMAIN ),
                     ],
                     [
                         'id'          => 'password_field',
-                        'label'       => __( 'A Password', 'TouchPoint-WP' ),
-                        'description' => __( 'This is a standard password field.', 'TouchPoint-WP' ),
+                        'label'       => __( 'A Password', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'This is a standard password field.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'password',
                         'default'     => '',
-                        'placeholder' => __( 'Placeholder text', 'TouchPoint-WP' ),
+                        'placeholder' => __( 'Placeholder text', TouchPointWP::TEXT_DOMAIN ),
                     ],
                     [
                         'id'          => 'secret_text_field',
-                        'label'       => __( 'Some Secret Text', 'TouchPoint-WP' ),
-                        'description' => __( 'This is a secret text field - any data saved here will not be displayed after the page has reloaded, but it will be saved.', 'TouchPoint-WP' ),
+                        'label'       => __( 'Some Secret Text', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'This is a secret text field - any data saved here will not be displayed after the page has reloaded, but it will be saved.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'text_secret',
                         'default'     => '',
-                        'placeholder' => __( 'Placeholder text', 'TouchPoint-WP' ),
+                        'placeholder' => __( 'Placeholder text', TouchPointWP::TEXT_DOMAIN ),
                     ],
                     [
                         'id'          => 'text_block',
-                        'label'       => __( 'A Text Block', 'TouchPoint-WP' ),
-                        'description' => __( 'This is a standard text area.', 'TouchPoint-WP' ),
+                        'label'       => __( 'A Text Block', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'This is a standard text area.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'textarea',
                         'default'     => '',
-                        'placeholder' => __( 'Placeholder text for this textarea', 'TouchPoint-WP' ),
+                        'placeholder' => __( 'Placeholder text for this textarea', TouchPointWP::TEXT_DOMAIN ),
                     ],
                     [
                         'id'          => 'single_checkbox',
-                        'label'       => __( 'An Option', 'TouchPoint-WP' ),
-                        'description' => __( 'A standard checkbox - if you save this option as checked then it will store the option as \'on\', otherwise it will be an empty string.', 'TouchPoint-WP' ),
+                        'label'       => __( 'An Option', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'A standard checkbox - if you save this option as checked then it will store the option as \'on\', otherwise it will be an empty string.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'checkbox',
                         'default'     => '',
                     ],
                     [
                         'id'          => 'select_box',
-                        'label'       => __( 'A Select Box', 'TouchPoint-WP' ),
-                        'description' => __( 'A standard select box.', 'TouchPoint-WP' ),
+                        'label'       => __( 'A Select Box', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'A standard select box.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'select',
                         'options'     => [
                             'drupal'    => 'Drupal',
@@ -402,8 +419,8 @@ class TouchPointWP_Settings
                     ],
                     [
                         'id'          => 'radio_buttons',
-                        'label'       => __( 'Some Options', 'TouchPoint-WP' ),
-                        'description' => __( 'A standard set of radio buttons.', 'TouchPoint-WP' ),
+                        'label'       => __( 'Some Options', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'A standard set of radio buttons.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'radio',
                         'options'     => [
                             'superman' => 'Superman',
@@ -414,8 +431,8 @@ class TouchPointWP_Settings
                     ],
                     [
                         'id'          => 'multiple_checkboxes',
-                        'label'       => __( 'Some Items', 'TouchPoint-WP' ),
-                        'description' => __( 'You can select multiple items and they will be stored as an array.', 'TouchPoint-WP' ),
+                        'label'       => __( 'Some Items', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'You can select multiple items and they will be stored as an array.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'checkbox_multi',
                         'options'     => [
                             'square'    => 'Square',
@@ -429,36 +446,36 @@ class TouchPointWP_Settings
             ];
 
             $settings['extra'] = array(
-                'title'       => __( 'Extra', 'TouchPoint-WP' ),
-                'description' => __( "These are some extra input fields that maybe aren't as common as the others.", 'TouchPoint-WP' ),
+                'title'       => __( 'Extra', TouchPointWP::TEXT_DOMAIN ),
+                'description' => __( "These are some extra input fields that maybe aren't as common as the others.", TouchPointWP::TEXT_DOMAIN ),
                 'fields'      => array(
                     array(
                         'id'          => 'number_field',
-                        'label'       => __( 'A Number', 'TouchPoint-WP' ),
-                        'description' => __( 'This is a standard number field - if this field contains anything other than numbers then the form will not be submitted.', 'TouchPoint-WP' ),
+                        'label'       => __( 'A Number', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'This is a standard number field - if this field contains anything other than numbers then the form will not be submitted.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'number',
                         'default'     => '',
-                        'placeholder' => __( '42', 'TouchPoint-WP' ),
+                        'placeholder' => __( '42', TouchPointWP::TEXT_DOMAIN ),
                     ),
                     array(
                         'id'          => 'colour_picker',
-                        'label'       => __( 'Pick a colour', 'TouchPoint-WP' ),
-                        'description' => __( 'This uses WordPress\' built-in colour picker - the option is stored as the colour\'s hex code.', 'TouchPoint-WP' ),
+                        'label'       => __( 'Pick a colour', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'This uses WordPress\' built-in colour picker - the option is stored as the colour\'s hex code.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'color',
                         'default'     => '#21759B',
                     ),
                     array(
                         'id'          => 'an_image',
-                        'label'       => __( 'An Image', 'TouchPoint-WP' ),
-                        'description' => __( 'This will upload an image to your media library and store the attachment ID in the option field. Once you have uploaded an image the thumbnail will display above these buttons.', 'TouchPoint-WP' ),
+                        'label'       => __( 'An Image', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'This will upload an image to your media library and store the attachment ID in the option field. Once you have uploaded an image the thumbnail will display above these buttons.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'image',
                         'default'     => '',
                         'placeholder' => '',
                     ),
                     array(
                         'id'          => 'multi_select_box',
-                        'label'       => __( 'A Multi-Select Box', 'TouchPoint-WP' ),
-                        'description' => __( 'A standard multi-select box - the saved data is stored as an array.', 'TouchPoint-WP' ),
+                        'label'       => __( 'A Multi-Select Box', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'A standard multi-select box - the saved data is stored as an array.', TouchPointWP::TEXT_DOMAIN ),
                         'type'        => 'select_multi',
                         'options'     => array(
                             'linux'   => 'Linux',
@@ -528,8 +545,8 @@ class TouchPointWP_Settings
             [
                 'location'    => 'options', // Possible settings: options, menu, submenu.
                 'parent_slug' => 'options-general.php',
-                'page_title'  => __('TouchPoint-WP', 'TouchPoint-WP'),
-                'menu_title'  => __('TouchPoint-WP', 'TouchPoint-WP'),
+                'page_title'  => __('TouchPoint-WP', TouchPointWP::TEXT_DOMAIN),
+                'menu_title'  => __('TouchPoint-WP', TouchPointWP::TEXT_DOMAIN),
                 'capability'  => 'manage_options',
                 'menu_slug'   => $this->parent::TOKEN . '_Settings',
                 'function'    => [$this, 'settings_page'],
@@ -560,7 +577,7 @@ class TouchPointWP_Settings
     {
         // We're including the WP media scripts here because they're needed for the image upload field.
         // If you're not including an image upload then you can leave this function call out.
-        wp_enqueue_media(); // todo remove?
+//        wp_enqueue_media(); // todo remove?
 
         // TODO this this out.  Most of this is not relevant.
         wp_register_script(
@@ -584,7 +601,7 @@ class TouchPointWP_Settings
     {
         $settings_link = '<a href="options-general.php?page=' . $this->parent::TOKEN . '_Settings">' . __(
                 'Settings',
-                'TouchPoint-WP'
+                TouchPointWP::TEXT_DOMAIN
             ) . '</a>';
         array_push($links, $settings_link);
 
@@ -598,8 +615,16 @@ class TouchPointWP_Settings
      */
     public function __get(string $what)
     {
-        // TODO does not reflect defaults which have not yet been saved.
-        return get_option(TouchPointWP::SETTINGS_PREFIX . $what, false);
+        $v = get_option(TouchPointWP::SETTINGS_PREFIX . $what, self::UNDEFINED_PLACEHOLDER);
+
+        if ($v === self::UNDEFINED_PLACEHOLDER) {
+            $v = $this->getDefaultValueForSetting($what);
+        }
+        if ($v === self::UNDEFINED_PLACEHOLDER) {
+            $v = false;
+        }
+
+        return $v;
     }
 
     /**
@@ -608,7 +633,7 @@ class TouchPointWP_Settings
      *
      * @return false|mixed
      */
-    public function set(string $what, $value)
+    public function set(string $what, $value): bool
     {
         return (update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, true) ? $value : false);
     }
@@ -618,7 +643,7 @@ class TouchPointWP_Settings
      *
      * @return void
      */
-    public function register_settings()
+    public function registerSettings()
     {
         if (is_array($this->settings)) {
             // Check posted/selected tab.
@@ -644,9 +669,9 @@ class TouchPointWP_Settings
 
                 foreach ($data['fields'] as $field) {
                     // Validation callback for field.
-                    $validation = '';
+                    $validation = [];
                     if (isset($field['callback'])) {
-                        $validation = $field['callback'];
+                        $validation['sanitize_callback'] = $field['callback'];
                     }
 
                     // Register field.
@@ -675,6 +700,26 @@ class TouchPointWP_Settings
     }
 
     /**
+     * @param $id
+     *
+     * @return mixed
+     */
+    protected function getDefaultValueForSetting(string $id) {
+        foreach ($this->settingsFields(true, false) as $category) {
+            foreach ($category['fields'] as $field) {
+                if ($field['id'] === $id){
+                    if (isset($field['default'])) { // Is there is a default, return it.
+                        return $field['default'];
+                    } else { // If the field is defined, but there is no default, return undefined placeholder.
+                        return self::UNDEFINED_PLACEHOLDER;
+                    }
+                }
+            }
+        }
+        return self::UNDEFINED_PLACEHOLDER; // If there is no such field, return false.
+    }
+
+    /**
      * Settings section.
      *
      * @param array $section Array of section ids.
@@ -696,7 +741,7 @@ class TouchPointWP_Settings
     {
         // Build page HTML.
         $html = '<div class="wrap" id="' . $this->parent::TOKEN . '_Settings">' . "\n";
-        $html .= '<h2>' . __('TouchPoint-WP Settings', 'TouchPoint-WP') . '</h2>' . "\n";
+        $html .= '<h2>' . __('TouchPoint-WP Settings', TouchPointWP::TEXT_DOMAIN) . '</h2>' . "\n";
 
         $tab = '';
 
@@ -747,13 +792,27 @@ class TouchPointWP_Settings
         $html .= '<p class="submit">' . "\n";
         $html .= '<input type="hidden" name="tab" value="' . esc_attr($tab) . '" />' . "\n";
         $html .= '<input name="Submit" type="submit" class="button-primary" value="' . esc_attr(
-                __('Save Settings', 'TouchPoint-WP')
+                __('Save Settings', TouchPointWP::TEXT_DOMAIN)
             ) . '" />' . "\n";
         $html .= '</p>' . "\n";
         $html .= '</form>' . "\n";
         $html .= '</div>' . "\n";
 
         echo $html;
+    }
+
+    public function validation_api_pass($data): string
+    {
+        if ($data === '') { // If there is no value, use the saved one.
+            return $this->api_pass;
+        }
+
+        return $data;
+    }
+
+    public function validation_lowercase($data): string
+    {
+        return strtolower($data);
     }
 
     /**

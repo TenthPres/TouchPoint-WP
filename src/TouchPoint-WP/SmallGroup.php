@@ -23,23 +23,38 @@ abstract class SmallGroup
 {
     public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "SG";
     public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "smallgroup";
+    public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "sg_cron_hook";
 
     private static bool $_isInitiated = false;
     protected static TouchPointWP $tpwp;
 
-    public static function load(TouchPointWP $tpwp)
+    public static function load(TouchPointWP $tpwp): bool
     {
         if (self::$_isInitiated) {
             return true;
         }
 
+        set_time_limit(300); // TODO remove.
+
         self::$tpwp = $tpwp;
 
         self::$_isInitiated = true;
 
-        add_action('init', [self::class, 'registerPostType']);
+        add_action('init', [self::class, 'init']);
 
-//        TODO on activation and deactivation, or change to the small group slug flush rewrite rules.
+        // Setup cron for updating Small Groups daily.
+        add_action(self::CRON_HOOK, [self::class, 'updateSmallGroupsFromTouchPoint']);
+        if ( ! wp_next_scheduled(self::CRON_HOOK)) {
+            // Runs at 6am EST (11am UTC)
+            wp_schedule_event(date('U', strtotime('tomorrow') + 3600 * 11), 'daily', self::CRON_HOOK);
+        }
+
+        // Deactivation
+
+
+
+//        TODO on activation and deactivation, or change to the small group slug, flush rewrite rules.
+        // TODO Deactivation: cancel Cron updating task.
 
         return true;
     }
@@ -47,7 +62,7 @@ abstract class SmallGroup
     /**
      * Register the tp_smallgroup post type
      */
-    public static function registerPostType()
+    public static function init(): void
     {
         register_post_type( self::POST_TYPE, [
             'labels' => [
@@ -76,7 +91,34 @@ abstract class SmallGroup
             'can_export' => false,
             'delete_with_user' => false
         ]);
-        self::updateSmallGroupsFromTouchPoint(); // TODO remove
+
+        // Register default templates for Small Groups
+        add_filter( 'template_include', [self::class, 'templateFilter'] );
+
+        // Run cron if it hasn't been run before, regardless of when it's happening.
+        if (self::$tpwp->settings->sg_cron_last_run * 1 < time() - 86400 - 3600) {
+            self::updateSmallGroupsFromTouchPoint();
+        }
+    }
+
+    /**
+     * @param $template
+     *
+     * @return string
+     */
+    public static function templateFilter($template): string
+    {
+        $postTypesToFilter = [self::POST_TYPE];
+
+        if ( is_post_type_archive( $postTypesToFilter ) && file_exists( plugin_dir_path(__FILE__) . 'src/Templates/SmallGroupArchive.php' ) ){
+            $template = plugin_dir_path(__FILE__) . 'src/Templates/SmallGroupArchive.php';
+        }
+
+        if ( is_singular( $postTypesToFilter ) && file_exists( plugin_dir_path(__FILE__) . 'src/Templates/SmallGroup.php' ) ){
+            $template = plugin_dir_path(__FILE__) . 'src/Templates/SmallGroup.php';
+        }
+
+        return $template;
     }
 
 
@@ -203,6 +245,9 @@ abstract class SmallGroup
                 $removals++;
             }
         }
+
+        self::$tpwp->settings->set('sg_cron_last_run', time());
+
         return count($orgData) + $removals;
     }
 

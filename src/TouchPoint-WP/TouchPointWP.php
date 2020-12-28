@@ -3,6 +3,7 @@
 namespace tp\TouchPointWP;
 
 use WP_Error;
+use WP_Http;
 
 if ( ! defined('ABSPATH')) {
     exit;
@@ -58,7 +59,7 @@ class TouchPointWP
     /**
      * The admin object.
      */
-    public ?TouchPointWP_Admin $admin = null;
+    public ?TouchPointWP_AdminAPI $admin = null;
 
     /**
      * Settings object
@@ -107,9 +108,9 @@ class TouchPointWP
     protected ?bool $smallGroup = null;
 
     /**
-     * @var ?\WP_Http Object for API requests.
+     * @var ?WP_Http Object for API requests.
      */
-    private ?\WP_Http $httpClient = null;
+    private ?WP_Http $httpClient = null;
 
     /**
      * Constructor function.
@@ -119,8 +120,8 @@ class TouchPointWP
     public function __construct($file = '')
     {
         // Load plugin environment variables.
-        $this->file = $file;
-        $this->dir = dirname($this->file);
+        $this->file       = $file;
+        $this->dir        = dirname($this->file);
         $this->assets_dir = trailingslashit($this->dir) . 'assets';
         $this->assets_url = esc_url(trailingslashit(plugins_url('/assets/', $this->file)));
 
@@ -137,7 +138,7 @@ class TouchPointWP
 
         // Load API for generic admin functions.
         if (is_admin()) {
-            $this->admin = new TouchPointWP_Admin();
+            $this->admin = new TouchPointWP_AdminAPI();
         }
 
         // Handle localisation.
@@ -245,6 +246,36 @@ class TouchPointWP
         return ($afIdTime <= time() + $timeout) && $afIdTime >= time();
     }
 
+    public static function getDayOfWeekNameForNumber(int $dayNum)
+    {
+        $names = [
+            __('Sunday'),
+            __('Monday'),
+            __('Tuesday'),
+            __('Wednesday'),
+            __('Thursday'),
+            __('Friday'),
+            __('Saturday'),
+        ];
+
+        return $names[$dayNum % 7];
+    }
+
+    public static function getDayOfWeekShortForNumber(int $dayNum)
+    {
+        $names = [
+            __('Sun'),
+            __('Mon'),
+            __('Tue'),
+            __('Wed'),
+            __('Thu'),
+            __('Fri'),
+            __('Sat'),
+        ];
+
+        return $names[$dayNum % 7];
+    }
+
     public function registerScriptsAndStyles()
     {
         wp_register_script(
@@ -333,7 +364,7 @@ class TouchPointWP
      *
      * @return string
      */
-    public function getApiKey()
+    public function getApiKey(): string
     {
         $k = $this->settings->__get('api_secret_key');
         if ($k === false) {
@@ -346,28 +377,9 @@ class TouchPointWP
     /**
      * @return string
      */
-    public function replaceApiKey()
+    public function replaceApiKey(): string
     {
         return $this->settings->set('api_secret_key', com_create_guid());
-    }
-
-
-    /**
-     * Returns an array of objects that correspond to divisions.  Each Division has a name and an id.  The name is both the Program and Division.
-     *
-     * @returns object[]
-     */
-    public function getDivisions() {
-        $divsObj = $this->settings->__get('meta_divisions');
-        if ($divsObj === false) {
-            $divsObj = $this->updateDivisions();
-        } else {
-            $divsObj = json_decode($divsObj);
-        }
-        if (true || strtotime($divsObj->_updated) < time() - 86400) {
-            $divsObj = $this->updateDivisions();
-        }
-        return $divsObj->divs;
     }
 
     /**
@@ -375,40 +387,80 @@ class TouchPointWP
      *
      * @return string[]
      */
-    public function getDivisionsAsKVArray() {
+    public function getDivisionsAsKVArray(): array
+    {
         $r = [];
         foreach ($this->getDivisions() as $d) {
-            $r['div'.$d->id] = $d->name;
+            $r['div' . $d->id] = $d->name;
         }
+
         return $r;
+    }
+
+    /**
+     * Returns an array of objects that correspond to divisions.  Each Division has a name and an id.  The name is both
+     * the Program and Division.
+     *
+     * @returns object[]
+     */
+    public function getDivisions(): array
+    {
+        $divsObj = $this->settings->__get('meta_divisions');
+
+        $needsUpdate = false;
+        if ($divsObj === false) {
+            $needsUpdate = true;
+        } else {
+            $divsObj = json_decode($divsObj);
+            if (strtotime($divsObj->_updated) < time() - 3600 * 2 || ! is_array($divsObj->divs)) {
+                $needsUpdate = true;
+            }
+        }
+
+        // Get update if needed.
+        if ($needsUpdate) {
+            $divsObj = $this->updateDivisions();
+        }
+
+        // If update failed, show a notice on the admin interface.
+        if ($divsObj === false) {
+            add_action('admin_notices', [$this->admin, 'Error_TouchPoint_API']);
+
+            return [];
+        }
+
+        return $divsObj->divs;
     }
 
     /**
      * @return false|object Update the divisions if they're stale.
      */
-    private function updateDivisions() {
+    private function updateDivisions()
+    {
         $return = $this->apiGet('Divisions');
 
-        if ($return instanceof WP_Error)
+        if ($return instanceof WP_Error) {
             return false;
+        }
+
+        $body = json_decode($return['body']);
+
+        if (property_exists($body, "message")) {
+            return false;
+        }
+
+        if ( ! is_array($body->data->data)) {
+            return false;
+        }
 
         $obj = (object)[
             '_updated' => date('c'),
-            'divs' => json_decode($return['body'])->data->data
+            'divs'     => $body->data->data
         ];
 
         $this->settings->set("meta_divisions", json_encode($obj));
 
         return $obj;
-    }
-
-    /**
-     * @return \WP_Http|null
-     */
-    private function getHttpClient() {
-        if ($this->httpClient === null)
-            $this->httpClient = new \WP_Http();
-        return $this->httpClient;
     }
 
     /**
@@ -418,17 +470,19 @@ class TouchPointWP
      * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
      * Data is generally in json_decode($response['body'])->data->data
      */
-    public function apiGet(string $command, ?array $parameters = null) {
-        if (!is_array($parameters)) {
+    public function apiGet(string $command, ?array $parameters = null)
+    {
+        if ( ! is_array($parameters)) {
             $parameters = (array)$parameters;
         }
 
         $parameters['a'] = $command;
 
         return $this->getHttpClient()->request(
-            "https://" . $this->settings->host . "/PythonApi/" . "WebApi" . "?" . http_build_query($parameters), // TODO make script name dynamic
+            "https://" . $this->settings->host . "/PythonApi/" .
+            $this->settings->api_script_name . "?" . http_build_query($parameters),
             [
-                'method' => 'GET',
+                'method'  => 'GET',
                 'headers' => [
                     'Authorization' => 'Basic ' . base64_encode(
                             $this->settings->api_user . ':' . $this->settings->api_pass
@@ -438,32 +492,15 @@ class TouchPointWP
         );
     }
 
-
-    public static function getDayOfWeekNameForNumber(int $dayNum)
+    /**
+     * @return WP_Http|null
+     */
+    private function getHttpClient(): ?WP_Http
     {
-        $names = [
-            __('Sunday'),
-            __('Monday'),
-            __('Tuesday'),
-            __('Wednesday'),
-            __('Thursday'),
-            __('Friday'),
-            __('Saturday'),
-        ];
-        return $names[$dayNum % 7];
-    }
+        if ($this->httpClient === null) {
+            $this->httpClient = new WP_Http();
+        }
 
-    public static function getDayOfWeekShortForNumber(int $dayNum)
-    {
-        $names = [
-            __('Sun'),
-            __('Mon'),
-            __('Tue'),
-            __('Wed'),
-            __('Thu'),
-            __('Fri'),
-            __('Sat'),
-        ];
-        return $names[$dayNum % 7];
+        return $this->httpClient;
     }
 }
