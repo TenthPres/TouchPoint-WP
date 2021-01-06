@@ -21,7 +21,7 @@ use WP_Query;
  */
 abstract class SmallGroup
 {
-    public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "SG";
+    public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "SgMap";
     public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "smallgroup";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "sg_cron_hook";
 
@@ -41,6 +41,10 @@ abstract class SmallGroup
         self::$_isInitiated = true;
 
         add_action('init', [self::class, 'init']);
+
+        if ( ! shortcode_exists(self::SHORTCODE_MAP)) {
+            add_shortcode(self::SHORTCODE_MAP, [self::class, "mapShortcode"]);
+        }
 
         // Setup cron for updating Small Groups daily.
         add_action(self::CRON_HOOK, [self::class, 'updateSmallGroupsFromTouchPoint']);
@@ -92,10 +96,12 @@ abstract class SmallGroup
             'delete_with_user' => false
         ]);
 
+        add_action("wp_enqueue_scripts", [self::class, "enqueueScripts"]);
+
         // Register default templates for Small Groups
         add_filter( 'template_include', [self::class, 'templateFilter'] );
 
-        // Run cron if it hasn't been run before, regardless of when it's happening.
+        // Run cron if it hasn't been run before or is overdue.
         if (self::$tpwp->settings->sg_cron_last_run * 1 < time() - 86400 - 3600) {
             self::updateSmallGroupsFromTouchPoint();
         }
@@ -109,16 +115,143 @@ abstract class SmallGroup
     public static function templateFilter($template): string
     {
         $postTypesToFilter = [self::POST_TYPE];
+        $templateFilesToOverwrite = ['archive.php', 'singular.php', 'index.php'];
 
-        if ( is_post_type_archive( $postTypesToFilter ) && file_exists( plugin_dir_path(__FILE__) . 'src/Templates/SmallGroupArchive.php' ) ){
-            $template = plugin_dir_path(__FILE__) . 'src/Templates/SmallGroupArchive.php';
+        // echo "<!-- Template being applied: " . $template . " -->";
+
+        if (!in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
+            return $template;
         }
 
-        if ( is_singular( $postTypesToFilter ) && file_exists( plugin_dir_path(__FILE__) . 'src/Templates/SmallGroup.php' ) ){
-            $template = plugin_dir_path(__FILE__) . 'src/Templates/SmallGroup.php';
+        if ( is_post_type_archive($postTypesToFilter) && file_exists(TouchPointWP::$dir . '/src/templates/SmallGroup-Archive.php') ){
+            $template = TouchPointWP::$dir . '/src/templates/SmallGroup-Archive.php';
+        }
+
+        if ( is_singular( $postTypesToFilter ) && file_exists(TouchPointWP::$dir . '/src/templates/SmallGroup-Singular.php' ) ){
+            $template = TouchPointWP::$dir . '.src/templates/SmallGroup-Singular.php';
         }
 
         return $template;
+    }
+
+    public static function enqueueScripts()
+    {
+        wp_register_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
+                           "https://maps.googleapis.com/maps/api/js?key=" . self::$tpwp->settings->google_maps_api_key . "&v=3&libraries=geometry",
+                           [],null,true);
+    }
+
+    /**
+     * @param array  $params
+     * @param string $content
+     *
+     * @return string
+     */
+    public static function mapShortcode(array $params, string $content = ""): string
+    {
+        // standardize parameters
+        $params = array_change_key_case($params, CASE_LOWER);
+
+        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps");
+
+        // set some defaults
+        $params  = shortcode_atts(
+            [
+                'class'     => 'TouchPoint-smallgroup map'
+            ],
+            $params,
+            self::SHORTCODE_MAP
+        );
+
+        if (isset($params['id']))
+            $mapDivId = $params['id'];
+        else
+            $mapDivId = wp_unique_id('tp-map-');
+
+        $script = "
+        var doMap = function() {
+            var colors = {
+                background: '#ffffff',
+                primary: '#8800a1', // dark
+                tertiary: '#b800d9', // mid
+                secondary: '#d11cf1', // light
+                text: '#222222'
+            };
+            var styles = [
+                {
+                    featureType: \"landscape\",
+                    stylers: [
+                        { color: colors.background }
+                    ]
+                }, {
+                    featureType: \"road\",
+                    elementType: \"labels.text.fill\",
+                    stylers: [
+                        { color: colors.text }
+                    ]
+                }, {
+                    featureType: \"road\",
+                    elementType: \"labels.text.stroke\",
+                    stylers: [
+                        { color: colors.background }
+                    ]
+                }, {
+                    featureType: \"road\",
+                    elementType: \"geometry.fill\",
+                    stylers: [
+                        { color: colors.primary }
+                    ]
+                }, {
+                    featureType: \"road\",
+                    elementType: \"geometry.stroke\",
+                    stylers: [
+                        { color: colors.secondary }
+                    ]
+                }, {
+                    featureType: \"water\",
+                    stylers: [
+                        { color: colors.text }
+                    ]
+                }, {
+                    featureType: \"poi\", //points of interest
+                    stylers: [
+                        { visibility: 'off' }
+                    ]
+                }, {
+                    featureType: \"transit\", //points of interest
+                    stylers: [
+                        { visibility: 'off' }
+                    ]
+                }, {
+                    featureType: \"administrative\", //points of interest
+                    stylers: [
+                        { visibility: 'off' }
+                    ]
+                }
+            ];
+        
+            drexelLatLong = new google.maps.LatLng(39.954, -75.188);
+            bounds = new google.maps.LatLngBounds(drexelLatLong);
+        
+            var mapOptions = {
+                zoom: 14,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                styles: styles,
+                center: drexelLatLong,
+                disableDefaultUI: true
+            },
+            m = new google.maps.Map(document.getElementById('{$mapDivId}'), mapOptions);
+        }
+        doMap();";
+
+        wp_add_inline_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps", $script);
+
+        // TODO move the style to a css file... or something.
+        $content = "<div class=\"TouchPoint-SmallGroup-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0px; left: 0px; \" id=\"{$mapDivId}\">";
+
+        $content .= "</div>";
+
+        return $content;
     }
 
 

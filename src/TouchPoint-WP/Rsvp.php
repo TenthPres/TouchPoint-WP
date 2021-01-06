@@ -34,7 +34,9 @@ abstract class Rsvp
 
         self::$_isInitiated = true;
 
-        self::registerShortcode();
+        if ( ! shortcode_exists(self::SHORTCODE)) {
+            add_shortcode(self::SHORTCODE, [self::class, 'shortcode']);
+        }
 
         // Register frontend JS & CSS.
         add_action('wp_register_scripts', [__CLASS__, 'registerScriptsAndStyles'], 10);
@@ -43,13 +45,6 @@ abstract class Rsvp
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueueScripts']);
 
         return true;
-    }
-
-    public static function registerShortcode()
-    {
-        if ( ! shortcode_exists(self::SHORTCODE)) {
-            add_shortcode(self::SHORTCODE, 'tp\\TouchPointWP\\Rsvp::shortcode');
-        }
     }
 
     public static function registerScriptsAndStyles()
@@ -81,7 +76,7 @@ abstract class Rsvp
      *
      * @return string
      */
-    public static function shortcode(array $params, string $content)
+    public static function shortcode(array $params, string $content): string
     {
         // standardize parameters
         $params = array_change_key_case($params, CASE_LOWER);

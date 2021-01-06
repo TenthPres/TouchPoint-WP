@@ -16,11 +16,12 @@ if ( ! defined('ABSPATH')) {
 /**
  * Settings class.
  *
- * @property-read string host       The base URL for the TouchPoint instance
- * @property-read string api_user   Username of a user account with API access
- * @property-read string api_pass   Password for a user account with API access
- * @property-read string api_script_name The name of the script loaded into TouchPoint for API Interfacing.
- * @property-read string ip_whitelist TouchPoint Server IPs
+ * @property-read string host               The base URL for the TouchPoint instance
+ * @property-read string api_user           Username of a user account with API access
+ * @property-read string api_pass           Password for a user account with API access
+ * @property-read string api_script_name    The name of the script loaded into TouchPoint for API Interfacing.
+ * @property-read string ip_whitelist       TouchPoint Server IPs
+ * @property-read string google_maps_api_key Google Maps API Key for embedded maps and such
  *
  * @property-read string auth_display_name  What the church calls TouchPoint
  * @property-read string auth_script_name   The name of the Python script within TouchPoint
@@ -34,6 +35,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string sg_name_singular   What a small group should be called, singular (e.g. "Small Group" or "Life Group")
  * @property-read string sg_slug            Slug for Small Group posts (e.g. "smallgroups" for church.org/smallgroups)
  * @property-read string[] sg_divisions     Organizations that are within these divisions should be imported from TouchPoint as Small Groups.
+ * @property-read int sg_cron_last_run      Timestamp of the last time the Small Groups syncing task ran.
  */
 class TouchPointWP_Settings
 {
@@ -203,6 +205,17 @@ class TouchPointWP_Settings
                     'type'        => 'text',
                     'default'     => 'WebApi',
                     'placeholder' => ''
+                ],
+                [
+                    'id'          => 'google_maps_api_key',
+                    'label'       => __('Google Maps API Key', 'TouchPoint-WP'),
+                    'description' => __(
+                        'Required for embedding maps. See the documentation.', // todo add a documentation link
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => '',
+                    'placeholder' => '',
                 ],
                 [
                     'id'          => 'ip_whitelist',
