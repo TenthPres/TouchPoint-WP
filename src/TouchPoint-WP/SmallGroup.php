@@ -19,11 +19,13 @@ use WP_Query;
 /**
  * The Small Group system class.
  */
-abstract class SmallGroup
+class SmallGroup extends Involvement
 {
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "SgMap";
     public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "smallgroup";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "sg_cron_hook";
+
+    private static array $_instances = [];
 
     private static bool $_isInitiated = false;
     protected static TouchPointWP $tpwp;
@@ -168,88 +170,15 @@ abstract class SmallGroup
         else
             $mapDivId = wp_unique_id('tp-map-');
 
-        $script = "
-        var doMap = function() {
-            var colors = {
-                background: '#ffffff',
-                primary: '#8800a1', // dark
-                tertiary: '#b800d9', // mid
-                secondary: '#d11cf1', // light
-                text: '#222222'
-            };
-            var styles = [
-                {
-                    featureType: \"landscape\",
-                    stylers: [
-                        { color: colors.background }
-                    ]
-                }, {
-                    featureType: \"road\",
-                    elementType: \"labels.text.fill\",
-                    stylers: [
-                        { color: colors.text }
-                    ]
-                }, {
-                    featureType: \"road\",
-                    elementType: \"labels.text.stroke\",
-                    stylers: [
-                        { color: colors.background }
-                    ]
-                }, {
-                    featureType: \"road\",
-                    elementType: \"geometry.fill\",
-                    stylers: [
-                        { color: colors.primary }
-                    ]
-                }, {
-                    featureType: \"road\",
-                    elementType: \"geometry.stroke\",
-                    stylers: [
-                        { color: colors.secondary }
-                    ]
-                }, {
-                    featureType: \"water\",
-                    stylers: [
-                        { color: colors.text }
-                    ]
-                }, {
-                    featureType: \"poi\", //points of interest
-                    stylers: [
-                        { visibility: 'off' }
-                    ]
-                }, {
-                    featureType: \"transit\", //points of interest
-                    stylers: [
-                        { visibility: 'off' }
-                    ]
-                }, {
-                    featureType: \"administrative\", //points of interest
-                    stylers: [
-                        { visibility: 'off' }
-                    ]
-                }
-            ];
-        
-            drexelLatLong = new google.maps.LatLng(39.954, -75.188);
-            bounds = new google.maps.LatLngBounds(drexelLatLong);
-        
-            var mapOptions = {
-                zoom: 14,
-                mapTypeId: google.maps.MapTypeId.ROADMAP,
-                styles: styles,
-                center: drexelLatLong,
-                disableDefaultUI: true
-            },
-            m = new google.maps.Map(document.getElementById('{$mapDivId}'), mapOptions);
-        }
-        doMap();";
+        $script = file_get_contents(TouchPointWP::$dir . "/src/js-inline/smallgroup-inline.js");
+
+        $script = str_replace('{$smallgroupsList}', json_encode(self::getSmallGroupsForMap()), $script);
+        $script = str_replace('{$mapDivId}', $mapDivId, $script);
 
         wp_add_inline_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps", $script);
 
         // TODO move the style to a css file... or something.
-        $content = "<div class=\"TouchPoint-SmallGroup-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0px; left: 0px; \" id=\"{$mapDivId}\">";
-
-        $content .= "</div>";
+        $content = "<div class=\"TouchPoint-SmallGroup-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0; left: 0; \" id=\"{$mapDivId}\"></div>";
 
         return $content;
     }
@@ -382,6 +311,67 @@ abstract class SmallGroup
         self::$tpwp->settings->set('sg_cron_last_run', time());
 
         return count($orgData) + $removals;
+    }
+
+    /**
+     * Gets a list of small groups, used to load the metadata into JS for the map and filtering capabilities.
+     *
+     * @return SmallGroup[]
+     */
+    protected static function getSmallGroupsForMap(): array
+    {
+        global $wpdb;
+
+        $settingsPrefix = TouchPointWP::SETTINGS_PREFIX;
+        $postType = self::POST_TYPE;
+
+        $sql = "SELECT 
+                    p.post_title,
+                    p.ID as post_id,
+                    p.post_title,
+                    p.post_excerpt,
+                    mloc.meta_value as location,
+                    moid.meta_value as orgId
+                FROM $wpdb->posts AS p 
+            JOIN $wpdb->postmeta as moid ON p.ID = moid.post_id AND '{$settingsPrefix}orgId' = moid.meta_key
+            JOIN $wpdb->postmeta as mloc ON p.ID = mloc.post_id AND '{$settingsPrefix}locationName' = mloc.meta_key
+            WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()";
+        // TODO add a condition that requires the presence of lat/long.
+
+        $ret = [];
+        foreach ($wpdb->get_results($sql, "OBJECT") as $row) {
+            $ret[] = self::fromObj($row);
+        }
+        return $ret;
+    }
+
+    private static function fromObj(object $obj): SmallGroup
+    {
+        if (!property_exists($obj, 'post_id'))
+            _doing_it_wrong(
+                __FUNCTION__,
+                esc_html(__('Creating a SmallGroup object from an object without a post_id is not yet supported.')),
+                esc_attr(self::VERSION)
+            );
+
+        $pid = intval($obj->post_id);
+
+        if (!isset(self::$_instances[$pid])) {
+            self::$_instances[$pid] = new SmallGroup();
+        }
+        $sg = &self::$_instances[$pid];
+
+        foreach ($obj as $property => $value) {
+            if (property_exists(self::class, $property)) {
+                $sg->$property = $value;
+            } // TODO add an else for nonstandard/optional metadata fields
+        }
+
+        $sg->geo = (object)[
+            'lat' => rand(3950, 4030) * 0.01,
+            'lng' => rand(-7450, -7550) * 0.01,
+        ];
+        return $sg;
     }
 
 

@@ -10,13 +10,15 @@
  */
 
 use tp\TouchPointWP\SmallGroup;
+use tp\TouchPointWP\TouchPointWP;
 
 get_header();
 
 $description = get_the_archive_description();
 ?>
 
-<?php if ( have_posts() ) : ?>
+
+<?php if ( have_posts() ) { ?>
 
     <header class="archive-header has-text-align-center header-footer-group page-header">
         <div class="archive-header-inner section-inner medium">
@@ -31,15 +33,20 @@ $description = get_the_archive_description();
 
     </header>
 
-    <?php while ( have_posts() ) { ?>
-        <?php the_post(); ?>
-        <?php get_template_part('parts/listItem'); ?>
-    <?php } ?>
+    <?php
+    while ( have_posts() ) {
+        the_post();
+        $loadedPart = get_template_part('smallgroup-list-item');
+        if ($loadedPart === false) {
+            require TouchPointWP::$dir . "/src/templates/parts/smallgroup-list-item.php";
+        }
+
+    } ?>
 
 <!--    --><?php //twenty_twenty_one_the_posts_navigation(); ?>
 
-<?php else : ?>
+<?php } else { ?>
     <?php get_template_part( 'template-parts/content/content-none' ); ?>
-<?php endif; ?>
+<?php } ?>
 
 <?php get_footer(); ?>
