@@ -186,16 +186,19 @@ class TouchPointWP
 
         // Load Auth tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
+            require_once 'Auth.php';
             $instance->Auth = Auth::load($instance);
         }
 
         // Load RSVP tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
+            require_once 'Rsvp.php';
             $instance->Rsvp = Rsvp::load();
         }
 
         // Load Auth tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
+            require_once 'SmallGroup.php';
             $instance->smallGroup = SmallGroup::load($instance);
         }
 

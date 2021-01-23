@@ -43,7 +43,7 @@ website.
 - Bios & Contact Info
   - Generate bio pages for officers or staff members from TouchPoint People records.
 
-## Credit & Comments
+## Credit & Hat-Tips
 
 This plugin uses PSR-12 coding standards, which are significantly different from the WordPress standards.
 
@@ -53,6 +53,13 @@ Several plugins have lended structure or code snippets to this plugin:
 
 
 ## Usage Notes
+
+### Nomenclature
+
+**Involvement** is meant to correspond to an "Involvement" in TouchPoint.  This may be a small group, Bible School 
+or any other Involvement in TouchPoint. However, at the time of this writing, TouchPoint is only just starting to 
+(slowly) adopt the name "Involvement" over the previous name, "Organization". Therefore, for the purposes of this 
+plugin, "Involvement" and "Organization" are interchangeable, but "Organization" should be considered deprecated.  
 
 ### Authentication
 

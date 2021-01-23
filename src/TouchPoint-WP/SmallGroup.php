@@ -8,6 +8,8 @@ use WP_Error;
 use WP_Post;
 use WP_Query;
 
+require_once 'Involvement.php';
+
 /**
  * SmallGroup class file.
  *
