@@ -138,6 +138,7 @@ class TouchPointWP
 
         // Load API for generic admin functions.
         if (is_admin()) {
+            require_once 'TouchPointWP_AdminAPI.php';
             $this->admin = new TouchPointWP_AdminAPI();
         }
 
