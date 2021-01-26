@@ -193,7 +193,7 @@ class TouchPointWP_Settings
                     'type'        => 'text_secret',
                     'default'     => '',
                     'placeholder' => ($this->api_pass == '' ? '' : __('password saved', TouchPointWP::TEXT_DOMAIN)),
-                    'callback'    => [$this, 'validation_api_pass']
+                    'callback'    => fn($new) => $this->validation_secret($new, 'api_pass')
                 ],
                 [
                     'id'          => 'api_script_name',
@@ -367,7 +367,7 @@ class TouchPointWP_Settings
                         'type'        => 'text',
                         'default'     => 'smallgroups',
                         'placeholder' => 'smallgroups',
-                        'callback'    => [$this, 'validation_lowercase']
+                        'callback'    => fn($new) => $this->validation_slug($new, 'sg_slug')
                     ],
                 ],
             ];
@@ -814,13 +814,25 @@ class TouchPointWP_Settings
         echo $html;
     }
 
-    public function validation_api_pass($data): string
+    public function validation_secret($new, $field): string
     {
-        if ($data === '') { // If there is no value, use the saved one.
-            return $this->api_pass;
+        if ($new === '') { // If there is no value, submit the already-saved one.
+            return $this->$field;
         }
 
-        return $data;
+        return $new;
+    }
+
+    public function validation_slug($new, $field): string
+    {
+        if ($new != $this->$field) { // only validate the field if it's changing.
+            $new = $this->validation_lowercase($new);
+            $new = preg_replace("[^a-z/]", '', $new);
+
+            // since any slug change is probably going to need this...
+            $this->parent->queueFlushRewriteRules();
+        }
+        return $new;
     }
 
     public function validation_lowercase($data): string

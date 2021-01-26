@@ -94,11 +94,14 @@ class SmallGroup extends Involvement
                 'feeds' => false,
                 'pages' => true
             ],
-            'menu_icon' => "dashicons-groups",
+            'menu_icon' => "dashicons-groups", // TODO remove eventually.
             'query_var' => self::$tpwp->settings->sg_slug,
             'can_export' => false,
             'delete_with_user' => false
         ]);
+
+        // If the slug has changed, update it.  Only executes if enqueued.
+        self::$tpwp->flushRewriteRules();
 
         add_action("wp_enqueue_scripts", [self::class, "enqueueScripts"]);
 
@@ -112,11 +115,11 @@ class SmallGroup extends Involvement
     }
 
     /**
-     * @param $template
+     * @param string $template
      *
      * @return string
      */
-    public static function templateFilter($template): string
+    public static function templateFilter(string $template): string
     {
         $postTypesToFilter = [self::POST_TYPE];
         $templateFilesToOverwrite = ['archive.php', 'singular.php', 'index.php'];
@@ -203,7 +206,7 @@ class SmallGroup extends Involvement
             return false;
         }
 
-        $orgData = json_decode($response['body'])->data->data;
+        $orgData = json_decode($response['body'])->data->data ?? []; // null coalesce for case where there is no data.
 
         $postsToKeep = [];
 

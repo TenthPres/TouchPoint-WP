@@ -146,6 +146,10 @@ class TouchPointWP
         $this->load_plugin_textdomain();
         add_action('init', [$this, 'load_localisation'], 0);
 
+        // Start session for those components that need it.
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
+
         // Load Auth tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
             require_once 'Auth.php';
@@ -506,5 +510,26 @@ class TouchPointWP
         }
 
         return $this->httpClient;
+    }
+
+    /**
+     * Cause a flushing of rewrite rules on next load.
+     */
+    public static function queueFlushRewriteRules(): void {
+        $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'flushRewriteOnNextLoad'] = true;
+    }
+
+    /**
+     * Execute a flushing of the rewrite rules, if either absolutely necessary ($force = true) or enqueued by queuing function.
+     *
+     * @param bool $force
+     * @see queueFlushRewriteRules()
+     */
+    public function flushRewriteRules(bool $force = false): void
+    {
+        if ( isset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'flushRewriteOnNextLoad']) || $force) {
+            flush_rewrite_rules();
+            unset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'flushRewriteOnNextLoad']);
+        }
     }
 }
