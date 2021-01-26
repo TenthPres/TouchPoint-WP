@@ -13,6 +13,8 @@ Some features require other plugins, which may or may not be free.
 Some features also require a TouchPoint user account with API-level access.  New TouchPoint databases do not have one by
 default.  If your church doesn't have one, open a support ticket with TouchPoint to create one, referencing this plugin.
 
+We don't promise support for old versions of WordPress or PHP.  You will need to keep both up to date. 
+
 ## Features
 ### Small Group Finder
 Find small groups physically nearby, display on a dynamic map, and filter using many customizable criteria, including 
@@ -76,3 +78,7 @@ once enabled, by default, the plugin will redirect all login requests to TouchPo
 `tp_prevent_admin_bar`  If the option to Prevent Subscriber Admin Bar is enabled, this filter allows more specificity as
 to whether to show the admin bar.  By default, if this option is enabled, the admin bar will be hidden for any user with
 the 'subscriber' role. 
+
+### License
+This plugin is released under the AGPL, which is "very strong copy-left".  Therefore, if you change this code and use it 
+in production, you *MUST* make your changes available. 
