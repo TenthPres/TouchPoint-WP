@@ -68,15 +68,15 @@ class Auth extends WP_REST_Controller
     /**
      * @param TouchPointWP $tpwp
      *
-     * @return Auth
+     * @return bool
      */
-    public static function load(TouchPointWP $tpwp)
+    public static function load(TouchPointWP $tpwp): bool
     {
         if (self::$_singleton === null) {
             self::$_singleton = new self($tpwp);
         }
 
-        return self::$_singleton;
+        return true;
     }
 
     /**

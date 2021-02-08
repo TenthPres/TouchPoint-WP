@@ -92,19 +92,18 @@ class TouchPointWP
     public string $script_suffix;
 
     /**
-     * @var ?Rsvp The RSVP object for the RSVP tool, if feature is enabled.
+     * @var ?bool The RSVP object for the RSVP tool, if feature is enabled.
      */
-    protected ?Rsvp $rsvp = null;
+    protected ?bool $rsvp = null;
 
     /**
-     * @var ?Auth The Auth object for the Authentication tool, if feature is enabled.
+     * @var ?bool The Auth object for the Authentication tool, if feature is enabled.
      */
-    protected ?Auth $auth = null;
+    protected ?bool $auth = null;
 
     /**
      * @var ?bool True after the Small Group feature is loaded.
      */
-//    protected ?SmallGroup $smallGroup = null; // TODO standardize types
     protected ?bool $smallGroup = null;
 
     /**
@@ -191,13 +190,13 @@ class TouchPointWP
         // Load Auth tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
             require_once 'Auth.php';
-            $instance->Auth = Auth::load($instance);
+            $instance->auth = Auth::load($instance);
         }
 
         // Load RSVP tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
             require_once 'Rsvp.php';
-            $instance->Rsvp = Rsvp::load();
+            $instance->rsvp = Rsvp::load();
         }
 
         // Load Auth tool if enabled.
@@ -216,10 +215,10 @@ class TouchPointWP
      *
      * @param string $file File instance.
      *
-     * @return Object TouchPointWP instance
+     * @return TouchPointWP instance
      * @see TouchPointWP()
      */
-    public static function instance($file = '')
+    public static function instance($file = ''): TouchPointWP
     {
         if (is_null(self::$_instance)) {
             self::$_instance = new self($file);
