@@ -36,7 +36,12 @@ elif (Data.a == "OrgsForDivs"):
     (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
         LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId IN (20)) as marital_married,
     (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
-        LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0, 20)) as marital_single
+        LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0, 20)) as marital_single,
+    (SELECT STRING_AGG(ag, ',') WITHIN GROUP (ORDER BY ag ASC) FROM
+        (SELECT DISTINCT (CONVERT(VARCHAR(2), FLOOR(pi.Age / 10.0) * 10) + 's') as ag FROM OrganizationMembers omi
+            LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId
+        ) agg
+    ) as age_groups
     FROM Organizations o
     LEFT JOIN OrgSchedule AS os1 ON
         (o.OrganizationId = os1.OrganizationId AND
@@ -55,5 +60,12 @@ elif (Data.a == "OrgsForDivs"):
     )
     AND o.organizationStatusId = 30'''
 
-    results = q.QuerySql(sql, {})
-    Data.data = results
+    groups = model.SqlListDynamicData(sql)
+
+    for g in groups:
+        g.leaders = []
+
+        if g.age_groups != None:
+            g.age_groups = g.age_groups.split(',')
+
+    Data.data = groups
