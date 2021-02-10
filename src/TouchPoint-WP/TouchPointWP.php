@@ -268,6 +268,21 @@ class TouchPointWP
         return $names[$dayNum % 7];
     }
 
+    public static function getPluralDayOfWeekNameForNumber(int $dayNum)
+    {
+        $names = [
+            __('Sundays'),
+            __('Mondays'),
+            __('Tuesdays'),
+            __('Wednesdays'),
+            __('Thursdays'),
+            __('Fridays'),
+            __('Saturdays'),
+        ];
+
+        return $names[$dayNum % 7];
+    }
+
     public static function getDayOfWeekShortForNumber(int $dayNum)
     {
         $names = [
@@ -287,7 +302,7 @@ class TouchPointWP
     {
         wp_register_script(
             self::SHORTCODE_PREFIX . 'base',
-            $this->assets_url . 'js/base.js',   //
+            $this->assets_url . 'js/base.js',
             [],
             self::VERSION,
             true
@@ -353,12 +368,12 @@ class TouchPointWP
     /**
      * @return string The URL of the TouchPoint instance.
      */
-    public function host()
+    public function host(): string
     {
         return "https://" . $this->settings->host;
     }
 
-    public function getApiCredentials()
+    public function getApiCredentials(): object
     {
         return (object)[
             'user' => $this->settings->api_user,

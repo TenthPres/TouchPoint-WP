@@ -103,7 +103,7 @@ class SmallGroup extends Involvement
         // If the slug has changed, update it.  Only executes if enqueued.
         self::$tpwp->flushRewriteRules();
 
-        add_action("wp_enqueue_scripts", [self::class, "enqueueScripts"]);
+        add_action("wp_enqueue_scripts", [self::class, "registerScriptsAndStyles"]);
 
         // Register default templates for Small Groups
         add_filter( 'template_include', [self::class, 'templateFilter'] );
@@ -141,11 +141,18 @@ class SmallGroup extends Involvement
         return $template;
     }
 
-    public static function enqueueScripts()
+    public static function registerScriptsAndStyles(): void
     {
         wp_register_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
                            "https://maps.googleapis.com/maps/api/js?key=" . self::$tpwp->settings->google_maps_api_key . "&v=3&libraries=geometry",
                            [],null,true);
+
+        wp_register_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style',
+                          self::$tpwp->assets_url . 'template/smallgroups-template-style.css',
+                          [],
+                          self::$tpwp::VERSION,
+                          'all'
+        );
     }
 
     /**
@@ -213,6 +220,8 @@ class SmallGroup extends Involvement
         foreach ($orgData as $org) {
             set_time_limit(10);
 
+            // TODO add leaders (as authors?)
+
             $q    = new WP_Query(
                 [
                     'post_type'  => self::POST_TYPE,
@@ -271,17 +280,16 @@ class SmallGroup extends Involvement
             }
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "nextMeeting", $nextMeetingDateTime);
 
-            // Determine schedule string
+            // Determine schedule string  TODO add frequency options.
             // Day(s) of week
             $days = array_diff([$org->sched1Day, $org->sched2Day], [null]);
             if (count($days) > 1) {
-                $days = TouchPointWP::getDayOfWeekShortForNumber(
-                        $days[0]
-                    ) . " & " . TouchPointWP::getDayOfWeekShortForNumber($days[1]);
+                $days = TouchPointWP::getDayOfWeekShortForNumber($days[0]) .
+                        " & " . TouchPointWP::getDayOfWeekShortForNumber($days[1]);
             } elseif (count($days) === 1) {
-                $days = TouchPointWP::getDayOfWeekNameForNumber(reset($days));
+                $days = TouchPointWP::getPluralDayOfWeekNameForNumber(reset($days));
             } elseif ($org->meetNextMeeting !== null) {
-                $days = TouchPointWP::getDayOfWeekNameForNumber(date("w", strtotime($org->meetNextMeeting)));
+                $days = TouchPointWP::getPluralDayOfWeekNameForNumber(date("w", strtotime($org->meetNextMeeting)));
             } else {
                 $days = null;
             }

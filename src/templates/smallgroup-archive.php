@@ -1,47 +1,77 @@
 <?php
 /**
- * The template for displaying archive pages
+ * The default template for listing small groups. This template will only be used if no more specific template is found
+ * in the Theme.
  *
  * @link https://developer.wordpress.org/themes/basics/template-hierarchy/
  *
- * @package WordPress
- * @subpackage Twenty_Twenty_One
- * @since Twenty Twenty-One 1.0
+ * Template Name: TouchPoint Small Group List
+ *
  */
 
 use tp\TouchPointWP\SmallGroup;
 use tp\TouchPointWP\TouchPointWP;
 
+$q = new WP_Query([
+        'post_type' => SmallGroup::POST_TYPE,
+        'nopaging'  => true,
+        'meta_query' => [
+            'relation' => 'AND',
+            'openClause' => [
+                'key'     => TouchPointWP::SETTINGS_PREFIX . "groupClosed",
+                'value'   => true,
+                'compare' => '!=',
+            ],
+            'notFullClause' => [
+                'key'     => TouchPointWP::SETTINGS_PREFIX . "groupFull",
+                'value'   => true,
+                'compare' => '!=',
+            ]
+        ],
+        'order' => 'ASC',
+        'meta_key' => TouchPointWP::SETTINGS_PREFIX . "nextMeeting",
+        'orderby' => 'meta_value_num' // TODO figure out why this isn't sorting.
+    ]);
+
+
+wp_enqueue_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style');
 get_header();
 
 $description = get_the_archive_description();
-?>
 
+if ( $q->have_posts() ) {
+    wp_enqueue_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style');
 
-<?php if ( have_posts() ) { ?>
+    ?>
 
     <header class="archive-header has-text-align-center header-footer-group page-header">
         <div class="archive-header-inner section-inner medium">
-            <?php
-            the_archive_title('<h1 class="archive-title page-title">', '</h1>'); ?>
-            <div class="map" style="width:100%; padding-bottom:50%; position:relative;"><?php echo SmallGroup::mapShortcode(['all' => true]) ?></div>
+            <h1 class="archive-title page-title"><?php echo TouchPointWP::instance()->settings->sg_name_plural; ?></h1>
+            <div class="map smallgroup-map-container"><?php echo SmallGroup::mapShortcode(['all' => true]) ?></div>
+            <div class="smallgroup-list-filters">
+                <select name="smallgroup-gender"><option>Gender</option></select>
+                <select name="smallgroup-region"><option>Region</option></select>
+                <select name="smallgroup-gender"><option>Marital Status</option></select>
+                <select name="smallgroup-gender"><option>Age</option></select>
+            </div>
             <?php if ($description) { ?>
                 <div class="archive-description"><?php echo wp_kses_post(wpautop($description)); ?></div>
             <?php } ?>
 
-        </div><!-- .archive-header-inner -->
+        </div>
 
     </header>
-
+    <div class="smallgroup-list">
     <?php
-    while ( have_posts() ) {
-        the_post();
-        $loadedPart = get_template_part('smallgroup-list-item');
+    while ( $q->have_posts() ) {
+        $q->the_post();
+        $loadedPart = get_template_part('list-item', 'smallgroup-list-item', ['q' => $q]);
         if ($loadedPart === false) {
             require TouchPointWP::$dir . "/src/templates/parts/smallgroup-list-item.php";
         }
 
     } ?>
+    </div>
 
 <!--    --><?php //twenty_twenty_one_the_posts_navigation(); ?>
 
