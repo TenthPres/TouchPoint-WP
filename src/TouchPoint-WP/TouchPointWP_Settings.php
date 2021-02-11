@@ -34,7 +34,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string sg_name_plural     What small groups should be called, plural (e.g. "Small Groups" or "Life Groups")
  * @property-read string sg_name_singular   What a small group should be called, singular (e.g. "Small Group" or "Life Group")
  * @property-read string sg_slug            Slug for Small Group posts (e.g. "smallgroups" for church.org/smallgroups)
- * @property-read string[] sg_divisions     Organizations that are within these divisions should be imported from TouchPoint as Small Groups.
+ * @property-read string[] sg_divisions     Involvements that are within these divisions should be imported from TouchPoint as Small Groups.
  * @property-read int sg_cron_last_run      Timestamp of the last time the Small Groups syncing task ran.
  */
 class TouchPointWP_Settings
@@ -328,7 +328,7 @@ class TouchPointWP_Settings
                         'id'          => 'sg_divisions',
                         'label'       => __('Divisions to Import', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
-                            'Organizations from these divisions will be imported as small groups.',
+                            'Involvements from these divisions will be imported as small groups.',
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',

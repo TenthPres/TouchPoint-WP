@@ -3,18 +3,18 @@
 import re
 
 if (Data.a == "Divisions"):
-    sql = '''SELECT d.id, CONCAT(p.name, ' : ', d.name) as name FROM Division d
+    divSql = '''SELECT d.id, CONCAT(p.name, ' : ', d.name) as name FROM Division d
     JOIN Program p on d.progId = p.Id
     ORDER BY p.name, d.name'''
 
     Data.title = "All Divisions"
-    Data.data = q.QuerySql(sql, {})
+    Data.divs = q.QuerySql(divSql, {})
 
-elif (Data.a == "OrgsForDivs"):
+elif (Data.a == "InvsForDivs"):
     regex = re.compile('[^0-9\,]')
     divs = regex.sub('', Data.divs)
 
-    sql = '''SELECT o.organizationId,
+    invSql = '''SELECT o.organizationId,
     o.leaderMemberTypeId,
     o.location,
     o.organizationName as name,
@@ -60,7 +60,7 @@ elif (Data.a == "OrgsForDivs"):
     )
     AND o.organizationStatusId = 30'''
 
-    groups = model.SqlListDynamicData(sql)
+    groups = model.SqlListDynamicData(invSql)
 
     for g in groups:
         g.leaders = []
@@ -68,4 +68,10 @@ elif (Data.a == "OrgsForDivs"):
         if g.age_groups != None:
             g.age_groups = g.age_groups.split(',')
 
-    Data.data = groups
+    Data.invs = groups
+
+    # Get Extra Values in use on these involvements
+    invEvSql = """SELECT DISTINCT [Field], [Type] FROM OrganizationExtra oe
+                     LEFT JOIN DivOrg do ON oe.OrganizationId = do.OrgId WHERE DivId IN (15)"""
+
+    Data.invev = model.SqlListDynamicData(invEvSql) # TODO move to separate request

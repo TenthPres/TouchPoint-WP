@@ -46,7 +46,7 @@ class Auth extends WP_REST_Controller
         // The authenticate filter
         add_filter('authenticate', [$this, 'authenticate'], 1, 3);
 
-        // Add the link to the organization's sign-in page
+        // Add the link to the church's sign-in page
         add_action('login_form', [$this, 'printLoginLink']);
 
         // Reroute 'edit profile' links to the user's TouchPoint profile.

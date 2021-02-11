@@ -31,7 +31,7 @@ website.
   they're already known to the church.
 - Authenticate
   - Track viewership of webpages and web resources non-anonymously.  (Know who attended your virtual worship service.)
-  - Sync WordPress Permissions with TouchPoint orgs or roles.
+  - Sync WordPress Permissions with TouchPoint involvements or roles.
 - Events (Requires [The Events Calendar from ModernTribe](https://theeventscalendar.com/))
   - Link TouchPoint Meetings with Calendar events (Requires Pro version of The Events Calendar)
   - Improved display of events in TouchPoint custom mobile apps.
@@ -59,9 +59,10 @@ Several plugins have lended structure or code snippets to this plugin:
 ### Nomenclature
 
 **Involvement** is meant to correspond to an "Involvement" in TouchPoint.  This may be a small group, Bible School 
-or any other Involvement in TouchPoint. However, at the time of this writing, TouchPoint is only just starting to 
-(slowly) adopt the name "Involvement" over the previous name, "Organization". Therefore, for the purposes of this 
-plugin, "Involvement" and "Organization" are interchangeable, but "Organization" should be considered deprecated.  
+or any other Involvement in TouchPoint. However, at the time of this writing, TouchPoint has only just started to 
+adopt the name "Involvement" over the previous name, "Organization". Therefore, for the purposes of this plugin, 
+"Involvement" and "Organization" are interchangeable, but "Organization" should be considered deprecated.  Most 
+instances have been updated in the plugin itself.
 
 ### Authentication
 

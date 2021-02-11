@@ -53,7 +53,7 @@ class SmallGroup extends Involvement
         // Setup cron for updating Small Groups daily.
         add_action(self::CRON_HOOK, [self::class, 'updateSmallGroupsFromTouchPoint']);
         if ( ! wp_next_scheduled(self::CRON_HOOK)) {
-            // Runs at 6am EST (11am UTC)
+            // Runs at 6am EST (11am UTC), hypothetically after TouchPoint runs its Morning Batches.
             wp_schedule_event(date('U', strtotime('tomorrow') + 3600 * 11), 'daily', self::CRON_HOOK);
         }
 
@@ -205,7 +205,7 @@ class SmallGroup extends Involvement
     {
         $divs     = implode(',', self::$tpwp->settings->sg_divisions);
         $divs     = str_replace('div', '', $divs);
-        $response = self::$tpwp->apiGet("OrgsForDivs", ['divs' => $divs]);
+        $response = self::$tpwp->apiGet("InvsForDivs", ['divs' => $divs]);
 
         $siteTz = wp_timezone();
 
@@ -213,11 +213,11 @@ class SmallGroup extends Involvement
             return false;
         }
 
-        $orgData = json_decode($response['body'])->data->data ?? []; // null coalesce for case where there is no data.
+        $invData = json_decode($response['body'])->data->invs ?? []; // null coalesce for case where there is no data.
 
         $postsToKeep = [];
 
-        foreach ($orgData as $org) {
+        foreach ($invData as $inv) {
             set_time_limit(10);
 
             // TODO add leaders (as authors?)
@@ -225,8 +225,8 @@ class SmallGroup extends Involvement
             $q    = new WP_Query(
                 [
                     'post_type'  => self::POST_TYPE,
-                    'meta_key'   => TouchPointWP::SETTINGS_PREFIX . "orgId",
-                    'meta_value' => $org->organizationId
+                    'meta_key'   => TouchPointWP::SETTINGS_PREFIX . "invId",
+                    'meta_value' => $inv->organizationId
                 ]
             );
             $post = $q->get_posts();
@@ -236,9 +236,9 @@ class SmallGroup extends Involvement
                 $post = wp_insert_post(
                     [ // create new
                         'post_type'  => self::POST_TYPE,
-                        'post_name'  => $org->name,
+                        'post_name'  => $inv->name,
                         'meta_input' => [
-                            TouchPointWP::SETTINGS_PREFIX . "orgId" => $org->organizationId
+                            TouchPointWP::SETTINGS_PREFIX . "invId" => $inv->organizationId
                         ]
                     ]
                 );
@@ -249,25 +249,25 @@ class SmallGroup extends Involvement
 
             /** @var $post WP_Post */
 
-            $post->post_content = strip_tags($org->description, "<p><br><a><em><b><i><u><hr>");
+            $post->post_content = strip_tags($inv->description, "<p><br><a><em><b><i><u><hr>");
 
-            if ($post->post_title != $org->name) // only update if there's a change.  Otherwise, urls increment.
+            if ($post->post_title != $inv->name) // only update if there's a change.  Otherwise, urls increment.
             {
-                $post->post_title = $org->name;
+                $post->post_title = $inv->name;
             }
 
             $post->post_status = 'publish';
 
             wp_update_post($post);
 
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "locationName", $org->location);
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "memberCount", $org->memberCount);
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "genderId", $org->genderId);
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupFull", ! ! $org->groupFull);
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupClosed", ! ! $org->closed);
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "locationName", $inv->location);
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "memberCount", $inv->memberCount);
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "genderId", $inv->genderId);
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupFull", ! ! $inv->groupFull);
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupClosed", ! ! $inv->closed);
 
             // Determine next meeting date/time
-            $nextMeetingDateTime = array_diff([$org->sched1Time, $org->sched2Time, $org->meetNextMeeting], [null]);
+            $nextMeetingDateTime = array_diff([$inv->sched1Time, $inv->sched2Time, $inv->meetNextMeeting], [null]);
             if (count($nextMeetingDateTime) > 0) {
                 $nextMeetingDateTime = min($nextMeetingDateTime);
                 try {
@@ -282,20 +282,20 @@ class SmallGroup extends Involvement
 
             // Determine schedule string  TODO add frequency options.
             // Day(s) of week
-            $days = array_diff([$org->sched1Day, $org->sched2Day], [null]);
+            $days = array_diff([$inv->sched1Day, $inv->sched2Day], [null]);
             if (count($days) > 1) {
                 $days = TouchPointWP::getDayOfWeekShortForNumber($days[0]) .
                         " & " . TouchPointWP::getDayOfWeekShortForNumber($days[1]);
             } elseif (count($days) === 1) {
                 $days = TouchPointWP::getPluralDayOfWeekNameForNumber(reset($days));
-            } elseif ($org->meetNextMeeting !== null) {
-                $days = TouchPointWP::getPluralDayOfWeekNameForNumber(date("w", strtotime($org->meetNextMeeting)));
+            } elseif ($inv->meetNextMeeting !== null) {
+                $days = TouchPointWP::getPluralDayOfWeekNameForNumber(date("w", strtotime($inv->meetNextMeeting)));
             } else {
                 $days = null;
             }
             // Times of day  TODO (eventually) allow for different times of day on different days of the week.
             if ($days !== null) {
-                $times = array_diff([$org->sched1Time, $org->sched2Time, $org->meetNextMeeting], [null]);
+                $times = array_diff([$inv->sched1Time, $inv->sched2Time, $inv->meetNextMeeting], [null]);
 
                 if (count($times) > 0) {
                     $times = date(get_option('time_format'), strtotime(reset($times)));
@@ -323,7 +323,7 @@ class SmallGroup extends Involvement
 
         self::$tpwp->settings->set('sg_cron_last_run', time());
 
-        return count($orgData) + $removals;
+        return count($invData) + $removals;
     }
 
     /**
@@ -344,9 +344,9 @@ class SmallGroup extends Involvement
                     p.post_title,
                     p.post_excerpt,
                     mloc.meta_value as location,
-                    moid.meta_value as orgId
+                    moid.meta_value as invId
                 FROM $wpdb->posts AS p 
-            JOIN $wpdb->postmeta as moid ON p.ID = moid.post_id AND '{$settingsPrefix}orgId' = moid.meta_key
+            JOIN $wpdb->postmeta as moid ON p.ID = moid.post_id AND '{$settingsPrefix}invId' = moid.meta_key
             JOIN $wpdb->postmeta as mloc ON p.ID = mloc.post_id AND '{$settingsPrefix}locationName' = mloc.meta_key
             WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()";
         // TODO add a condition that requires the presence of lat/long.

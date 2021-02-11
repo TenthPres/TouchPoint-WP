@@ -471,13 +471,13 @@ class TouchPointWP
             return false;
         }
 
-        if ( ! is_array($body->data->data)) {
+        if ( ! is_array($body->data->divs)) {
             return false;
         }
 
         $obj = (object)[
             '_updated' => date('c'),
-            'divs'     => $body->data->data
+            'divs'     => $body->data->divs
         ];
 
         $this->settings->set("meta_divisions", json_encode($obj));
@@ -490,7 +490,7 @@ class TouchPointWP
      * @param ?array $parameters URL parameters to be added.
      *
      * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
-     * Data is generally in json_decode($response['body'])->data->data
+     * Data is generally in json_decode($response['body'])->data
      */
     public function apiGet(string $command, ?array $parameters = null)
     {
