@@ -129,7 +129,7 @@ class TouchPointWP
         register_activation_hook($this->file, [$this, 'install']);
 
         // Register frontend JS & CSS.
-        add_action('wp_register_scripts', [$this, 'registerScriptsAndStyles'], 10);
+        add_action('init', [$this, 'registerScriptsAndStyles'], 0);
 
         // Load admin JS & CSS.
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_scripts'], 10, 1 ); // TODO restore?
@@ -300,9 +300,18 @@ class TouchPointWP
 
     public function registerScriptsAndStyles()
     {
+
+        // Register scripts that exist for all modules
         wp_register_script(
-            self::SHORTCODE_PREFIX . 'base',
+            self::SHORTCODE_PREFIX . 'base-defer',
             $this->assets_url . 'js/base.js',
+            [],
+            self::VERSION,
+            true
+        );
+        wp_register_script(
+            self::SHORTCODE_PREFIX . 'swal2-defer',
+            "//cdn.jsdelivr.net/npm/sweetalert2@10",
             [],
             self::VERSION,
             true
@@ -314,6 +323,10 @@ class TouchPointWP
 
         if ( ! ! $this->rsvp) {
             Rsvp::registerScriptsAndStyles();
+        }
+
+        if ( ! ! $this->smallGroup) {
+            SmallGroup::registerScriptsAndStyles();
         }
     }
 

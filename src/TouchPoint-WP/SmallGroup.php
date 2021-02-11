@@ -32,6 +32,11 @@ class SmallGroup extends Involvement
     private static bool $_isInitiated = false;
     protected static TouchPointWP $tpwp;
 
+
+    public function __construct(WP_Post $post) {
+
+    }
+
     public static function load(TouchPointWP $tpwp): bool
     {
         if (self::$_isInitiated) {
@@ -103,7 +108,7 @@ class SmallGroup extends Involvement
         // If the slug has changed, update it.  Only executes if enqueued.
         self::$tpwp->flushRewriteRules();
 
-        add_action("wp_enqueue_scripts", [self::class, "registerScriptsAndStyles"]);
+//        self::registerScriptsAndStyles();
 
         // Register default templates for Small Groups
         add_filter( 'template_include', [self::class, 'templateFilter'] );
@@ -130,12 +135,13 @@ class SmallGroup extends Involvement
             return $template;
         }
 
-        if ( is_post_type_archive($postTypesToFilter) && file_exists(TouchPointWP::$dir . '/src/templates/SmallGroup-Archive.php') ){
-            $template = TouchPointWP::$dir . '/src/templates/SmallGroup-Archive.php';
+        if ( is_post_type_archive($postTypesToFilter) && file_exists(TouchPointWP::$dir . '/src/templates/smallgroup-archive.php') ){
+            $template = TouchPointWP::$dir . '/src/templates/smallgroup-archive.php';
+            wp_enqueue_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style');
         }
 
-        if ( is_singular( $postTypesToFilter ) && file_exists(TouchPointWP::$dir . '/src/templates/SmallGroup-Singular.php' ) ){
-            $template = TouchPointWP::$dir . '.src/templates/SmallGroup-Singular.php';
+        if ( is_singular( $postTypesToFilter ) && file_exists(TouchPointWP::$dir . '/src/templates/smallgroup-single.php' ) ){
+            $template = TouchPointWP::$dir . '/src/templates/smallgroup-singular.php';
         }
 
         return $template;
@@ -147,7 +153,7 @@ class SmallGroup extends Involvement
                            "https://maps.googleapis.com/maps/api/js?key=" . self::$tpwp->settings->google_maps_api_key . "&v=3&libraries=geometry",
                            [],null,true);
 
-        wp_register_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style',
+        wp_register_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style', // TODO determine whether this should be pre-registered, or just called by the template.
                           self::$tpwp->assets_url . 'template/smallgroups-template-style.css',
                           [],
                           self::$tpwp::VERSION,

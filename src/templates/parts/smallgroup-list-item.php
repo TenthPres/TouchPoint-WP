@@ -1,6 +1,8 @@
 <?php
 
 use tp\TouchPointWP\TouchPointWP;
+
+$sg = new \tp\TouchPointWP\SmallGroup(the_post());
 ?>
 
 <article id="smallgroup-<?php the_ID(); ?>" <?php post_class("smallgroup-list-item"); ?>>
@@ -11,35 +13,30 @@ use tp\TouchPointWP\TouchPointWP;
         ?>
         </div>
         <div class="post-meta-single post-meta-single-top">
-            <ul class="post-meta">
-                <li class="post-date meta-wrapper">
-                    <?php
-                    $metaKeys = [
-                        TouchPointWP::SETTINGS_PREFIX . "meetingSchedule",
-                        TouchPointWP::SETTINGS_PREFIX . "locationName"
-                    ];
-                    $metaStrings = [];
-                    foreach ($metaKeys as $mk) {
-                        if ($post->$mk) {
-                            $metaStrings[] = sprintf( '<span class="meta-text"><a href="%s">%s</a></span>',
-                                                      esc_url( get_permalink() ), $post->$mk );
-                        }
+            <span class="post-meta">
+                <?php
+                $metaKeys = [
+                    TouchPointWP::SETTINGS_PREFIX . "meetingSchedule",
+                    TouchPointWP::SETTINGS_PREFIX . "locationName"
+                ];
+                $metaStrings = [];
+                foreach ($metaKeys as $mk) {
+                    if ($post->$mk) {
+                        $metaStrings[] = sprintf( '<span class="meta-text"><a href="%s">%s</a></span>',
+                                                  esc_url( get_permalink() ), $post->$mk );
                     }
-                    // TODO add leader names
+                }
+                // TODO add leader names
 
-                    echo implode(" &nbsp;&bull;&nbsp; ", $metaStrings);
-                    ?>
-                </li>
-            </ul><!-- .post-meta -->
+                echo implode(" &nbsp;&#9702;&nbsp; ", $metaStrings);
+                ?>
+            </span><!-- .post-meta -->
         </div>
     </header><!-- .entry-header -->
-    <div class="thin">
-        <div class="entry-content">
+    <div class="thin entry-content">
             <?php echo wp_trim_words(get_the_excerpt(), 20, "..."); ?>
-        </div><!-- .entry-content -->
     </div>
-
-	<footer class="entry-footer default-max-width">
-<!--		--><?php //twenty_twenty_one_entry_meta_footer(); ?>
-	</footer><!-- .entry-footer -->
+    <div class="thin actions smallgroup-actions">
+        <button type="button">Join</button><?php // TODO: all of this ?>
+    </div>
 </article><!-- #post-${ID} -->

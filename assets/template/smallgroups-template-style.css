@@ -27,7 +27,7 @@ div.smallgroup-map-container {
     position: relative;
 }
 
-h1 {
+h1.archive-title.page-title {
     position: relative;
     z-index: 10;
 }

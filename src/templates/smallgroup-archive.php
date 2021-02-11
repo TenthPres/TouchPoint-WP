@@ -34,8 +34,7 @@ $q = new WP_Query([
     ]);
 
 
-wp_enqueue_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style');
-get_header();
+get_header("smallgroups");
 
 $description = get_the_archive_description();
 
@@ -44,10 +43,10 @@ if ( $q->have_posts() ) {
 
     ?>
 
-    <header class="archive-header has-text-align-center header-footer-group page-header">
+    <header class="archive-header has-text-align-center header-footer-group">
         <div class="archive-header-inner section-inner medium">
             <h1 class="archive-title page-title"><?php echo TouchPointWP::instance()->settings->sg_name_plural; ?></h1>
-            <div class="map smallgroup-map-container"><?php echo SmallGroup::mapShortcode(['all' => true]) ?></div>
+            <div class="map smallgroup-map-container"><?php echo SmallGroup::mapShortcode(['all' => true, 'query' => $q]) ?></div>
             <div class="smallgroup-list-filters">
                 <select name="smallgroup-gender"><option>Gender</option></select>
                 <select name="smallgroup-region"><option>Region</option></select>
@@ -65,7 +64,7 @@ if ( $q->have_posts() ) {
     <?php
     while ( $q->have_posts() ) {
         $q->the_post();
-        $loadedPart = get_template_part('list-item', 'smallgroup-list-item', ['q' => $q]);
+        $loadedPart = get_template_part('list-item', 'smallgroup-list-item');
         if ($loadedPart === false) {
             require TouchPointWP::$dir . "/src/templates/parts/smallgroup-list-item.php";
         }
@@ -73,10 +72,8 @@ if ( $q->have_posts() ) {
     } ?>
     </div>
 
-<!--    --><?php //twenty_twenty_one_the_posts_navigation(); ?>
-
 <?php } else { ?>
-    <?php get_template_part( 'template-parts/content/content-none' ); ?>
+    <?php get_template_part( 'template-parts/content/content-none' ); // todo remove or resolve ?>
 <?php } ?>
 
 <?php get_footer(); ?>
