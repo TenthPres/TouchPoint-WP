@@ -151,7 +151,7 @@ class SmallGroup extends Involvement
                            [],null,true);
 
         wp_register_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroups-defer",
-                           self::$tpwp->assets_url . 'js/smallgroup.js',
+                           self::$tpwp->assets_url . 'js/smallgroup-defer.js',
                            [TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
                            self::$tpwp::VERSION,
                            true);

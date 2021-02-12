@@ -304,7 +304,7 @@ class TouchPointWP
         // Register scripts that exist for all modules
         wp_register_script(
             self::SHORTCODE_PREFIX . 'base-defer',
-            $this->assets_url . 'js/base.js',
+            $this->assets_url . 'js/base-defer.js',
             [],
             self::VERSION,
             true
