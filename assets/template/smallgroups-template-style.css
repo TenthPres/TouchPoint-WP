@@ -5,11 +5,37 @@
 }
 
 article.smallgroup-list-item {
-    flex: 1 1 450px;
+    flex: 1 1 350px;
     box-shadow: 10px 10px 20px #00000033;
     margin: 0.8em;
     position: relative;
     padding: 0.8em;
+    display: flex;
+    flex-direction: column;
+}
+
+.smallgroup-list-item .smallgroup-actions {
+    padding-top: .5em;
+    text-align: right;
+}
+
+.smallgroup-list-item .smallgroup-actions button {
+    position:relative;
+    z-index:10;
+}
+
+.smallgroup-list-item div.post-meta-single {
+    font-size: 0.8em;
+    opacity: 0.7;
+    font-weight: bolder;
+}
+
+.smallgroup-list-item div.thin.entry-content {
+    flex: 1 1 auto;
+}
+
+div.smallgroup-list article.smallgroup-list-item h2.entry-title {
+    padding: 0 0 0 0;
 }
 
 .smallgroup-list-item h2 a:after {
@@ -19,6 +45,7 @@ article.smallgroup-list-item {
     top: 0;
     left: 0;
     position: absolute;
+    z-index:5;
 }
 
 div.smallgroup-map-container {
@@ -30,4 +57,8 @@ div.smallgroup-map-container {
 h1.archive-title.page-title {
     position: relative;
     z-index: 10;
+}
+
+.map p {
+    text-align: inherit;
 }

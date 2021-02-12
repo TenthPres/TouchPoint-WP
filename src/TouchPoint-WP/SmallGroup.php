@@ -32,10 +32,7 @@ class SmallGroup extends Involvement
     private static bool $_isInitiated = false;
     protected static TouchPointWP $tpwp;
 
-
-    public function __construct(WP_Post $post) {
-
-    }
+    public object $geo;
 
     public static function load(TouchPointWP $tpwp): bool
     {
@@ -153,6 +150,12 @@ class SmallGroup extends Involvement
                            "https://maps.googleapis.com/maps/api/js?key=" . self::$tpwp->settings->google_maps_api_key . "&v=3&libraries=geometry",
                            [],null,true);
 
+        wp_register_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroups-defer",
+                           self::$tpwp->assets_url . 'js/smallgroup.js',
+                           [TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
+                           self::$tpwp::VERSION,
+                           true);
+
         wp_register_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style', // TODO determine whether this should be pre-registered, or just called by the template.
                           self::$tpwp->assets_url . 'template/smallgroups-template-style.css',
                           [],
@@ -193,7 +196,7 @@ class SmallGroup extends Involvement
         $script = str_replace('{$smallgroupsList}', json_encode(self::getSmallGroupsForMap()), $script);
         $script = str_replace('{$mapDivId}', $mapDivId, $script);
 
-        wp_add_inline_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps", $script);
+        wp_add_inline_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps", $script); // todo move somewhere more appropriate
 
         // TODO move the style to a css file... or something.
         $content = "<div class=\"TouchPoint-SmallGroup-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0; left: 0; \" id=\"{$mapDivId}\"></div>";
@@ -207,7 +210,7 @@ class SmallGroup extends Involvement
      *
      * @return false|int False on failure, or the number of groups that were updated or deleted.
      */
-    public static function updateSmallGroupsFromTouchPoint()
+    public static function updateSmallGroupsFromTouchPoint() // TODO add OOP alignment
     {
         $divs     = implode(',', self::$tpwp->settings->sg_divisions);
         $divs     = str_replace('div', '', $divs);
@@ -232,7 +235,7 @@ class SmallGroup extends Involvement
                 [
                     'post_type'  => self::POST_TYPE,
                     'meta_key'   => TouchPointWP::SETTINGS_PREFIX . "invId",
-                    'meta_value' => $inv->organizationId
+                    'meta_value' => $inv->involvementId
                 ]
             );
             $post = $q->get_posts();
@@ -244,7 +247,7 @@ class SmallGroup extends Involvement
                         'post_type'  => self::POST_TYPE,
                         'post_name'  => $inv->name,
                         'meta_input' => [
-                            TouchPointWP::SETTINGS_PREFIX . "invId" => $inv->organizationId
+                            TouchPointWP::SETTINGS_PREFIX . "invId" => $inv->involvementId
                         ]
                     ]
                 );
@@ -345,14 +348,13 @@ class SmallGroup extends Involvement
         $postType = self::POST_TYPE;
 
         $sql = "SELECT 
-                    p.post_title,
+                    p.post_title as name,
                     p.ID as post_id,
-                    p.post_title,
                     p.post_excerpt,
                     mloc.meta_value as location,
-                    moid.meta_value as invId
+                    miid.meta_value as invId
                 FROM $wpdb->posts AS p 
-            JOIN $wpdb->postmeta as moid ON p.ID = moid.post_id AND '{$settingsPrefix}invId' = moid.meta_key
+            JOIN $wpdb->postmeta as miid ON p.ID = miid.post_id AND '{$settingsPrefix}invId' = miid.meta_key
             JOIN $wpdb->postmeta as mloc ON p.ID = mloc.post_id AND '{$settingsPrefix}locationName' = mloc.meta_key
             WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()";
         // TODO add a condition that requires the presence of lat/long.
@@ -366,31 +368,51 @@ class SmallGroup extends Involvement
 
     private static function fromObj(object $obj): SmallGroup
     {
-        if (!property_exists($obj, 'post_id'))
-            _doing_it_wrong(
-                __FUNCTION__,
-                esc_html(__('Creating a SmallGroup object from an object without a post_id is not yet supported.')),
-                esc_attr(self::VERSION)
-            );
 
-        $pid = intval($obj->post_id);
+        $iid = intval($obj->invId);
 
-        if (!isset(self::$_instances[$pid])) {
-            self::$_instances[$pid] = new SmallGroup();
+        if (!isset(self::$_instances[$iid])) {
+            self::$_instances[$iid] = new SmallGroup($obj);
         }
-        $sg = &self::$_instances[$pid];
+        return self::$_instances[$iid];
+    }
 
-        foreach ($obj as $property => $value) {
-            if (property_exists(self::class, $property)) {
-                $sg->$property = $value;
-            } // TODO add an else for nonstandard/optional metadata fields
+
+    public static function fromPost(WP_Post $post): SmallGroup
+    {
+        $iid = intval($post->{self::INVOLVEMENT_META_KEY});
+
+        if (!isset(self::$_instances[$iid])) {
+            self::$_instances[$iid] = new SmallGroup($post);
         }
+        return self::$_instances[$iid];
+    }
 
-        $sg->geo = (object)[
+
+    public static function fromInvId($iid): SmallGroup
+    {
+        if (!isset(self::$_instances[$iid])) {
+            self::$_instances[$iid] = new SmallGroup($iid);
+        }
+        return self::$_instances[$iid];
+    }
+
+
+    protected function __construct($invIdOrObj) {
+        parent::__construct($invIdOrObj);
+
+        $this->geo = (object)[
             'lat' => rand(3950, 4030) * 0.01,
             'lng' => rand(-7450, -7550) * 0.01,
         ];
-        return $sg;
+    }
+
+
+    public function getActionButtons(): string
+    {
+        return '
+        <button type="button">Contact Leaders</button>
+        <button type="button">Join</button>';
     }
 
 

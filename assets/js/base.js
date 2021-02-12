@@ -1,15 +1,41 @@
 "use strict";
 
-let TouchPointWP = new Proxy({
-    PLUGIN_PATH: "/TouchPoint-WP/"
-}, {
-    get(target, key, that) {
-        if (target.hasOwnProperty(key))
-            return target[key];
+class TP_Involvement {
 
-        if (key === "RSVP")
-            target.RSVP = new _TouchPointWP_RSVP(target, that);
+    name = "";
+    invId = "";
+    #visible = true;
 
-        return target[key];
+    constructor(obj) {
+        this.name = obj.name;
+        this.invId = obj.invId;
+
+        tpvm.involvements[this.invId] = this;
     }
-});
+
+    get connectedElements() {
+        const sPath = '[data-tp-involvement="' + this.invId + '"]'
+        return document.querySelectorAll(sPath);
+    }
+
+    // TODO potentially move to a helper of some kind.
+    static setElementVisibility(elt, visibility)
+    {
+        elt.style.display = !!visibility ? "" : "none";
+    }
+
+    toggleVisibility(vis = null) {
+        if (vis === null) {
+            this.#visible = !this.#visible
+        } else {
+            this.#visible = !!vis;
+        }
+
+        for (const ei in this.connectedElements) {
+            if (!this.connectedElements.hasOwnProperty(ei)) continue;
+
+            TP_Involvement.setElementVisibility(this.connectedElements[ei], this.#visible);
+        }
+    }
+
+}

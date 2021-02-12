@@ -1,4 +1,4 @@
-let doMap = function () {
+let doMap = function () { // TODO move to assets/js directory... I guess?
     let colors = {
         background: '#ffffff',
         primary: '#8800a1', // dark
@@ -21,7 +21,7 @@ let doMap = function () {
     for (const sgi in SmallGroups) {
         SmallGroups[sgi].marker = new google.maps.Marker({
             position: SmallGroups[sgi].geo,
-            title: SmallGroups[sgi].post_title,
+            title: SmallGroups[sgi].name,
             map: m
         });
         console.log(SmallGroups[sgi].geo, SmallGroups[sgi].marker);
@@ -31,5 +31,8 @@ let doMap = function () {
 
 
 }
-const SmallGroups = {$smallgroupsList}
-doMap();
+
+tpvm.onSmallGroupsLoad = function() {
+    TP_SmallGroup.fromArray({$smallgroupsList});
+    // doMap(); // TODO reconfigure/move
+}

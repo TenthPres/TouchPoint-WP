@@ -309,6 +309,13 @@ class TouchPointWP
             self::VERSION,
             true
         );
+
+        wp_add_inline_script(
+            self::SHORTCODE_PREFIX . 'base-defer',
+            file_get_contents($this->assets_dir . '/js/base-inline.js'),
+            'before'
+        );
+
         wp_register_script(
             self::SHORTCODE_PREFIX . 'swal2-defer',
             "//cdn.jsdelivr.net/npm/sweetalert2@10",

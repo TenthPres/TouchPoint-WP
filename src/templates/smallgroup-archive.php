@@ -40,6 +40,9 @@ $description = get_the_archive_description();
 
 if ( $q->have_posts() ) {
     wp_enqueue_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style');
+    wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'swal2-defer');
+    wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'base');
+    wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-defer');
 
     ?>
 
@@ -62,8 +65,8 @@ if ( $q->have_posts() ) {
     </header>
     <div class="smallgroup-list">
     <?php
-    while ( $q->have_posts() ) {
-        $q->the_post();
+    foreach ( $q->posts as $post ) {
+        $post->obj = SmallGroup::fromPost($post);
         $loadedPart = get_template_part('list-item', 'smallgroup-list-item');
         if ($loadedPart === false) {
             require TouchPointWP::$dir . "/src/templates/parts/smallgroup-list-item.php";

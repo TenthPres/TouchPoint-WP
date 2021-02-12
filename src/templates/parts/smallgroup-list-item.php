@@ -1,11 +1,9 @@
 <?php
 
 use tp\TouchPointWP\TouchPointWP;
-
-$sg = new \tp\TouchPointWP\SmallGroup(the_post());
 ?>
 
-<article id="smallgroup-<?php the_ID(); ?>" <?php post_class("smallgroup-list-item"); ?>>
+<article id="smallgroup-<?php the_ID(); ?>" <?php post_class("smallgroup-list-item"); ?> data-tp-involvement="<?php echo $post->obj->invId ?>">
     <header class="entry-header">
         <div class="entry-header-inner">
         <?php
@@ -22,8 +20,7 @@ $sg = new \tp\TouchPointWP\SmallGroup(the_post());
                 $metaStrings = [];
                 foreach ($metaKeys as $mk) {
                     if ($post->$mk) {
-                        $metaStrings[] = sprintf( '<span class="meta-text"><a href="%s">%s</a></span>',
-                                                  esc_url( get_permalink() ), $post->$mk );
+                        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk );
                     }
                 }
                 // TODO add leader names
@@ -37,6 +34,6 @@ $sg = new \tp\TouchPointWP\SmallGroup(the_post());
             <?php echo wp_trim_words(get_the_excerpt(), 20, "..."); ?>
     </div>
     <div class="thin actions smallgroup-actions">
-        <button type="button">Join</button><?php // TODO: all of this ?>
+        <?php echo $post->obj->getActionButtons(); ?>
     </div>
 </article><!-- #post-${ID} -->

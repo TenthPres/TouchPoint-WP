@@ -14,7 +14,7 @@ elif (Data.a == "InvsForDivs"):
     regex = re.compile('[^0-9\,]')
     divs = regex.sub('', Data.divs)
 
-    invSql = '''SELECT o.organizationId,
+    invSql = '''SELECT o.organizationId as involvementId,
     o.leaderMemberTypeId,
     o.location,
     o.organizationName as name,
