@@ -3,9 +3,39 @@
 class TP_SmallGroup extends TP_Involvement {
     static smallGroups = [];
 
+    mapMarkers = [];
+    geo = {};
+
     constructor(obj) {
         super(obj);
+
+        this.geo = obj.geo ?? null;
+
         TP_SmallGroup.smallGroups.push(this);
+
+        for (const ei in this.connectedElements) {
+            if (!this.connectedElements.hasOwnProperty(ei)) continue;
+
+            let that = this;
+            this.connectedElements[ei].addEventListener('mouseenter', function(e){e.stopPropagation(); that.toggleHighlighted(true); console.log(that, true);});
+            this.connectedElements[ei].addEventListener('mouseleave', function(e){e.stopPropagation(); that.toggleHighlighted(false); console.log(that, false);});
+        }
+    }
+
+    toggleHighlighted(hl) {
+        super.toggleHighlighted(hl);
+
+        if (this.highlighted) {
+            for (const mmi in this.mapMarkers) {
+                if (!this.mapMarkers.hasOwnProperty(mmi)) continue;
+                this.mapMarkers[mmi].setAnimation(google.maps.Animation.BOUNCE);
+            }
+        } else {
+            for (const mmi in this.mapMarkers) {
+                if (!this.mapMarkers.hasOwnProperty(mmi)) continue;
+                this.mapMarkers[mmi].setAnimation(null);
+            }
+        }
     }
 
     static fromArray(invArr) {
@@ -22,15 +52,36 @@ class TP_SmallGroup extends TP_Involvement {
                 ret.push(new TP_SmallGroup(invArr[i]))
             }
         }
-        console.log(self.smallGroups);
         return ret;
-    }
+    };
 
     static init() {
-        if (typeof tpvm.onSmallGroupsLoad === "function") {
-            tpvm.onSmallGroupsLoad();
-            delete tpvm.onSmallGroupsLoad;
+        tpvm.trigger('smallgroupsLoaded');
+    }
+
+    static doMap(mapDivId) {
+        const bounds = new google.maps.LatLngBounds();
+
+        let mapOptions = {
+            zoom: 0,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            center: {lat: 0, lng: 0},
+            bounds: bounds
+        };
+        const m = new google.maps.Map(document.getElementById(mapDivId), mapOptions);
+
+        for (const sgi in tpvm.involvements) {
+            if (!tpvm.involvements.hasOwnProperty(sgi)) continue;
+
+            tpvm.involvements[sgi].mapMarkers.push(new google.maps.Marker({
+                position: tpvm.involvements[sgi].geo,
+                title: tpvm.involvements[sgi].name,
+                map: m,
+            }));
+            console.log(tpvm.involvements[sgi].geo, tpvm.involvements[sgi].mapMarkers); // TODO remove
+            bounds.extend(tpvm.involvements[sgi].geo);
         }
+        m.fitBounds(bounds);
     }
 }
 

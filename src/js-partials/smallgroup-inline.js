@@ -1,4 +1,4 @@
-tpvm.onSmallGroupsLoad = function() {
+tpvm.addEventListener('smallgroupsLoaded', function() {
     TP_SmallGroup.fromArray({$smallgroupsList});
-    // doMap(); // TODO reconfigure/move
-}
+    TP_SmallGroup.doMap('{$mapDivId}');
+});

@@ -147,7 +147,10 @@ class SmallGroup extends Involvement
     public static function registerScriptsAndStyles(): void
     {
         wp_register_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
-                           "https://maps.googleapis.com/maps/api/js?key=" . self::$tpwp->settings->google_maps_api_key . "&v=3&libraries=geometry",
+                           sprintf(
+                               "https://maps.googleapis.com/maps/api/js?key=%s&v=3&libraries=geometry",
+                               self::$tpwp->settings->google_maps_api_key
+                           ),
                            [],null,true);
 
         wp_register_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroups-defer",
@@ -191,7 +194,7 @@ class SmallGroup extends Involvement
         else
             $mapDivId = wp_unique_id('tp-map-');
 
-        $script = file_get_contents(TouchPointWP::$dir . "/src/js-inline/smallgroup-inline.js");
+        $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/smallgroup-inline.js");
 
         $script = str_replace('{$smallgroupsList}', json_encode(self::getSmallGroupsForMap()), $script);
         $script = str_replace('{$mapDivId}', $mapDivId, $script);
@@ -404,6 +407,7 @@ class SmallGroup extends Involvement
         $this->geo = (object)[
             'lat' => rand(3950, 4030) * 0.01,
             'lng' => rand(-7450, -7550) * 0.01,
+            'resCode' => "metro",
         ];
     }
 

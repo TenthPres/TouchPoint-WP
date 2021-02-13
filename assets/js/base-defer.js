@@ -24,6 +24,11 @@ class TP_Involvement {
         elt.style.display = !!visibility ? "" : "none";
     }
 
+    toggleHighlighted(hl)
+    {
+        this.highlighted = !!hl;
+    }
+
     toggleVisibility(vis = null) {
         if (vis === null) {
             this.#visible = !this.#visible
