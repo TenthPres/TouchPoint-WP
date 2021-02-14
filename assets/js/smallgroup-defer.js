@@ -17,8 +17,8 @@ class TP_SmallGroup extends TP_Involvement {
             if (!this.connectedElements.hasOwnProperty(ei)) continue;
 
             let that = this;
-            this.connectedElements[ei].addEventListener('mouseenter', function(e){e.stopPropagation(); that.toggleHighlighted(true); console.log(that, true);});
-            this.connectedElements[ei].addEventListener('mouseleave', function(e){e.stopPropagation(); that.toggleHighlighted(false); console.log(that, false);});
+            this.connectedElements[ei].addEventListener('mouseenter', function(e){e.stopPropagation(); that.toggleHighlighted(true);});
+            this.connectedElements[ei].addEventListener('mouseleave', function(e){e.stopPropagation(); that.toggleHighlighted(false);});
         }
     }
 
@@ -28,12 +28,14 @@ class TP_SmallGroup extends TP_Involvement {
         if (this.highlighted) {
             for (const mmi in this.mapMarkers) {
                 if (!this.mapMarkers.hasOwnProperty(mmi)) continue;
-                this.mapMarkers[mmi].setAnimation(google.maps.Animation.BOUNCE);
+                if (!this.mapMarkers[mmi].getAnimation() !== google.maps.Animation.BOUNCE)
+                    this.mapMarkers[mmi].setAnimation(google.maps.Animation.BOUNCE);
             }
         } else {
             for (const mmi in this.mapMarkers) {
                 if (!this.mapMarkers.hasOwnProperty(mmi)) continue;
-                this.mapMarkers[mmi].setAnimation(null);
+                if (this.mapMarkers[mmi].getAnimation() !== null)
+                    this.mapMarkers[mmi].setAnimation(null);
             }
         }
     }
@@ -44,7 +46,6 @@ class TP_SmallGroup extends TP_Involvement {
             if (!invArr.hasOwnProperty(i)) continue;
 
             if (typeof invArr[i].invId === "undefined") {
-                console.log("Could not parse into Small Group:", invArr[i]);
                 continue;
             }
 
@@ -78,7 +79,6 @@ class TP_SmallGroup extends TP_Involvement {
                 title: tpvm.involvements[sgi].name,
                 map: m,
             }));
-            console.log(tpvm.involvements[sgi].geo, tpvm.involvements[sgi].mapMarkers); // TODO remove
             bounds.extend(tpvm.involvements[sgi].geo);
         }
         m.fitBounds(bounds);

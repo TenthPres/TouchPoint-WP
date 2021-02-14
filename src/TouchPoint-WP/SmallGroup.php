@@ -217,7 +217,15 @@ class SmallGroup extends Involvement
     {
         $divs     = implode(',', self::$tpwp->settings->sg_divisions);
         $divs     = str_replace('div', '', $divs);
-        $response = self::$tpwp->apiGet("InvsForDivs", ['divs' => $divs]);
+
+        $lMTypes  = implode(',', self::$tpwp->settings->sg_leader_types);
+        $lMTypes     = str_replace('mt', '', $lMTypes);
+
+        $hMTypes  = implode(',', self::$tpwp->settings->sg_host_types);
+        $hMTypes     = str_replace('mt', '', $hMTypes);
+
+        $response = self::$tpwp->apiGet("InvsForDivs",
+                                        ['divs' => $divs, 'leadMemTypes' => $lMTypes, 'hostMemTypes' => $hMTypes]);
 
         $siteTz = wp_timezone();
 
@@ -231,8 +239,6 @@ class SmallGroup extends Involvement
 
         foreach ($invData as $inv) {
             set_time_limit(10);
-
-            // TODO add leaders (as authors?)
 
             $q    = new WP_Query(
                 [
@@ -316,10 +322,17 @@ class SmallGroup extends Involvement
             }
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", $days);
 
+
+            // Handle leaders  TODO make leaders WP Users
+            if (property_exists($inv, "leaders")) {
+                $nameString = Person::arrangeNamesForPeople($inv->leaders);
+                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders", $nameString);
+            }
+
             $postsToKeep[] = $post->ID;
         }
 
-        /* Delete posts that are no longer current  */
+        /* Delete posts that are no longer current  */  // TODO figure out why this isn't working correctly.
         $q = new WP_Query(
             [
                 'post_type' => self::POST_TYPE

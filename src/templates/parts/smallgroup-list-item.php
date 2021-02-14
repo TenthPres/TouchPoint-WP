@@ -15,7 +15,8 @@ use tp\TouchPointWP\TouchPointWP;
                 <?php
                 $metaKeys = [
                     TouchPointWP::SETTINGS_PREFIX . "meetingSchedule",
-                    TouchPointWP::SETTINGS_PREFIX . "locationName"
+                    TouchPointWP::SETTINGS_PREFIX . "locationName",
+                    TouchPointWP::SETTINGS_PREFIX . "leaders"
                 ];
                 $metaStrings = [];
                 foreach ($metaKeys as $mk) {
@@ -23,7 +24,6 @@ use tp\TouchPointWP\TouchPointWP;
                         $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk );
                     }
                 }
-                // TODO add leader names
 
                 echo implode(" &nbsp;&#9702;&nbsp; ", $metaStrings);
                 ?>

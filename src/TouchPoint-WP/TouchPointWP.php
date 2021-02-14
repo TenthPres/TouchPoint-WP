@@ -425,6 +425,42 @@ class TouchPointWP
     }
 
     /**
+     * Get the member types currently in use for the named divisions.
+     *
+     * @param $divisions
+     *
+     * @return array
+     */
+    public function getMemberTypesForDivisions($divisions = []): array
+    {
+        $divisions = implode(",", $divisions);
+        $divisions = str_replace('div','', $divisions);
+        $return = $this->apiGet('MemTypes', ['divs' => $divisions]);
+
+        if ($return instanceof WP_Error) {
+            return [];
+        }
+
+        $body = json_decode($return['body']);
+
+        if (property_exists($body, "message") || ! is_array($body->data->memTypes)) {
+            return []; // Todo log an error?
+        }
+
+        return $body->data->memTypes;
+    }
+
+    public function getMemberTypesForDivisionsAsKVArray($divisions = []): array
+    {
+        $r = [];
+        foreach (self::getMemberTypesForDivisions($divisions) as $mt) {
+            $r['mt' . $mt->id] = $mt->description;
+        }
+
+        return $r;
+    }
+
+    /**
      * Format the list of divisions into an array with form-name-friendly IDs as the key.
      *
      * @return string[]

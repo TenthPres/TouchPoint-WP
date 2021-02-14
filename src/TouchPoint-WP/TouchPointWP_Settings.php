@@ -35,7 +35,10 @@ if ( ! defined('ABSPATH')) {
  * @property-read string sg_name_singular   What a small group should be called, singular (e.g. "Small Group" or "Life Group")
  * @property-read string sg_slug            Slug for Small Group posts (e.g. "smallgroups" for church.org/smallgroups)
  * @property-read string[] sg_divisions     Involvements that are within these divisions should be imported from TouchPoint as Small Groups.
- * @property-read int sg_cron_last_run      Timestamp of the last time the Small Groups syncing task ran.
+ * @property-read string[] sg_leader_types  Member Types who should be listed as leaders for the small group
+ * @property-read string[] sg_host_types    Member Types whose home addresses should be used for the small group location
+ *
+ * @property-read int sg_cron_last_run      Timestamp of the last time the Small Groups syncing task ran.  (No setting UI.)
  */
 class TouchPointWP_Settings
 {
@@ -116,13 +119,14 @@ class TouchPointWP_Settings
      */
     public function initSettings()
     {
-        $this->settings = $this->settingsFields();
+        $this->settings = $this->settingsFields(false, false); // TODO remove this if at all possible, so details are only called when needed.
     }
 
     /**
      * Build settings fields
      *
      * @param bool $includeAll Set to true to return all settings parameters, including those for disabled features.
+     * @param bool $includeDetail Set to true to get options from TouchPoint, potentially including the API call.
      *
      * @return array Fields to be displayed on settings page
      */
@@ -368,6 +372,28 @@ class TouchPointWP_Settings
                         'default'     => 'smallgroups',
                         'placeholder' => 'smallgroups',
                         'callback'    => fn($new) => $this->validation_slug($new, 'sg_slug')
+                    ],
+                    [
+                        'id'          => 'sg_leader_types',
+                        'label'       => __('Leader Member Types', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Members of these types will be listed as members and used as contact persons.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'checkbox_multi',
+                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->sg_divisions) : [],
+                        'default'     => [],
+                    ],
+                    [
+                        'id'          => 'sg_host_types',
+                        'label'       => __('Host Member Types', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Members of these types will have their home address used as the location.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'checkbox_multi',
+                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->sg_divisions) : [],
+                        'default'     => [],
                     ],
                 ],
             ];
@@ -658,6 +684,7 @@ class TouchPointWP_Settings
      */
     public function registerSettings()
     {
+        $this->settings = $this->settingsFields(false, true);
         if (is_array($this->settings)) {
             // Check posted/selected tab.
             $current_section = '';
