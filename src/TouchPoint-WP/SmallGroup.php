@@ -224,6 +224,8 @@ class SmallGroup extends Involvement
         $hMTypes  = implode(',', self::$tpwp->settings->sg_host_types);
         $hMTypes     = str_replace('mt', '', $hMTypes);
 
+        set_time_limit(60);
+
         $response = self::$tpwp->apiGet("InvsForDivs",
                                         ['divs' => $divs, 'leadMemTypes' => $lMTypes, 'hostMemTypes' => $hMTypes]);
 
@@ -329,6 +331,13 @@ class SmallGroup extends Involvement
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders", $nameString);
             }
 
+
+            // Handle locations TODO handle cases other than hosted at home
+            if (property_exists($inv, "hostGeo") && $inv->hostGeo !== null) {
+                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", $inv->hostGeo->lat);
+                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", $inv->hostGeo->lng);
+            }
+
             $postsToKeep[] = $post->ID;
         }
 
@@ -368,10 +377,14 @@ class SmallGroup extends Involvement
                     p.ID as post_id,
                     p.post_excerpt,
                     mloc.meta_value as location,
-                    miid.meta_value as invId
+                    miid.meta_value as invId,
+                    mlat.meta_value as geo_lat,
+                    mlng.meta_value as geo_lng
                 FROM $wpdb->posts AS p 
             JOIN $wpdb->postmeta as miid ON p.ID = miid.post_id AND '{$settingsPrefix}invId' = miid.meta_key
             JOIN $wpdb->postmeta as mloc ON p.ID = mloc.post_id AND '{$settingsPrefix}locationName' = mloc.meta_key
+            LEFT JOIN $wpdb->postmeta as mlat ON p.ID = mlat.post_id AND '{$settingsPrefix}geo_lat' = mlat.meta_key
+            LEFT JOIN $wpdb->postmeta as mlng ON p.ID = mlng.post_id AND '{$settingsPrefix}geo_lng' = mlng.meta_key
             WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()";
         // TODO add a condition that requires the presence of lat/long.
 
@@ -417,11 +430,19 @@ class SmallGroup extends Involvement
     protected function __construct($invIdOrObj) {
         parent::__construct($invIdOrObj);
 
-        $this->geo = (object)[
-            'lat' => rand(3950, 4030) * 0.01,
-            'lng' => rand(-7450, -7550) * 0.01,
-            'resCode' => "metro",
-        ];
+        if (gettype($invIdOrObj) == "object" && $invIdOrObj->geo_lat !== null) {
+            $this->geo = (object)[
+                'lat'     => (float)$invIdOrObj->geo_lat,
+                'lng'     => (float)$invIdOrObj->geo_lng,
+                'resCode' => "metro", // TODO import resident code
+            ];
+        } else {
+            $this->geo = (object)[
+                'lat'     => (float)get_post_meta($invIdOrObj->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_lat", true),
+                'lng'     => (float)get_post_meta($invIdOrObj->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_lng", true),
+                'resCode' => "metro", // TODO import resident code
+            ];
+        }
     }
 
 

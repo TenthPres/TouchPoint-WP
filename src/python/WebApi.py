@@ -2,6 +2,11 @@
 
 import re
 
+PersonEvNames = {
+	'geoLat': 'geoLat',
+	'geoLng': 'geoLng'
+}
+
 if (Data.a == "Divisions"):
 	divSql = '''SELECT d.id, CONCAT(p.name, ' : ', d.name) as name FROM Division d
 	JOIN Program p on d.progId = p.Id
@@ -16,6 +21,9 @@ elif (Data.a == "InvsForDivs"):
 
 	leadMemTypes = Data.leadMemTypes or ""
 	leadMemTypes = regex.sub('', leadMemTypes)
+	
+	hostMemTypes = Data.hostMemTypes or ""
+	hostMemTypes = regex.sub('', hostMemTypes)
 
 	invSql = '''SELECT o.organizationId as involvementId,
 	o.leaderMemberTypeId,
@@ -77,6 +85,17 @@ elif (Data.a == "InvsForDivs"):
 			ORDER BY p.FamilyId'''.format(g.involvementId, leadMemTypes)
 
 			g.leaders = model.SqlListDynamicData(leaderSql)
+			
+		if hostMemTypes != "":
+			hostSql = '''
+			SELECT TOP 1 peLat.Data as lat, peLng.Data as lng
+			FROM OrganizationMembers om
+				JOIN People p ON om.PeopleId = p.PeopleId
+				JOIN PeopleExtra as peLat ON peLat.PeopleId = p.PeopleId and peLat.Field = '{}'
+				JOIN PeopleExtra as peLng ON peLng.PeopleId = p.PeopleId and peLng.Field = '{}'
+			WHERE OrganizationId IN ({}) AND MemberTypeId IN ({})'''.format(PersonEvNames['geoLat'], PersonEvNames['geoLng'], g.involvementId, hostMemTypes)
+
+			g.hostGeo = model.SqlTop1DynamicData(hostSql) # TODO: merge into main query?
 
 	Data.invs = groups
 
