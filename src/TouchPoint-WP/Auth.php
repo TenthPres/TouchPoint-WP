@@ -394,7 +394,7 @@ class Auth extends WP_REST_Controller
     protected function handleTouchPointAuthData(string $data)
     {
         $data = json_decode($data);
-        $data = json_decode($data);
+        $data = json_decode($data); // No, this duplication is not a mistake.
         $isFromLink = false;
 
         // Make sure sessionToken is valid

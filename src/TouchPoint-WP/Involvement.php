@@ -5,6 +5,7 @@ namespace tp\TouchPointWP;
 
 /**
  * Class Involvement - Fundamental object meant to correspond to an Involvement in TouchPoint
+ * TODO: explore whether this can (or should) extend a WP_Post object
  *
  * @package tp\TouchPointWP
  */
