@@ -240,7 +240,7 @@ class SmallGroup extends Involvement
         $postsToKeep = [];
 
         foreach ($invData as $inv) {
-            set_time_limit(10);
+            set_time_limit(15);
 
             $q    = new WP_Query(
                 [
@@ -344,13 +344,15 @@ class SmallGroup extends Involvement
         /* Delete posts that are no longer current  */  // TODO figure out why this isn't working correctly.
         $q = new WP_Query(
             [
-                'post_type' => self::POST_TYPE
+                'post_type' => self::POST_TYPE,
+                'nopaging'  => true,
             ]
         );
         $removals = 0;
         foreach ($q->get_posts() as $post) {
             if (! in_array($post->ID, $postsToKeep)) {
-                wp_delete_post($post->ID);
+                set_time_limit(10);
+                wp_delete_post($post->ID, true);
                 $removals++;
             }
         }
