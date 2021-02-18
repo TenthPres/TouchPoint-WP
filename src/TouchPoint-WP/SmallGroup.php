@@ -96,16 +96,16 @@ class SmallGroup extends Involvement
                 'feeds' => false,
                 'pages' => true
             ],
-            'menu_icon' => "dashicons-groups", // TODO remove eventually.
+            'menu_icon' => "dashicons-groups", // TODO remove eventually.  Also set Show_UI above to false.
             'query_var' => self::$tpwp->settings->sg_slug,
             'can_export' => false,
             'delete_with_user' => false
         ]);
 
+        self::$tpwp->registerTaxonomies(); // TODO probably needs to be moved to parent
+
         // If the slug has changed, update it.  Only executes if enqueued.
         self::$tpwp->flushRewriteRules();
-
-//        self::registerScriptsAndStyles();
 
         // Register default templates for Small Groups
         add_filter( 'template_include', [self::class, 'templateFilter'] );
@@ -125,8 +125,6 @@ class SmallGroup extends Involvement
     {
         $postTypesToFilter = [self::POST_TYPE];
         $templateFilesToOverwrite = ['archive.php', 'singular.php', 'index.php'];
-
-        // echo "<!-- Template being applied: " . $template . " -->";
 
         if (!in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
             return $template;
@@ -332,16 +330,24 @@ class SmallGroup extends Involvement
             }
 
 
-            // Handle locations TODO handle cases other than hosted at home
+            // Handle locations TODO handle cases other than hosted at home  (Also applies to ResCode)
             if (property_exists($inv, "hostGeo") && $inv->hostGeo !== null) {
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", $inv->hostGeo->lat);
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", $inv->hostGeo->lng);
             }
 
+
+            // Handle Resident Code
+            if (property_exists($inv, "hostGeo") && $inv->hostGeo !== null && $inv->hostGeo->resCodeName !== null) {
+                wp_set_post_terms($post->ID, [$inv->hostGeo->resCodeName], TouchPointWP::TAX_RESCODE, false);
+            } else {
+                wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
+            }
+
             $postsToKeep[] = $post->ID;
         }
 
-        /* Delete posts that are no longer current  */  // TODO figure out why this isn't working correctly.
+       // Delete posts that are no longer current
         $q = new WP_Query(
             [
                 'post_type' => self::POST_TYPE,
@@ -387,8 +393,7 @@ class SmallGroup extends Involvement
             JOIN $wpdb->postmeta as mloc ON p.ID = mloc.post_id AND '{$settingsPrefix}locationName' = mloc.meta_key
             LEFT JOIN $wpdb->postmeta as mlat ON p.ID = mlat.post_id AND '{$settingsPrefix}geo_lat' = mlat.meta_key
             LEFT JOIN $wpdb->postmeta as mlng ON p.ID = mlng.post_id AND '{$settingsPrefix}geo_lng' = mlng.meta_key
-            WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()";
-        // TODO add a condition that requires the presence of lat/long.
+            WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()"; // TODO possibly add ResCode?
 
         $ret = [];
         foreach ($wpdb->get_results($sql, "OBJECT") as $row) {
@@ -397,9 +402,15 @@ class SmallGroup extends Involvement
         return $ret;
     }
 
+    /**
+     * Create a SmallGroup object from an object from a database query.
+     *
+     * @param object $obj A database object from which a SmallGroup object should be created.
+     *
+     * @return SmallGroup
+     */
     private static function fromObj(object $obj): SmallGroup
     {
-
         $iid = intval($obj->invId);
 
         if (!isset(self::$_instances[$iid])) {
@@ -408,7 +419,13 @@ class SmallGroup extends Involvement
         return self::$_instances[$iid];
     }
 
-
+    /**
+     * Create a SmallGroup object from an object from a WP_Post object.
+     *
+     * @param WP_Post $post
+     *
+     * @return SmallGroup
+     */
     public static function fromPost(WP_Post $post): SmallGroup
     {
         $iid = intval($post->{self::INVOLVEMENT_META_KEY});
@@ -432,19 +449,37 @@ class SmallGroup extends Involvement
     protected function __construct($invIdOrObj) {
         parent::__construct($invIdOrObj);
 
-        if (gettype($invIdOrObj) == "object" && $invIdOrObj->geo_lat !== null) {
-            $this->geo = (object)[
-                'lat'     => (float)$invIdOrObj->geo_lat,
-                'lng'     => (float)$invIdOrObj->geo_lng,
-                'resCode' => "metro", // TODO import resident code
-            ];
+        $rc = wp_get_post_terms($invIdOrObj->post_id, TouchPointWP::TAX_RESCODE);
+        if (!is_array($rc) || count($rc) < 1) {
+            $rc = null;
         } else {
-            $this->geo = (object)[
-                'lat'     => (float)get_post_meta($invIdOrObj->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_lat", true),
-                'lng'     => (float)get_post_meta($invIdOrObj->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_lng", true),
-                'resCode' => "metro", // TODO import resident code
+            $rc = (object)[
+                'name' => $rc[0]->name,
+                'slug' => $rc[0]->slug
             ];
         }
+
+        if (gettype($invIdOrObj) == "object" && $invIdOrObj->geo_lat !== null) {
+            // Probably a Post object
+            $this->geo = (object)[
+                'lat'     => self::toFloatOrNull($invIdOrObj->geo_lat),
+                'lng'     => self::toFloatOrNull($invIdOrObj->geo_lng),
+                'resCode' => $rc
+            ];
+        } else { // TODO needs more validation.
+            $this->geo = (object)[
+                // Probably a deliberate database object
+                'lat'     => self::toFloatOrNull(get_post_meta($invIdOrObj->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_lat", true)),
+                'lng'     => self::toFloatOrNull(get_post_meta($invIdOrObj->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_lng", true)),
+                'resCode' => $rc
+            ];
+        }
+    }
+
+    public static function toFloatOrNull($numeric) {
+        if (is_numeric($numeric))
+            return (float)$numeric;
+        return null;
     }
 
 

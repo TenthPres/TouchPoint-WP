@@ -51,6 +51,9 @@ class TouchPointWP
 
     public const DEFAULT_IP_WHITELIST = "Leave blank unless you know what you're doing.";
 
+
+    public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
+
     /**
      * The singleton.
      */
@@ -145,7 +148,7 @@ class TouchPointWP
         $this->load_plugin_textdomain();
         add_action('init', [$this, 'load_localisation'], 0);
 
-        // Start session for those components that need it.
+        // Start session if not started already.
         if (session_status() === PHP_SESSION_NONE)
             session_start();
 
@@ -179,7 +182,7 @@ class TouchPointWP
         load_plugin_textdomain(self::TEXT_DOMAIN, false, dirname(plugin_basename($this->file)) . '/lang/');
     }
 
-    public static function load($file)
+    public static function load($file): TouchPointWP
     {
         $instance = self::instance($file);
 
@@ -208,97 +211,7 @@ class TouchPointWP
         return $instance;
     }
 
-    /**
-     * Main TouchPointWP Instance
-     *
-     * Ensures only one instance of TouchPointWP is loaded or can be loaded.
-     *
-     * @param string $file File instance.
-     *
-     * @return TouchPointWP instance
-     * @see TouchPointWP()
-     */
-    public static function instance($file = ''): TouchPointWP
-    {
-        if (is_null(self::$_instance)) {
-            self::$_instance = new self($file);
-        }
-
-        return self::$_instance;
-    }
-
-    /**
-     * Get a random string with a timestamp on the end.
-     *
-     * @param int $timeout How long the token should last.
-     *
-     * @return string
-     */
-    public static function generateAntiForgeryId(int $timeout)
-    {
-        return strtolower(substr(com_create_guid(), 1, 36) . "-" . dechex(time() + $timeout));
-    }
-
-    /**
-     * @param string $afId Anti-forgery ID.
-     *
-     * @param int    $timeout
-     *
-     * @return bool True if the timestamp hasn't expired yet.
-     */
-    public static function AntiForgeryTimestampIsValid(string $afId, int $timeout)
-    {
-        $afIdTime = hexdec(substr($afId, 37));
-
-        return ($afIdTime <= time() + $timeout) && $afIdTime >= time();
-    }
-
-    public static function getDayOfWeekNameForNumber(int $dayNum)
-    {
-        $names = [
-            __('Sunday'),
-            __('Monday'),
-            __('Tuesday'),
-            __('Wednesday'),
-            __('Thursday'),
-            __('Friday'),
-            __('Saturday'),
-        ];
-
-        return $names[$dayNum % 7];
-    }
-
-    public static function getPluralDayOfWeekNameForNumber(int $dayNum)
-    {
-        $names = [
-            __('Sundays'),
-            __('Mondays'),
-            __('Tuesdays'),
-            __('Wednesdays'),
-            __('Thursdays'),
-            __('Fridays'),
-            __('Saturdays'),
-        ];
-
-        return $names[$dayNum % 7];
-    }
-
-    public static function getDayOfWeekShortForNumber(int $dayNum)
-    {
-        $names = [
-            __('Sun'),
-            __('Mon'),
-            __('Tue'),
-            __('Wed'),
-            __('Thu'),
-            __('Fri'),
-            __('Sat'),
-        ];
-
-        return $names[$dayNum % 7];
-    }
-
-    public function registerScriptsAndStyles()
+    public function registerScriptsAndStyles(): void
     {
 
         // Register scripts that exist for all modules
@@ -335,6 +248,146 @@ class TouchPointWP
         if ( ! ! $this->smallGroup) {
             SmallGroup::registerScriptsAndStyles();
         }
+    }
+
+    public function registerTaxonomies(): void
+    {
+        $postTypesToApply = ['user'];
+
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
+            $postTypesToApply[] = SmallGroup::POST_TYPE;
+        }
+
+        register_taxonomy(self::TAX_RESCODE, $postTypesToApply, [
+            'hierarchical' => false,
+            'show_ui' => false,
+            'description' => __( 'Classify small groups and users by their general locations.' ),
+            'labels' => [
+                'name' => $this->settings->rc_name_plural,
+                'singular_name' => $this->settings->rc_name_singular,
+                'search_items' =>  __( 'Search ' . $this->settings->rc_name_plural ),
+                'all_items' => __( 'All ' . $this->settings->rc_name_plural ),
+                'edit_item' => __( 'Edit ' . $this->settings->rc_name_singular ),
+                'update_item' => __( 'Update ' . $this->settings->rc_name_singular ),
+                'add_new_item' => __( 'Add New ' . $this->settings->rc_name_singular ),
+                'new_item_name' => __( 'New ' . $this->settings->rc_name_singular . ' Name' ),
+                'menu_name' => $this->settings->rc_name_plural,
+            ],
+            'public' => true,
+            'show_in_rest' => true,
+            'show_admin_column' => true,
+
+            // Control the slugs used for this taxonomy
+            'rewrite' => [
+                'slug' => $this->settings->rc_slug,
+                'with_front' => false,
+                'hierarchical' => false
+            ],
+        ]);
+
+        foreach ($this->getResCodes() as $rc) {
+            if (! term_exists($rc->name, self::TAX_RESCODE)) {
+                wp_insert_term(
+                    $rc->name,
+                    self::TAX_RESCODE,
+                    [
+                        'description' => $rc->name,
+                        'slug'        => sanitize_title($rc->name)
+                    ]
+                );
+                self::queueFlushRewriteRules();
+            }
+        }
+    }
+
+    /**
+     * Main TouchPointWP Instance
+     *
+     * Ensures only one instance of TouchPointWP is loaded or can be loaded.
+     *
+     * @param string $file File instance.
+     *
+     * @return TouchPointWP instance
+     * @see TouchPointWP()
+     */
+    public static function instance($file = ''): TouchPointWP
+    {
+        if (is_null(self::$_instance)) {
+            self::$_instance = new self($file);
+        }
+
+        return self::$_instance;
+    }
+
+    /**
+     * Get a random string with a timestamp on the end.
+     *
+     * @param int $timeout How long the token should last.
+     *
+     * @return string
+     */
+    public static function generateAntiForgeryId(int $timeout): string
+    {
+        return strtolower(substr(com_create_guid(), 1, 36) . "-" . dechex(time() + $timeout));
+    }
+
+    /**
+     * @param string $afId Anti-forgery ID.
+     *
+     * @param int    $timeout
+     *
+     * @return bool True if the timestamp hasn't expired yet.
+     */
+    public static function AntiForgeryTimestampIsValid(string $afId, int $timeout): bool
+    {
+        $afIdTime = hexdec(substr($afId, 37));
+
+        return ($afIdTime <= time() + $timeout) && $afIdTime >= time();
+    }
+
+    public static function getDayOfWeekNameForNumber(int $dayNum)
+    {
+        $names = [
+            __('Sunday'),
+            __('Monday'),
+            __('Tuesday'),
+            __('Wednesday'),
+            __('Thursday'),
+            __('Friday'),
+            __('Saturday'),
+        ];
+
+        return $names[$dayNum % 7];
+    }
+
+    public static function getPluralDayOfWeekNameForNumber(int $dayNum): string
+    {
+        $names = [
+            __('Sundays'),
+            __('Mondays'),
+            __('Tuesdays'),
+            __('Wednesdays'),
+            __('Thursdays'),
+            __('Fridays'),
+            __('Saturdays'),
+        ];
+
+        return $names[$dayNum % 7];
+    }
+
+    public static function getDayOfWeekShortForNumber(int $dayNum): string
+    {
+        $names = [
+            __('Sun'),
+            __('Mon'),
+            __('Tue'),
+            __('Wed'),
+            __('Thu'),
+            __('Fri'),
+            __('Sat'),
+        ];
+
+        return $names[$dayNum % 7];
     }
 
     /**
@@ -537,6 +590,73 @@ class TouchPointWP
         ];
 
         $this->settings->set("meta_divisions", json_encode($obj));
+
+        return $obj;
+    }
+
+
+    /**
+     * Returns an array of objects that correspond to resident codes.  Each ResCode has a name, a code, and an id.
+     *
+     * @returns object[]
+     */
+    public function getResCodes(): array
+    {
+        $rcObj = $this->settings->__get('meta_resCodes');
+
+        $needsUpdate = false;
+        if ($rcObj === false || $rcObj === null) {
+            $needsUpdate = true;
+        } else {
+            $rcObj = json_decode($rcObj);
+            if (strtotime($rcObj->_updated) < time() - 3600 * 2 || ! is_array($rcObj->resCodes)) {
+                $needsUpdate = true;
+            }
+        }
+
+        // Get update if needed.
+        if ($needsUpdate) {
+            $rcObj = $this->updateResCodes();
+        }
+
+        // If update failed, show a notice on the admin interface.
+        if ($rcObj === false) {
+            add_action('admin_notices', [$this->admin, 'Error_TouchPoint_API']);
+
+            return [];
+        }
+
+        return $rcObj->resCodes;
+    }
+
+
+    /**
+     * @return false|object Update the resident codes if they're stale.
+     */
+    private function updateResCodes()
+    {
+        $return = $this->apiGet('ResCodes');
+
+        if ($return instanceof WP_Error) {
+            return false;
+        }
+
+        $body = json_decode($return['body']);
+
+        if (property_exists($body, "message")) {
+            return false;
+        }
+
+        if ( ! is_array($body->data->resCodes)) {
+            return false;
+        }
+
+        $obj = (object)[
+            '_updated' => date('c'),
+            'resCodes'     => $body->data->resCodes
+        ];
+
+        $this->settings->set("meta_resCodes", json_encode($obj));
 
         return $obj;
     }

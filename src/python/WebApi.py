@@ -15,6 +15,11 @@ if (Data.a == "Divisions"):
 	Data.title = "All Divisions"
 	Data.divs = q.QuerySql(divSql, {})
 
+elif (Data.a == "ResCodes"):
+	rcSql = '''SELECT Id, Code, Description as Name FROM lookup.ResidentCode'''
+	Data.title = "All Resident Codes"
+	Data.resCodes = q.QuerySql(rcSql, {})
+
 elif (Data.a == "InvsForDivs"):
 	regex = re.compile('[^0-9\,]')
 	divs = regex.sub('', Data.divs)
@@ -88,11 +93,14 @@ elif (Data.a == "InvsForDivs"):
 			
 		if hostMemTypes != "":
 			hostSql = '''
-			SELECT TOP 1 peLat.Data as lat, peLng.Data as lng
+			SELECT TOP 1 peLat.Data as lat, peLng.Data as lng, COALESCE(prc.Description, frc.Description) as resCodeName
 			FROM OrganizationMembers om
 				JOIN People p ON om.PeopleId = p.PeopleId
 				JOIN PeopleExtra as peLat ON peLat.PeopleId = p.PeopleId and peLat.Field = '{}'
 				JOIN PeopleExtra as peLng ON peLng.PeopleId = p.PeopleId and peLng.Field = '{}'
+				LEFT JOIN lookup.ResidentCode prc ON p.ResCodeId = prc.Id
+				JOIN Families f on p.FamilyId = f.FamilyId
+				LEFT JOIN lookup.ResidentCode frc ON f.ResCodeId = frc.Id
 			WHERE OrganizationId IN ({}) AND MemberTypeId IN ({})'''.format(PersonEvNames['geoLat'], PersonEvNames['geoLng'], g.involvementId, hostMemTypes)
 
 			g.hostGeo = model.SqlTop1DynamicData(hostSql) # TODO: merge into main query?

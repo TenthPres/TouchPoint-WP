@@ -39,6 +39,10 @@ if ( ! defined('ABSPATH')) {
  * @property-read string[] sg_host_types    Member Types whose home addresses should be used for the small group location
  *
  * @property-read int sg_cron_last_run      Timestamp of the last time the Small Groups syncing task ran.  (No setting UI.)
+ *
+ * @property-read string rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
+ * @property-read string rc_name_singular   What a resident code should be called, singular (e.g. "Resident Code" or "Zone")
+ * @property-read string rc_slug            Slug for resident code taxonomy (e.g. "zones" for church.org/zones)
  */
 class TouchPointWP_Settings
 {
@@ -400,6 +404,50 @@ class TouchPointWP_Settings
         }
 
 
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on" || $includeAll) {
+            $settings['resident_codes'] = [
+                'title'       => __('Resident Codes', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify Small Groups and users.', TouchPointWP::TEXT_DOMAIN),
+                'fields'      => [
+                    [
+                        'id'          => 'rc_name_plural',
+                        'label'       => __('Resident Code Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'What you call small groups at your church',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Resident Codes',
+                        'placeholder' => 'Resident Codes'
+                    ],
+                    [
+                        'id'          => 'rc_name_singular',
+                        'label'       => __('Resident Code Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'What you call a resident code at your church',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Resident Code',
+                        'placeholder' => 'Resident Code'
+                    ],
+                    [
+                        'id'          => 'rc_slug',
+                        'label'       => __('Resident Code Slug', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'The root path for the Resident Code Taxonomy',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'rescodes',
+                        'placeholder' => 'rescodes',
+                        'callback'    => fn($new) => $this->validation_slug($new, 'rc_slug')
+                    ]
+                ],
+            ];
+        }
+
+
 
         /*	$settings['general'] = [
                 'title'       => __( 'Standard', TouchPointWP::TEXT_DOMAIN ),
@@ -602,7 +650,7 @@ class TouchPointWP_Settings
      *
      * @return array
      */
-    public function configure_settings($settings = [])
+    public function configure_settings($settings = []): array
     {
         return $settings;
     }
@@ -636,7 +684,7 @@ class TouchPointWP_Settings
      *
      * @return array        Modified links.
      */
-    public function add_settings_link(array $links)
+    public function add_settings_link(array $links): array
     {
         $settings_link = '<a href="options-general.php?page=' . $this->parent::TOKEN . '_Settings">' . __(
                 'Settings',
@@ -650,7 +698,7 @@ class TouchPointWP_Settings
     /**
      * @param string $what The field to get a value for
      *
-     * @return false|mixed  The value, if set.  False if not set.
+     * @return mixed  The value, if set.  False if not set.
      */
     public function __get(string $what)
     {
@@ -850,7 +898,15 @@ class TouchPointWP_Settings
         return $new;
     }
 
-    public function validation_slug($new, $field): string
+    /**
+     * Slug validator.  Also (more importantly) tells WP that it needs to flush rewrite rules.
+     *
+     * @param mixed  $new The new value.
+     * @param string $field The name of the setting.  Used to determine if the setting is actually changed.
+     *
+     * @return string
+     */
+    public function validation_slug($new, string $field): string
     {
         if ($new != $this->$field) { // only validate the field if it's changing.
             $new = $this->validation_lowercase($new);
@@ -862,7 +918,14 @@ class TouchPointWP_Settings
         return $new;
     }
 
-    public function validation_lowercase($data): string
+    /**
+     * Force a value to lowercase; used as a validator
+     *
+     * @param string $data  Mixed case string
+     *
+     * @return string lower-case string
+     */
+    public function validation_lowercase(string $data): string
     {
         return strtolower($data);
     }

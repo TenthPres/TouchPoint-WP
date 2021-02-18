@@ -74,6 +74,9 @@ class TP_SmallGroup extends TP_Involvement {
         for (const sgi in tpvm.involvements) {
             if (!tpvm.involvements.hasOwnProperty(sgi)) continue;
 
+            // skip small groups that aren't locatable.
+            if (tpvm.involvements[sgi].geo === null || tpvm.involvements[sgi].geo.lat === null) continue;
+
             tpvm.involvements[sgi].mapMarkers.push(new google.maps.Marker({
                 position: tpvm.involvements[sgi].geo,
                 title: tpvm.involvements[sgi].name,
