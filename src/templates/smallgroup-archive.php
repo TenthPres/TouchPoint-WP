@@ -50,12 +50,7 @@ if ( $q->have_posts() ) {
         <div class="archive-header-inner section-inner medium">
             <h1 class="archive-title page-title"><?php echo TouchPointWP::instance()->settings->sg_name_plural; ?></h1>
             <div class="map smallgroup-map-container"><?php echo SmallGroup::mapShortcode(['all' => true, 'query' => $q]) ?></div>
-            <div class="smallgroup-list-filters">
-                <select name="smallgroup-gender"><option>Gender</option></select>
-                <select name="smallgroup-region"><option>Region</option></select>
-                <select name="smallgroup-gender"><option>Marital Status</option></select>
-                <select name="smallgroup-gender"><option>Age</option></select>
-            </div>
+            <?php echo SmallGroup::filterShortcode([]); ?>
             <?php if ($description) { ?>
                 <div class="archive-description"><?php echo wp_kses_post(wpautop($description)); ?></div>
             <?php } ?>

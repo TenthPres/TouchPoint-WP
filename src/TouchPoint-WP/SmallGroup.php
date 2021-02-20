@@ -24,6 +24,7 @@ require_once 'Involvement.php';
 class SmallGroup extends Involvement
 {
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "SgMap";
+    public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "SgFilters";
     public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "smallgroup";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "sg_cron_hook";
 
@@ -50,6 +51,10 @@ class SmallGroup extends Involvement
 
         if ( ! shortcode_exists(self::SHORTCODE_MAP)) {
             add_shortcode(self::SHORTCODE_MAP, [self::class, "mapShortcode"]);
+        }
+
+        if ( ! shortcode_exists(self::SHORTCODE_FILTER)) {
+            add_shortcode(self::SHORTCODE_FILTER, [self::class, "filterShortcode"]);
         }
 
         // Setup cron for updating Small Groups daily.
@@ -205,6 +210,86 @@ class SmallGroup extends Involvement
         return $content;
     }
 
+    /**
+     * @param array  $params
+     *
+     * @return string
+     */
+    public static function filterShortcode(array $params): string
+    {
+        // standardize parameters
+        $params = array_change_key_case($params, CASE_LOWER);
+
+        // set some defaults
+        $params  = shortcode_atts(
+            [
+                'class'     => 'TouchPoint-smallgroup filterBar'
+            ],
+            $params,
+            self::SHORTCODE_FILTER
+        );
+
+        if (isset($params['id']))
+            $filterBarId = $params['id'];
+        else
+            $filterBarId = wp_unique_id('tp-filter-bar-');
+
+        $class = $params['class'];
+
+        $content = "<div class=\"{$class}\" id=\"{$filterBarId}\">";
+
+        $any = __("Any", TouchPointWP::TEXT_DOMAIN);
+
+        // Gender
+        $gList = self::$tpwp->getGenders();
+        $content .= "<select name=\"smallgroup-gender\" class=\"smallgroup-filter\"><option disabled selected>Gender</option><option>{$any}</option>";
+        foreach ($gList as $g) {
+            if ($g->id === 0) // skip unknown
+                continue;
+
+            $name = $g->name;
+            $id = $g->id;
+            $content .= "<option value=\"{$id}\">{$name}</option>";
+        }
+        $content .= "</select>";
+
+        // Resident Codes
+        $rcName = self::$tpwp->settings->rc_name_singular;
+        $rcList = get_terms(['taxonomy' => TouchPointWP::TAX_RESCODE, 'hide_empty' => true]);
+        if (is_array($rcList)) {
+            $content .= "<select name=\"smallgroup-resCode\" class=\"smallgroup-filter\"><option disabled selected>{$rcName}</option><option>{$any}</option>";
+
+            foreach ($rcList as $g) {
+                $name = $g->name;
+                $id = $g->slug;
+                $content .= "<option value=\"{$id}\">{$name}</option>";
+            }
+
+            $content .= "</select>";
+        }
+
+        // Marital Status
+        $content .= "<select name=\"smallgroup-gender\" class=\"smallgroup-filter\"><option disabled selected>Marital Status</option>";
+        $content .= "<option>{$any}</option>";
+        $content .= "<option>Mostly Single</option>";  // TODO i18n
+        $content .= "<option>Mostly Married</option>"; // TODO i18n
+        $content .= "</select>";
+
+        // Age Groups
+        $agName = __("Age");
+        $agList = get_terms(['taxonomy' => TouchPointWP::TAX_AGEGROUP, 'hide_empty' => true]);
+        if (is_array($agList)) {
+            $content .= "<select name=\"smallgroup-ageGroup\" class=\"smallgroup-filter\"><option disabled selected>{$agName}</option><option>{$any}</option>";
+            foreach ($agList as $a) {
+                $content .= "<option value=\"{$a->name}\">{$a->name}</option>";
+            }
+            $content .= "</select>";
+        }
+
+        $content .= "</div>";
+        return $content;
+    }
+
 
     /**
      * Query TouchPoint and update Small Groups in WordPress
@@ -322,13 +407,11 @@ class SmallGroup extends Involvement
             }
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", $days);
 
-
             // Handle leaders  TODO make leaders WP Users
             if (property_exists($inv, "leaders")) {
                 $nameString = Person::arrangeNamesForPeople($inv->leaders);
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders", $nameString);
             }
-
 
             // Handle locations TODO handle cases other than hosted at home  (Also applies to ResCode)
             if (property_exists($inv, "hostGeo") && $inv->hostGeo !== null) {
@@ -336,12 +419,30 @@ class SmallGroup extends Involvement
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", $inv->hostGeo->lng);
             }
 
-
             // Handle Resident Code
             if (property_exists($inv, "hostGeo") && $inv->hostGeo !== null && $inv->hostGeo->resCodeName !== null) {
                 wp_set_post_terms($post->ID, [$inv->hostGeo->resCodeName], TouchPointWP::TAX_RESCODE, false);
             } else {
                 wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
+            }
+
+            // Handle Marital Status
+            $maritalTax = [];
+            if ($inv->marital_denom > 4) { // only include involvements with at least 4 people with known marital statuses.
+                $marriedProportion = (float)$inv->marital_married / $inv->marital_denom;
+                if ($marriedProportion > 0.7) {
+                    $maritalTax[] = "mostly_married";
+                } elseif ($marriedProportion < 0.3) {
+                    $maritalTax[] = "mostly_single";
+                }
+            }
+            wp_set_post_terms($post->ID, $maritalTax, TouchPointWP::TAX_INV_MARITAL, false);
+
+            // Handle Age Groups
+            if ($inv->age_groups === null) {
+                wp_set_post_terms($post->ID, [], TouchPointWP::TAX_AGEGROUP, false);
+            } else {
+                wp_set_post_terms($post->ID, $inv->age_groups, TouchPointWP::TAX_AGEGROUP, false);
             }
 
             $postsToKeep[] = $post->ID;

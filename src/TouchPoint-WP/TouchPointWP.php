@@ -53,6 +53,8 @@ class TouchPointWP
 
 
     public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
+    public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
+    public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
 
     /**
      * The singleton.
@@ -252,13 +254,12 @@ class TouchPointWP
 
     public function registerTaxonomies(): void
     {
-        $postTypesToApply = ['user'];
-
+        // Resident Codes
+        $resCodeTypesToApply = ['user'];
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
-            $postTypesToApply[] = SmallGroup::POST_TYPE;
+            $resCodeTypesToApply[] = SmallGroup::POST_TYPE;
         }
-
-        register_taxonomy(self::TAX_RESCODE, $postTypesToApply, [
+        register_taxonomy(self::TAX_RESCODE, $resCodeTypesToApply, [
             'hierarchical' => false,
             'show_ui' => false,
             'description' => __( 'Classify small groups and users by their general locations.' ),
@@ -284,7 +285,6 @@ class TouchPointWP
                 'hierarchical' => false
             ],
         ]);
-
         foreach ($this->getResCodes() as $rc) {
             if (! term_exists($rc->name, self::TAX_RESCODE)) {
                 wp_insert_term(
@@ -296,6 +296,100 @@ class TouchPointWP
                     ]
                 );
                 self::queueFlushRewriteRules();
+            }
+        }
+
+
+        // Age Groups
+        $ageGroupTypesToApply = ['user'];
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
+            $ageGroupTypesToApply[] = SmallGroup::POST_TYPE;
+        }
+        register_taxonomy(self::TAX_AGEGROUP, $ageGroupTypesToApply, [
+            'hierarchical' => false,
+            'show_ui' => false,
+            'description' => __( 'Classify small groups and users by their age groups.' ),
+            'labels' => [
+                'name' => __('Age Groups'),
+                'singular_name' => __('Age Group'),
+                'search_items' =>  __( 'Search Age Groups' ),
+                'all_items' => __( 'All Age Groups'  ),
+                'edit_item' => __( 'Edit Age Group' ),
+                'update_item' => __( 'Update Age Group' ),
+                'add_new_item' => __( 'Add New Age Group' ),
+                'new_item_name' => __( 'New Age Group' ),
+                'menu_name' => __('Age Groups'),
+            ],
+            'public' => true,
+            'show_in_rest' => true,
+            'show_admin_column' => true,
+
+            // Control the slugs used for this taxonomy
+            'rewrite' => [
+                'slug' => self::TAX_AGEGROUP,
+                'with_front' => false,
+                'hierarchical' => false
+            ],
+        ]);
+        foreach (["20s", "30s", "40s", "50s", "60s", "70+"] as $ag) {
+            if (! term_exists($ag, self::TAX_AGEGROUP)) {
+                wp_insert_term(
+                    $ag,
+                    self::TAX_RESCODE,
+                    [
+                        'description' => $ag,
+                        'slug'        => sanitize_title($ag)
+                    ]
+                );
+                self::queueFlushRewriteRules();
+            }
+        }
+
+
+        // Involvement Marital Status TODO move to involvement?
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
+            register_taxonomy(
+                self::TAX_INV_MARITAL,
+                [SmallGroup::POST_TYPE],
+                [
+                    'hierarchical'      => false,
+                    'show_ui'           => false,
+                    'description'       => __('Classify small groups by whether participants are mostly single or married.'),
+                    'labels'            => [
+                        'name'          => __('Marital Status'),
+                        'singular_name' => __('Marital Statuses'),
+                        'search_items'  => __('Search Martial Statuses'),
+                        'all_items'     => __('All Marital Statuses'),
+                        'edit_item'     => __('Edit Marital Status'),
+                        'update_item'   => __('Update Marital Status'),
+                        'add_new_item'  => __('Add New Marital Status'),
+                        'new_item_name' => __('New Marital Status'),
+                        'menu_name'     => __('Marital Statuses'),
+                    ],
+                    'public'            => true,
+                    'show_in_rest'      => true,
+                    'show_admin_column' => true,
+
+                    // Control the slugs used for this taxonomy
+                    'rewrite'           => [
+                        'slug'         => self::TAX_INV_MARITAL,
+                        'with_front'   => false,
+                        'hierarchical' => false
+                    ],
+                ]
+            );
+            foreach (['mostly_single', 'mostly_married'] as $ms) {
+                if ( ! term_exists($ms, self::TAX_INV_MARITAL)) {
+                    wp_insert_term(
+                        $ms,
+                        self::TAX_INV_MARITAL,
+                        [
+                            'description' => $ms,
+                            'slug'        => sanitize_title($ms)
+                        ]
+                    );
+                    self::queueFlushRewriteRules();
+                }
             }
         }
     }
@@ -660,6 +754,74 @@ class TouchPointWP
 
         return $obj;
     }
+
+
+    /**
+     * Returns an array of objects that correspond to genders.  Each Gender has a name and an id.
+     *
+     * @returns object[]
+     */
+    public function getGenders(): array
+    {
+        $gObj = $this->settings->__get('meta_genders');
+
+        $needsUpdate = false;
+        if ($gObj === false || $gObj === null) {
+            $needsUpdate = true;
+        } else {
+            $gObj = json_decode($gObj);
+            if (strtotime($gObj->_updated) < time() - 3600 * 2 || ! is_array($gObj->genders)) {
+                $needsUpdate = true;
+            }
+        }
+
+        // Get update if needed.
+        if ($needsUpdate) {
+            $gObj = $this->updateGenders();
+        }
+
+        // If update failed, show a notice on the admin interface.
+        if ($gObj === false) {
+            add_action('admin_notices', [$this->admin, 'Error_TouchPoint_API']);
+
+            return [];
+        }
+
+        return $gObj->genders;
+    }
+
+
+    /**
+     * @return false|object Update the genders if they're stale.
+     */
+    private function updateGenders()
+    {
+        $return = $this->apiGet('Genders');
+
+        if ($return instanceof WP_Error) {
+            return false;
+        }
+
+        $body = json_decode($return['body']);
+
+        if (property_exists($body, "message")) {
+            return false;
+        }
+
+        if ( ! is_array($body->data->genders)) {
+            return false;
+        }
+
+        $obj = (object)[
+            '_updated' => date('c'),
+            'genders'     => $body->data->genders
+        ];
+
+        $this->settings->set("meta_genders", json_encode($obj));
+
+        return $obj;
+    }
+
 
     /**
      * @param string $command The thing to get

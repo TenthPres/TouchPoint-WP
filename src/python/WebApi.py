@@ -20,6 +20,11 @@ elif (Data.a == "ResCodes"):
 	Data.title = "All Resident Codes"
 	Data.resCodes = q.QuerySql(rcSql, {})
 
+elif (Data.a == "Genders"):
+	rcSql = '''SELECT Id, Code, Description as Name FROM lookup.Gender'''
+	Data.title = "All Genders"
+	Data.genders = q.QuerySql(rcSql, {})
+
 elif (Data.a == "InvsForDivs"):
 	regex = re.compile('[^0-9\,]')
 	divs = regex.sub('', Data.divs)
@@ -54,8 +59,12 @@ elif (Data.a == "InvsForDivs"):
 	(SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
 		LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0, 20)) as marital_single,
 	(SELECT STRING_AGG(ag, ',') WITHIN GROUP (ORDER BY ag ASC) FROM
-		(SELECT DISTINCT (CONVERT(VARCHAR(2), FLOOR(pi.Age / 10.0) * 10) + 's') as ag FROM OrganizationMembers omi
-			LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId
+		(SELECT DISTINCT (CASE
+             WHEN pi.Age > 69 THEN '70+'
+             ELSE CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's'
+             END) as ag FROM OrganizationMembers omi
+         		LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.OrganizationId
+         		WHERE pi.Age > 19
 		) agg
 	) as age_groups
 	FROM Organizations o
