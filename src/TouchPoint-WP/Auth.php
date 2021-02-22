@@ -331,37 +331,7 @@ class Auth extends WP_REST_Controller
             // Get data POSTed by TouchPoint
             $input = file_get_contents('php://input');
 
-            // Check that request is coming from an allowed IP.
-            $ips = ($this->tpwp->settings->ip_whitelist ?: TouchPointWP::DEFAULT_IP_WHITELIST);
-            if ($ips === TouchPointWP::DEFAULT_IP_WHITELIST) { // if we shouldn't filter by IP...
-                $this->handleTouchPointAuthData($input); // terminates
-            } else {
-                $ips = str_replace("\r", '', $ips);
-                $ips = explode("\n", $ips);
-
-                if (isset($_SERVER['REMOTE_ADDR'])) {
-                    if ((WP_DEBUG && $_SERVER['REMOTE_ADDR'] === "127.0.0.1") || in_array(
-                            $_SERVER['REMOTE_ADDR'],
-                            $ips
-                        )) {
-                        $this->handleTouchPointAuthData($input); // terminates
-                    }
-                }
-                if (isset(getallheaders()['x-real-ip'])) {
-                    if (in_array(getallheaders()['x-real-ip'], $ips)) {
-                        $this->handleTouchPointAuthData($input); // terminates
-                    }
-                }
-
-                // The attempt was probably blocked by IP.
-                self::apiError(
-                    'remote_forbidden',
-                    sprintf(
-                        __('ERROR: Access denied.  Remote forbidden. (%s)', 'TouchPoint-WP'),
-                        $_SERVER['REMOTE_ADDR']
-                    )
-                );
-            }
+            $this->handleTouchPointAuthData($input);
         }
 
         return $user;  // functionally, "do nothing"

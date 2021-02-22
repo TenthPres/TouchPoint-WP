@@ -20,7 +20,6 @@ if ( ! defined('ABSPATH')) {
  * @property-read string api_user           Username of a user account with API access
  * @property-read string api_pass           Password for a user account with API access
  * @property-read string api_script_name    The name of the script loaded into TouchPoint for API Interfacing.
- * @property-read string ip_whitelist       TouchPoint Server IPs
  * @property-read string google_maps_api_key Google Maps API Key for embedded maps and such
  *
  * @property-read string auth_display_name  What the church calls TouchPoint
@@ -224,17 +223,6 @@ class TouchPointWP_Settings
                     'type'        => 'text',
                     'default'     => '',
                     'placeholder' => '',
-                ],
-                [
-                    'id'          => 'ip_whitelist',
-                    'label'       => __('TouchPoint Server Outgoing IP Addresses', TouchPointWP::TEXT_DOMAIN),
-                    'description' => __(
-                        'One IP address per line.  You should probably only use this if you\'re self-hosting and thereby control the outgoing IPs from TouchPoint.',
-                        TouchPointWP::TEXT_DOMAIN
-                    ),
-                    'type'        => 'textarea',
-                    'default'     => '',
-                    'placeholder' => TouchPointWP::DEFAULT_IP_WHITELIST,
                 ],
             ],
         ];

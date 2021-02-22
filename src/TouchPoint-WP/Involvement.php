@@ -19,8 +19,12 @@ abstract class Involvement
 
     const INVOLVEMENT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "invId";
 
+    public object $attributes;
+
     protected function __construct($invIdOrObj)
     {
+        $this->attributes = (object)[];
+
         if (is_numeric($invIdOrObj)) {
             $this->invId = intval($invIdOrObj);
             return; // TODO get post; remove return;

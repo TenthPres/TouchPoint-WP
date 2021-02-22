@@ -49,9 +49,6 @@ class TouchPointWP
      */
     public const SETTINGS_PREFIX = "tp_";
 
-    public const DEFAULT_IP_WHITELIST = "Leave blank unless you know what you're doing.";
-
-
     public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
     public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";

@@ -7,6 +7,7 @@ use Exception;
 use WP_Error;
 use WP_Post;
 use WP_Query;
+use WP_Term;
 
 require_once 'Involvement.php';
 
@@ -242,7 +243,8 @@ class SmallGroup extends Involvement
 
         // Gender
         $gList = self::$tpwp->getGenders();
-        $content .= "<select name=\"smallgroup-gender\" class=\"smallgroup-filter\"><option disabled selected>Gender</option><option>{$any}</option>";
+        $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"Gender\">";
+        $content .= "<option disabled selected>Gender</option><option value=\"\">{$any}</option>";
         foreach ($gList as $g) {
             if ($g->id === 0) // skip unknown
                 continue;
@@ -257,7 +259,8 @@ class SmallGroup extends Involvement
         $rcName = self::$tpwp->settings->rc_name_singular;
         $rcList = get_terms(['taxonomy' => TouchPointWP::TAX_RESCODE, 'hide_empty' => true]);
         if (is_array($rcList)) {
-            $content .= "<select name=\"smallgroup-resCode\" class=\"smallgroup-filter\"><option disabled selected>{$rcName}</option><option>{$any}</option>";
+            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"rescode\">";
+            $content .= "<option disabled selected>{$rcName}</option><option value=\"\">{$any}</option>";
 
             foreach ($rcList as $g) {
                 $name = $g->name;
@@ -269,19 +272,21 @@ class SmallGroup extends Involvement
         }
 
         // Marital Status
-        $content .= "<select name=\"smallgroup-gender\" class=\"smallgroup-filter\"><option disabled selected>Marital Status</option>";
-        $content .= "<option>{$any}</option>";
-        $content .= "<option>Mostly Single</option>";  // TODO i18n
-        $content .= "<option>Mostly Married</option>"; // TODO i18n
+        $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"inv_marital\">";
+        $content .= "<option disabled selected>Marital Status</option>";
+        $content .= "<option value=\"\">{$any}</option>";
+        $content .= "<option value=\"mostly_single\">Mostly Single</option>";  // TODO i18n
+        $content .= "<option value=\"mostly_married\">Mostly Married</option>"; // TODO i18n
         $content .= "</select>";
 
         // Age Groups
         $agName = __("Age");
         $agList = get_terms(['taxonomy' => TouchPointWP::TAX_AGEGROUP, 'hide_empty' => true]);
         if (is_array($agList)) {
-            $content .= "<select name=\"smallgroup-ageGroup\" class=\"smallgroup-filter\"><option disabled selected>{$agName}</option><option>{$any}</option>";
+            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"agegroup\">";
+            $content .= "<option disabled selected>{$agName}</option><option value=\"\">{$any}</option>";
             foreach ($agList as $a) {
-                $content .= "<option value=\"{$a->name}\">{$a->name}</option>";
+                $content .= "<option value=\"{$a->slug}\">{$a->name}</option>";
             }
             $content .= "</select>";
         }
@@ -550,34 +555,50 @@ class SmallGroup extends Involvement
     protected function __construct($invIdOrObj) {
         parent::__construct($invIdOrObj);
 
-        $rc = wp_get_post_terms($invIdOrObj->post_id, TouchPointWP::TAX_RESCODE);
-        if (!is_array($rc) || count($rc) < 1) {
-            $rc = null;
-        } else {
-            $rc = (object)[
-                'name' => $rc[0]->name,
-                'slug' => $rc[0]->slug
-            ];
+        $terms = wp_get_post_terms($invIdOrObj->post_id, [
+            TouchPointWP::TAX_RESCODE,
+            TouchPointWP::TAX_AGEGROUP,
+            TouchPointWP::TAX_INV_MARITAL
+            ]);
+
+        if (is_array($terms) && count($terms) > 0) {
+            $hookLength = strlen(TouchPointWP::HOOK_PREFIX);
+            foreach ($terms as $t) {
+                /** @var WP_Term $t */
+                $to = (object)[
+                    'name' => $t->name,
+                    'slug' => $t->slug
+                ];
+                $ta = $t->taxonomy;
+                if (strpos($ta, TouchPointWP::HOOK_PREFIX) === 0)
+                    $ta = substr_replace($ta, "", 0, $hookLength);
+                if (!isset($this->attributes->$ta)) {
+                    $this->attributes->$ta = $to;
+                } elseif (!is_array($this->attributes->$ta)) {
+                    $this->attributes->$ta = [$this->attributes->$ta, $to];
+                } else {
+                    $this->attributes->$ta[] = $to;
+                }
+            }
         }
 
         if (gettype($invIdOrObj) == "object" && $invIdOrObj->geo_lat !== null) {
             // Probably a Post object
             $this->geo = (object)[
                 'lat'     => self::toFloatOrNull($invIdOrObj->geo_lat),
-                'lng'     => self::toFloatOrNull($invIdOrObj->geo_lng),
-                'resCode' => $rc
+                'lng'     => self::toFloatOrNull($invIdOrObj->geo_lng)
             ];
         } else { // TODO needs more validation.
             $this->geo = (object)[
                 // Probably a deliberate database object
                 'lat'     => self::toFloatOrNull(get_post_meta($invIdOrObj->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_lat", true)),
-                'lng'     => self::toFloatOrNull(get_post_meta($invIdOrObj->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_lng", true)),
-                'resCode' => $rc
+                'lng'     => self::toFloatOrNull(get_post_meta($invIdOrObj->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_lng", true))
             ];
         }
     }
 
-    public static function toFloatOrNull($numeric) {
+    public static function toFloatOrNull($numeric): ?float
+    {
         if (is_numeric($numeric))
             return (float)$numeric;
         return null;

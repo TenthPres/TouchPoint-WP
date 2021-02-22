@@ -2,6 +2,7 @@
 
 class TP_SmallGroup extends TP_Involvement {
     static smallGroups = [];
+    static currentFilters = {};
 
     mapMarkers = [];
     geo = {};
@@ -40,6 +41,26 @@ class TP_SmallGroup extends TP_Involvement {
         }
     }
 
+    toggleVisibility(vis = null) {
+        super.toggleVisibility(vis);
+
+        markerLoop:
+        for (const mi in this.mapMarkers) {
+            if (!this.mapMarkers.hasOwnProperty(mi)) continue;
+
+            for (const ii in this.mapMarkers[mi].involvements) {
+                if (!this.mapMarkers[mi].involvements.hasOwnProperty(ii)) continue;
+
+                if (this.mapMarkers[mi].involvements[ii].visibility) {
+                    this.mapMarkers[mi].setVisible(true);
+                    // TODO update marker labels to reflect which of the multiple are visible.
+                    continue markerLoop;
+                }
+                this.mapMarkers[mi].setVisible(false);
+            }
+        }
+    }
+
     static fromArray(invArr) {
         let ret = [];
         for (const i in invArr) {
@@ -60,7 +81,7 @@ class TP_SmallGroup extends TP_Involvement {
         tpvm.trigger('smallgroupsLoaded');
     }
 
-    static doMap(mapDivId) {
+    static initMap(mapDivId) {
         const bounds = new google.maps.LatLngBounds();
 
         let mapOptions = {
@@ -77,14 +98,59 @@ class TP_SmallGroup extends TP_Involvement {
             // skip small groups that aren't locatable.
             if (tpvm.involvements[sgi].geo === null || tpvm.involvements[sgi].geo.lat === null) continue;
 
-            tpvm.involvements[sgi].mapMarkers.push(new google.maps.Marker({
+            // TODO figure out shared markers (one marker representing multiple groups meeting in one place)
+            let mkr = new google.maps.Marker({
                 position: tpvm.involvements[sgi].geo,
                 title: tpvm.involvements[sgi].name,
                 map: m,
-            }));
+            });
+            mkr.involvements = [tpvm.involvements[sgi]];
+
+            tpvm.involvements[sgi].mapMarkers.push(mkr);
             bounds.extend(tpvm.involvements[sgi].geo);
         }
         m.fitBounds(bounds);
+    }
+
+    static initFilters() {
+        const filtOptions = document.querySelectorAll("[data-smallgroup-filter]");
+        for (const ei in filtOptions) {
+            if (!filtOptions.hasOwnProperty(ei)) continue;
+            filtOptions[ei].addEventListener('change', TP_SmallGroup.applyFilters)
+        }
+    }
+
+    static applyFilters(ev = null) {
+        if (ev !== null) {
+            let attr = ev.target.getAttribute("data-smallgroup-filter"),
+                val = ev.target.value;
+            if (attr !== null) {
+                if (val === "") {
+                    delete TP_SmallGroup.currentFilters[attr];
+                } else {
+                    TP_SmallGroup.currentFilters[attr] = val;
+                }
+            }
+        }
+
+        groupLoop:
+        for (const ii in TP_SmallGroup.smallGroups) {
+            if (!TP_SmallGroup.smallGroups.hasOwnProperty(ii)) continue;
+            const group = TP_SmallGroup.smallGroups[ii];
+            for (const ai in TP_SmallGroup.currentFilters) {
+                if (!TP_SmallGroup.currentFilters.hasOwnProperty(ai)) continue;
+
+                if (!group.attributes.hasOwnProperty(ai) ||
+                    group.attributes[ai] === null ||
+                    (!Array.isArray(group.attributes[ai]) && group.attributes[ai].slug !== TP_SmallGroup.currentFilters[ai]) ||
+                    (Array.isArray(group.attributes[ai]) && group.attributes[ai].find(a => a.slug === TP_SmallGroup.currentFilters[ai]) === undefined)) {
+
+                    group.toggleVisibility(false)
+                    continue groupLoop;
+                }
+            }
+            group.toggleVisibility(true)
+        }
     }
 }
 
