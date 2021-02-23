@@ -56,13 +56,30 @@ class TP_Involvement {
 }
 
 class TP_User {
-    static DoInformalAuth(opts = {}) { // TODO return a promise
+    static DoInformalAuth(opts = {}) { // TODO return a promise or otherwise handle whatever comes next.
+
+        // Example POST method implementation:
+        async function postData(url = '', data = {}) {
+            // Default options are marked with *
+            const response = await fetch(url, {
+                method: 'POST',
+                mode: 'same-origin',
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: JSON.stringify(data) // body data type must match "Content-Type" header
+            });
+            return response.json(); // parses JSON response into native JavaScript objects
+        }
+
         Swal.fire({
             html: '<form id="ident_form">' +
-                '<label for="ident_email">Email Address</label><input type="email" name="email" id="ident_email" required />' +
-                '<label for="ident_zip">Zip Code</label><input type="text" name="zip" id="ident_zip" pattern="[0-9]{5}" maxlength="5" required />' +
+                '<div class="form-group"><label for="ident_email">Email Address</label><input type="email" name="email" id="ident_email" required /></div>' +
+                '<div class="form-group"><label for="ident_zip">Zip Code</label><input type="text" name="zip" id="ident_zip" pattern="[0-9]{5}" maxlength="5" required /></div>' +
                 '</form>',
             showConfirmButton: true,
+            confirmButtonText: 'Next',
             focusConfirm: false,
             preConfirm: () => {
                 let form = document.getElementById('ident_form'),
@@ -81,7 +98,14 @@ class TP_User {
         }).then((result) => {
             if (result.isConfirmed) {
                 console.log(result.value);
+
+                Swal.showLoading();
+
+                postData('/answer', result.value)
+                    .then(res => {
+                        console.log(res);
+                    });
             }
-        });
+        })
     }
 }
