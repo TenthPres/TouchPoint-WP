@@ -1,6 +1,8 @@
 const tpvm = {
     involvements: [],
     _events: {},
+    people: {},
+    _plausibleUsers: [],
     addEventListener: function(name, f) {
         if (typeof this._events[name] === "undefined")
             this._events[name] = [];

@@ -20,6 +20,13 @@ class TP_SmallGroup extends TP_Involvement {
             let that = this;
             this.connectedElements[ei].addEventListener('mouseenter', function(e){e.stopPropagation(); that.toggleHighlighted(true);});
             this.connectedElements[ei].addEventListener('mouseleave', function(e){e.stopPropagation(); that.toggleHighlighted(false);});
+
+            let actionBtns = this.connectedElements[ei].querySelectorAll('[data-tp-action]')
+            for (const ai in actionBtns) {
+                if (!actionBtns.hasOwnProperty(ai)) continue;
+                const action = actionBtns[ai].getAttribute('data-tp-action');
+                actionBtns[ai].addEventListener('click', function(e){e.stopPropagation(); that[action + "Action"]();});
+            }
         }
     }
 
@@ -58,6 +65,43 @@ class TP_SmallGroup extends TP_Involvement {
                 }
                 this.mapMarkers[mi].setVisible(false);
             }
+        }
+    }
+
+    joinAction() {
+        let group = this;
+        TP_Person.DoInformalAuth().then((res) => joinUi(group, res), (res) => console.error(group, res))
+
+        function joinUi(group, people) {
+            // TODO if only one person, just immediately join.
+
+            Swal.fire({
+                html: "<p>Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
+                showConfirmButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Next',
+                focusConfirm: false,
+                preConfirm: () => {
+                    let form = document.getElementById('tp_people_list_checkboxes'),
+                        inputs = form.querySelectorAll("input"),
+                        data = [];
+                    for (const ii in inputs) {
+                        if (!inputs.hasOwnProperty(ii) || !inputs[ii].checked) continue;
+                        data.push(tpvm.people[inputs[ii].value]);
+                    }
+
+                    if (data.length < 1) {
+                        //TODO show error
+                        return false;
+                    }
+
+                    Swal.showLoading();
+
+                    console.log(data); // TODO action
+
+                    return ;postData('/wp-admin/admin-ajax.php?action=tp_ident', data)
+                }
+            });
         }
     }
 

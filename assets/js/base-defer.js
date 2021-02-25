@@ -55,57 +55,123 @@ class TP_Involvement {
 
 }
 
-class TP_User {
-    static DoInformalAuth(opts = {}) { // TODO return a promise or otherwise handle whatever comes next.
+class TP_Person {
+    peopleId;
 
-        // Example POST method implementation:
-        async function postData(url = '', data = {}) {
-            // Default options are marked with *
-            const response = await fetch(url, {
-                method: 'POST',
-                mode: 'same-origin',
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: JSON.stringify(data) // body data type must match "Content-Type" header
-            });
-            return response.json(); // parses JSON response into native JavaScript objects
+    constructor(peopleId) {
+        peopleId = Number(peopleId);
+        this.peopleId = peopleId;
+        tpvm.people[peopleId] = this;
+    }
+
+    static fromObj(obj) {
+        let person;
+        if (tpvm.people[obj.peopleId] !== undefined) {
+            person = tpvm.people[obj.peopleId]
+        } else {
+            person = new TP_Person(obj.peopleId);
+        }
+        for (const a in obj) {
+            if (!obj.hasOwnProperty(a) || a === 'peopleId') continue;
+
+            person[a] = obj[a];
+        }
+        return person;
+    }
+
+    static fromObjArray(peopleArray) {
+        let ret = [];
+
+        for (const pi in peopleArray) {
+            if (!peopleArray.hasOwnProperty(pi)) continue;
+            ret.push(TP_Person.fromObj(peopleArray[pi]));
         }
 
-        Swal.fire({
-            html: '<form id="ident_form">' +
-                '<div class="form-group"><label for="ident_email">Email Address</label><input type="email" name="email" id="ident_email" required /></div>' +
-                '<div class="form-group"><label for="ident_zip">Zip Code</label><input type="text" name="zip" id="ident_zip" pattern="[0-9]{5}" maxlength="5" required /></div>' +
-                '</form>',
-            showConfirmButton: true,
-            confirmButtonText: 'Next',
-            focusConfirm: false,
-            preConfirm: () => {
-                let form = document.getElementById('ident_form'),
-                    inputs = form.querySelectorAll("input"),
-                    data = {};
-                form.checkValidity()
-                for (const ii in inputs) {
-                    if (!inputs.hasOwnProperty(ii)) continue;
-                    if (!inputs[ii].reportValidity()) {
-                        return false;
+        return ret;
+    }
+
+    static mergePeopleArrays(a, b) {
+        return [...new Set([...a, ...b])]
+    }
+
+    /**
+     *
+     * @param array TP_Person[]
+     */
+    static peopleArrayToCheckboxes(array) {
+        let out = "<form id=\"tp_people_list_checkboxes\"><table class=\"tp-checkbox-list\"><tbody>"
+
+        for (const pi in array) {
+            if (!array.hasOwnProperty(pi)) continue;
+            let p = array[pi];
+
+            out += '<tr><td><input type="checkbox" name="people[]" id="tp_people_list_checks_' + p.peopleId + '" value="' + p.peopleId + '" required /></td>'
+            out += '<td><label for="tp_people_list_checks_' + p.peopleId + '">' + p.goesBy + ' ' + p.lastName + '</label></td></tr>'
+        }
+
+        return out + "</tbody></table></form>"
+    }
+
+    static async DoInformalAuth() {
+
+        return new Promise(function (resolve, reject) {
+
+            async function postData(url = '', data = {}) {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    mode: 'same-origin',
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: JSON.stringify(data) // body data type must match "Content-Type" header
+                });
+                return response.json(); // parses JSON response into native JavaScript objects
+            }
+
+            if (tpvm._plausibleUsers.length > 0) {
+                resolve(tpvm._plausibleUsers);
+            } else {
+                Swal.fire({
+                    html: '<form id="tp_ident_form">' +
+                        '<div class="form-group"><label for="tp_ident_email">Email Address</label><input type="email" name="email" id="tp_ident_email" required /></div>' +
+                        '<div class="form-group"><label for="tp_ident_zip">Zip Code</label><input type="text" name="zip" id="tp_ident_zip" pattern="[0-9]{5}" maxlength="5" required /></div>' +
+                        '</form>',
+                    showConfirmButton: true,
+                    showCancelButton: true,
+                    confirmButtonText: 'Next',
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        let form = document.getElementById('tp_ident_form'),
+                            inputs = form.querySelectorAll("input"),
+                            data = {};
+                        form.checkValidity()
+                        for (const ii in inputs) {
+                            if (!inputs.hasOwnProperty(ii)) continue;
+                            if (!inputs[ii].reportValidity()) {
+                                return false;
+                            }
+                            data[inputs[ii].name.replace("tp_ident_", "")] = inputs[ii].value;
+                        }
+
+                        Swal.showLoading();
+
+                        return postData('/wp-admin/admin-ajax.php?action=tp_ident', data)
                     }
-                    data[inputs[ii].name.replace("ident_", "")] = inputs[ii].value;
-                }
-                return data;
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                console.log(result.value);
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        if (result.value.length === 0) {
+                            // TODO form for new person in TP
+                        } else {
+                            let p = TP_Person.fromObjArray(result.value);
 
-                Swal.showLoading();
+                            tpvm._plausibleUsers = TP_Person.mergePeopleArrays(tpvm._plausibleUsers, p);
 
-                postData('/answer', result.value)
-                    .then(res => {
-                        console.log(res);
-                    });
+                            resolve(tpvm._plausibleUsers);
+                        }
+                    }
+                });
             }
-        })
+        });
     }
 }

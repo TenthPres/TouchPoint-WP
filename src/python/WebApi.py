@@ -7,6 +7,12 @@ PersonEvNames = {
 	'geoLng': 'geoLng'
 }
 
+def getPersonInfoSql(tableAbbrev):
+    return "SELECT DISTINCT {0}.PeopleId AS peopleId, {0}.FamilyId as familyId, {0}.LastName as lastName, COALESCE({0}.NickName, {0}.FirstName) as goesBy, SUBSTRING({0}.LastName, 1, 1) as lastInitial".format(tableAbbrev)
+
+def getPersonSortSql(tableAbbrev):
+    return " SUBSTRING({0}.LastName, 1, 1) ASC, COALESCE({0}.NickName, {0}.FirstName) ASC ".format(tableAbbrev)
+
 if (Data.a == "Divisions"):
 	divSql = '''SELECT d.id, CONCAT(p.name, ' : ', d.name) as name FROM Division d
 	JOIN Program p on d.progId = p.Id
@@ -31,7 +37,7 @@ elif (Data.a == "InvsForDivs"):
 
 	leadMemTypes = Data.leadMemTypes or ""
 	leadMemTypes = regex.sub('', leadMemTypes)
-	
+
 	hostMemTypes = Data.hostMemTypes or ""
 	hostMemTypes = regex.sub('', hostMemTypes)
 
@@ -99,7 +105,7 @@ elif (Data.a == "InvsForDivs"):
 			ORDER BY p.FamilyId'''.format(g.involvementId, leadMemTypes)
 
 			g.leaders = model.SqlListDynamicData(leaderSql)
-			
+
 		if hostMemTypes != "":
 			hostSql = '''
 			SELECT TOP 1 peLat.Data as lat, peLng.Data as lng, COALESCE(prc.Description, frc.Description) as resCodeName
@@ -138,3 +144,20 @@ elif (Data.a == "MemTypes"):
 	memTypeSql += " ORDER BY description ASC"
 
 	Data.memTypes = model.SqlListDynamicData(memTypeSql)
+
+
+elif (Data.a == "ident"):
+    Data.Title = 'Matching People'
+    inData = model.JsonDeserialize(Data.inputData)
+
+    sql = getPersonInfoSql('p2') + """
+        FROM People p1
+            JOIN Families f ON p1.FamilyId = f.FamilyId
+            JOIN People p2 ON p1.FamilyId = p2.FamilyId
+        WHERE (p1.EmailAddress = '{0}' OR p1.EmailAddress2 = '{0}')
+            AND (p1.ZipCode LIKE '{1}%' OR f.ZipCode LIKE '{1}%')
+        ORDER BY""".format(inData.email, inData.zip) + getPersonSortSql('p2')
+
+    Data.people = model.SqlListDynamicData(sql)
+
+#

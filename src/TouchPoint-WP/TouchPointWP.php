@@ -133,6 +133,9 @@ class TouchPointWP
         // Register frontend JS & CSS.
         add_action('init', [$this, 'registerScriptsAndStyles'], 0);
 
+        // Register AJAX Interfaces
+        add_action('init', [$this, 'registerAjaxCommon'], 0);
+
         // Load admin JS & CSS.
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_scripts'], 10, 1 ); // TODO restore?
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_styles'], 10, 1 ); // TODO restore?
@@ -247,6 +250,48 @@ class TouchPointWP
         if ( ! ! $this->smallGroup) {
             SmallGroup::registerScriptsAndStyles();
         }
+    }
+
+    public function registerAjaxCommon(): void
+    {
+        add_action( 'wp_ajax_tp_ident', [$this, 'ajaxIdent'] ); // TODO un-hard-code tp_
+        add_action( 'wp_ajax_nopriv_tp_ident', [$this, 'ajaxIdent'] );
+    }
+
+    public function ajaxIdent(): void
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['error' => 'Only POST requests are allowed.']);
+            wp_die();
+        }
+
+        $inputData = file_get_contents('php://input');
+        if ($inputData[0] !== '{') {
+            echo json_encode(['error' => 'Invalid data provided.']);
+            wp_die();
+        }
+
+        $response = $this->apiGet('ident', ['inputData' => $inputData]);
+
+        if ($response instanceof WP_Error) {
+            echo json_encode(['error' => 'An API error occurred.']);
+            wp_die();
+        }
+
+        $people = json_decode($response['body'])->data->people ?? [];
+
+        // TODO sync or queue sync of people
+
+        $ret = [];
+        foreach ($people as $p) {
+            $p->lastName = $p->lastName[0] ? $p->lastName[0] . "." : "";
+            unset($p->lastInitial);
+            $ret[] = $p;
+        }
+
+        echo json_encode($ret);
+        wp_die();
     }
 
     public function registerTaxonomies(): void
