@@ -138,7 +138,7 @@ class TouchPointWP_Settings
         $settings = [];
         $settings['basic'] = [
             'title'       => __('Basic Settings', 'TouchPoint-WP'),
-            'description' => __('Connect to TouchPoint and choose which features you with to use.', 'TouchPoint-WP'),
+            'description' => __('Connect to TouchPoint and choose which features you wish to use.', 'TouchPoint-WP'),
             'fields'      => [
                 [
                     'id'          => 'enable_authentication',
