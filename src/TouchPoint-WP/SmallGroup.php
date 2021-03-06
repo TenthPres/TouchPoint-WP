@@ -243,7 +243,7 @@ class SmallGroup extends Involvement
 
         // Gender
         $gList = self::$tpwp->getGenders();
-        $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"Gender\">";
+        $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"genderId\">";
         $content .= "<option disabled selected>Gender</option><option value=\"\">{$any}</option>";
         foreach ($gList as $g) {
             if ($g->id === 0) // skip unknown
@@ -581,6 +581,8 @@ class SmallGroup extends Involvement
                 }
             }
         }
+
+        $this->attributes->genderId = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "genderId", true);
 
         if (gettype($invIdOrObj) == "object" && $invIdOrObj->geo_lat !== null) {
             // Probably a Post object

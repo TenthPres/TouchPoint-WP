@@ -14,5 +14,17 @@ const tpvm = {
 
             this._events[name][ei]();
         }
+    },
+    postData: async function(action = '', data = {}) {
+        const response = await fetch('/wp-admin/admin-ajax.php?action=' + action, {
+            method: 'POST',
+            mode: 'same-origin',
+            cache: 'no-cache',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: JSON.stringify(data) // body data type must match "Content-Type" header
+        });
+        return response.json();
     }
 }

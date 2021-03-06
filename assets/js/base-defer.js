@@ -53,6 +53,20 @@ class TP_Involvement {
         return this.#visible;
     }
 
+    doJoin(people, showConfirm = true) {
+        let group = this;
+        showConfirm = !!showConfirm;
+        tpvm.postData('tp_inv_add', {invId: group.invId, people: people}).then((res) => {
+            // todo with success
+            if (showConfirm) {
+                Swal.fire({
+                    icon: 'success',
+                    title: `Added to ${group.name}.`,
+                    timer: 3000
+                });
+            }
+        });
+    }
 }
 
 class TP_Person {
@@ -116,19 +130,6 @@ class TP_Person {
 
         return new Promise(function (resolve, reject) {
 
-            async function postData(url = '', data = {}) {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    mode: 'same-origin',
-                    cache: 'no-cache',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: JSON.stringify(data) // body data type must match "Content-Type" header
-                });
-                return response.json(); // parses JSON response into native JavaScript objects
-            }
-
             if (tpvm._plausibleUsers.length > 0) {
                 resolve(tpvm._plausibleUsers);
             } else {
@@ -156,7 +157,7 @@ class TP_Person {
 
                         Swal.showLoading();
 
-                        return postData('/wp-admin/admin-ajax.php?action=tp_ident', data)
+                        return tpvm.postData('tp_ident', data)
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {

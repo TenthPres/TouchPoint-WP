@@ -76,7 +76,7 @@ class TP_SmallGroup extends TP_Involvement {
             // TODO if only one person, just immediately join.
 
             Swal.fire({
-                html: "<p>Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
+                html: "<p id=\"swal-tp-text\">Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
                 showConfirmButton: true,
                 showCancelButton: true,
                 confirmButtonText: 'Next',
@@ -91,15 +91,15 @@ class TP_SmallGroup extends TP_Involvement {
                     }
 
                     if (data.length < 1) {
-                        //TODO show error
+                        let prompt = document.getElementById('swal-tp-text');
+                        prompt.innerText = "Select who should be added to the group.";
+                        prompt.classList.add('error')
                         return false;
                     }
 
                     Swal.showLoading();
 
-                    console.log(data); // TODO action
-
-                    return ;postData('/wp-admin/admin-ajax.php?action=tp_ident', data)
+                    return group.doJoin(people, true);
                 }
             });
         }
@@ -186,7 +186,7 @@ class TP_SmallGroup extends TP_Involvement {
 
                 if (!group.attributes.hasOwnProperty(ai) ||
                     group.attributes[ai] === null ||
-                    (!Array.isArray(group.attributes[ai]) && group.attributes[ai].slug !== TP_SmallGroup.currentFilters[ai]) ||
+                    (!Array.isArray(group.attributes[ai]) && group.attributes[ai].slug !== TP_SmallGroup.currentFilters[ai] && group.attributes[ai] !== TP_SmallGroup.currentFilters[ai]) ||
                     (Array.isArray(group.attributes[ai]) && group.attributes[ai].find(a => a.slug === TP_SmallGroup.currentFilters[ai]) === undefined)) {
 
                     group.toggleVisibility(false)

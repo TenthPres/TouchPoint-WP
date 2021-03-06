@@ -69,9 +69,12 @@ if ( $q->have_posts() ) {
 
     } ?>
     </div>
+    <?php
+} else {
+    $loadedPart = get_template_part('list-none', 'smallgroup-list-none');
+    if ($loadedPart === false) {
+    require TouchPointWP::$dir . "/src/templates/parts/smallgroup-list-none.php";
+    }
+}
 
-<?php } else { ?>
-    <?php get_template_part( 'template-parts/content/content-none' ); // todo remove or resolve ?>
-<?php } ?>
-
-<?php get_footer(); ?>
+get_footer();
