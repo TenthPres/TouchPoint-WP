@@ -160,4 +160,13 @@ elif (Data.a == "ident"):
 
     Data.people = model.SqlListDynamicData(sql)
 
+# elif (Data.a == "inv_join"):
+#     Data.Title = 'Adding people to Involvement'
+#     inData = model.JsonDeserialize(Data.inputData)
+#
+# 	for p in inData.
+#     model.AddMemberToOrg(pid, oid)
+#
+#     Data.people = model.SqlListDynamicData(sql)
+
 #

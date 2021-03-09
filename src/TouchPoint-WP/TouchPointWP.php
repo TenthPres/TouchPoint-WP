@@ -256,6 +256,8 @@ class TouchPointWP
     {
         add_action( 'wp_ajax_tp_ident', [$this, 'ajaxIdent'] ); // TODO un-hard-code tp_
         add_action( 'wp_ajax_nopriv_tp_ident', [$this, 'ajaxIdent'] );
+        add_action( 'wp_ajax_tp_inv_add', [$this, 'ajaxInvJoin'] ); // TODO Move to Involvement?
+        add_action( 'wp_ajax_nopriv_tp_inv_add', [$this, 'ajaxInvJoin'] );
     }
 
     public function ajaxIdent(): void
@@ -291,6 +293,35 @@ class TouchPointWP
         }
 
         echo json_encode($ret);
+        wp_die();
+    }
+
+    public function ajaxInvJoin(): void
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['error' => 'Only POST requests are allowed.']);
+            wp_die();
+        }
+
+        $inputData = file_get_contents('php://input');
+        if ($inputData[0] !== '{') {
+            echo json_encode(['error' => 'Invalid data provided.']);
+            wp_die();
+        }
+
+        // TODO input validation of some kind...
+
+        $response = $this->apiGet('ident', ['inputData' => $inputData]);
+
+        if ($response instanceof WP_Error) {
+            echo json_encode(['error' => 'An API error occurred.']);
+            wp_die();
+        }
+
+        $data = json_decode($response['body'])->data ?? (object)[];
+
+        echo json_encode($data); // TODO perhaps simplify
         wp_die();
     }
 
