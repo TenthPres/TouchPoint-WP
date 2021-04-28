@@ -3,8 +3,9 @@
 class TP_SmallGroup extends TP_Involvement {
     static smallGroups = [];
     static currentFilters = {};
+    static mapMarkers = {};
 
-    mapMarkers = [];
+    mapMarker = null;
     geo = {};
 
     constructor(obj) {
@@ -34,38 +35,31 @@ class TP_SmallGroup extends TP_Involvement {
         super.toggleHighlighted(hl);
 
         if (this.highlighted) {
-            for (const mmi in this.mapMarkers) {
-                if (!this.mapMarkers.hasOwnProperty(mmi)) continue;
-                if (!this.mapMarkers[mmi].getAnimation() !== google.maps.Animation.BOUNCE)
-                    this.mapMarkers[mmi].setAnimation(google.maps.Animation.BOUNCE);
-            }
+            if (this.mapMarker !== null && this.mapMarker.getAnimation() !== google.maps.Animation.BOUNCE)
+                this.mapMarker.setAnimation(google.maps.Animation.BOUNCE)
         } else {
-            for (const mmi in this.mapMarkers) {
-                if (!this.mapMarkers.hasOwnProperty(mmi)) continue;
-                if (this.mapMarkers[mmi].getAnimation() !== null)
-                    this.mapMarkers[mmi].setAnimation(null);
-            }
+            if (this.mapMarker !== null && this.mapMarker.getAnimation() !== null)
+                this.mapMarker.setAnimation(null)
         }
     }
 
     toggleVisibility(vis = null) {
         super.toggleVisibility(vis);
 
-        markerLoop:
-        for (const mi in this.mapMarkers) {
-            if (!this.mapMarkers.hasOwnProperty(mi)) continue;
+        if (this.mapMarker === null)
+            return;
 
-            for (const ii in this.mapMarkers[mi].involvements) {
-                if (!this.mapMarkers[mi].involvements.hasOwnProperty(ii)) continue;
+        let shouldBeVisible = false;
 
-                if (this.mapMarkers[mi].involvements[ii].visibility) {
-                    this.mapMarkers[mi].setVisible(true);
-                    // TODO update marker labels to reflect which of the multiple are visible.
-                    continue markerLoop;
-                }
-                this.mapMarkers[mi].setVisible(false);
+        for (const ii in this.mapMarker.involvements) {
+            if (!this.mapMarker.involvements.hasOwnProperty(ii)) continue;
+
+            if (this.mapMarker.involvements[ii].visibility) {
+                shouldBeVisible = true;
+                // TODO update marker labels to reflect which of the multiple are visible.
             }
         }
+        this.mapMarker.setVisible(shouldBeVisible);
     }
 
     joinAction() {
@@ -122,7 +116,7 @@ class TP_SmallGroup extends TP_Involvement {
     };
 
     static init() {
-        tpvm.trigger('smallgroupsLoaded');
+        tpvm.trigger('tp_smallgroupsLoaded');
     }
 
     static initMap(mapDivId) {
@@ -142,16 +136,26 @@ class TP_SmallGroup extends TP_Involvement {
             // skip small groups that aren't locatable.
             if (tpvm.involvements[sgi].geo === null || tpvm.involvements[sgi].geo.lat === null) continue;
 
-            // TODO figure out shared markers (one marker representing multiple groups meeting in one place)
-            let mkr = new google.maps.Marker({
-                position: tpvm.involvements[sgi].geo,
-                title: tpvm.involvements[sgi].name,
-                map: m,
-            });
-            mkr.involvements = [tpvm.involvements[sgi]];
+            let mkr,
+                geoStr = "" + tpvm.involvements[sgi].geo.lat + "," + tpvm.involvements[sgi].geo.lng;
 
-            tpvm.involvements[sgi].mapMarkers.push(mkr);
-            bounds.extend(tpvm.involvements[sgi].geo);
+            if (TP_SmallGroup.mapMarkers.hasOwnProperty(geoStr)) {
+                mkr = TP_SmallGroup.mapMarkers[geoStr];
+                mkr.setTitle("Multiple Groups"); // i18n
+            } else {
+                mkr = new google.maps.Marker({
+                    position: tpvm.involvements[sgi].geo,
+                    title: tpvm.involvements[sgi].name,
+                    map: m,
+                });
+                mkr.involvements = [];
+                bounds.extend(tpvm.involvements[sgi].geo); // only needed for a new marker.
+
+                TP_SmallGroup.mapMarkers[geoStr] = mkr;
+            }
+            mkr.involvements.push(tpvm.involvements[sgi]);
+
+            tpvm.involvements[sgi].mapMarker = mkr;
         }
         m.fitBounds(bounds);
     }
@@ -195,6 +199,10 @@ class TP_SmallGroup extends TP_Involvement {
             }
             group.toggleVisibility(true)
         }
+    }
+
+    static initNearby() {
+        // TODO
     }
 }
 

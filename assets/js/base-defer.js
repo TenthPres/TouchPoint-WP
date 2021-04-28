@@ -1,5 +1,114 @@
 "use strict";
 
+class TP_DataGeo {
+    static loc = {
+        "lat": null,
+        "lng": null,
+        "type": null,
+        "human": "Loading..." // i18n
+    };
+
+    static init() {
+        tpvm.trigger('tp_dataGeo_loaded');
+    }
+
+    static geoByNavigator(then = null, error = null) {
+        navigator.geolocation.getCurrentPosition(geo, err);
+
+        function geo(pos) {
+            TP_DataGeo.loc = {
+                "lat": pos.coords.latitude,
+                "lng": pos.coords.longitude,
+                "type": "nav",
+                "permission": null,
+                "human": "Your Location" // i18n
+            }
+
+            if (then !== null) {
+                then(TP_DataGeo.loc)
+            }
+
+            tpvm.trigger("tp_dataGeo_located", TP_DataGeo.loc)
+        }
+
+        function err(e) {
+            let userFacingMessage = "";
+
+            if (error !== null) {
+                error(e)
+            }
+
+            console.error(e);
+
+            switch(e.code) {
+                case e.PERMISSION_DENIED:
+                    userFacingMessage = "User denied the request for Geolocation." // i18n
+                    break;
+                case e.POSITION_UNAVAILABLE:
+                    userFacingMessage = "Location information is unavailable."  // i18n
+                    break;
+                case e.TIMEOUT:
+                    userFacingMessage = "The request to get user location timed out."  // i18n
+                    break;
+                case e.UNKNOWN_ERROR:
+                    userFacingMessage = "An unknown error occurred."  // i18n
+                    break;
+            }
+
+            tpvm.trigger("tp_dataGeo_error", userFacingMessage)
+        }
+    }
+
+    static getLocation(then, error) {
+        // TODO cache... if it's worth it?
+
+        if (navigator.geolocation && navigator.permissions) {
+            navigator.permissions.query({name: 'geolocation'}).then(function(PermissionStatus) {
+                TP_DataGeo.loc.permission = PermissionStatus.state;
+                if (PermissionStatus.state === 'granted') {
+                    TP_DataGeo.geoByNavigator(then, error);
+                } else {
+                    TP_DataGeo.geoByServer(then, error);
+                }
+            })
+        } else {
+            TP_DataGeo.geoByServer(then, error);
+        }
+    }
+
+    static geoByServer(then, error) {
+        tpvm.getData('tp_geolocate').then(function (response) {
+            if (response.hasOwnProperty("error")) {
+                error(response.error)
+                tpvm.trigger("tp_dataGeo_error", response.error)
+            } else {
+                let data = response.json();
+
+                for (const di in data) {
+                    if (data.hasOwnProperty(di))
+                        TP_DataGeo.loc[di] = data[di];
+                }
+
+                then(TP_DataGeo.loc);
+                tpvm.trigger("tp_dataGeo_located", TP_DataGeo.loc)
+            }
+        }, error);
+    }
+
+    static errorMessageHtml() {
+        if (TP_DataGeo.loc.type === 'nav') {
+            return "You appear to be quite far away or using a mobile connection on a device without a GPS."; // i18n
+        } else {
+            if (navigator.geolocation) {
+                return "You appear to be either quite far away or using a mobile connection.<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"ga('send', 'event', 'sgf', 'permission', 'Device Location');\">Click here to use your actual location.</a>"; // i18n
+            } else {
+                return "You appear to be either quite far away or using a mobile connection.<br />Your browser doesn't support geolocation so we can't find a small group near you."; // i18n
+            }
+        }
+    }
+}
+TP_DataGeo.init();
+
 class TP_Involvement {
 
     name = "";

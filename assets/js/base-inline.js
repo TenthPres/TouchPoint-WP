@@ -8,11 +8,15 @@ const tpvm = {
             this._events[name] = [];
         this._events[name].push(f);
     },
-    trigger: function(name) {
+    trigger: function(name, arg1 = null) {
         for (const ei in this._events[name]) {
             if (!this._events[name].hasOwnProperty(ei)) continue;
 
-            this._events[name][ei]();
+            if (arg1 === null) {
+                this._events[name][ei]();
+            } else {
+                this._events[name][ei](arg1);
+            }
         }
     },
     postData: async function(action = '', data = {}) {
@@ -24,6 +28,14 @@ const tpvm = {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: JSON.stringify(data) // body data type must match "Content-Type" header
+        });
+        return response.json();
+    },
+    getData: async function(action = '', data = {}) {
+        const response = await fetch('/wp-admin/admin-ajax.php?action=' + action, {
+            method: 'GET',
+            mode: 'same-origin',
+            cache: 'no-cache'
         });
         return response.json();
     }

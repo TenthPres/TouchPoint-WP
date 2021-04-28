@@ -258,6 +258,8 @@ class TouchPointWP
         add_action( 'wp_ajax_nopriv_tp_ident', [$this, 'ajaxIdent'] );
         add_action( 'wp_ajax_tp_inv_add', [$this, 'ajaxInvJoin'] ); // TODO Move to Involvement?
         add_action( 'wp_ajax_nopriv_tp_inv_add', [$this, 'ajaxInvJoin'] );
+        add_action( 'wp_ajax_tp_geolocate', [$this, 'ajaxGeolocate'] );
+        add_action( 'wp_ajax_nopriv_tp_geolocate', [$this, 'ajaxGeolocate'] );
     }
 
     public function ajaxIdent(): void
@@ -322,6 +324,55 @@ class TouchPointWP
         $data = json_decode($response['body'])->data ?? (object)[];
 
         echo json_encode($data); // TODO perhaps simplify
+        wp_die();
+    }
+
+    public function ajaxGeolocate(): void
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            echo json_encode(['error' => 'Only GET requests are allowed.']);
+            wp_die();
+        }
+
+        // TODO validate that request is only coming from allowed referrers... or something like that.
+
+        $ipHeaderKeys = ['HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR'];
+        $ip = null;
+        foreach ($ipHeaderKeys as $k) {
+            if ( ! empty($_SERVER[$k]) && filter_var($_SERVER[$k], FILTER_VALIDATE_IP)) {
+                $ip = $_SERVER[$k];
+                break;
+            }
+        }
+
+        if ($ip === '') {
+            echo json_encode(['error' => 'No usable IP Address.']);
+            wp_die();
+        }
+
+        $return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/");
+
+        // TODO caching
+
+        if ($return instanceof WP_Error) {
+            echo json_encode(['error' => implode(", ", $return->get_error_messages())]);
+            wp_die();
+        }
+
+        $d = json_decode($return['body']);
+        if ($d->error) {
+            echo json_encode(['error' => $d->reason]);
+            wp_die();
+        }
+
+        if ($d->country === "US") {
+            $d->human = $d->city . ", " . $d->postal;
+        } else {
+            $d->human = $d->city . ", " . $d->country_name;
+        }
+
+        echo json_encode(['lat' => $d->latitude, 'lng' => $d->longitude, 'human' => $d->human, 'type' => 'ip' ]);
         wp_die();
     }
 
@@ -921,6 +972,25 @@ class TouchPointWP
                             $this->settings->api_user . ':' . $this->settings->api_pass
                         )
                 ]
+            ]
+        );
+    }
+
+    /**
+     * @param string $url The destination of the request.
+     * @param ?array $parameters URL parameters to be added.
+     *
+     * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
+     */
+    public function extGet(string $url, ?array $parameters = null) {
+        if ( ! is_array($parameters)) {
+            $parameters = (array)$parameters;
+        }
+
+        return $this->getHttpClient()->request(
+            $url . "?" . http_build_query($parameters),
+            [
+                'method'  => 'GET'
             ]
         );
     }

@@ -26,6 +26,7 @@ class SmallGroup extends Involvement
 {
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "SgMap";
     public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "SgFilters";
+    public const SHORTCODE_NEARBY = TouchPointWP::SHORTCODE_PREFIX . "SgNearby";
     public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "smallgroup";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "sg_cron_hook";
 
@@ -33,6 +34,8 @@ class SmallGroup extends Involvement
 
     private static bool $_isInitiated = false;
     protected static TouchPointWP $tpwp;
+
+    protected static bool $_hasUsedMap = false;
 
     public object $geo;
 
@@ -56,6 +59,10 @@ class SmallGroup extends Involvement
 
         if ( ! shortcode_exists(self::SHORTCODE_FILTER)) {
             add_shortcode(self::SHORTCODE_FILTER, [self::class, "filterShortcode"]);
+        }
+
+        if ( ! shortcode_exists(self::SHORTCODE_NEARBY)) {
+            add_shortcode(self::SHORTCODE_NEARBY, [self::class, "nearbyShortcode"]);
         }
 
         // Setup cron for updating Small Groups daily.
@@ -179,35 +186,44 @@ class SmallGroup extends Involvement
      */
     public static function mapShortcode(array $params, string $content = ""): string
     {
-        // standardize parameters
-        $params = array_change_key_case($params, CASE_LOWER);
+        if (!self::$_hasUsedMap) {
+            self::$_hasUsedMap = true;
 
-        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps");
+            // standardize parameters
+            $params = array_change_key_case($params, CASE_LOWER);
 
-        // set some defaults
-        $params  = shortcode_atts(
-            [
-                'class'     => 'TouchPoint-smallgroup map'
-            ],
-            $params,
-            self::SHORTCODE_MAP
-        );
+            wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps");
 
-        if (isset($params['id']))
-            $mapDivId = $params['id'];
-        else
-            $mapDivId = wp_unique_id('tp-map-');
+            // set some defaults
+            $params = shortcode_atts(
+                [
+                    'class' => 'TouchPoint-smallgroup map'
+                ],
+                $params,
+                self::SHORTCODE_MAP
+            );
 
-        $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/smallgroup-inline.js");
+            if (isset($params['id'])) {
+                $mapDivId = $params['id'];
+            } else {
+                $mapDivId = wp_unique_id('tp-map-');
+            }
 
-        $script = str_replace('{$smallgroupsList}', json_encode(self::getSmallGroupsForMap()), $script);
-        $script = str_replace('{$mapDivId}', $mapDivId, $script);
+            $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/smallgroup-map-inline.js");
 
-        wp_add_inline_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps", $script); // todo move somewhere more appropriate
+            $script = str_replace('{$smallgroupsList}', json_encode(self::getSmallGroupsForMap()), $script);
+            $script = str_replace('{$mapDivId}', $mapDivId, $script);
 
-        // TODO move the style to a css file... or something.
-        $content = "<div class=\"TouchPoint-SmallGroup-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0; left: 0; \" id=\"{$mapDivId}\"></div>";
+            wp_add_inline_script(
+                TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
+                $script
+            ); // todo move somewhere more appropriate
 
+            // TODO move the style to a css file... or something.
+            $content = "<div class=\"TouchPoint-SmallGroup-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0; left: 0; \" id=\"{$mapDivId}\"></div>";
+        } else {
+            $content = "<!-- Error: Small Group map can only be used once per page. -->";
+        }
         return $content;
     }
 
@@ -271,12 +287,16 @@ class SmallGroup extends Involvement
             $content .= "</select>";
         }
 
+        // TODO Day of Week
+
+        // TODO Time of Day (ranges, probably)
+
         // Marital Status
         $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"inv_marital\">";
         $content .= "<option disabled selected>Marital Status</option>";
         $content .= "<option value=\"\">{$any}</option>";
-        $content .= "<option value=\"mostly_single\">Mostly Single</option>";  // TODO i18n
-        $content .= "<option value=\"mostly_married\">Mostly Married</option>"; // TODO i18n
+        $content .= "<option value=\"mostly_single\">Mostly Single</option>";  // i18n
+        $content .= "<option value=\"mostly_married\">Mostly Married</option>"; // i18n
         $content .= "</select>";
 
         // Age Groups
@@ -293,6 +313,69 @@ class SmallGroup extends Involvement
 
         $content .= "</div>";
         return $content;
+    }
+
+
+    /**
+     * @param array  $params
+     * @param string $content
+     *
+     * @return string
+     */
+    public static function nearbyShortcode($params = [], string $content = ""): string
+    {
+        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'base-defer');
+
+        if ($params == '') {
+            $params = [];
+        }
+
+        // standardize parameters
+        $params = array_change_key_case($params, CASE_LOWER);
+
+        // set some defaults
+        $params  = shortcode_atts(
+            [
+                'class'     => 'TouchPoint-sg-NearMe',
+                'meetingid' => null
+            ],
+            $params,
+            self::SHORTCODE_NEARBY
+        );
+
+
+        self::getGroupsNear(39.93133328258149, -75.18248167531937, 5);
+
+        // get any nesting
+        $content = do_shortcode($content);
+        // TODO load up template
+
+        return $content;
+    }
+
+
+    public static function getGroupsNear($lat, $lng, $limit)
+    {
+        global $wpdb;
+        $q = $wpdb->prepare( "
+            SELECT id,
+                   (3959 * acos(cos(radians(%s)) * cos(radians(lat)) * cos(radians(lng) - radians(%s)) +
+                                sin(radians(%s)) * sin(radians(lat)))) AS distance
+            FROM (SELECT p.Id,
+                         CAST(pmLat.meta_value AS DECIMAL(10, 7)) as lat,
+                         CAST(pmLng.meta_value AS DECIMAL(10, 7)) as lng
+                  FROM wp_posts as p
+                           JOIN
+                       wp_postmeta as pmLat ON p.ID = pmLat.post_id AND pmLat.meta_key = 'tp_geo_lat'
+                           JOIN
+                       wp_postmeta as pmLng ON p.ID = pmLng.post_id AND pmLng.meta_key = 'tp_geo_lng'
+                 ) lst
+            ORDER BY distance LIMIT %d
+            ", $lat, $lng, $lat, $limit );
+
+        $results = $wpdb->get_results($q);
+
+        var_dump($results);
     }
 
 
