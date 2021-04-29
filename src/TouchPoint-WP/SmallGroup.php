@@ -87,6 +87,8 @@ class SmallGroup extends Involvement
      */
     public static function init(): void
     {
+        self::registerAjax();
+
         register_post_type( self::POST_TYPE, [
             'labels' => [
                 'name'          =>  self::$tpwp->settings->sg_name_plural,
@@ -164,18 +166,31 @@ class SmallGroup extends Involvement
                            ),
                            [],null,true);
 
-        wp_register_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroups-defer",
+        wp_register_script(TouchPointWP::SHORTCODE_PREFIX . "knockout",
+                           "https://ajax.aspnetcdn.com/ajax/knockout/knockout-3.5.0.js",
+                           [],'3.5.0',true);
+
+        wp_register_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer",
                            self::$tpwp->assets_url . 'js/smallgroup-defer.js',
                            [TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
-                           self::$tpwp::VERSION,
+                           TouchPointWP::VERSION,
                            true);
 
         wp_register_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style', // TODO determine whether this should be pre-registered, or just called by the template.
                           self::$tpwp->assets_url . 'template/smallgroups-template-style.css',
                           [],
-                          self::$tpwp::VERSION,
+                          TouchPointWP::VERSION,
                           'all'
         );
+    }
+
+    /**
+     *  Register AJAX endpoints specific to Small Groups
+     */
+    public static function registerAjax(): void
+    {
+        add_action( 'wp_ajax_tp_sg_nearme', [self::class, 'ajaxNearMe'] );
+        add_action( 'wp_ajax_nopriv_tp_sg_nearme', [self::class, 'ajaxNearMe'] );
     }
 
     /**
@@ -217,7 +232,7 @@ class SmallGroup extends Involvement
             wp_add_inline_script(
                 TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
                 $script
-            ); // todo move somewhere more appropriate
+            ); // todo move somewhere more appropriate... though, this is fairly appropriate.
 
             // TODO move the style to a css file... or something.
             $content = "<div class=\"TouchPoint-SmallGroup-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0; left: 0; \" id=\"{$mapDivId}\"></div>";
@@ -324,11 +339,32 @@ class SmallGroup extends Involvement
      */
     public static function nearbyShortcode($params = [], string $content = ""): string
     {
-        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'base-defer');
+        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer");
+        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "knockout");
 
-        if ($params == '') {
+        if ($params === '') {
             $params = [];
         }
+
+        if ($content === '') {
+            return "<!-- No layout provided.  See the documentation for how this works.-->";
+            // TODO add a default layout instead.
+        }
+
+        $nearbyListId = wp_unique_id('tp-nearby-list-');
+
+        $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/smallgroup-nearby-inline.js");
+
+        $script = str_replace('{$nearbyListId}', $nearbyListId, $script);
+
+        wp_add_inline_script(
+            TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer",
+            $script,
+            'before'
+        );
+
+
+        $content = "<div class=\"\" id=\"{$nearbyListId}\" data-bind=\"foreach: nearby\">" . $content . "</div>";
 
         // standardize parameters
         $params = array_change_key_case($params, CASE_LOWER);
@@ -343,9 +379,6 @@ class SmallGroup extends Involvement
             self::SHORTCODE_NEARBY
         );
 
-
-        self::getGroupsNear(39.93133328258149, -75.18248167531937, 5);
-
         // get any nesting
         $content = do_shortcode($content);
         // TODO load up template
@@ -353,29 +386,58 @@ class SmallGroup extends Involvement
         return $content;
     }
 
-
-    public static function getGroupsNear($lat, $lng, $limit)
+    public static function ajaxNearMe()
     {
+        $r = self::getGroupsNear($_GET['lat'], $_GET['lng'], $_GET['limit']);
+
+        foreach ($r as $g) {
+            $sg = SmallGroup::fromObj($g);
+            $g->name = $sg->name;
+//            $g->name = SmallGroup::fromObj($g)->name;
+        }
+
+        echo json_encode($r);
+    }
+
+
+    /**
+     * Gets an array of ID/Distance pairs for a given lat/lng.
+     *
+     * @param $lat    numeric Longitude
+     * @param $lng    numeric Longitude
+     * @param $limit  numeric Number of results to return.  0-100 inclusive.
+     *
+     * @return array|object|null
+     */
+    protected static function getGroupsNear($lat, $lng, $limit = 3)
+    {
+        $lat = floatval($lat) ?? 39.949601081097036;
+        $lng = floatval($lng) ?? -75.17186043802126;
+        $limit = min(max(intval($limit), 0), 100);
+
         global $wpdb;
         $q = $wpdb->prepare( "
-            SELECT id,
+            SELECT l.Id as post_id,
+                   l.post_title as name,
+                   pmInv.invId,
                    (3959 * acos(cos(radians(%s)) * cos(radians(lat)) * cos(radians(lng) - radians(%s)) +
                                 sin(radians(%s)) * sin(radians(lat)))) AS distance
             FROM (SELECT p.Id,
+                         p.post_title,
                          CAST(pmLat.meta_value AS DECIMAL(10, 7)) as lat,
-                         CAST(pmLng.meta_value AS DECIMAL(10, 7)) as lng
+                         CAST(pmLng.meta_value AS DECIMAL(10, 7)) as lng,
+                         CAST(pmInv.meta_value AS UNSIGNED) as invId
                   FROM wp_posts as p
                            JOIN
                        wp_postmeta as pmLat ON p.ID = pmLat.post_id AND pmLat.meta_key = 'tp_geo_lat'
                            JOIN
                        wp_postmeta as pmLng ON p.ID = pmLng.post_id AND pmLng.meta_key = 'tp_geo_lng'
-                 ) lst
+                 ) l JOIN
+                    wp_postmeta as pmInv ON l.ID = pmInv.post_id AND pmInv.meta_key = 'tp_invId'
             ORDER BY distance LIMIT %d
-            ", $lat, $lng, $lat, $limit );
+            ", $lat, $lng, $lat, $limit );  // TODO un-hardcode tp_ prefixes
 
-        $results = $wpdb->get_results($q);
-
-        var_dump($results);
+        return $wpdb->get_results($q);
     }
 
 

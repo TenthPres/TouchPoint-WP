@@ -1,3 +1,3 @@
 tpvm.addEventListener('tp_smallgroupsLoaded', function() {
-    TP_SmallGroup.initNearby();
+    TP_SmallGroup.initNearby('{$nearbyListId}');
 });

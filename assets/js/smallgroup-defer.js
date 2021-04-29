@@ -201,8 +201,14 @@ class TP_SmallGroup extends TP_Involvement {
         }
     }
 
-    static initNearby() {
-        // TODO
+    static initNearby(targetId) {
+        let target = document.getElementById(targetId);
+        tpvm._sg.nearby = ko.observableArray([]);
+        ko.applyBindings(tpvm._sg, target);
+
+        TP_DataGeo.getLocation(console.log, console.error);
+
+        // TODO turn location into groups.  Potentially merge fetches.
     }
 }
 
