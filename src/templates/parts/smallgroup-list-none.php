@@ -1,7 +1,6 @@
 <?php
 
 use tp\TouchPointWP\TouchPointWP;
-use tp\TouchPointWP\TouchPointWP_Settings;
 
 ?>
 
@@ -10,8 +9,12 @@ use tp\TouchPointWP\TouchPointWP_Settings;
         <div class="entry-header-inner">
         <?php
         $tpwp = TouchPointWP::instance();
-        $sgName = TouchPointWP_Settings::instance($tpwp)->sg_name_plural;
-        sprintf("<h2>" . __('No %s Found.') . "</h2>");
+        $sgName = $tpwp->settings->sg_name_plural;
+        echo sprintf("<h2>" . __('No %s Found.', TouchPointWP::TEXT_DOMAIN) . "</h2>", $sgName);
+
+        if (current_user_can('activate_plugins') && $tpwp->settings->sg_cron_last_run === false) {
+            echo sprintf("<p>" . __('%s will be imported overnight for the first time.', TouchPointWP::TEXT_DOMAIN) . "</p>", $sgName);
+        }
         ?>
         </div>
     </header>

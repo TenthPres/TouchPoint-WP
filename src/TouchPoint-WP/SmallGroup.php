@@ -450,6 +450,10 @@ class SmallGroup extends Involvement
      */
     public static function updateSmallGroupsFromTouchPoint() // TODO add OOP alignment
     {
+        if (count(self::$tpwp->settings->sg_divisions) < 1) { // Don't update if there aren't any divisions selected yet.
+            return false;
+        }
+
         $divs     = implode(',', self::$tpwp->settings->sg_divisions);
         $divs     = str_replace('div', '', $divs);
 
