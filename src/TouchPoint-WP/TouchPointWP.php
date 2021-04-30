@@ -124,7 +124,7 @@ class TouchPointWP
      *
      * @param string $file
      */
-    public function __construct($file = '')
+    protected function __construct($file = '')
     {
         // Load plugin environment variables.
         $this->file       = $file;
@@ -755,7 +755,7 @@ class TouchPointWP
      */
     public function getApiKey(): string
     {
-        $k = $this->settings->__get('api_secret_key');
+        $k = $this->settings->get('api_secret_key');
         if ($k === false) {
             $k = $this->replaceApiKey();
         }
@@ -835,7 +835,7 @@ class TouchPointWP
      */
     public function getDivisions(): array
     {
-        $divsObj = $this->settings->__get('meta_divisions');
+        $divsObj = $this->settings->get('meta_divisions');
 
         $needsUpdate = false;
         if ($divsObj === false) {
@@ -905,7 +905,7 @@ class TouchPointWP
      */
     public function getResCodes(): array
     {
-        $rcObj = $this->settings->__get('meta_resCodes');
+        $rcObj = $this->settings->get('meta_resCodes');
 
         $needsUpdate = false;
         if ($rcObj === false || $rcObj === null) {
@@ -976,7 +976,7 @@ class TouchPointWP
      */
     public function getGenders(): array
     {
-        $gObj = $this->settings->__get('meta_genders');
+        $gObj = $this->settings->get('meta_genders');
 
         $needsUpdate = false;
         if ($gObj === false || $gObj === null) {
@@ -1055,9 +1055,7 @@ class TouchPointWP
             $parameters = (array)$parameters;
         }
 
-        if ($this->settings->api_script_name === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER ||
-            $this->settings->api_user === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER ||
-            $this->settings->api_pass === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER) {
+        if (!$this->settings->hasValidApiSettings()) {
             throw new TouchPointWP_Exception("Invalid or incomplete API Settings.");
         }
 

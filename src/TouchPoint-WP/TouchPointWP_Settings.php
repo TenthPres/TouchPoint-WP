@@ -20,10 +20,11 @@ if ( ! defined('ABSPATH')) {
  * @property-read string api_user           Username of a user account with API access
  * @property-read string api_pass           Password for a user account with API access
  * @property-read string api_script_name    The name of the script loaded into TouchPoint for API Interfacing.
+ * @property-read string api_secret_key     The secret key used for the Auth API
  * @property-read string google_maps_api_key Google Maps API Key for embedded maps and such
  *
  * @property-read string auth_display_name  What the church calls TouchPoint
- * @property-read string auth_script_name   The name of the Python script within TouchPoint
+ * @property-read string auth_script_name   The name of the Python sgcript within TouchPoint
  * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
  * @property-read string auth_change_profile_urls Enabled to indicate the profiles should be located on TouchPoint
  * @property-read string auth_auto_provision Enabled to indicate that new users should be created automatically.
@@ -120,9 +121,21 @@ class TouchPointWP_Settings
      *
      * @return void
      */
-    public function initSettings()
+    public function initSettings(): void
     {
         $this->settings = $this->settingsFields(false, false); // TODO remove this if at all possible, so details are only called when needed.
+    }
+
+    /**
+     * Indicates whether there are adequate settings in place for API calls.
+     *
+     * @return bool
+     */
+    public function hasValidApiSettings(): bool
+    {
+        return !($this->getWithoutDefault('api_script_name') === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER ||
+               $this->getWithoutDefault('api_user') === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER ||
+               $this->getWithoutDefault('api_pass') === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER);
     }
 
     /**
@@ -133,8 +146,11 @@ class TouchPointWP_Settings
      *
      * @return array Fields to be displayed on settings page
      */
-    private function settingsFields(bool $includeAll = false, bool $includeDetail = true): array
+    private function settingsFields(bool $includeAll = false, ?bool $includeDetail = null): array
     {
+        if ($includeDetail !== false) {
+            $includeDetail = $this->hasValidApiSettings();
+        }
         $settings = [];
         $settings['basic'] = [
             'title'       => __('Basic Settings', 'TouchPoint-WP'),
@@ -199,7 +215,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text_secret',
                     'default'     => '',
-                    'placeholder' => ($this->__get('api_pass') == '' ? '' : __('password saved', TouchPointWP::TEXT_DOMAIN)),
+                    'placeholder' => $this->passwordPlaceholder('api_pass'),
                     'callback'    => fn($new) => $this->validation_secret($new, 'api_pass')
                 ],
                 [
@@ -373,7 +389,7 @@ class TouchPointWP_Settings
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->__get('sg_divisions')) : [],
+                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->get('sg_divisions')) : [],
                         'default'     => [],
                     ],
                     [
@@ -384,7 +400,7 @@ class TouchPointWP_Settings
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->__get('sg_divisions')) : [],
+                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->get('sg_divisions')) : [],
                         'default'     => [],
                     ],
                 ],
@@ -568,6 +584,22 @@ class TouchPointWP_Settings
     }
 
     /**
+     * Returns a placeholder for a password setting field that doesn't expose the password itself.
+     *
+     * @param string $settingName
+     *
+     * @return string
+     */
+    private function passwordPlaceholder(string $settingName): string
+    {
+        $pass = $this->getWithoutDefault($settingName);
+        if ($pass === '' || $pass === self::UNDEFINED_PLACEHOLDER) {
+            return '';
+        }
+        return __('password saved', TouchPointWP::TEXT_DOMAIN);
+    }
+
+    /**
      * Add settings page to admin menu
      *
      * @return void
@@ -686,11 +718,21 @@ class TouchPointWP_Settings
     /**
      * @param string $what The field to get a value for
      *
-     * @return mixed  The value, if set.  False if not set.
+     * @return string|false  The value, if set.  False if not set.
      */
     public function __get(string $what)
     {
-        $v = get_option(TouchPointWP::SETTINGS_PREFIX . $what, self::UNDEFINED_PLACEHOLDER);
+        return $this->get($what);
+    }
+
+    /**
+     * @param string $what
+     *
+     * @return string|false
+     */
+    public function get(string $what)
+    {
+        $v = $this->getWithoutDefault($what);
 
         if ($v === self::UNDEFINED_PLACEHOLDER) {
             $v = $this->getDefaultValueForSetting($what);
@@ -700,6 +742,16 @@ class TouchPointWP_Settings
         }
 
         return $v;
+    }
+
+    /**
+     * @param string $what The field to get a value for
+     *
+     * @return mixed  The value, if set.  False if not set.
+     */
+    protected function getWithoutDefault(string $what)
+    {
+        return get_option(TouchPointWP::SETTINGS_PREFIX . $what, self::UNDEFINED_PLACEHOLDER);
     }
 
     /**
