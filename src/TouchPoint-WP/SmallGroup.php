@@ -164,7 +164,7 @@ class SmallGroup extends Involvement
                                "https://maps.googleapis.com/maps/api/js?key=%s&v=3&libraries=geometry",
                                self::$tpwp->settings->google_maps_api_key
                            ),
-                           [],null,true);
+                           [TouchPointWP::SHORTCODE_PREFIX . "base-defer"],null,true);
 
         wp_register_script(TouchPointWP::SHORTCODE_PREFIX . "knockout",
                            "https://ajax.aspnetcdn.com/ajax/knockout/knockout-3.5.0.js",
@@ -208,6 +208,7 @@ class SmallGroup extends Involvement
             $params = array_change_key_case($params, CASE_LOWER);
 
             wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps");
+            wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer");
 
             // set some defaults
             $params = shortcode_atts(
