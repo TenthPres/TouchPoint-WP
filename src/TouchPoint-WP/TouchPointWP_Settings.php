@@ -199,7 +199,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text_secret',
                     'default'     => '',
-                    'placeholder' => ($this->api_pass == '' ? '' : __('password saved', TouchPointWP::TEXT_DOMAIN)),
+                    'placeholder' => ($this->__get('api_pass') == '' ? '' : __('password saved', TouchPointWP::TEXT_DOMAIN)),
                     'callback'    => fn($new) => $this->validation_secret($new, 'api_pass')
                 ],
                 [
@@ -373,7 +373,7 @@ class TouchPointWP_Settings
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->sg_divisions) : [],
+                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->__get('sg_divisions')) : [],
                         'default'     => [],
                     ],
                     [
@@ -384,7 +384,7 @@ class TouchPointWP_Settings
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->sg_divisions) : [],
+                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->__get('sg_divisions')) : [],
                         'default'     => [],
                     ],
                 ],
