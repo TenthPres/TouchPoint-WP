@@ -189,8 +189,8 @@ class SmallGroup extends Involvement
      */
     public static function registerAjax(): void
     {
-        add_action( 'wp_ajax_tp_sg_nearme', [self::class, 'ajaxNearMe'] );
-        add_action( 'wp_ajax_nopriv_tp_sg_nearme', [self::class, 'ajaxNearMe'] );
+        add_action( 'wp_ajax_tp_sg_nearby', [self::class, 'ajaxNearby'] );
+        add_action( 'wp_ajax_nopriv_tp_sg_nearby', [self::class, 'ajaxNearby'] );
     }
 
     /**
@@ -346,6 +346,18 @@ class SmallGroup extends Involvement
             $params = [];
         }
 
+        // standardize parameters
+        $params = array_change_key_case($params, CASE_LOWER);
+
+        // set some defaults
+        $params  = shortcode_atts(
+            [
+                'count'     => 3
+            ],
+            $params,
+            self::SHORTCODE_NEARBY
+        );
+
         if ($content === '') {
             return "<!-- No layout provided.  See the documentation for how this works.-->";
             // TODO add a default layout instead.
@@ -356,6 +368,7 @@ class SmallGroup extends Involvement
         $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/smallgroup-nearby-inline.js");
 
         $script = str_replace('{$nearbyListId}', $nearbyListId, $script);
+        $script = str_replace('{$count}', $params['count'], $script);
 
         wp_add_inline_script(
             TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer",
@@ -366,27 +379,14 @@ class SmallGroup extends Involvement
 
         $content = "<div class=\"\" id=\"{$nearbyListId}\" data-bind=\"foreach: nearby\">" . $content . "</div>";
 
-        // standardize parameters
-        $params = array_change_key_case($params, CASE_LOWER);
-
-        // set some defaults
-        $params  = shortcode_atts(
-            [
-                'class'     => 'TouchPoint-sg-NearMe',
-                'meetingid' => null
-            ],
-            $params,
-            self::SHORTCODE_NEARBY
-        );
-
         // get any nesting
         $content = do_shortcode($content);
-        // TODO load up template
+        // TODO load up template if content is blank
 
         return $content;
     }
 
-    public static function ajaxNearMe()
+    public static function ajaxNearby()
     {
         $r = self::getGroupsNear($_GET['lat'], $_GET['lng'], $_GET['limit']);
 
@@ -397,6 +397,7 @@ class SmallGroup extends Involvement
         }
 
         echo json_encode($r);
+        wp_die();  // TODO is this necessary?
     }
 
 
@@ -411,7 +412,7 @@ class SmallGroup extends Involvement
      */
     protected static function getGroupsNear($lat, $lng, $limit = 3)
     {
-        $lat = floatval($lat) ?? 39.949601081097036;
+        $lat = floatval($lat) ?? 39.949601081097036; // TODO change to get location from IP.
         $lng = floatval($lng) ?? -75.17186043802126;
         $limit = min(max(intval($limit), 0), 100);
 
@@ -419,21 +420,22 @@ class SmallGroup extends Involvement
         $q = $wpdb->prepare( "
             SELECT l.Id as post_id,
                    l.post_title as name,
-                   pmInv.invId,
-                   (3959 * acos(cos(radians(%s)) * cos(radians(lat)) * cos(radians(lng) - radians(%s)) +
-                                sin(radians(%s)) * sin(radians(lat)))) AS distance
+                   CAST(pmInv.meta_value AS UNSIGNED) as invId,
+                   pmSch.meta_value as schedule,
+                   ROUND(3959 * acos(cos(radians(%s)) * cos(radians(lat)) * cos(radians(lng) - radians(%s)) +
+                                sin(radians(%s)) * sin(radians(lat))), 1) AS distance
             FROM (SELECT p.Id,
                          p.post_title,
                          CAST(pmLat.meta_value AS DECIMAL(10, 7)) as lat,
-                         CAST(pmLng.meta_value AS DECIMAL(10, 7)) as lng,
-                         CAST(pmInv.meta_value AS UNSIGNED) as invId
+                         CAST(pmLng.meta_value AS DECIMAL(10, 7)) as lng
                   FROM wp_posts as p
                            JOIN
                        wp_postmeta as pmLat ON p.ID = pmLat.post_id AND pmLat.meta_key = 'tp_geo_lat'
                            JOIN
                        wp_postmeta as pmLng ON p.ID = pmLng.post_id AND pmLng.meta_key = 'tp_geo_lng'
-                 ) l JOIN
-                    wp_postmeta as pmInv ON l.ID = pmInv.post_id AND pmInv.meta_key = 'tp_invId'
+                 ) as l
+                    JOIN wp_postmeta as pmInv ON l.ID = pmInv.post_id AND pmInv.meta_key = 'tp_invId'
+                    LEFT JOIN wp_postmeta as pmSch ON l.ID = pmSch.post_id AND pmSch.meta_key = 'tp_meetingSchedule'
             ORDER BY distance LIMIT %d
             ", $lat, $lng, $lat, $limit );  // TODO un-hardcode tp_ prefixes
 

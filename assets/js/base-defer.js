@@ -9,7 +9,7 @@ class TP_DataGeo {
     };
 
     static init() {
-        tpvm.trigger('tp_dataGeo_loaded');
+        tpvm.trigger('dataGeo_loaded');
     }
 
     static geoByNavigator(then = null, error = null) {
@@ -28,7 +28,7 @@ class TP_DataGeo {
                 then(TP_DataGeo.loc)
             }
 
-            tpvm.trigger("tp_dataGeo_located", TP_DataGeo.loc)
+            tpvm.trigger("dataGeo_located", TP_DataGeo.loc)
         }
 
         function err(e) {
@@ -55,7 +55,7 @@ class TP_DataGeo {
                     break;
             }
 
-            tpvm.trigger("tp_dataGeo_error", userFacingMessage)
+            tpvm.trigger("dataGeo_error", userFacingMessage)
         }
     }
 
@@ -77,20 +77,18 @@ class TP_DataGeo {
     }
 
     static geoByServer(then, error) {
-        tpvm.getData('tp_geolocate').then(function (response) {
-            if (response.hasOwnProperty("error")) {
-                error(response.error)
-                tpvm.trigger("tp_dataGeo_error", response.error)
+        tpvm.getData('tp_geolocate').then(function (responseData) {
+            if (responseData.hasOwnProperty("error")) {
+                error(responseData.error)
+                tpvm.trigger("dataGeo_error", responseData.error)
             } else {
-                let data = response.json();
-
-                for (const di in data) {
-                    if (data.hasOwnProperty(di))
-                        TP_DataGeo.loc[di] = data[di];
+                for (const di in responseData) {
+                    if (responseData.hasOwnProperty(di))
+                        TP_DataGeo.loc[di] = responseData[di];
                 }
 
                 then(TP_DataGeo.loc);
-                tpvm.trigger("tp_dataGeo_located", TP_DataGeo.loc)
+                tpvm.trigger("dataGeo_located", TP_DataGeo.loc)
             }
         }, error);
     }

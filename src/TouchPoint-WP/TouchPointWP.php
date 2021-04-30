@@ -54,6 +54,12 @@ class TouchPointWP
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
 
     /**
+     * Table Names
+     */
+    public const TABLE_PREFIX = "tp_";
+    public const TABLE_IP_GEO = self::TABLE_PREFIX . "ipGeo";
+
+    /**
      * The singleton.
      */
     private static ?TouchPointWP $_instance = null;
@@ -351,16 +357,14 @@ class TouchPointWP
             wp_die();
         }
 
-        $return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/");
-
-        // TODO caching
+        $return = $this->getIpData($ip);
 
         if ($return instanceof WP_Error) {
             echo json_encode(['error' => implode(", ", $return->get_error_messages())]);
             wp_die();
         }
 
-        $d = json_decode($return['body']);
+        $d = json_decode($return);
         if ($d->error) {
             echo json_encode(['error' => $d->reason]);
             wp_die();
@@ -374,6 +378,44 @@ class TouchPointWP
 
         echo json_encode(['lat' => $d->latitude, 'lng' => $d->longitude, 'human' => $d->human, 'type' => 'ip' ]);
         wp_die();
+    }
+
+    /**
+     * @param $ip
+     *
+     * @return mixed
+     */
+    public function getIpData($ip)
+    {
+        $ip_pton = inet_pton($ip);
+
+        global $wpdb;
+        $tableName = $wpdb->base_prefix . self::TABLE_IP_GEO;
+        /** @noinspection SqlResolve */
+        $q = $wpdb->prepare( "SELECT * FROM {$tableName} WHERE ip = '{$ip_pton}' and updatedDt > (NOW() - INTERVAL 30 DAY)");
+        $cache = $wpdb->get_row($q);
+        if ($cache) {
+            return $cache->data;
+        }
+
+        // TODO allow admin to define some static IPs and corresponding locations
+
+        $return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/");
+
+        if ($return instanceof WP_Error) {
+            return $return;
+        }
+
+        $return = $return['body'];
+
+        /** @noinspection SqlResolve */
+        $q = $wpdb->prepare( "
+            INSERT INTO {$tableName} (ip, updatedDt, data)
+            VALUES ('{$ip_pton}', NOW(), %s) ON DUPLICATE KEY UPDATE updatedDt = NOW(), data = %s;",
+        $return, $return);
+        $wpdb->query($q);
+
+        return $return;
     }
 
     public function registerTaxonomies(): void
@@ -646,7 +688,31 @@ class TouchPointWP
     public function install()
     {
         $this->_log_version_number();
+
+        $this->createTables();
     }
+
+    /**
+     * Create or update database tables
+     */
+    protected function createTables(): void // TODO this should be called more than just installs to cover updates.
+    {
+        global $wpdb;
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+
+        // IP Geo Caching table
+        $tableName = $wpdb->base_prefix . self::TABLE_IP_GEO;
+        $sql = "CREATE TABLE $tableName (
+            id int(10) unsigned NOT NULL auto_increment,
+            ip varbinary(16) NOT NULL UNIQUE,
+            updatedDT datetime DEFAULT NOW(),
+            data text NOT NULL,
+            PRIMARY KEY  (id)
+        )";
+        dbDelta($sql);
+    }
+
+    // TODO drop tables with uninstall.
 
     /**
      * Log the plugin version number.

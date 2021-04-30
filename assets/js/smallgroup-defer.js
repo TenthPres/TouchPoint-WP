@@ -116,7 +116,7 @@ class TP_SmallGroup extends TP_Involvement {
     };
 
     static init() {
-        tpvm.trigger('tp_smallgroupsLoaded');
+        tpvm.trigger('smallgroups_loaded');
     }
 
     static initMap(mapDivId) {
@@ -201,12 +201,27 @@ class TP_SmallGroup extends TP_Involvement {
         }
     }
 
-    static initNearby(targetId) {
+    static initNearby(targetId, count) {
+        if (window.location.pathname.substring(0, 10) === "/wp-admin/")
+            return;
+
         let target = document.getElementById(targetId);
         tpvm._sg.nearby = ko.observableArray([]);
         ko.applyBindings(tpvm._sg, target);
 
-        TP_DataGeo.getLocation(console.log, console.error);
+        TP_DataGeo.getLocation(getNearbyGroups, console.error);
+
+        function getNearbyGroups() {
+            tpvm.getData('tp_sg_nearby', {
+                lat: TP_DataGeo.loc.lat, // TODO reduce double-requesting
+                lng: TP_DataGeo.loc.lng,
+                limit: count,
+            }).then(handleGroupsLoaded);
+        }
+
+        function handleGroupsLoaded(response) {
+            tpvm._sg.nearby(response);
+        }
 
         // TODO turn location into groups.  Potentially merge fetches.
     }

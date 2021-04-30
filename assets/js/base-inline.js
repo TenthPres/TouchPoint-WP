@@ -33,10 +33,15 @@ const tpvm = {
         return response.json();
     },
     getData: async function(action = '', data = {}) {
-        const response = await fetch('/wp-admin/admin-ajax.php?action=' + action, {
+        data.action = action;
+        let params = [];
+        Object.keys(data).map(
+            function(key, inx) {
+                params.push(`${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`);}
+        );
+        const response = await fetch('/wp-admin/admin-ajax.php?' + params.join("&"), {
             method: 'GET',
             mode: 'same-origin',
-            cache: 'no-cache'
         });
         return response.json();
     }
