@@ -461,8 +461,14 @@ class SmallGroup extends Involvement
 
         set_time_limit(60);
 
-        $response = self::$tpwp->apiGet("InvsForDivs",
-                                        ['divs' => $divs, 'leadMemTypes' => $lMTypes, 'hostMemTypes' => $hMTypes]);
+        try {
+            $response = self::$tpwp->apiGet(
+                "InvsForDivs",
+                ['divs' => $divs, 'leadMemTypes' => $lMTypes, 'hostMemTypes' => $hMTypes]
+            );
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
 
         $siteTz = wp_timezone();
 

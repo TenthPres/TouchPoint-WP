@@ -5,7 +5,7 @@ namespace tp\TouchPointWP;
 /**
  * Settings class file.
  *
- * Class TouchPointWP
+ * Class TouchPointWP_Settings
  * @package tp\TouchPointWP
  */
 
@@ -61,7 +61,7 @@ class TouchPointWP_Settings
      */
     public array $settings = [];
 
-    private const UNDEFINED_PLACEHOLDER = INF;
+    public const UNDEFINED_PLACEHOLDER = INF;
 
     /**
      * Constructor function.

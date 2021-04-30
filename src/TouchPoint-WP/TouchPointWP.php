@@ -282,7 +282,12 @@ class TouchPointWP
             wp_die();
         }
 
-        $response = $this->apiGet('ident', ['inputData' => $inputData]);
+        try {
+            $response = $this->apiGet('ident', ['inputData' => $inputData]);
+        } catch (TouchPointWP_Exception $e) {
+            echo json_encode(['error' => $e->getMessage()]);
+            wp_die();
+        }
 
         if ($response instanceof WP_Error) {
             echo json_encode(['error' => 'An API error occurred.']);
@@ -320,7 +325,12 @@ class TouchPointWP
 
         // TODO input validation of some kind...
 
-        $response = $this->apiGet('ident', ['inputData' => $inputData]);
+        try {
+            $response = $this->apiGet('ident', ['inputData' => $inputData]);
+        } catch (TouchPointWP_Exception $e) {
+            echo json_encode(['error' => $e->getMessage()]);
+            wp_die();
+        }
 
         if ($response instanceof WP_Error) {
             echo json_encode(['error' => 'An API error occurred.']);
@@ -772,7 +782,12 @@ class TouchPointWP
     {
         $divisions = implode(",", $divisions);
         $divisions = str_replace('div','', $divisions);
-        $return = $this->apiGet('MemTypes', ['divs' => $divisions]);
+
+        try {
+            $return = $this->apiGet('MemTypes', ['divs' => $divisions]);
+        } catch (TouchPointWP_Exception $e) {
+            return [];
+        }
 
         if ($return instanceof WP_Error) {
             return [];
@@ -852,7 +867,11 @@ class TouchPointWP
      */
     private function updateDivisions()
     {
-        $return = $this->apiGet('Divisions');
+        try {
+            $return = $this->apiGet('Divisions');
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
 
         if ($return instanceof WP_Error) {
             return false;
@@ -919,7 +938,11 @@ class TouchPointWP
      */
     private function updateResCodes()
     {
-        $return = $this->apiGet('ResCodes');
+        try {
+            $return = $this->apiGet('ResCodes');
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
 
         if ($return instanceof WP_Error) {
             return false;
@@ -986,7 +1009,11 @@ class TouchPointWP
      */
     private function updateGenders()
     {
-        $return = $this->apiGet('Genders');
+        try {
+            $return = $this->apiGet('Genders');
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
 
         if ($return instanceof WP_Error) {
             return false;
@@ -1019,11 +1046,19 @@ class TouchPointWP
      *
      * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
      * Data is generally in json_decode($response['body'])->data
+     *
+     * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
      */
     public function apiGet(string $command, ?array $parameters = null)
     {
         if ( ! is_array($parameters)) {
             $parameters = (array)$parameters;
+        }
+
+        if ($this->settings->api_script_name === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER ||
+            $this->settings->api_user === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER ||
+            $this->settings->api_pass === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER) {
+            throw new TouchPointWP_Exception("Invalid or incomplete API Settings.");
         }
 
         $parameters['a'] = $command;
