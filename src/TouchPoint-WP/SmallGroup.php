@@ -338,8 +338,8 @@ class SmallGroup extends Involvement
      */
     public static function nearbyShortcode($params = [], string $content = ""): string
     {
-        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer");
         wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "knockout");
+        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer");
 
         if ($params === '') {
             $params = [];
