@@ -45,8 +45,6 @@ class SmallGroup extends Involvement
             return true;
         }
 
-        set_time_limit(300); // TODO remove.
-
         self::$tpwp = $tpwp;
 
         self::$_isInitiated = true;
@@ -360,8 +358,8 @@ class SmallGroup extends Involvement
         );
 
         if ($content === '') {
-            return "<!-- No layout provided.  See the documentation for how this works.-->";
-            // TODO add a default layout instead.
+            // TODO Switch to template, or switch templates to match this.
+            $content = file_get_contents(TouchPointWP::$dir . "/src/templates/parts/smallgroup-nearby-list-item.html");
         }
 
         $nearbyListId = wp_unique_id('tp-nearby-list-');
@@ -382,7 +380,6 @@ class SmallGroup extends Involvement
 
         // get any nesting
         $content = do_shortcode($content);
-        // TODO load up template if content is blank
 
         return $content;
     }
@@ -394,6 +391,7 @@ class SmallGroup extends Involvement
         foreach ($r as $g) {
             $sg = SmallGroup::fromObj($g);
             $g->name = $sg->name;
+            $g->path = get_permalink($sg->post_id);
 //            $g->name = SmallGroup::fromObj($g)->name;
         }
 
@@ -743,14 +741,14 @@ class SmallGroup extends Involvement
         $this->attributes->genderId = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "genderId", true);
 
         if (gettype($invIdOrObj) == "object" && $invIdOrObj->geo_lat !== null) {
-            // Probably a Post object
+            // Probably a database query result
             $this->geo = (object)[
                 'lat'     => self::toFloatOrNull($invIdOrObj->geo_lat),
                 'lng'     => self::toFloatOrNull($invIdOrObj->geo_lng)
             ];
         } else { // TODO needs more validation.
             $this->geo = (object)[
-                // Probably a deliberate database object
+                // Probably a post or something
                 'lat'     => self::toFloatOrNull(get_post_meta($invIdOrObj->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_lat", true)),
                 'lng'     => self::toFloatOrNull(get_post_meta($invIdOrObj->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_lng", true))
             ];

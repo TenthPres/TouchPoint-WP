@@ -27,7 +27,14 @@ abstract class Involvement
 
         if (is_numeric($invIdOrObj)) {
             $this->invId = intval($invIdOrObj);
-            return; // TODO get post; remove return;
+
+            $p = get_posts([
+                'meta_key' => self::INVOLVEMENT_META_KEY,
+                'meta_value' => $this->invId
+                          ]);
+
+            if (count($p) > 0)
+                $this->post = $p[0];
 
         } elseif (gettype($invIdOrObj) === "object" && get_class($invIdOrObj) == \WP_Post::class) {
             // WP_Post Object
@@ -43,6 +50,9 @@ abstract class Involvement
                     esc_html(__('Creating an Involvement object from an object without a post_id is not yet supported.')),
                     esc_attr(TouchPointWP::VERSION)
                 );
+
+            /** @noinspection PhpFieldAssignmentTypeMismatchInspection  The type is correct. */
+            $this->post = get_post($invIdOrObj, "OBJECT");
 
             foreach ($invIdOrObj as $property => $value) {
                 if (property_exists(self::class, $property)) {
