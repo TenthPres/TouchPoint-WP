@@ -423,7 +423,7 @@ class SmallGroup extends Involvement
                    pmSch.meta_value as schedule,
                    ROUND(3959 * acos(cos(radians(%s)) * cos(radians(lat)) * cos(radians(lng) - radians(%s)) +
                                 sin(radians(%s)) * sin(radians(lat))), 1) AS distance
-            FROM (SELECT p.Id,
+            FROM (SELECT DISTINCT p.Id,
                          p.post_title,
                          CAST(pmLat.meta_value AS DECIMAL(10, 7)) as lat,
                          CAST(pmLng.meta_value AS DECIMAL(10, 7)) as lng
@@ -432,11 +432,12 @@ class SmallGroup extends Involvement
                        wp_postmeta as pmLat ON p.ID = pmLat.post_id AND pmLat.meta_key = 'tp_geo_lat'
                            JOIN
                        wp_postmeta as pmLng ON p.ID = pmLng.post_id AND pmLng.meta_key = 'tp_geo_lng'
+                WHERE post_type = %s
                  ) as l
                     JOIN wp_postmeta as pmInv ON l.ID = pmInv.post_id AND pmInv.meta_key = 'tp_invId'
                     LEFT JOIN wp_postmeta as pmSch ON l.ID = pmSch.post_id AND pmSch.meta_key = 'tp_meetingSchedule'
             ORDER BY distance LIMIT %d
-            ", $lat, $lng, $lat, $limit );  // TODO un-hardcode tp_ prefixes
+            ", $lat, $lng, $lat, self::POST_TYPE, $limit );  // TODO un-hardcode tp_ prefixes
 
         return $wpdb->get_results($q);
     }

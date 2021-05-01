@@ -73,7 +73,7 @@ class TP_SmallGroup extends TP_Involvement {
                 html: "<p id=\"swal-tp-text\">Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
                 showConfirmButton: true,
                 showCancelButton: true,
-                confirmButtonText: 'Next',
+                confirmButtonText: 'Join',
                 focusConfirm: false,
                 preConfirm: () => {
                     let form = document.getElementById('tp_people_list_checkboxes'),
@@ -93,7 +93,7 @@ class TP_SmallGroup extends TP_Involvement {
 
                     Swal.showLoading();
 
-                    return group.doJoin(people, true);
+                    return group.doJoin(data, true);
                 }
             });
         }

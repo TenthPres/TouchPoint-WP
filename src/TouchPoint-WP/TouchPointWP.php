@@ -326,7 +326,7 @@ class TouchPointWP
         // TODO input validation of some kind...
 
         try {
-            $response = $this->apiGet('ident', ['inputData' => $inputData]);
+            $response = $this->apiPost('inv_join', ['inputData' => json_decode($inputData)]);
         } catch (TouchPointWP_Exception $e) {
             echo json_encode(['error' => $e->getMessage()]);
             wp_die();
@@ -1071,6 +1071,39 @@ class TouchPointWP
                             $this->settings->api_user . ':' . $this->settings->api_pass
                         )
                 ]
+            ]
+        );
+    }
+
+
+    /**
+     * @param string $command The thing to post
+     * @param ?array $data Data to post
+     *
+     * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
+     * Data is generally in json_decode($response['body'])->data
+     *
+     * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
+     */
+    public function apiPost(string $command, ?array $data = null)
+    {
+        if (!$this->settings->hasValidApiSettings()) {
+            throw new TouchPointWP_Exception("Invalid or incomplete API Settings.");
+        }
+
+        $data = json_encode($data);
+
+        return $this->getHttpClient()->request(
+            "https://" . $this->settings->host . "/PythonApi/" .
+            $this->settings->api_script_name . "?" . http_build_query(['a' => $command]),
+            [
+                'method'  => 'POST',
+                'headers' => [
+                    'Authorization' => 'Basic ' . base64_encode(
+                            $this->settings->api_user . ':' . $this->settings->api_pass
+                        )
+                ],
+                'body' => ['data' => $data]
             ]
         );
     }

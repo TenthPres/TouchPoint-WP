@@ -160,11 +160,11 @@ class TP_Involvement {
         return this.#visible;
     }
 
-    doJoin(people, showConfirm = true) {
+    async doJoin(people, showConfirm = true) {
         let group = this;
         showConfirm = !!showConfirm;
-        tpvm.postData('tp_inv_add', {invId: group.invId, people: people}).then((res) => {
-            // todo with success
+        return tpvm.postData('tp_inv_add', {invId: group.invId, people: people}).then((res) => {
+            console.log(res);
             if (showConfirm) {
                 Swal.fire({
                     icon: 'success',

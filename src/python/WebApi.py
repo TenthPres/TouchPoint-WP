@@ -4,7 +4,8 @@ import re
 
 PersonEvNames = {
 	'geoLat': 'geoLat',
-	'geoLng': 'geoLng'
+	'geoLng': 'geoLng',
+	'geoHsh': 'geoHsh'
 }
 
 def getPersonInfoSql(tableAbbrev):
@@ -108,15 +109,21 @@ elif (Data.a == "InvsForDivs"):
 
 		if hostMemTypes != "":
 			hostSql = '''
-			SELECT TOP 1 peLat.Data as lat, peLng.Data as lng, COALESCE(prc.Description, frc.Description) as resCodeName
+			SELECT TOP 1 peLat.Data as lat, peLng.Data as lng, peHsh.Data as hsh, COALESCE(prc.Description, frc.Description) as resCodeName
 			FROM OrganizationMembers om
 				JOIN People p ON om.PeopleId = p.PeopleId
 				JOIN PeopleExtra as peLat ON peLat.PeopleId = p.PeopleId and peLat.Field = '{}'
 				JOIN PeopleExtra as peLng ON peLng.PeopleId = p.PeopleId and peLng.Field = '{}'
+				JOIN PeopleExtra as peHsh ON peHsh.PeopleId = p.PeopleId and peHsh.Field = '{}'
 				LEFT JOIN lookup.ResidentCode prc ON p.ResCodeId = prc.Id
 				JOIN Families f on p.FamilyId = f.FamilyId
 				LEFT JOIN lookup.ResidentCode frc ON f.ResCodeId = frc.Id
-			WHERE OrganizationId IN ({}) AND MemberTypeId IN ({})'''.format(PersonEvNames['geoLat'], PersonEvNames['geoLng'], g.involvementId, hostMemTypes)
+			WHERE OrganizationId IN ({}) AND MemberTypeId IN ({})'''.format(
+			PersonEvNames['geoLat'],
+			PersonEvNames['geoLng'],
+			PersonEvNames['geoHsh'],
+			g.involvementId,
+			hostMemTypes)
 
 			g.hostGeo = model.SqlTop1DynamicData(hostSql) # TODO: merge into main query?
 
@@ -160,13 +167,17 @@ elif (Data.a == "ident"):
 
     Data.people = model.SqlListDynamicData(sql)
 
-# elif (Data.a == "inv_join"):
-#     Data.Title = 'Adding people to Involvement'
-#     inData = model.JsonDeserialize(Data.inputData)
-#
-# 	for p in inData.
-#     model.AddMemberToOrg(pid, oid)
-#
-#     Data.people = model.SqlListDynamicData(sql)
+elif (Data.a == "inv_join"):  # This is a POST request.
+    Data.Title = 'Adding people to Involvement'
+    inData = model.JsonDeserialize(Data.data).inputData
+
+    oid = inData.invId
+
+    for p in inData.people:
+        if not model.InOrg(p.peopleId, oid):
+            model.AddMemberToOrg(p.peopleId, oid)
+            model.SetMemberType(p.peopleId, oid, "Prospect")  # not working
+            model.CreateTask(12255, 16371, "New Small Group Member", "{} is interested in joining your Small Group.  Please reach out to them.".format(p.goesBy))
+
 
 #
