@@ -35,11 +35,16 @@ class TP_SmallGroup extends TP_Involvement {
         super.toggleHighlighted(hl);
 
         if (this.highlighted) {
-            if (this.mapMarker !== null && this.mapMarker.getAnimation() !== google.maps.Animation.BOUNCE)
+            if (this.mapMarker !== null &&
+                this.mapMarker.getAnimation() !== google.maps.Animation.BOUNCE &&
+                TP_SmallGroup.smallGroups.length > 1) {
                 this.mapMarker.setAnimation(google.maps.Animation.BOUNCE)
+            }
         } else {
-            if (this.mapMarker !== null && this.mapMarker.getAnimation() !== null)
+            if (this.mapMarker !== null &&
+                this.mapMarker.getAnimation() !== null) {
                 this.mapMarker.setAnimation(null)
+            }
         }
     }
 
@@ -126,7 +131,11 @@ class TP_SmallGroup extends TP_Involvement {
             zoom: 0,
             mapTypeId: google.maps.MapTypeId.ROADMAP,
             center: {lat: 0, lng: 0},
-            bounds: bounds
+            bounds: bounds,
+            maxZoom: 15,
+            streetViewControl: false,
+            fullscreenControl: false,
+            disableDefaultUI: true
         };
         const m = new google.maps.Map(document.getElementById(mapDivId), mapOptions);
 
@@ -157,6 +166,17 @@ class TP_SmallGroup extends TP_Involvement {
 
             tpvm.involvements[sgi].mapMarker = mkr;
         }
+        // Prevent zoom from being too close initially.
+        google.maps.event.addListener(m, 'zoom_changed', function() {
+            let zoomChangeBoundsListener = google.maps.event.addListener(m, 'bounds_changed', function(event) {
+                if (this.getZoom() > 13 && this.initialZoom === true) {
+                    this.setZoom(13);
+                    this.initialZoom = false;
+                }
+                google.maps.event.removeListener(zoomChangeBoundsListener);
+            });
+        });
+        m.initialZoom = true;
         m.fitBounds(bounds);
     }
 

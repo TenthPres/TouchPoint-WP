@@ -757,12 +757,13 @@ class TouchPointWP_Settings
     /**
      * @param string $what
      * @param mixed  $value
+     * @param bool   $autoload
      *
      * @return false|mixed
      */
-    public function set(string $what, $value): bool
+    public function set(string $what, $value, bool $autoload = false): bool
     {
-        return (update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, true) ? $value : false);
+        return update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, $autoload);
     }
 
     /**
@@ -770,7 +771,7 @@ class TouchPointWP_Settings
      *
      * @return void
      */
-    public function registerSettings()
+    public function registerSettings(): void
     {
         $this->settings = $this->settingsFields(false, true);
         if (is_array($this->settings)) {
@@ -832,7 +833,8 @@ class TouchPointWP_Settings
      *
      * @return mixed
      */
-    protected function getDefaultValueForSetting(string $id) {
+    protected function getDefaultValueForSetting(string $id)
+    {
         foreach ($this->settingsFields(true, false) as $category) {
             foreach ($category['fields'] as $field) {
                 if ($field['id'] === $id){
@@ -844,7 +846,7 @@ class TouchPointWP_Settings
                 }
             }
         }
-        return self::UNDEFINED_PLACEHOLDER; // If there is no such field, return false.
+        return self::UNDEFINED_PLACEHOLDER;
     }
 
     /**
@@ -854,7 +856,7 @@ class TouchPointWP_Settings
      *
      * @return void
      */
-    public function settings_section(array $section)
+    public function settings_section(array $section): void
     {
         $html = '<p> ' . $this->settings[$section['id']]['description'] . '</p>' . "\n";
         echo $html;
@@ -865,7 +867,7 @@ class TouchPointWP_Settings
      *
      * @return void
      */
-    public function settings_page()
+    public function settings_page(): void
     {
         // Build page HTML.
         $html = '<div class="wrap" id="' . $this->parent::TOKEN . '_Settings">' . "\n";

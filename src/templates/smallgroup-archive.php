@@ -7,6 +7,8 @@
  *
  * Template Name: TouchPoint Small Group List
  *
+ * TODO use native loop rather than re-querying.  Allows external filtering to be applied.
+ *
  */
 
 use tp\TouchPointWP\SmallGroup;

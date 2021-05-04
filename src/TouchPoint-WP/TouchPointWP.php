@@ -729,7 +729,7 @@ class TouchPointWP
      */
     private function _log_version_number()
     {
-        update_option(self::TOKEN . '_version', self::VERSION);
+        update_option(self::TOKEN . '_version', self::VERSION, false);
     }
 
     /**

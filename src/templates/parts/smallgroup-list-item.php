@@ -1,6 +1,8 @@
 <?php
 
 use tp\TouchPointWP\TouchPointWP;
+
+/** @var $post WP_Post */
 ?>
 
 <article id="smallgroup-<?php the_ID(); ?>" <?php post_class("smallgroup-list-item"); ?> data-tp-involvement="<?php echo $post->obj->invId ?>">

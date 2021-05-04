@@ -1,7 +1,6 @@
 <?php
-
-
 namespace tp\TouchPointWP;
+use WP_Post;
 
 /**
  * Class Involvement - Fundamental object meant to correspond to an Involvement in TouchPoint
@@ -15,36 +14,33 @@ abstract class Involvement
     public int $invId;
     public int $post_id;
     public string $post_excerpt;
-    protected \WP_Post $post;
+    protected WP_Post $post;
 
     const INVOLVEMENT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "invId";
 
     public object $attributes;
 
-    protected function __construct($invIdOrObj)
+    /**
+     * Involvement constructor.
+     *
+     * @param $object WP_Post|object an object representing the small group/post.
+     *                  Must have post_id and inv id attributes.
+     */
+    protected function __construct(object $object)
     {
         $this->attributes = (object)[];
 
-        if (is_numeric($invIdOrObj)) {
-            $this->invId = intval($invIdOrObj);
-
-            $p = get_posts([
-                'meta_key' => self::INVOLVEMENT_META_KEY,
-                'meta_value' => $this->invId
-                          ]);
-
-            if (count($p) > 0)
-                $this->post = $p[0];
-
-        } elseif (gettype($invIdOrObj) === "object" && get_class($invIdOrObj) == \WP_Post::class) {
+        if (gettype($object) === "object" && get_class($object) == WP_Post::class) {
+            /** @var $object WP_Post */
             // WP_Post Object
-            $this->post = $invIdOrObj;
-            $this->invId = intval($invIdOrObj->{self::INVOLVEMENT_META_KEY});
+            $this->post = $object;
+            $this->invId = intval($object->{self::INVOLVEMENT_META_KEY});
+            $this->post_id = $object->ID;
 
-        } elseif (gettype($invIdOrObj) === "object") {
+        } elseif (gettype($object) === "object") {
             // Sql Object, probably.
 
-            if (!property_exists($invIdOrObj, 'post_id'))
+            if (!property_exists($object, 'post_id'))
                 _doing_it_wrong(
                     __FUNCTION__,
                     esc_html(__('Creating an Involvement object from an object without a post_id is not yet supported.')),
@@ -52,9 +48,9 @@ abstract class Involvement
                 );
 
             /** @noinspection PhpFieldAssignmentTypeMismatchInspection  The type is correct. */
-            $this->post = get_post($invIdOrObj, "OBJECT");
+            $this->post = get_post($object, "OBJECT");
 
-            foreach ($invIdOrObj as $property => $value) {
+            foreach ($object as $property => $value) {
                 if (property_exists(self::class, $property)) {
                     $this->$property = $value;
                 } // TODO does this deal with properties in inheritors?
