@@ -96,6 +96,27 @@ class SmallGroup extends Involvement
         }
     }
 
+    /**
+     * Get notable attributes, such as gender restrictions, as strings.
+     *
+     * @return string[]
+     */
+    public function notableAttributes(): array
+    {
+        $ret = [];
+        if ($this->attributes->genderId != 0) {
+            switch($this->attributes->genderId) {
+                case 1:
+                    $ret[] = __('Men Only', TouchPointWP::TEXT_DOMAIN);
+                    break;
+                case 2:
+                    $ret[] = __('Women Only', TouchPointWP::TEXT_DOMAIN);
+                    break;
+            }
+        }
+        return $ret;
+    }
+
     public static function toFloatOrNull($numeric): ?float
     {
         if (is_numeric($numeric)) {

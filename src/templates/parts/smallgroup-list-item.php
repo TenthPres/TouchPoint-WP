@@ -23,8 +23,12 @@ use tp\TouchPointWP\TouchPointWP;
                 $metaStrings = [];
                 foreach ($metaKeys as $mk) {
                     if ($post->$mk) {
-                        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk );
+                        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk);
                     }
+                }
+                foreach ($post->obj->notableAttributes() as $a)
+                {
+                    $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
                 }
 
                 echo implode(" &nbsp;&#9702;&nbsp; ", $metaStrings);
@@ -33,7 +37,7 @@ use tp\TouchPointWP\TouchPointWP;
         </div>
     </header><!-- .entry-header -->
     <div class="thin entry-content">
-            <?php echo wp_trim_words(get_the_excerpt(), 20, "..."); ?>
+        <?php echo wp_trim_words(get_the_excerpt(), 20, "..."); ?>
     </div>
     <div class="thin actions smallgroup-actions">
         <?php echo $post->obj->getActionButtons(); ?>

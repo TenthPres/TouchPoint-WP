@@ -32,6 +32,10 @@ wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-defer');
                     $metaStrings[] = sprintf('<span class="meta-text">%s</span>', $p->$mk);
                 }
             }
+            foreach ($sg->notableAttributes() as $a)
+            {
+                $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
+            }
             echo implode(" &nbsp;&#9702;&nbsp; ", $metaStrings);
             ?>
         </div>
