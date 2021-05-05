@@ -63,7 +63,6 @@ if ( $q->have_posts() ) {
     <div class="smallgroup-list">
     <?php
     foreach ( $q->posts as $post ) {
-        $post->obj = SmallGroup::fromPost($post);
         $loadedPart = get_template_part('list-item', 'smallgroup-list-item');
         if ($loadedPart === false) {
             require TouchPointWP::$dir . "/src/templates/parts/smallgroup-list-item.php";

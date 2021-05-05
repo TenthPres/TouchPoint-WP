@@ -67,3 +67,20 @@ div.swal2-content table.tp-checkbox-list {
     text-align: left;
     margin: 0 auto;
 }
+
+article .section-inner.smallgroup-detail {
+    display: flex;
+}
+
+article .smallgroup-detail-cell {
+    flex: 1 1 0;
+}
+
+article .smallgroup-detail-cell.smallgroup-map-container {
+    flex: 2 2 0;
+}
+
+article .smallgroup-detail-cell .smallgroup-detail-cell-section {
+    text-align:center;
+    margin-bottom: 2em;
+}

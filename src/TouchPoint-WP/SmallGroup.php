@@ -432,7 +432,6 @@ class SmallGroup extends Involvement
                 TouchPointWP::$dir . '/src/templates/smallgroup-archive.php'
             )) {
             $template = TouchPointWP::$dir . '/src/templates/smallgroup-archive.php';
-            wp_enqueue_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style');
         }
 
         if (is_singular($postTypesToFilter) && file_exists(
@@ -475,7 +474,7 @@ class SmallGroup extends Involvement
 
         wp_register_style(
             TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style',
-            // TODO determine whether this should be pre-registered, or just called by the template.
+            // TODO determine whether this should be pre-registered (probaboly not), or just called by the template.
             self::$tpwp->assets_url . 'template/smallgroups-template-style.css',
             [],
             TouchPointWP::VERSION,

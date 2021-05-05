@@ -1,11 +1,15 @@
 <?php
 
+use tp\TouchPointWP\SmallGroup;
 use tp\TouchPointWP\TouchPointWP;
 
 /** @var $post WP_Post */
+
+$sg = SmallGroup::fromPost($post);
+
 ?>
 
-<article id="smallgroup-<?php the_ID(); ?>" <?php post_class("smallgroup-list-item"); ?> data-tp-involvement="<?php echo $post->obj->invId ?>">
+<article id="smallgroup-<?php the_ID(); ?>" <?php post_class("smallgroup-list-item"); ?> data-tp-involvement="<?php echo $sg->invId ?>">
     <header class="entry-header">
         <div class="entry-header-inner">
         <?php
@@ -26,7 +30,7 @@ use tp\TouchPointWP\TouchPointWP;
                         $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk);
                     }
                 }
-                foreach ($post->obj->notableAttributes() as $a)
+                foreach ($sg->notableAttributes() as $a)
                 {
                     $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
                 }
@@ -40,6 +44,6 @@ use tp\TouchPointWP\TouchPointWP;
         <?php echo wp_trim_words(get_the_excerpt(), 20, "..."); ?>
     </div>
     <div class="thin actions smallgroup-actions">
-        <?php echo $post->obj->getActionButtons(); ?>
+        <?php echo $sg->getActionButtons(); ?>
     </div>
-</article><!-- #post-${ID} -->
+</article>
