@@ -164,11 +164,10 @@ class TP_Involvement {
         let group = this;
         showConfirm = !!showConfirm;
         return tpvm.postData('tp_inv_add', {invId: group.invId, people: people}).then((res) => {
-            console.log(res);
             if (showConfirm) {
                 Swal.fire({
                     icon: 'success',
-                    title: `Added to ${group.name}.`,
+                    title: `Added to ${group.name}`,
                     timer: 3000
                 });
             }

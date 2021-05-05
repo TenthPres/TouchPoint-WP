@@ -522,7 +522,7 @@ class SmallGroup extends Involvement
             $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/smallgroup-map-inline.js");
 
             $script = str_replace('{$smallgroupsList}', json_encode(self::getSmallGroupsForMap($params)), $script);
-            $script = str_replace('{$mapDivId}', $mapDivId, $script);
+            $script = str_replace('{$mapDivId}', $mapDivId, $script); // TODO it should be possible to have action buttons without a map
 
             wp_add_inline_script(
                 TouchPointWP::SHORTCODE_PREFIX . "googleMaps",

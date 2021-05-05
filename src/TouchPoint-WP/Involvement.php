@@ -34,6 +34,7 @@ abstract class Involvement
             /** @var $object WP_Post */
             // WP_Post Object
             $this->post = $object;
+            $this->name = $object->post_title;
             $this->invId = intval($object->{self::INVOLVEMENT_META_KEY});
             $this->post_id = $object->ID;
 

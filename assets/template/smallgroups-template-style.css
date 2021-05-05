@@ -78,6 +78,7 @@ article .smallgroup-detail-cell {
 
 article .smallgroup-detail-cell.smallgroup-map-container {
     flex: 2 2 0;
+    padding-bottom: 30%;
 }
 
 article .smallgroup-detail-cell .smallgroup-detail-cell-section {
