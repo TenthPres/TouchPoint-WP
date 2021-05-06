@@ -17,13 +17,24 @@ We don't promise support for old versions of WordPress or PHP.  You will need to
 
 ## Features
 ### Small Group Finder
-Find small groups physically nearby, display on a dynamic map, and filter using many customizable criteria, including 
-demographics.
+- Publish a list and map of Small Groups, with dynamic filtering based on actual data, such as demographics and location.
+- Suggest Small Groups physically nearby based on geolocation.
+- Allow website guests to easily join a group and assign group leaders a task to follow up with prospects.
 
-### Authentication
+### Authentication (Beta)
 Authenticate TouchPoint users to WordPress, so you can know your website users.  Optionally, this authentication can
 happen silently in the background, so that if a user is logged into TouchPoint, they are automatically logged into your
 website.
+
+
+<!--
+
+### Crazy-Simple RSVP interface
+Let folks RSVP for an event for each member in their family (and, optionally, related families) in just a few clicks.
+No login required, just an email address and zip code. (If using Authentication, below, you can skip the email and zip 
+code, too.)
+
+-->
 
 ## Future Features
 - Simple RSVP Interface
