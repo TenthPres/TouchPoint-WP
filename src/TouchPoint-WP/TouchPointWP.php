@@ -282,19 +282,14 @@ class TouchPointWP
             wp_die();
         }
 
-        try {
-            $response = $this->apiGet('ident', ['inputData' => $inputData]);
-        } catch (TouchPointWP_Exception $e) {
-            echo json_encode(['error' => $e->getMessage()]);
+        $data = $this->apiPost('ident', json_decode($inputData));
+
+        if ($data instanceof WP_Error) {
+            echo json_encode(['error' => $data->get_error_message()]);
             wp_die();
         }
 
-        if ($response instanceof WP_Error) {
-            echo json_encode(['error' => 'An API error occurred.']);
-            wp_die();
-        }
-
-        $people = json_decode($response['body'])->data->people ?? [];
+        $people = $data->people ?? [];
 
         // TODO sync or queue sync of people
 
@@ -305,7 +300,7 @@ class TouchPointWP
             $ret[] = $p;
         }
 
-        echo json_encode($ret);
+        echo json_encode(['people' => $ret]);
         wp_die();
     }
 
@@ -323,23 +318,14 @@ class TouchPointWP
             wp_die();
         }
 
-        // TODO input validation of some kind...
+        $data = $this->apiPost('inv_join', json_decode($inputData));
 
-        try {
-            $response = $this->apiPost('inv_join', ['inputData' => json_decode($inputData)]);
-        } catch (TouchPointWP_Exception $e) {
-            echo json_encode(['error' => $e->getMessage()]);
+        if ($data instanceof WP_Error) {
+            echo json_encode(['error' => $data->get_error_message()]);
             wp_die();
         }
 
-        if ($response instanceof WP_Error) {
-            echo json_encode(['error' => 'An API error occurred.']);
-            wp_die();
-        }
-
-        $data = json_decode($response['body'])->data ?? (object)[];
-
-        echo json_encode($data); // TODO perhaps simplify
+        echo json_encode(['success' => $data->success]);
         wp_die();
     }
 
@@ -1080,20 +1066,18 @@ class TouchPointWP
      * @param string $command The thing to post
      * @param ?array $data Data to post
      *
-     * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
-     * Data is generally in json_decode($response['body'])->data
-     *
-     * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
+     * @return object|WP_Error An object that corresponds to the Data python object in TouchPoint, or a WP_Error
+     * instance if something went wrong.
      */
-    public function apiPost(string $command, ?array $data = null)
+    public function apiPost(string $command, $data = null)
     {
         if (!$this->settings->hasValidApiSettings()) {
-            throw new TouchPointWP_Exception("Invalid or incomplete API Settings.");
+            return new WP_Error(self::SHORTCODE_PREFIX . "api-settings", "Invalid or incomplete API Settings.");
         }
 
-        $data = json_encode($data);
+        $data = json_encode(['inputData' => $data]);
 
-        return $this->getHttpClient()->request(
+        $r = $this->getHttpClient()->request(
             "https://" . $this->settings->host . "/PythonApi/" .
             $this->settings->api_script_name . "?" . http_build_query(['a' => $command]),
             [
@@ -1106,6 +1090,18 @@ class TouchPointWP
                 'body' => ['data' => $data]
             ]
         );
+
+        if ($r instanceof WP_Error) {
+            return $r;
+        }
+
+        $respDecoded = json_decode($r['body']);
+
+        if ($respDecoded->output !== '') {
+            return new WP_Error(self::SHORTCODE_PREFIX . "api-remote", $respDecoded->output);
+        }
+
+        return $respDecoded->data;
     }
 
     /**

@@ -69,7 +69,7 @@ class TP_SmallGroup extends TP_Involvement {
 
     joinAction() {
         let group = this;
-        TP_Person.DoInformalAuth().then((res) => joinUi(group, res), (res) => console.error(group, res))
+        TP_Person.DoInformalAuth().then((res) => joinUi(group, res), () => console.log("Informal auth failed, probably user cancellation."))
 
         function joinUi(group, people) {
             // TODO if only one person, just immediately join.

@@ -7,6 +7,8 @@ PersonEvNames = {
 	'geoLng': 'geoLng',
 	'geoHsh': 'geoHsh'
 }
+sgContactEvName = "Contact"
+defaultSgTaskDelegatePid = 16371
 
 def getPersonInfoSql(tableAbbrev):
     return "SELECT DISTINCT {0}.PeopleId AS peopleId, {0}.FamilyId as familyId, {0}.LastName as lastName, COALESCE({0}.NickName, {0}.FirstName) as goesBy, SUBSTRING({0}.LastName, 1, 1) as lastInitial".format(tableAbbrev)
@@ -153,31 +155,58 @@ elif (Data.a == "MemTypes"):
 	Data.memTypes = model.SqlListDynamicData(memTypeSql)
 
 
-elif (Data.a == "ident"):
+elif (Data.a == "ident"):  # This is a POST request. TODO possibly limit to post?
     Data.Title = 'Matching People'
-    inData = model.JsonDeserialize(Data.inputData)
+    inData = model.JsonDeserialize(Data.data).inputData
 
-    sql = getPersonInfoSql('p2') + """
-        FROM People p1
-            JOIN Families f ON p1.FamilyId = f.FamilyId
-            JOIN People p2 ON p1.FamilyId = p2.FamilyId
-        WHERE (p1.EmailAddress = '{0}' OR p1.EmailAddress2 = '{0}')
-            AND (p1.ZipCode LIKE '{1}%' OR f.ZipCode LIKE '{1}%')
-        ORDER BY""".format(inData.email, inData.zip) + getPersonSortSql('p2')
+    if inData.firstName is not None and inData.lastName is not None:
+    	# more than email and zip
 
-    Data.people = model.SqlListDynamicData(sql)
+    	pid = model.FindAddPeopleId(inData.firstName, inData.lastName, inData.dob, inData.email, inData.phone)
 
-elif (Data.a == "inv_join"):  # This is a POST request.
+    	sql = getPersonInfoSql('p2') + """
+        			FROM People p1
+        				JOIN Families f ON p1.FamilyId = f.FamilyId
+        				JOIN People p2 ON p1.FamilyId = p2.FamilyId
+        			WHERE p1.peopleId = {0}
+        			ORDER BY""".format(pid) + getPersonSortSql('p2')
+        Data.people = model.SqlListDynamicData(sql)
+
+    else:
+    	# email and zip only
+
+		sql = getPersonInfoSql('p2') + """
+			FROM People p1
+				JOIN Families f ON p1.FamilyId = f.FamilyId
+				JOIN People p2 ON p1.FamilyId = p2.FamilyId
+			WHERE (p1.EmailAddress = '{0}' OR p1.EmailAddress2 = '{0}')
+				AND (p1.ZipCode LIKE '{1}%' OR f.ZipCode LIKE '{1}%')
+			ORDER BY""".format(inData.email, inData.zip) + getPersonSortSql('p2')
+			# TODO add EV Email archive
+
+		Data.people = model.SqlListDynamicData(sql)
+
+elif (Data.a == "inv_join"):  # This is a POST request. TODO possibly limit to post?
     Data.Title = 'Adding people to Involvement'
     inData = model.JsonDeserialize(Data.data).inputData
 
     oid = inData.invId
+    orgContactSql = '''
+    SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
+    UNION
+    SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
+    '''.format(oid, sgContactEvName)
+    orgContactPid = q.QuerySqlTop1(orgContactSql).contactId
+    orgContactPid = orgContactPid if orgContactPid is not None else defaultSgTaskDelegatePid
+
+    Data.success = []
 
     for p in inData.people:
         if not model.InOrg(p.peopleId, oid):
-            model.AddMemberToOrg(p.peopleId, oid)
-            model.SetMemberType(p.peopleId, oid, "Prospect")  # not working
-            model.CreateTask(12255, 16371, "New Small Group Member", "{} is interested in joining your Small Group.  Please reach out to them.".format(p.goesBy))
+            #model.AddMemberToOrg(p.peopleId, oid)
+            #model.SetMemberType(p.peopleId, oid, "Prospect")  # not working  TODO restore when PR is published
+            model.CreateTask(orgContactPid, p.peopleId, "New Small Group Member", "{0} is interested in joining your Small Group.  Please reach out to them.  ({1})".format(p.goesBy, oid))
 
+	Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 
 #

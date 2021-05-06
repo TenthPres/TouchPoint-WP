@@ -30,7 +30,7 @@ const tpvm = {
             },
             body: JSON.stringify(data) // body data type must match "Content-Type" header
         });
-        return response.json();
+        return await response.json()
     },
     getData: async function(action = '', data = {}) {
         data.action = action;
