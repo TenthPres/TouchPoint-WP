@@ -773,7 +773,7 @@ class TouchPointWP_Settings
      */
     public function registerSettings(): void
     {
-        $this->settings = $this->settingsFields(false, true);
+        $this->settings = $this->settingsFields(false, is_admin() && !wp_doing_ajax());
         if (is_array($this->settings)) {
             // Check posted/selected tab.
             $current_section = '';

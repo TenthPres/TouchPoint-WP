@@ -886,6 +886,8 @@ class TouchPointWP
         $divisions = implode(",", $divisions);
         $divisions = str_replace('div','', $divisions);
 
+        // TODO caching.
+
         try {
             $return = $this->apiGet('MemTypes', ['divs' => $divisions]);
         } catch (TouchPointWP_Exception $e) {
