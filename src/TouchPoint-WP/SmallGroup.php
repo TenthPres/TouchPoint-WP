@@ -676,7 +676,7 @@ class SmallGroup extends Involvement
         // Day of Week
         $wdName = __("Weekday");
         $wdList = get_terms(['taxonomy' => TouchPointWP::TAX_WEEKDAY, 'hide_empty' => true, 'orderby' => 'id']);
-        if (is_array($wdList)) {
+        if (is_array($wdList) && count($wdList) > 1) {
             $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"weekday\">";
             $content .= "<option disabled selected>{$wdName}</option><option value=\"\">{$any}</option>";
             foreach ($wdList as $d) {
