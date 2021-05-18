@@ -50,6 +50,7 @@ class TouchPointWP
     public const SETTINGS_PREFIX = "tp_";
 
     public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
+    public const TAX_WEEKDAY = self::HOOK_PREFIX . "weekday";
     public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
 
@@ -484,34 +485,38 @@ class TouchPointWP
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
             $resCodeTypesToApply[] = SmallGroup::POST_TYPE;
         }
-        register_taxonomy(self::TAX_RESCODE, $resCodeTypesToApply, [
-            'hierarchical' => false,
-            'show_ui' => false,
-            'description' => __( 'Classify small groups and users by their general locations.' ),
-            'labels' => [
-                'name' => $this->settings->rc_name_plural,
-                'singular_name' => $this->settings->rc_name_singular,
-                'search_items' =>  __( 'Search ' . $this->settings->rc_name_plural ),
-                'all_items' => __( 'All ' . $this->settings->rc_name_plural ),
-                'edit_item' => __( 'Edit ' . $this->settings->rc_name_singular ),
-                'update_item' => __( 'Update ' . $this->settings->rc_name_singular ),
-                'add_new_item' => __( 'Add New ' . $this->settings->rc_name_singular ),
-                'new_item_name' => __( 'New ' . $this->settings->rc_name_singular . ' Name' ),
-                'menu_name' => $this->settings->rc_name_plural,
-            ],
-            'public' => true,
-            'show_in_rest' => true,
-            'show_admin_column' => true,
+        register_taxonomy(
+            self::TAX_RESCODE,
+            $resCodeTypesToApply,
+            [
+                'hierarchical'      => false,
+                'show_ui'           => false,
+                'description'       => __('Classify small groups and users by their general locations.'),
+                'labels'            => [
+                    'name'          => $this->settings->rc_name_plural,
+                    'singular_name' => $this->settings->rc_name_singular,
+                    'search_items'  => __('Search ' . $this->settings->rc_name_plural),
+                    'all_items'     => __('All ' . $this->settings->rc_name_plural),
+                    'edit_item'     => __('Edit ' . $this->settings->rc_name_singular),
+                    'update_item'   => __('Update ' . $this->settings->rc_name_singular),
+                    'add_new_item'  => __('Add New ' . $this->settings->rc_name_singular),
+                    'new_item_name' => __('New ' . $this->settings->rc_name_singular . ' Name'),
+                    'menu_name'     => $this->settings->rc_name_plural,
+                ],
+                'public'            => true,
+                'show_in_rest'      => true,
+                'show_admin_column' => true,
 
-            // Control the slugs used for this taxonomy
-            'rewrite' => [
-                'slug' => $this->settings->rc_slug,
-                'with_front' => false,
-                'hierarchical' => false
-            ],
-        ]);
+                // Control the slugs used for this taxonomy
+                'rewrite'           => [
+                    'slug'         => $this->settings->rc_slug,
+                    'with_front'   => false,
+                    'hierarchical' => false
+                ],
+            ]
+        );
         foreach ($this->getResCodes() as $rc) {
-            if (! term_exists($rc->name, self::TAX_RESCODE)) {
+            if ( ! term_exists($rc->name, self::TAX_RESCODE)) {
                 wp_insert_term(
                     $rc->name,
                     self::TAX_RESCODE,
@@ -521,6 +526,55 @@ class TouchPointWP
                     ]
                 );
                 self::queueFlushRewriteRules();
+            }
+        }
+
+
+        // Weekdays
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
+            register_taxonomy(
+                self::TAX_WEEKDAY,
+                [SmallGroup::POST_TYPE],
+                [
+                    'hierarchical'      => false,
+                    'show_ui'           => false,
+                    'description'       => __('Classify small groups by the day on which they meet.'),
+                    'labels'            => [
+                        'name'          => __('Weekdays'),
+                        'singular_name' => __('Weekday'),
+                        'search_items'  => __('Search Weekdays'),
+                        'all_items'     => __('All Weekdays'),
+                        'edit_item'     => __('Edit Weekday'),
+                        'update_item'   => __('Update Weekday'),
+                        'add_new_item'  => __('Add New Weekday'),
+                        'new_item_name' => __('New Weekday Name'),
+                        'menu_name'     => __('Weekdays'),
+                    ],
+                    'public'            => true,
+                    'show_in_rest'      => true,
+                    'show_admin_column' => true,
+
+                    // Control the slugs used for this taxonomy
+                    'rewrite'           => [
+                        'slug'         => 'weekday',
+                        'with_front'   => false,
+                        'hierarchical' => false
+                    ],
+                ]
+            );
+            for ($di = 0; $di < 7; $di++) {
+                $name = self::getPluralDayOfWeekNameForNumber($di);
+                if ( ! term_exists($name, self::TAX_WEEKDAY)) {
+                    wp_insert_term(
+                        $name,
+                        self::TAX_WEEKDAY,
+                        [
+                            'description' => $name,
+                            'slug'        => self::getDayOfWeekShortForNumber($di)
+                        ]
+                    );
+                    self::queueFlushRewriteRules();
+                }
             }
         }
 
