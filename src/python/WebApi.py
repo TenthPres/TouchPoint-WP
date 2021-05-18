@@ -203,10 +203,37 @@ elif (Data.a == "inv_join"):  # This is a POST request. TODO possibly limit to p
 
     for p in inData.people:
         if not model.InOrg(p.peopleId, oid):
-            #model.AddMemberToOrg(p.peopleId, oid)
-            #model.SetMemberType(p.peopleId, oid, "Prospect")  # not working  TODO restore when PR is published
+            model.AddMemberToOrg(p.peopleId, oid)
+            model.SetMemberType(p.peopleId, oid, "Prospect")
             model.CreateTask(orgContactPid, p.peopleId, "New Small Group Member", "{0} is interested in joining your Small Group.  Please reach out to them.  ({1})".format(p.goesBy, oid))
 
 	Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
+
+
+elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit to post?
+	# TODO potentially merge with Join function.  Much of the code is duplicated.
+    Data.Title = 'Contacting Involvement Leaders'
+    inData = model.JsonDeserialize(Data.data).inputData
+
+    oid = inData.invId
+    message = inData.message
+    orgContactSql = '''
+    SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
+    UNION
+    SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
+    '''.format(oid, sgContactEvName)
+    orgContactPid = q.QuerySqlTop1(orgContactSql).contactId
+    orgContactPid = orgContactPid if orgContactPid is not None else defaultSgTaskDelegatePid
+
+    Data.success = []
+
+    p = inData.fromPerson
+    m = inData.message
+    org = model.GetOrganization(oid)
+    model.CreateTask(orgContactPid, p.peopleId,
+    "Online Contact Form: {0}".format(org.name),
+    "{0} sent the following message.  Please reach out to them and record the contact. <br /><br />{1}".format(p.goesBy, m))
+
+    Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 
 #

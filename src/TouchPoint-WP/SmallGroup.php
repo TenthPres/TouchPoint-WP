@@ -839,6 +839,7 @@ class SmallGroup extends Involvement
     public function getActionButtons(): string
     {
         return '
+        <button type="button" data-tp-action="contact">Contact Leaders</button>
         <button type="button" data-tp-action="join">Join</button>';
     }
 

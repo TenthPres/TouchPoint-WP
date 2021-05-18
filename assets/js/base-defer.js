@@ -111,7 +111,7 @@ class TP_Involvement {
 
     name = "";
     invId = "";
-    #visible = true;
+    _visible = true; // TODO make private when support is widespread.
 
     attributes = {};
 
@@ -130,7 +130,7 @@ class TP_Involvement {
     }
 
     get visibility() {
-        return this.#visible;
+        return this._visible;
     }
 
     // TODO potentially move to a helper of some kind.
@@ -146,29 +146,53 @@ class TP_Involvement {
 
     toggleVisibility(vis = null) {
         if (vis === null) {
-            this.#visible = !this.#visible
+            this._visible = !this._visible
         } else {
-            this.#visible = !!vis;
+            this._visible = !!vis;
         }
 
         for (const ei in this.connectedElements) {
             if (!this.connectedElements.hasOwnProperty(ei)) continue;
 
-            TP_Involvement.setElementVisibility(this.connectedElements[ei], this.#visible);
+            TP_Involvement.setElementVisibility(this.connectedElements[ei], this._visible);
         }
 
-        return this.#visible;
+        return this._visible;
     }
 
     async doJoin(people, showConfirm = true) {
         let group = this;
         showConfirm = !!showConfirm;
-        let res = await tpvm.postData('tp_inv_add', {invId: group.invId, people: people});
+        let res = await tpvm.postData('tp_inv_join', {invId: group.invId, people: people});
         if (res.success.length > 0) {
             if (showConfirm) {
                 Swal.fire({
                     icon: 'success',
                     title: `Added to ${group.name}`,
+                    timer: 3000
+                });
+            }
+        } else {
+            console.error(res);
+            if (showConfirm) {
+                Swal.fire({
+                    icon: 'error',
+                    title: `Something strange happened.`,
+                    timer: 3000
+                });
+            }
+        }
+    }
+
+    async doInvContact(fromPerson, message, showConfirm = true) {
+        let group = this;
+        showConfirm = !!showConfirm;
+        let res = await tpvm.postData('tp_inv_contact', {invId: group.invId, fromPerson: fromPerson, message: message});
+        if (res.success.length > 0) {
+            if (showConfirm) {
+                Swal.fire({
+                    icon: 'success',
+                    title: `Your message has been sent.`,
                     timer: 3000
                 });
             }
@@ -240,6 +264,25 @@ class TP_Person {
         }
 
         return out + "</tbody></table></form>"
+    }
+
+    /**
+     *
+     * @param array TP_Person[]
+     * @param id string
+     * @param name string
+     */
+    static peopleArrayToSelect(array, id, name) {
+        let out = `<select id="${id}" name="${name}">`
+
+        for (const pi in array) {
+            if (!array.hasOwnProperty(pi)) continue;
+            let p = array[pi];
+
+            out += `<option value="${p.peopleId}">${p.goesBy} ${p.lastName}</option>`;
+        }
+
+        return out + "</select>"
     }
 
     static async DoInformalAuth() {

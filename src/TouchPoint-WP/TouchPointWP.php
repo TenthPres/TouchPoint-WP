@@ -160,6 +160,9 @@ class TouchPointWP
         if (session_status() === PHP_SESSION_NONE)
             session_start();
 
+        // Adds async and defer attributes to script tags.
+        add_filter( 'script_loader_tag', [$this, 'filterByTag'], 10, 2 );
+
         // Load Auth tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
             require_once 'Auth.php';
@@ -258,12 +261,45 @@ class TouchPointWP
         }
     }
 
+
+    /**
+     * Adds async/defer attributes to enqueued / registered scripts.  If -defer or -async is present in the script's
+     * handle, the respective attribute is added.
+     *
+     * DOES apply to ALL scripts, not just those in the template.
+     *
+     * @param string $tag The script tag.
+     * @param string $handle The script handle.
+     *
+     * @return string The HTML string.
+     *
+     * TODO Do not re-create this function if the template does it.
+     */
+    public function filterByTag($tag, $handle)
+    {
+        if (strpos($tag, 'async') !== false &&
+            strpos($handle, '-async') > 0) {
+            $tag = str_replace(' src=', ' async="async" src=', $tag);
+        }
+        if (strpos($tag, 'defer') !== false &&
+            strpos($handle, '-defer') > 0
+        ) {
+            $tag = str_replace('<script ', '<script defer ', $tag);
+        }
+
+        return $tag;
+    }
+
+
+
     public function registerAjaxCommon(): void
     {
         add_action( 'wp_ajax_tp_ident', [$this, 'ajaxIdent'] ); // TODO un-hard-code tp_
         add_action( 'wp_ajax_nopriv_tp_ident', [$this, 'ajaxIdent'] );
-        add_action( 'wp_ajax_tp_inv_add', [$this, 'ajaxInvJoin'] ); // TODO Move to Involvement?
-        add_action( 'wp_ajax_nopriv_tp_inv_add', [$this, 'ajaxInvJoin'] );
+        add_action( 'wp_ajax_tp_inv_join', [$this, 'ajaxInvJoin'] ); // TODO Move to Involvement?
+        add_action( 'wp_ajax_nopriv_tp_inv_join', [$this, 'ajaxInvJoin'] );
+        add_action( 'wp_ajax_tp_inv_contact', [$this, 'ajaxInvContact'] ); // TODO Move to Involvement?
+        add_action( 'wp_ajax_nopriv_tp_inv_contact', [$this, 'ajaxInvContact'] );
         add_action( 'wp_ajax_tp_geolocate', [$this, 'ajaxGeolocate'] );
         add_action( 'wp_ajax_nopriv_tp_geolocate', [$this, 'ajaxGeolocate'] );
     }
@@ -328,6 +364,33 @@ class TouchPointWP
         echo json_encode(['success' => $data->success]);
         wp_die();
     }
+
+
+    public function ajaxInvContact(): void
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['error' => 'Only POST requests are allowed.']);
+            wp_die();
+        }
+
+        $inputData = file_get_contents('php://input');
+        if ($inputData[0] !== '{') {
+            echo json_encode(['error' => 'Invalid data provided.']);
+            wp_die();
+        }
+
+        $data = $this->apiPost('inv_contact', json_decode($inputData));
+
+        if ($data instanceof WP_Error) {
+            echo json_encode(['error' => $data->get_error_message()]);
+            wp_die();
+        }
+
+        echo json_encode(['success' => $data->success]);
+        wp_die();
+    }
+
 
     public function ajaxGeolocate(): void
     {
