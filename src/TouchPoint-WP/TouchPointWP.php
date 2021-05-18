@@ -22,7 +22,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.2";
+    public const VERSION = "0.0.2b";
 
     /**
      * The Token
@@ -50,6 +50,7 @@ class TouchPointWP
     public const SETTINGS_PREFIX = "tp_";
 
     public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
+    public const TAX_WEEKDAY = self::HOOK_PREFIX . "weekday";
     public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
 
@@ -160,6 +161,9 @@ class TouchPointWP
         if (session_status() === PHP_SESSION_NONE)
             session_start();
 
+        // Adds async and defer attributes to script tags.
+        add_filter( 'script_loader_tag', [$this, 'filterByTag'], 10, 2 );
+
         // Load Auth tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
             require_once 'Auth.php';
@@ -258,12 +262,45 @@ class TouchPointWP
         }
     }
 
+
+    /**
+     * Adds async/defer attributes to enqueued / registered scripts.  If -defer or -async is present in the script's
+     * handle, the respective attribute is added.
+     *
+     * DOES apply to ALL scripts, not just those in the template.
+     *
+     * @param string $tag The script tag.
+     * @param string $handle The script handle.
+     *
+     * @return string The HTML string.
+     *
+     * TODO Do not re-create this function if the template does it.
+     */
+    public function filterByTag($tag, $handle)
+    {
+        if (strpos($tag, 'async') !== false &&
+            strpos($handle, '-async') > 0) {
+            $tag = str_replace(' src=', ' async="async" src=', $tag);
+        }
+        if (strpos($tag, 'defer') !== false &&
+            strpos($handle, '-defer') > 0
+        ) {
+            $tag = str_replace('<script ', '<script defer ', $tag);
+        }
+
+        return $tag;
+    }
+
+
+
     public function registerAjaxCommon(): void
     {
         add_action( 'wp_ajax_tp_ident', [$this, 'ajaxIdent'] ); // TODO un-hard-code tp_
         add_action( 'wp_ajax_nopriv_tp_ident', [$this, 'ajaxIdent'] );
-        add_action( 'wp_ajax_tp_inv_add', [$this, 'ajaxInvJoin'] ); // TODO Move to Involvement?
-        add_action( 'wp_ajax_nopriv_tp_inv_add', [$this, 'ajaxInvJoin'] );
+        add_action( 'wp_ajax_tp_inv_join', [$this, 'ajaxInvJoin'] ); // TODO Move to Involvement?
+        add_action( 'wp_ajax_nopriv_tp_inv_join', [$this, 'ajaxInvJoin'] );
+        add_action( 'wp_ajax_tp_inv_contact', [$this, 'ajaxInvContact'] ); // TODO Move to Involvement?
+        add_action( 'wp_ajax_nopriv_tp_inv_contact', [$this, 'ajaxInvContact'] );
         add_action( 'wp_ajax_tp_geolocate', [$this, 'ajaxGeolocate'] );
         add_action( 'wp_ajax_nopriv_tp_geolocate', [$this, 'ajaxGeolocate'] );
     }
@@ -328,6 +365,33 @@ class TouchPointWP
         echo json_encode(['success' => $data->success]);
         wp_die();
     }
+
+
+    public function ajaxInvContact(): void
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['error' => 'Only POST requests are allowed.']);
+            wp_die();
+        }
+
+        $inputData = file_get_contents('php://input');
+        if ($inputData[0] !== '{') {
+            echo json_encode(['error' => 'Invalid data provided.']);
+            wp_die();
+        }
+
+        $data = $this->apiPost('inv_contact', json_decode($inputData));
+
+        if ($data instanceof WP_Error) {
+            echo json_encode(['error' => $data->get_error_message()]);
+            wp_die();
+        }
+
+        echo json_encode(['success' => $data->success]);
+        wp_die();
+    }
+
 
     public function ajaxGeolocate(): void
     {
@@ -421,34 +485,38 @@ class TouchPointWP
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
             $resCodeTypesToApply[] = SmallGroup::POST_TYPE;
         }
-        register_taxonomy(self::TAX_RESCODE, $resCodeTypesToApply, [
-            'hierarchical' => false,
-            'show_ui' => false,
-            'description' => __( 'Classify small groups and users by their general locations.' ),
-            'labels' => [
-                'name' => $this->settings->rc_name_plural,
-                'singular_name' => $this->settings->rc_name_singular,
-                'search_items' =>  __( 'Search ' . $this->settings->rc_name_plural ),
-                'all_items' => __( 'All ' . $this->settings->rc_name_plural ),
-                'edit_item' => __( 'Edit ' . $this->settings->rc_name_singular ),
-                'update_item' => __( 'Update ' . $this->settings->rc_name_singular ),
-                'add_new_item' => __( 'Add New ' . $this->settings->rc_name_singular ),
-                'new_item_name' => __( 'New ' . $this->settings->rc_name_singular . ' Name' ),
-                'menu_name' => $this->settings->rc_name_plural,
-            ],
-            'public' => true,
-            'show_in_rest' => true,
-            'show_admin_column' => true,
+        register_taxonomy(
+            self::TAX_RESCODE,
+            $resCodeTypesToApply,
+            [
+                'hierarchical'      => false,
+                'show_ui'           => false,
+                'description'       => __('Classify small groups and users by their general locations.'),
+                'labels'            => [
+                    'name'          => $this->settings->rc_name_plural,
+                    'singular_name' => $this->settings->rc_name_singular,
+                    'search_items'  => __('Search ' . $this->settings->rc_name_plural),
+                    'all_items'     => __('All ' . $this->settings->rc_name_plural),
+                    'edit_item'     => __('Edit ' . $this->settings->rc_name_singular),
+                    'update_item'   => __('Update ' . $this->settings->rc_name_singular),
+                    'add_new_item'  => __('Add New ' . $this->settings->rc_name_singular),
+                    'new_item_name' => __('New ' . $this->settings->rc_name_singular . ' Name'),
+                    'menu_name'     => $this->settings->rc_name_plural,
+                ],
+                'public'            => true,
+                'show_in_rest'      => true,
+                'show_admin_column' => true,
 
-            // Control the slugs used for this taxonomy
-            'rewrite' => [
-                'slug' => $this->settings->rc_slug,
-                'with_front' => false,
-                'hierarchical' => false
-            ],
-        ]);
+                // Control the slugs used for this taxonomy
+                'rewrite'           => [
+                    'slug'         => $this->settings->rc_slug,
+                    'with_front'   => false,
+                    'hierarchical' => false
+                ],
+            ]
+        );
         foreach ($this->getResCodes() as $rc) {
-            if (! term_exists($rc->name, self::TAX_RESCODE)) {
+            if ( ! term_exists($rc->name, self::TAX_RESCODE)) {
                 wp_insert_term(
                     $rc->name,
                     self::TAX_RESCODE,
@@ -458,6 +526,55 @@ class TouchPointWP
                     ]
                 );
                 self::queueFlushRewriteRules();
+            }
+        }
+
+
+        // Weekdays
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
+            register_taxonomy(
+                self::TAX_WEEKDAY,
+                [SmallGroup::POST_TYPE],
+                [
+                    'hierarchical'      => false,
+                    'show_ui'           => false,
+                    'description'       => __('Classify small groups by the day on which they meet.'),
+                    'labels'            => [
+                        'name'          => __('Weekdays'),
+                        'singular_name' => __('Weekday'),
+                        'search_items'  => __('Search Weekdays'),
+                        'all_items'     => __('All Weekdays'),
+                        'edit_item'     => __('Edit Weekday'),
+                        'update_item'   => __('Update Weekday'),
+                        'add_new_item'  => __('Add New Weekday'),
+                        'new_item_name' => __('New Weekday Name'),
+                        'menu_name'     => __('Weekdays'),
+                    ],
+                    'public'            => true,
+                    'show_in_rest'      => true,
+                    'show_admin_column' => true,
+
+                    // Control the slugs used for this taxonomy
+                    'rewrite'           => [
+                        'slug'         => 'weekday',
+                        'with_front'   => false,
+                        'hierarchical' => false
+                    ],
+                ]
+            );
+            for ($di = 0; $di < 7; $di++) {
+                $name = self::getPluralDayOfWeekNameForNumber($di);
+                if ( ! term_exists($name, self::TAX_WEEKDAY)) {
+                    wp_insert_term(
+                        $name,
+                        self::TAX_WEEKDAY,
+                        [
+                            'description' => $name,
+                            'slug'        => self::getDayOfWeekShortForNumber($di)
+                        ]
+                    );
+                    self::queueFlushRewriteRules();
+                }
             }
         }
 

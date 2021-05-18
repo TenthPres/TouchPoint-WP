@@ -69,6 +69,11 @@ class TP_SmallGroup extends TP_Involvement {
 
     joinAction() {
         let group = this;
+
+        if (typeof ga === "function") {
+            ga('send', 'event', 'smallgroup', 'join btn click', group.name);
+        }
+
         TP_Person.DoInformalAuth().then((res) => joinUi(group, res), () => console.log("Informal auth failed, probably user cancellation."))
 
         function joinUi(group, people) {
@@ -99,6 +104,46 @@ class TP_SmallGroup extends TP_Involvement {
                     Swal.showLoading();
 
                     return group.doJoin(data, true);
+                }
+            });
+        }
+    }
+
+    contactAction() {
+        let group = this;
+
+        if (typeof ga === "function") {
+            ga('send', 'event', 'smallgroup', 'contact btn click', group.name);
+        }
+
+        TP_Person.DoInformalAuth().then((res) => contactUi(group, res), () => console.log("Informal auth failed, probably user cancellation."))
+
+        function contactUi(group, people) {
+            Swal.fire({
+                html: `<p id=\"swal-tp-text\">Contact the leaders of<br />${group.name}</p>` +
+                    '<form id="tp_sg_contact_form">' +
+                    '<div class="form-group"><label for="tp_sg_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_sg_contact_fromPid", "fromPid") + '</div>' +
+                    '<div class="form-group"><label for="tp_sg_contact_body">Message</label><textarea name="body" id="tp_sg_contact_body"></textarea></div>' +
+                    '</form>',
+                showConfirmButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Send',
+                focusConfirm: false,
+                preConfirm: () => {
+                    let form = document.getElementById('tp_sg_contact_form'),
+                        fromPerson = tpvm.people[parseInt(form.getElementsByTagName('select')[0].value)],
+                        message = form.getElementsByTagName('textarea')[0].value;
+
+                    if (message.length < 5) {
+                        let prompt = document.getElementById('swal-tp-text');
+                        prompt.innerText = "Please provide a message.";
+                        prompt.classList.add('error')
+                        return false;
+                    }
+
+                    Swal.showLoading();
+
+                    return group.doInvContact(fromPerson, message, true);
                 }
             });
         }

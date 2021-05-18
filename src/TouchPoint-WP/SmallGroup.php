@@ -49,6 +49,7 @@ class SmallGroup extends Involvement
             [
                 TouchPointWP::TAX_RESCODE,
                 TouchPointWP::TAX_AGEGROUP,
+                TouchPointWP::TAX_WEEKDAY,
                 TouchPointWP::TAX_INV_MARITAL
             ]
         );
@@ -332,25 +333,33 @@ class SmallGroup extends Involvement
             // Day(s) of week
             $days = array_diff([$inv->sched1Day, $inv->sched2Day], [null]);
             if (count($days) > 1) {
-                $days = TouchPointWP::getDayOfWeekShortForNumber($days[0]) .
+                $dayStr = TouchPointWP::getDayOfWeekShortForNumber($days[0]) .
                         " & " . TouchPointWP::getDayOfWeekShortForNumber($days[1]);
             } elseif (count($days) === 1) {
-                $days = TouchPointWP::getPluralDayOfWeekNameForNumber(reset($days));
+                $dayStr = TouchPointWP::getPluralDayOfWeekNameForNumber(reset($days));
             } elseif ($inv->meetNextMeeting !== null) {
-                $days = TouchPointWP::getPluralDayOfWeekNameForNumber(date("w", strtotime($inv->meetNextMeeting)));
+                $dayStr = TouchPointWP::getPluralDayOfWeekNameForNumber(date("w", strtotime($inv->meetNextMeeting)));
             } else {
-                $days = null;
+                $dayStr = null;
             }
+
+            // Day of week attributes
+            $dayTerms = [];
+            foreach ($days as $d) {
+                $dayTerms[] = TouchPointWP::getDayOfWeekShortForNumber($d);
+            }
+            wp_set_post_terms($post->ID, $dayTerms, TouchPointWP::TAX_WEEKDAY, false);
+
             // Times of day  TODO (eventually) allow for different times of day on different days of the week.
-            if ($days !== null) {
+            if ($dayStr !== null) {
                 $times = array_diff([$inv->sched1Time, $inv->sched2Time, $inv->meetNextMeeting], [null]);
 
                 if (count($times) > 0) {
                     $times = date(get_option('time_format'), strtotime(reset($times)));
-                    $days  .= " " . __('at', TouchPointWP::TEXT_DOMAIN) . " " . $times;
+                    $dayStr  .= " " . __('at', TouchPointWP::TEXT_DOMAIN) . " " . $times;
                 }
             }
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", $days);
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", $dayStr);
 
             // Handle leaders  TODO make leaders WP Users
             if (property_exists($inv, "leaders")) {
@@ -394,7 +403,7 @@ class SmallGroup extends Involvement
         }
 
         // Delete posts that are no longer current
-        $q        = new WP_Query(
+        $q = new WP_Query(
             [
                 'post_type' => self::POST_TYPE,
                 'nopaging'  => true,
@@ -664,7 +673,17 @@ class SmallGroup extends Involvement
             $content .= "</select>";
         }
 
-        // TODO Day of Week
+        // Day of Week
+        $wdName = __("Weekday");
+        $wdList = get_terms(['taxonomy' => TouchPointWP::TAX_WEEKDAY, 'hide_empty' => true, 'orderby' => 'id']);
+        if (is_array($wdList) && count($wdList) > 1) {
+            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"weekday\">";
+            $content .= "<option disabled selected>{$wdName}</option><option value=\"\">{$any}</option>";
+            foreach ($wdList as $d) {
+                $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
+            }
+            $content .= "</select>";
+        }
 
         // TODO Time of Day (ranges, probably)
 
@@ -839,6 +858,7 @@ class SmallGroup extends Involvement
     public function getActionButtons(): string
     {
         return '
+        <button type="button" data-tp-action="contact">Contact Leaders</button>
         <button type="button" data-tp-action="join">Join</button>';
     }
 
