@@ -624,7 +624,8 @@ class SmallGroup extends Involvement
         // set some defaults
         $params = shortcode_atts(
             [
-                'class' => 'TouchPoint-smallgroup filterBar'
+                'class' => 'TouchPoint-smallgroup filterBar',
+                'filters' => strtolower(implode(",", self::$tpwp->settings->get('sg_filter_defaults')))
             ],
             $params,
             self::SHORTCODE_FILTER
@@ -636,6 +637,8 @@ class SmallGroup extends Involvement
             $filterBarId = wp_unique_id('tp-filter-bar-');
         }
 
+        $filters = explode(',', $params['filters']);
+
         $class = $params['class'];
 
         $content = "<div class=\"{$class}\" id=\"{$filterBarId}\">";
@@ -643,68 +646,78 @@ class SmallGroup extends Involvement
         $any = __("Any", TouchPointWP::TEXT_DOMAIN);
 
         // Gender
-        $gList   = self::$tpwp->getGenders();
-        $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"genderId\">";
-        $content .= "<option disabled selected>Gender</option><option value=\"\">{$any}</option>";
-        foreach ($gList as $g) {
-            if ($g->id === 0) {  // skip unknown
-                continue;
-            }
+        if (in_array('genderid', $filters)) {
+            $gList   = self::$tpwp->getGenders();
+            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"genderId\">";
+            $content .= "<option disabled selected>Gender</option><option value=\"\">{$any}</option>";
+            foreach ($gList as $g) {
+                if ($g->id === 0) {  // skip unknown
+                    continue;
+                }
 
-            $name    = $g->name;
-            $id      = $g->id;
-            $content .= "<option value=\"{$id}\">{$name}</option>";
-        }
-        $content .= "</select>";
-
-        // Resident Codes
-        $rcName = self::$tpwp->settings->rc_name_singular;
-        $rcList = get_terms(['taxonomy' => TouchPointWP::TAX_RESCODE, 'hide_empty' => true]);
-        if (is_array($rcList)) {
-            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"rescode\">";
-            $content .= "<option disabled selected>{$rcName}</option><option value=\"\">{$any}</option>";
-
-            foreach ($rcList as $g) {
                 $name    = $g->name;
-                $id      = $g->slug;
+                $id      = $g->id;
                 $content .= "<option value=\"{$id}\">{$name}</option>";
             }
-
             $content .= "</select>";
+        }
+
+        // Resident Codes
+        if (in_array('rescode', $filters)) {
+            $rcName = self::$tpwp->settings->rc_name_singular;
+            $rcList = get_terms(['taxonomy' => TouchPointWP::TAX_RESCODE, 'hide_empty' => true]);
+            if (is_array($rcList)) {
+                $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"rescode\">";
+                $content .= "<option disabled selected>{$rcName}</option><option value=\"\">{$any}</option>";
+
+                foreach ($rcList as $g) {
+                    $name    = $g->name;
+                    $id      = $g->slug;
+                    $content .= "<option value=\"{$id}\">{$name}</option>";
+                }
+
+                $content .= "</select>";
+            }
         }
 
         // Day of Week
-        $wdName = __("Weekday");
-        $wdList = get_terms(['taxonomy' => TouchPointWP::TAX_WEEKDAY, 'hide_empty' => true, 'orderby' => 'id']);
-        if (is_array($wdList) && count($wdList) > 1) {
-            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"weekday\">";
-            $content .= "<option disabled selected>{$wdName}</option><option value=\"\">{$any}</option>";
-            foreach ($wdList as $d) {
-                $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
+        if (in_array('weekday', $filters)) {
+            $wdName = __("Weekday");
+            $wdList = get_terms(['taxonomy' => TouchPointWP::TAX_WEEKDAY, 'hide_empty' => true, 'orderby' => 'id']);
+            if (is_array($wdList) && count($wdList) > 1) {
+                $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"weekday\">";
+                $content .= "<option disabled selected>{$wdName}</option><option value=\"\">{$any}</option>";
+                foreach ($wdList as $d) {
+                    $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
+                }
+                $content .= "</select>";
             }
-            $content .= "</select>";
         }
 
         // TODO Time of Day (ranges, probably)
 
         // Marital Status
-        $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"inv_marital\">";
-        $content .= "<option disabled selected>Marital Status</option>";
-        $content .= "<option value=\"\">{$any}</option>";
-        $content .= "<option value=\"mostly_single\">Mostly Single</option>";  // i18n
-        $content .= "<option value=\"mostly_married\">Mostly Married</option>"; // i18n
-        $content .= "</select>";
+        if (in_array('inv_marital', $filters)) {
+            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"inv_marital\">";
+            $content .= "<option disabled selected>Marital Status</option>";
+            $content .= "<option value=\"\">{$any}</option>";
+            $content .= "<option value=\"mostly_single\">Mostly Single</option>";  // i18n
+            $content .= "<option value=\"mostly_married\">Mostly Married</option>"; // i18n
+            $content .= "</select>";
+        }
 
         // Age Groups
-        $agName = __("Age");
-        $agList = get_terms(['taxonomy' => TouchPointWP::TAX_AGEGROUP, 'hide_empty' => true]);
-        if (is_array($agList)) {
-            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"agegroup\">";
-            $content .= "<option disabled selected>{$agName}</option><option value=\"\">{$any}</option>";
-            foreach ($agList as $a) {
-                $content .= "<option value=\"{$a->slug}\">{$a->name}</option>";
+        if (in_array('agegroup', $filters)) {
+            $agName = __("Age");
+            $agList = get_terms(['taxonomy' => TouchPointWP::TAX_AGEGROUP, 'hide_empty' => true]);
+            if (is_array($agList)) {
+                $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"agegroup\">";
+                $content .= "<option disabled selected>{$agName}</option><option value=\"\">{$any}</option>";
+                foreach ($agList as $a) {
+                    $content .= "<option value=\"{$a->slug}\">{$a->name}</option>";
+                }
+                $content .= "</select>";
             }
-            $content .= "</select>";
         }
 
         $content .= "</div>";

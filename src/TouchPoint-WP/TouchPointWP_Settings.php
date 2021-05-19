@@ -403,6 +403,24 @@ class TouchPointWP_Settings
                         'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->get('sg_divisions')) : [],
                         'default'     => [],
                     ],
+                    [
+                        'id'          => 'sg_filter_defaults',
+                        'label'       => __('Default Group Filters', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            "Filtering criteria to make available to users by default.  Can be overridden by shortcode 
+                            parameters.  Filters generally won't appear unless groups match multiple options.",
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'checkbox_multi',
+                        'options'     => [
+                            'genderId'    => __('Gender', TouchPointWP::TEXT_DOMAIN),
+                            'rescode'    => $this->get('rc_name_singular'),
+                            'weekday' => __('Weekday', TouchPointWP::TEXT_DOMAIN),
+                            'inv_marital'  => __('Marital Status', TouchPointWP::TEXT_DOMAIN),
+                            'agegroup'  => __('Age Group', TouchPointWP::TEXT_DOMAIN),
+                        ],
+                        'default'     => ['genderId', 'rescode', 'weekday', 'agegroup'],
+                    ],
                 ],
             ];
         }
@@ -746,12 +764,13 @@ class TouchPointWP_Settings
 
     /**
      * @param string $what The field to get a value for
+     * @param mixed  $default Default value to use.  Defaults to UNDEFINED_PLACEHOLDER
      *
      * @return mixed  The value, if set.  False if not set.
      */
-    protected function getWithoutDefault(string $what)
+    protected function getWithoutDefault(string $what, $default = self::UNDEFINED_PLACEHOLDER)
     {
-        return get_option(TouchPointWP::SETTINGS_PREFIX . $what, self::UNDEFINED_PLACEHOLDER);
+        return get_option(TouchPointWP::SETTINGS_PREFIX . $what, $default);
     }
 
     /**
