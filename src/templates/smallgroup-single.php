@@ -9,7 +9,7 @@ the_post();
 $p = get_post();
 $sg = SmallGroup::fromPost($p);
 
-wp_enqueue_style(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style');
+SmallGroup::enqueueTemplateStyle();
 wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'swal2-defer');
 wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'base');
 wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-defer');

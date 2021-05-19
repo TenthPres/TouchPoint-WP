@@ -155,14 +155,10 @@ class SmallGroup extends Involvement
         add_action(self::CRON_HOOK, [self::class, 'updateSmallGroupsFromTouchPoint']);
         if ( ! wp_next_scheduled(self::CRON_HOOK)) {
             // Runs at 6am EST (11am UTC), hypothetically after TouchPoint runs its Morning Batches.
-            wp_schedule_event(date('U', strtotime('tomorrow') + 3600 * 11), 'daily', self::CRON_HOOK);
+            wp_schedule_event(date('U', strtotime('tomorrow') + 3600 * 11),
+                              'daily',
+                              self::CRON_HOOK);
         }
-
-        // Deactivation
-
-
-//        TODO on activation and deactivation, or change to the small group slug, flush rewrite rules.
-        // TODO Deactivation: cancel Cron updating task.
 
         return true;
     }
@@ -185,7 +181,6 @@ class SmallGroup extends Involvement
                 'hierarchical'     => false,
                 'show_ui'          => false,
                 'show_in_rest'     => true,
-//            'rest_controller_class' => TODO: this.
                 'supports'         => [
                     'title',
                     'custom-fields'
@@ -203,7 +198,7 @@ class SmallGroup extends Involvement
             ]
         );
 
-        self::$tpwp->registerTaxonomies(); // TODO probably needs to be moved to parent
+        self::$tpwp->registerTaxonomies(); // TODO probably needs to be moved to parent, but order matters.
 
         // If the slug has changed, update it.  Only executes if enqueued.
         self::$tpwp->flushRewriteRules();
@@ -294,7 +289,10 @@ class SmallGroup extends Involvement
                 $post = get_post($post);
             }
 
-            // TODO check for $post being an instanceof WP_Error and report that something went wrong.
+            if ($post instanceof WP_Error) {
+                error_log($post->get_error_message());
+                continue;
+            }
 
             /** @var $post WP_Post */
 
@@ -480,15 +478,6 @@ class SmallGroup extends Involvement
             TouchPointWP::VERSION,
             true
         );
-
-        wp_register_style(
-            TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style',
-            // TODO determine whether this should be pre-registered (probaboly not), or just called by the template.
-            self::$tpwp->assets_url . 'template/smallgroups-template-style.css',
-            [],
-            TouchPointWP::VERSION,
-            'all'
-        );
     }
 
     /**
@@ -624,7 +613,8 @@ class SmallGroup extends Involvement
         // set some defaults
         $params = shortcode_atts(
             [
-                'class' => 'TouchPoint-smallgroup filterBar'
+                'class' => 'TouchPoint-smallgroup filterBar',
+                'filters' => strtolower(implode(",", self::$tpwp->settings->get('sg_filter_defaults')))
             ],
             $params,
             self::SHORTCODE_FILTER
@@ -636,6 +626,8 @@ class SmallGroup extends Involvement
             $filterBarId = wp_unique_id('tp-filter-bar-');
         }
 
+        $filters = explode(',', $params['filters']);
+
         $class = $params['class'];
 
         $content = "<div class=\"{$class}\" id=\"{$filterBarId}\">";
@@ -643,74 +635,101 @@ class SmallGroup extends Involvement
         $any = __("Any", TouchPointWP::TEXT_DOMAIN);
 
         // Gender
-        $gList   = self::$tpwp->getGenders();
-        $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"genderId\">";
-        $content .= "<option disabled selected>Gender</option><option value=\"\">{$any}</option>";
-        foreach ($gList as $g) {
-            if ($g->id === 0) {  // skip unknown
-                continue;
-            }
+        if (in_array('genderid', $filters)) {
+            $gList   = self::$tpwp->getGenders();
+            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"genderId\">";
+            $content .= "<option disabled selected>Gender</option><option value=\"\">{$any}</option>";
+            foreach ($gList as $g) {
+                if ($g->id === 0) {  // skip unknown
+                    continue;
+                }
 
-            $name    = $g->name;
-            $id      = $g->id;
-            $content .= "<option value=\"{$id}\">{$name}</option>";
-        }
-        $content .= "</select>";
-
-        // Resident Codes
-        $rcName = self::$tpwp->settings->rc_name_singular;
-        $rcList = get_terms(['taxonomy' => TouchPointWP::TAX_RESCODE, 'hide_empty' => true]);
-        if (is_array($rcList)) {
-            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"rescode\">";
-            $content .= "<option disabled selected>{$rcName}</option><option value=\"\">{$any}</option>";
-
-            foreach ($rcList as $g) {
                 $name    = $g->name;
-                $id      = $g->slug;
+                $id      = $g->id;
                 $content .= "<option value=\"{$id}\">{$name}</option>";
             }
-
             $content .= "</select>";
+        }
+
+        // Resident Codes
+        if (in_array('rescode', $filters)) {
+            $rcName = self::$tpwp->settings->rc_name_singular;
+            $rcList = get_terms(['taxonomy' => TouchPointWP::TAX_RESCODE, 'hide_empty' => true]);
+            if (is_array($rcList)) {
+                $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"rescode\">";
+                $content .= "<option disabled selected>{$rcName}</option><option value=\"\">{$any}</option>";
+
+                foreach ($rcList as $g) {
+                    $name    = $g->name;
+                    $id      = $g->slug;
+                    $content .= "<option value=\"{$id}\">{$name}</option>";
+                }
+
+                $content .= "</select>";
+            }
         }
 
         // Day of Week
-        $wdName = __("Weekday");
-        $wdList = get_terms(['taxonomy' => TouchPointWP::TAX_WEEKDAY, 'hide_empty' => true, 'orderby' => 'id']);
-        if (is_array($wdList) && count($wdList) > 1) {
-            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"weekday\">";
-            $content .= "<option disabled selected>{$wdName}</option><option value=\"\">{$any}</option>";
-            foreach ($wdList as $d) {
-                $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
+        if (in_array('weekday', $filters)) {
+            $wdName = __("Weekday");
+            $wdList = get_terms(['taxonomy' => TouchPointWP::TAX_WEEKDAY, 'hide_empty' => true, 'orderby' => 'id']);
+            if (is_array($wdList) && count($wdList) > 1) {
+                $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"weekday\">";
+                $content .= "<option disabled selected>{$wdName}</option><option value=\"\">{$any}</option>";
+                foreach ($wdList as $d) {
+                    $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
+                }
+                $content .= "</select>";
             }
-            $content .= "</select>";
         }
 
         // TODO Time of Day (ranges, probably)
 
         // Marital Status
-        $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"inv_marital\">";
-        $content .= "<option disabled selected>Marital Status</option>";
-        $content .= "<option value=\"\">{$any}</option>";
-        $content .= "<option value=\"mostly_single\">Mostly Single</option>";  // i18n
-        $content .= "<option value=\"mostly_married\">Mostly Married</option>"; // i18n
-        $content .= "</select>";
+        if (in_array('inv_marital', $filters)) {
+            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"inv_marital\">";
+            $content .= "<option disabled selected>Marital Status</option>";
+            $content .= "<option value=\"\">{$any}</option>";
+            $content .= "<option value=\"mostly_single\">Mostly Single</option>";  // i18n
+            $content .= "<option value=\"mostly_married\">Mostly Married</option>"; // i18n
+            $content .= "</select>";
+        }
 
         // Age Groups
-        $agName = __("Age");
-        $agList = get_terms(['taxonomy' => TouchPointWP::TAX_AGEGROUP, 'hide_empty' => true]);
-        if (is_array($agList)) {
-            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"agegroup\">";
-            $content .= "<option disabled selected>{$agName}</option><option value=\"\">{$any}</option>";
-            foreach ($agList as $a) {
-                $content .= "<option value=\"{$a->slug}\">{$a->name}</option>";
+        if (in_array('agegroup', $filters)) {
+            $agName = __("Age");
+            $agList = get_terms(['taxonomy' => TouchPointWP::TAX_AGEGROUP, 'hide_empty' => true]);
+            if (is_array($agList)) {
+                $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"agegroup\">";
+                $content .= "<option disabled selected>{$agName}</option><option value=\"\">{$any}</option>";
+                foreach ($agList as $a) {
+                    $content .= "<option value=\"{$a->slug}\">{$a->name}</option>";
+                }
+                $content .= "</select>";
             }
-            $content .= "</select>";
         }
 
         $content .= "</div>";
 
         return $content;
     }
+
+
+    /**
+     * This function enqueues the stylesheet for the default templates, to avoid registering the style on sites where
+     * custom templates exist.
+     */
+    public static function enqueueTemplateStyle()
+    {
+        wp_enqueue_style(
+            TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style',
+            self::$tpwp->assets_url . 'template/smallgroups-template-style.css',
+            [],
+            TouchPointWP::VERSION,
+            'all'
+        );
+    }
+
 
     /**
      * @param array  $params
@@ -774,21 +793,12 @@ class SmallGroup extends Involvement
             $sg      = SmallGroup::fromObj($g);
             $g->name = $sg->name;
             $g->path = get_permalink($sg->post_id);
-//            $g->name = SmallGroup::fromObj($g)->name;
         }
 
         echo json_encode($r);
-        wp_die();  // TODO is this necessary?
+        wp_die();
     }
 
-
-//    public static function fromInvId($iid): SmallGroup TODO remove
-//    {
-//        if (!isset(self::$_instances[$iid])) {
-//            self::$_instances[$iid] = new SmallGroup($iid);
-//        }
-//        return self::$_instances[$iid];
-//    }
 
     /**
      * Gets an array of ID/Distance pairs for a given lat/lng.
@@ -799,13 +809,24 @@ class SmallGroup extends Involvement
      *
      * @return array|object|null
      */
-    protected static function getGroupsNear($lat, $lng, $limit = 3)
+    protected static function getGroupsNear($lat = null, $lng = null, $limit = 3)
     {
-        $lat   = floatval($lat) ?? 39.949601081097036; // TODO change to get location from IP.
-        $lng   = floatval($lng) ?? -75.17186043802126;
+        if ($lat === null || $lng === null) {
+            $geoObj = self::$tpwp->geolocate();
+
+            if (!isset($geoObj->error)) {
+                $lat = $geoObj->lat;
+                $lng = $geoObj->lng;
+            }
+        }
+
+        $lat = floatval($lat) ?? 39.949601081097036; // TODO use some kind of default.
+        $lng = floatval($lng) ?? -75.17186043802126;
+
         $limit = min(max(intval($limit), 0), 100);
 
         global $wpdb;
+        $settingsPrefix = TouchPointWP::SETTINGS_PREFIX;
         $q = $wpdb->prepare( "
             SELECT l.Id as post_id,
                    l.post_title as name,
@@ -817,17 +838,17 @@ class SmallGroup extends Involvement
                          p.post_title,
                          CAST(pmLat.meta_value AS DECIMAL(10, 7)) as lat,
                          CAST(pmLng.meta_value AS DECIMAL(10, 7)) as lng
-                  FROM wp_posts as p
+                  FROM $wpdb->posts as p
                            JOIN
-                       wp_postmeta as pmLat ON p.ID = pmLat.post_id AND pmLat.meta_key = 'tp_geo_lat'
+                       $wpdb->postmeta as pmLat ON p.ID = pmLat.post_id AND pmLat.meta_key = '{$settingsPrefix}geo_lat'
                            JOIN
-                       wp_postmeta as pmLng ON p.ID = pmLng.post_id AND pmLng.meta_key = 'tp_geo_lng'
+                       $wpdb->postmeta as pmLng ON p.ID = pmLng.post_id AND pmLng.meta_key = '{$settingsPrefix}geo_lng'
                 WHERE post_type = %s
                  ) as l
-                    JOIN wp_postmeta as pmInv ON l.ID = pmInv.post_id AND pmInv.meta_key = 'tp_invId'
-                    LEFT JOIN wp_postmeta as pmSch ON l.ID = pmSch.post_id AND pmSch.meta_key = 'tp_meetingSchedule'
+                    JOIN $wpdb->postmeta as pmInv ON l.ID = pmInv.post_id AND pmInv.meta_key = '{$settingsPrefix}invId'
+                    LEFT JOIN $wpdb->postmeta as pmSch ON l.ID = pmSch.post_id AND pmSch.meta_key = '{$settingsPrefix}meetingSchedule'
             ORDER BY distance LIMIT %d
-            ", $lat, $lng, $lat, self::POST_TYPE, $limit );  // TODO un-hardcode tp_ prefixes
+            ", $lat, $lng, $lat, self::POST_TYPE, $limit );
 
         return $wpdb->get_results($q);
     }

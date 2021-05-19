@@ -135,7 +135,9 @@ class TouchPointWP
 
         $this->script_suffix = defined('SCRIPT_DEBUG') && SCRIPT_DEBUG ? '' : '.min';
 
-        register_activation_hook($this->file, [$this, 'install']);
+        register_activation_hook($this->file, [$this, 'activation']);
+        register_deactivation_hook($this->file, [$this, 'deactivation']);
+        register_uninstall_hook($this->file, [self::class, 'uninstall']);
 
         // Register frontend JS & CSS.
         add_action('init', [$this, 'registerScriptsAndStyles'], 0);
@@ -276,7 +278,7 @@ class TouchPointWP
      *
      * TODO Do not re-create this function if the template does it.
      */
-    public function filterByTag($tag, $handle)
+    public function filterByTag($tag, $handle): string
     {
         if (strpos($tag, 'async') !== false &&
             strpos($handle, '-async') > 0) {
@@ -295,14 +297,15 @@ class TouchPointWP
 
     public function registerAjaxCommon(): void
     {
-        add_action( 'wp_ajax_tp_ident', [$this, 'ajaxIdent'] ); // TODO un-hard-code tp_
-        add_action( 'wp_ajax_nopriv_tp_ident', [$this, 'ajaxIdent'] );
-        add_action( 'wp_ajax_tp_inv_join', [$this, 'ajaxInvJoin'] ); // TODO Move to Involvement?
-        add_action( 'wp_ajax_nopriv_tp_inv_join', [$this, 'ajaxInvJoin'] );
-        add_action( 'wp_ajax_tp_inv_contact', [$this, 'ajaxInvContact'] ); // TODO Move to Involvement?
-        add_action( 'wp_ajax_nopriv_tp_inv_contact', [$this, 'ajaxInvContact'] );
-        add_action( 'wp_ajax_tp_geolocate', [$this, 'ajaxGeolocate'] );
-        add_action( 'wp_ajax_nopriv_tp_geolocate', [$this, 'ajaxGeolocate'] );
+        $tp_ = self::HOOK_PREFIX;
+        add_action( "wp_ajax_{$tp_}ident", [$this, 'ajaxIdent'] );
+        add_action( "wp_ajax_nopriv_{$tp_}ident", [$this, 'ajaxIdent'] );
+        add_action( "wp_ajax_{$tp_}inv_join", [$this, 'ajaxInvJoin'] );
+        add_action( "wp_ajax_nopriv_{$tp_}inv_join", [$this, 'ajaxInvJoin'] );
+        add_action( "wp_ajax_{$tp_}inv_contact", [$this, 'ajaxInvContact'] );
+        add_action( "wp_ajax_nopriv_{$tp_}inv_contact", [$this, 'ajaxInvContact'] );
+        add_action( "wp_ajax_{$tp_}geolocate", [$this, 'ajaxGeolocate'] );
+        add_action( "wp_ajax_nopriv_{$tp_}geolocate", [$this, 'ajaxGeolocate'] );
     }
 
     public function ajaxIdent(): void
@@ -403,31 +406,49 @@ class TouchPointWP
 
         // TODO validate that request is only coming from allowed referrers... or something like that.
 
-        $ipHeaderKeys = ['HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR'];
-        $ip = null;
-        foreach ($ipHeaderKeys as $k) {
-            if ( ! empty($_SERVER[$k]) && filter_var($_SERVER[$k], FILTER_VALIDATE_IP)) {
-                $ip = $_SERVER[$k];
-                break;
+        echo json_encode($this->geolocate());
+        wp_die();
+    }
+
+    /**
+     * @param ?string $ip To get info for a specific IP, pass it here.
+     *
+     * @return object An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, an object with
+     * an 'error' parameter if something went wrong.
+     */
+    public function geolocate($ip = null): object
+    {
+        if ($ip === null) {
+            $ipHeaderKeys = [
+                'HTTP_CLIENT_IP',
+                'HTTP_X_FORWARDED_FOR',
+                'HTTP_X_FORWARDED',
+                'HTTP_FORWARDED_FOR',
+                'HTTP_FORWARDED',
+                'REMOTE_ADDR'
+            ];
+            $ip = null;
+            foreach ($ipHeaderKeys as $k) {
+                if ( ! empty($_SERVER[$k]) && filter_var($_SERVER[$k], FILTER_VALIDATE_IP)) {
+                    $ip = $_SERVER[$k];
+                    break;
+                }
             }
         }
 
-        if ($ip === '') {
-            echo json_encode(['error' => 'No usable IP Address.']);
-            wp_die();
+        if ($ip === '' || $ip === null) {
+            return (object)['error' => 'No usable IP Address.'];
         }
 
         $return = $this->getIpData($ip);
 
         if ($return instanceof WP_Error) {
-            echo json_encode(['error' => implode(", ", $return->get_error_messages())]);
-            wp_die();
+            return (object)['error' => implode(", ", $return->get_error_messages())];
         }
 
         $d = json_decode($return);
         if ($d->error) {
-            echo json_encode(['error' => $d->reason]);
-            wp_die();
+            return (object)['error' => $d->reason];
         }
 
         if ($d->country === "US") {
@@ -436,16 +457,17 @@ class TouchPointWP
             $d->human = $d->city . ", " . $d->country_name;
         }
 
-        echo json_encode(['lat' => $d->latitude, 'lng' => $d->longitude, 'human' => $d->human, 'type' => 'ip' ]);
-        wp_die();
+        return (object)['lat' => $d->latitude, 'lng' => $d->longitude, 'human' => $d->human, 'type' => 'ip' ];
     }
 
     /**
+     * The underlying IP Data function, which handles caching.
+     *
      * @param $ip
      *
      * @return mixed
      */
-    public function getIpData($ip)
+    protected function getIpData($ip)
     {
         $ip_pton = inet_pton($ip);
 
@@ -625,7 +647,7 @@ class TouchPointWP
         }
 
 
-        // Involvement Marital Status TODO move to involvement?
+        // Involvement Marital Status
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
             register_taxonomy(
                 self::TAX_INV_MARITAL,
@@ -796,14 +818,41 @@ class TouchPointWP
     }
 
     /**
-     * Installation. Runs on activation.
+     * Activation. Runs on activation.
      */
-    public function install()
+    public function activation()
     {
         $this->_log_version_number();
 
+        self::queueFlushRewriteRules();
+
         $this->createTables();
     }
+
+    /**
+     * Deactivation. Runs on deactivation.
+     */
+    public function deactivation()
+    {
+        $this->_log_version_number();
+
+        self::flushRewriteRules(true);
+    }
+
+    /**
+     * Uninstallation. Runs on uninstallation.
+     */
+    public static function uninstall()
+    {
+        // TODO remove all options.
+        // TODO remove all taxonomies (maybe)
+        // TODO remove all posts
+
+        // TODO cancel Cron updating task.
+
+        self::dropTables();
+    }
+
 
     /**
      * Create or update database tables
@@ -825,7 +874,22 @@ class TouchPointWP
         dbDelta($sql);
     }
 
-    // TODO drop tables with uninstall.
+    /**
+     * Drop database tables at uninstallation.
+     */
+    protected static function dropTables(): void
+    {
+        if ( !defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+            // just to be really sure we want to do this.
+            return;
+        }
+
+        global $wpdb;
+
+        // IP Geo Caching table
+        $tableName = $wpdb->base_prefix . self::TABLE_IP_GEO;
+        $wpdb->query("DROP TABLE IF EXISTS $tableName");
+    }
 
     /**
      * Log the plugin version number.
@@ -886,6 +950,8 @@ class TouchPointWP
         $divisions = implode(",", $divisions);
         $divisions = str_replace('div','', $divisions);
 
+        // TODO caching.
+
         try {
             $return = $this->apiGet('MemTypes', ['divs' => $divisions]);
         } catch (TouchPointWP_Exception $e) {
@@ -899,7 +965,8 @@ class TouchPointWP
         $body = json_decode($return['body']);
 
         if (property_exists($body, "message") || ! is_array($body->data->memTypes)) {
-            return []; // Todo log an error?
+            // an error happened; fail quietly.
+            return [];
         }
 
         return $body->data->memTypes;
