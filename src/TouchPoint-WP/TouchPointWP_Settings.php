@@ -123,7 +123,7 @@ class TouchPointWP_Settings
      */
     public function initSettings(): void
     {
-        $this->settings = $this->settingsFields(false, false); // TODO remove this if at all possible, so details are only called when needed.
+        $this->settings = $this->settingsFields(false, false);
     }
 
     /**
@@ -233,7 +233,7 @@ class TouchPointWP_Settings
                     'id'          => 'google_maps_api_key',
                     'label'       => __('Google Maps API Key', 'TouchPoint-WP'),
                     'description' => __(
-                        'Required for embedding maps. See the documentation.', // todo add a documentation link
+                        'Required for embedding maps. <a href="https://github.com/TenthPres/TouchPoint-WP/wiki/Installation#google-maps-api">See the documentation.</a>',
                         TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'text',
@@ -704,15 +704,15 @@ class TouchPointWP_Settings
         // If you're not including an image upload then you can leave this function call out.
 //        wp_enqueue_media(); // todo remove?
 
-        // TODO this this out.  Most of this is not relevant.
-        wp_register_script(
-            $this->parent::TOKEN . '-settings-js',
-            $this->parent->assets_url . 'js/settings' . $this->parent->script_suffix . '.js',
-            ['jquery'],
-            '1.0.0',
-            true
-        );
-        wp_enqueue_script($this->parent::TOKEN . '-settings-js');
+        // TODO remove.  Most of this is not relevant.
+//        wp_register_script(
+//            $this->parent::TOKEN . '-settings-js',
+//            $this->parent->assets_url . 'js/settings' . $this->parent->script_suffix . '.js',
+//            ['jquery'],
+//            '1.0.0',
+//            true
+//        );
+//        wp_enqueue_script($this->parent::TOKEN . '-settings-js');
     }
 
     /**

@@ -111,7 +111,7 @@ class TP_Involvement {
 
     name = "";
     invId = "";
-    _visible = true; // TODO make private when support is widespread.
+    _visible = true;
 
     attributes = {};
 
@@ -133,7 +133,6 @@ class TP_Involvement {
         return this._visible;
     }
 
-    // TODO potentially move to a helper of some kind.
     static setElementVisibility(elt, visibility)
     {
         elt.style.display = !!visibility ? "" : "none";
@@ -334,7 +333,7 @@ class TP_Person {
                                     '<div class="form-group"><label for="tp_ident_zip">Zip Code</label><input type="text" name="zip" id="tp_ident_zip" pattern="[0-9]{5}" maxlength="5" value="' + data.zip + '" required /></div>' +
                                     '<div class="form-group"><label for="tp_ident_first">First Name</label><input type="text" name="firstName" id="tp_ident_first" required /></div>' +
                                     '<div class="form-group"><label for="tp_ident_last">Last Name</label><input type="text" name="lastName" id="tp_ident_last" required /></div>' +
-                                    // '<div class="form-group"><label for="tp_ident_dob">Birthdate</label><input type="date" name="dob" id="tp_ident_dob" /></div>' +  TODO remove or... something...
+                                    // '<div class="form-group"><label for="tp_ident_dob">Birthdate</label><input type="date" name="dob" id="tp_ident_dob" /></div>' +
                                     '<div class="form-group"><label for="tp_ident_phone">Phone</label><input type="tel" name="phone" id="tp_ident_phone" /></div>' +
                                     '<input type="submit" hidden style="display:none;" /></form>'
                             });
