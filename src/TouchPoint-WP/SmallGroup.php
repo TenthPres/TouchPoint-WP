@@ -33,6 +33,8 @@ class SmallGroup extends Involvement
     protected static bool $_hasUsedMap = false;
     private static array $_instances = [];
     private static bool $_isInitiated = false;
+
+    // TODO look at moving geo to a Trait or something.
     public object $geo;
 
     /**
@@ -78,7 +80,7 @@ class SmallGroup extends Involvement
 
         $this->attributes->genderId = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "genderId", true);
 
-        if (gettype($object) == "object" && $object->geo_lat !== null && $object->geo_lat !== '') {
+        if (is_object($object) && $object->geo_lat !== null && $object->geo_lat !== '') {
             // Probably a database query result
             $this->geo = (object)[
                 'lat' => self::toFloatOrNull($object->geo_lat),
@@ -118,6 +120,7 @@ class SmallGroup extends Involvement
         return $ret;
     }
 
+    // TODO why is this here?
     public static function toFloatOrNull($numeric): ?float
     {
         if (is_numeric($numeric)) {
@@ -205,6 +208,10 @@ class SmallGroup extends Involvement
 
         // Register default templates for Small Groups
         add_filter('template_include', [self::class, 'templateFilter']);
+
+        // Register function to return schedule instead of publishing date
+        add_filter( 'get_the_date', [self::class, 'filterPublishDate'], 10, 3 );
+        add_filter( 'get_the_time', [self::class, 'filterPublishDate'], 10, 3 );
 
         // Run cron if it hasn't been run before or is overdue.
         if (self::$tpwp->settings->sg_cron_last_run * 1 < time() - 86400 - 3600) {
@@ -448,6 +455,23 @@ class SmallGroup extends Involvement
         }
 
         return $template;
+    }
+
+    /**
+     * @param $theDate
+     * @param $format
+     * @param $post
+     *
+     * @return string
+     */
+    public static function filterPublishDate($theDate, $format, $post): string
+    {
+        if (get_post_type($post) === SmallGroup::POST_TYPE) {
+            if (!is_numeric($post))
+                $post = $post->ID;
+            $theDate = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", true);
+        }
+        return $theDate;
     }
 
     public static function registerScriptsAndStyles(): void
