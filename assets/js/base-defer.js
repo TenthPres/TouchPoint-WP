@@ -59,21 +59,41 @@ class TP_DataGeo {
         }
     }
 
-    static getLocation(then, error) {
-        // TODO cache... if it's worth it?
+    /**
+     * Get the user's location.
+     *
+     * @param then function Callback for when the location is available.
+     * @param error function Callback for an error. (Error data structure may vary.)
+     * @param type string Type of fetching to use. "nav", "ip" or "both"
+     */
+    static getLocation(then, error, type = "both") {
+        if (type === "both") {
+            type = ["nav", "ip"];
+        } else {
+            type = [type];
+        }
 
-        if (navigator.geolocation && navigator.permissions) {
+        // if location is already known and of an acceptable type
+        if (TP_DataGeo.loc.lat !== null && type.indexOf(TP_DataGeo.loc.type) > -1) {
+            then(TP_DataGeo.loc);
+        }
+
+        // navigator is preferred if available and allowed.
+        if (navigator.geolocation && navigator.permissions && type.indexOf("nav") > -1) {
             navigator.permissions.query({name: 'geolocation'}).then(function(PermissionStatus) {
                 TP_DataGeo.loc.permission = PermissionStatus.state;
                 if (PermissionStatus.state === 'granted') {
-                    TP_DataGeo.geoByNavigator(then, error);
-                } else {
-                    TP_DataGeo.geoByServer(then, error);
+                    return TP_DataGeo.geoByNavigator(then, error);
                 }
             })
-        } else {
-            TP_DataGeo.geoByServer(then, error);
         }
+
+        // Fallback to Server
+        if (type.indexOf("ip") > -1) {
+            return TP_DataGeo.geoByServer(then, error);
+        }
+
+        error({error: true, message: "No geolocation option available"});
     }
 
     static geoByServer(then, error) {

@@ -287,8 +287,6 @@ class TP_SmallGroup extends TP_Involvement {
         function handleGroupsLoaded(response) {
             tpvm._sg.nearby(response);
         }
-
-        // TODO turn location into groups.  Potentially merge fetches.
     }
 }
 
