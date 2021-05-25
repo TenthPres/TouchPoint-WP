@@ -464,8 +464,11 @@ class SmallGroup extends Involvement
      *
      * @return string
      */
-    public static function filterPublishDate($theDate, $format, $post): string
+    public static function filterPublishDate($theDate, $format, $post = null): string
     {
+        if ($post == null)
+            $post = get_the_ID();
+
         if (get_post_type($post) === SmallGroup::POST_TYPE) {
             if (!is_numeric($post))
                 $post = $post->ID;
