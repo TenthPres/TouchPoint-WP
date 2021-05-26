@@ -155,6 +155,8 @@ class TouchPointWP
             $this->admin = new TouchPointWP_AdminAPI();
         }
 
+        add_filter('do_parse_request', [$this, 'parseRequest'], 10, 3);
+
         // Handle localisation.
         $this->load_plugin_textdomain();
         add_action('init', [$this, 'load_localisation'], 0);
@@ -181,6 +183,22 @@ class TouchPointWP
             require_once 'SmallGroup.php';
         }
     }
+
+    public function parseRequest($continue, $wp, $extraVars): bool
+    {
+        if ($continue) {
+            $path = trim($_SERVER['REQUEST_URI'], '/');
+
+            if ($path === "touchpoint-api/app-events" && TouchPointWP::useTribeCalendar()) {
+
+                EventsCalendar::getAppList();
+
+                exit;
+            }
+        }
+        return $continue;
+    }
+
 
     /**
      * Load plugin textdomain
@@ -897,6 +915,24 @@ class TouchPointWP
     private function _log_version_number()
     {
         update_option(self::TOKEN . '_version', self::VERSION, false);
+    }
+
+    public static function useTribeCalendarPro(): bool
+    {
+        if ( ! function_exists( 'is_plugin_active' ) ){
+            require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
+        }
+
+        if (! class_exists("tp\TouchPointWP\EventsCalendar")) {
+            require_once 'EventsCalendar.php';
+        }
+
+        return is_plugin_active( 'events-calendar-pro/events-calendar-pro.php');
+    }
+
+    public static function useTribeCalendar(): bool
+    {
+        return self::useTribeCalendarPro() || is_plugin_active( 'the-events-calendar/the-events-calendar.php');
     }
 
     /**
