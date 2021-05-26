@@ -35,6 +35,11 @@ class TouchPointWP
     public const TEXT_DOMAIN = "TouchPoint-WP";
 
     /**
+     * API Endpoint prefix.  Must be lower-case.
+     */
+    public const API_ENDPOINT = "touchpoint-api";
+
+    /**
      * Prefix to use for all shortcodes.
      */
     public const SHORTCODE_PREFIX = "TP-";
@@ -169,29 +174,52 @@ class TouchPointWP
         add_filter( 'script_loader_tag', [$this, 'filterByTag'], 10, 2 );
 
         // Load Auth tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
+        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on"
+            && ! class_exists("tp\TouchPointWP\Auth")) {
             require_once 'Auth.php';
         }
 
         // Load RSVP tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
+        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on"
+            && ! class_exists("tp\TouchPointWP\Rsvp")) {
             require_once 'Rsvp.php';
         }
 
         // Load Small Group tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_small_group') === "on") {
+        if (get_option(self::SETTINGS_PREFIX . 'enable_small_group') === "on"
+            && ! class_exists("tp\TouchPointWP\SmallGroup")) {
             require_once 'SmallGroup.php';
+        }
+
+        // Load Events if enabled (by presence of Events Calendar plugin)
+        if (self::useTribeCalendar()
+            && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
+            require_once 'EventsCalendar.php';
         }
     }
 
     public function parseRequest($continue, $wp, $extraVars): bool
     {
         if ($continue) {
-            $path = trim($_SERVER['REQUEST_URI'], '/');
+            $reqUri = parse_url(trim($_SERVER['REQUEST_URI'], '/'));
 
-            if ($path === "touchpoint-api/app-events" && TouchPointWP::useTribeCalendar()) {
+            $reqUri['path'] = explode("/", $reqUri['path']);
 
-                EventsCalendar::getAppList();
+            if (count($reqUri['path']) < 2 || strtolower($reqUri['path'][0]) !== self::API_ENDPOINT) {
+                return $continue;
+            }
+
+            // Parse parameters
+            parse_str($reqUri['query'], $queryParams);
+            $reqUri['query'] = $queryParams;
+            unset($queryParams);
+
+            // App Events Endpoint
+            if ($reqUri['path'][1] === "app-events" &&
+                count($reqUri['path']) === 2 &&
+                TouchPointWP::useTribeCalendar()) {
+
+                EventsCalendar::echoAppList($reqUri['query']);
 
                 exit;
             }
@@ -921,10 +949,6 @@ class TouchPointWP
     {
         if ( ! function_exists( 'is_plugin_active' ) ){
             require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
-        }
-
-        if (! class_exists("tp\TouchPointWP\EventsCalendar")) {
-            require_once 'EventsCalendar.php';
         }
 
         return is_plugin_active( 'events-calendar-pro/events-calendar-pro.php');

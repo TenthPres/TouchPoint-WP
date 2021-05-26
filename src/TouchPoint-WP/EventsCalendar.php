@@ -9,7 +9,10 @@ if ( ! defined('ABSPATH')) {
 
 abstract class EventsCalendar
 {
-    static function getAppList()
+    /**
+     * @param array $params Parameters from the request to use for filtering or such.
+     */
+    static function echoAppList(array $params = [])
     {
         $eventsList = [];
 
@@ -17,6 +20,10 @@ abstract class EventsCalendar
 
         $postmeta = $wpdb->postmeta;
         $posts    = $wpdb->posts;
+
+        // TODO involve some level of parameterization.  Ministry?
+
+        // TODO compare performance with a standard query for events.
 
         /** @noinspection SqlResolve */
         $qEvents = "
@@ -59,12 +66,15 @@ ORDER BY EventStartDateUTC";
 
         $usePro = TouchPointWP::useTribeCalendarPro();
 
+        $tpDomain = TouchPointWP::instance()->settings->host;
+        $dlDomain = TouchPointWP::instance()->settings->host_deeplink;
+
         foreach ($eventsQ as $eQ) {
             $eO = [];
 
             $locationContent = [];
 
-            $location = tribe_get_venue($eQ['ID']);
+            $location = trim(tribe_get_venue($eQ['ID']));
             if ($location !== '') {
                 $locationContent[] = $location;
             }
@@ -74,25 +84,24 @@ ORDER BY EventStartDateUTC";
             $locationContent = implode(" • ", $locationContent);
 
 
-            $content = get_the_content(null, true, $eQ['ID']);
+            $content = apply_filters( 'the_content', get_the_content(null, true, $eQ['ID']) );
 
-            // add domain to relative links  TODO integrate Auth eventually.
+            // Add domain to relative links
             $content = preg_replace(
                 "/['\"]\/([^\/\"']*)[\"']/i",
                 '"' . get_home_url() . '/$1"',
                 $content
             );
 
-            // TODO replace standard links with deeplinks where possible.
-            $tpDomain = "my.tenth.org";
-            $tpDlDomain = "tenth.mobi";
-
+            // Replace TouchPoint links with deeplinks where applicable
             // Registration Links
-            $content = preg_replace(
-                "/:\/\/{$tpDomain}\/OnlineReg\/([\d]+)/i",
-                "://" . $tpDlDomain . '/registrations/register/${1}',
-                $content
-            );
+            if ($dlDomain !== '') {
+                $content = preg_replace(
+                    "/:\/\/{$tpDomain}\/OnlineReg\/([\d]+)/i",
+                    "://" . $dlDomain . '/registrations/register/${1}',
+                    $content
+                );
+            }
 
             // TODO add setting for style url.  Possibly allow for a template.
             $content .= "<link rel=\"stylesheet\" href=\"https://west.tenth.org/tp/style.css\">";
