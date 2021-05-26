@@ -35,9 +35,10 @@ class TouchPointWP
     public const TEXT_DOMAIN = "TouchPoint-WP";
 
     /**
-     * API Endpoint prefix.  Must be lower-case.
+     * API Endpoint prefix, and specific endpoints.  All must be lower-case.
      */
     public const API_ENDPOINT = "touchpoint-api";
+    public const API_ENDPOINT_GENERATE_SCRIPTS = "generate-scripts";
 
     /**
      * Prefix to use for all shortcodes.
@@ -73,7 +74,7 @@ class TouchPointWP
     /**
      * The admin object.
      */
-    public ?TouchPointWP_AdminAPI $admin = null;
+    protected ?TouchPointWP_AdminAPI $admin = null;
 
     /**
      * Settings object
@@ -155,10 +156,9 @@ class TouchPointWP
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_styles'], 10, 1 ); // TODO restore?
 
         // Load API for generic admin functions.
-        if (is_admin()) {
-            require_once 'TouchPointWP_AdminAPI.php';
-            $this->admin = new TouchPointWP_AdminAPI();
-        }
+//        if (is_admin()) {
+//            $this->admin(); // SOMEDAY if we ever need to interact with other post types, this should be uncommented.
+//        }
 
         add_filter('do_parse_request', [$this, 'parseRequest'], 10, 3);
 
@@ -198,6 +198,15 @@ class TouchPointWP
         }
     }
 
+    public function admin(): TouchPointWP_AdminAPI
+    {
+        if ($this->admin === null) {
+            require_once 'TouchPointWP_AdminAPI.php';
+            $this->admin = new TouchPointWP_AdminAPI();
+        }
+        return $this->admin;
+    }
+
     public function parseRequest($continue, $wp, $extraVars): bool
     {
         if ($continue) {
@@ -210,7 +219,7 @@ class TouchPointWP
             }
 
             // Parse parameters
-            parse_str($reqUri['query'], $queryParams);
+            parse_str($reqUri['query'] ?? '', $queryParams);
             $reqUri['query'] = $queryParams;
             unset($queryParams);
 
@@ -220,6 +229,28 @@ class TouchPointWP
                 TouchPointWP::useTribeCalendar()) {
 
                 EventsCalendar::echoAppList($reqUri['query']);
+
+                exit;
+            }
+
+
+            // Generate Python Scripts
+            if ($reqUri['path'][1] === self::API_ENDPOINT_GENERATE_SCRIPTS &&
+                count($reqUri['path']) === 2 &&
+                current_user_can('administrator')) {
+
+                $fileName = $this->admin()->generatePython();
+
+                if (! is_string($fileName)) {
+                    // something went wrong...
+                    return $continue;
+                }
+
+                header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
+                header('Content-type: application/zip');
+
+                readfile($fileName);
+                unlink ($fileName);
 
                 exit;
             }
@@ -1084,7 +1115,7 @@ class TouchPointWP
 
         // If update failed, show a notice on the admin interface.
         if ($divsObj === false) {
-            add_action('admin_notices', [$this->admin, 'Error_TouchPoint_API']);
+            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
 
             return [];
         }
@@ -1154,7 +1185,7 @@ class TouchPointWP
 
         // If update failed, show a notice on the admin interface.
         if ($rcObj === false) {
-            add_action('admin_notices', [$this->admin, 'Error_TouchPoint_API']);
+            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
 
             return [];
         }
@@ -1225,7 +1256,7 @@ class TouchPointWP
 
         // If update failed, show a notice on the admin interface.
         if ($gObj === false) {
-            add_action('admin_notices', [$this->admin, 'Error_TouchPoint_API']);
+            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
 
             return [];
         }

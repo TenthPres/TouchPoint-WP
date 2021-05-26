@@ -18,13 +18,13 @@ if ( ! defined('ABSPATH')) {
  *
  * @property-read string host               The domain for the TouchPoint instance
  * @property-read string host_deeplink      The domain for mobile deep linking to the Custom Mobile App
+ * @property-read string system_name        What the church calls TouchPoint
  * @property-read string api_user           Username of a user account with API access
  * @property-read string api_pass           Password for a user account with API access
  * @property-read string api_script_name    The name of the script loaded into TouchPoint for API Interfacing
  * @property-read string api_secret_key     The secret key used for the Auth API
  * @property-read string google_maps_api_key Google Maps API Key for embedded maps and such
  *
- * @property-read string auth_display_name  What the church calls TouchPoint
  * @property-read string auth_script_name   The name of the Python script within TouchPoint
  * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
  * @property-read string auth_change_profile_urls Enabled to indicate the profiles should be located on TouchPoint
@@ -185,6 +185,17 @@ class TouchPointWP_Settings
                     'default'     => '',
                 ],
                 [
+                    'id'          => 'system_name',
+                    'label'       => __('Display Name', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'What your church calls your TouchPoint database.',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'TouchPoint',
+                    'placeholder' => 'TouchPoint'
+                ],
+                [
                     'id'          => 'host',
                     'label'       => __('TouchPoint Host Name', 'TouchPoint-WP'),
                     'description' => __(
@@ -236,7 +247,7 @@ class TouchPointWP_Settings
                     'id'          => 'api_script_name',
                     'label'       => __('TouchPoint API Script Name', 'TouchPoint-WP'),
                     'description' => __(
-                        'The name of the Python script loaded into TouchPoint.  Download the scripts below.',
+                        'The name of the Python script loaded into TouchPoint.  Don\'t change this unless you know what you\'re doing.',
                         TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'text',
@@ -247,7 +258,7 @@ class TouchPointWP_Settings
                     'id'          => 'google_maps_api_key',
                     'label'       => __('Google Maps API Key', 'TouchPoint-WP'),
                     'description' => __(
-                        'Required for embedding maps. <a href="https://github.com/TenthPres/TouchPoint-WP/wiki/Installation#google-maps-api">See the documentation.</a>',
+                        'Required for embedding maps.',
                         TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'text',
@@ -256,6 +267,30 @@ class TouchPointWP_Settings
                 ],
             ],
         ];
+
+        // Add Script generation section if necessary settings are established.
+        if ($this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
+            && $this->getWithoutDefault('host') !== self::UNDEFINED_PLACEHOLDER) {
+            /** @noinspection HtmlUnknownTarget */
+            $settings['basic']['fields'][] = [
+                'id'          => 'generate-scripts',
+                'label'       => __('Generate Scripts', 'TouchPoint-WP'),
+                'type'    => 'instructions',
+                'description' => strtr(
+                    __('<p>Once your settings on this page are set and saved, use this tool to generate
+the scripts needed for TouchPoint in a convenient installation package.  
+<a href="{uploadUrl}">Upload the package to {tpName} here</a>.</p>
+<p><a href="{apiUrl}" class="button-secondary" target="tp_zipIfr">Generate Scripts</a></p>
+<iframe name="tp_zipIfr" style="width:0; height:0; opacity:0;"></iframe>', 'TouchPoint-WP'),
+                    [
+                        '{apiUrl}'    => "/" . TouchPointWP::API_ENDPOINT . "/" . TouchPointWP::API_ENDPOINT_GENERATE_SCRIPTS,
+                        '{tpName}'    => $this->get('system_name'),
+                        '{uploadUrl}' => "https://" . $this->get('host') . "/InstallPyScriptProject"
+                    ]
+                ),
+            ];
+        }
+
 
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on" || $includeAll) {
             $settings['authentication'] = [
@@ -272,17 +307,6 @@ class TouchPointWP_Settings
                         'type'        => 'text',
                         'default'     => 'WebAuth',
                         'placeholder' => 'WebAuth'
-                    ],
-                    [
-                        'id'          => 'auth_display_name',
-                        'label'       => __('Display Name', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'What you call TouchPoint.  Shows on the WordPress login screen.',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'text',
-                        'default'     => 'TouchPoint',
-                        'placeholder' => 'TouchPoint'
                     ],
                     [
                         'id'          => 'auth_default',
@@ -865,7 +889,7 @@ class TouchPointWP_Settings
                     add_settings_field(
                         $field['id'],
                         $field['label'],
-                        [$this->parent->admin, 'display_field'],
+                        [$this->parent->admin(), 'display_field'],
                         $this->parent::TOKEN . '_Settings',
                         $section,
                         [
