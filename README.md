@@ -19,12 +19,16 @@ We don't promise support for old versions of WordPress or PHP.  You will need to
 ### Small Group Finder
 - Publish a list and map of Small Groups, with dynamic filtering based on actual data, such as demographics and location.
 - Suggest Small Groups physically nearby based on geolocation.
-- Allow website guests to easily join a group and assign group leaders a task to follow up with prospects.
+- Allow website guests to easily contact leaders or join a group via TouchPoint Tasks.
 
 ### Authentication (Beta)
 Authenticate TouchPoint users to WordPress, so you can know your website users.  Optionally, this authentication can
 happen silently in the background, so that if a user is logged into TouchPoint, they are automatically logged into your
 website.
+
+### Events
+Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by 
+ModernTribe](https://theeventscalendar.com/).  This is compatible with both the free and "Pro" versions. 
 
 
 <!--
@@ -45,9 +49,7 @@ code, too.)
   - Sync WordPress Permissions with TouchPoint involvements or roles.
 - Events (Requires [The Events Calendar from ModernTribe](https://theeventscalendar.com/))
   - Link TouchPoint Meetings with Calendar events (Requires Pro version of The Events Calendar)
-  - Improved display of events in TouchPoint custom mobile apps.
 - Small Groups
-  - Suggest small groups physically nearby, using geolocation.
   - Suggest demographically-targeted small groups.
   - Excessively customizable Small Group finder.
 - Global Outreach

@@ -71,12 +71,12 @@ ORDER BY EventStartDateUTC";
             if ($usePro && $eQ['recurrence'] !== null) {
                 $locationContent[] = $eQ['recurrence'];
             }
-            $locationContent = implode(" &sdot; ", $locationContent);
+            $locationContent = implode(" • ", $locationContent);
 
 
             $content = get_the_content(null, true, $eQ['ID']);
 
-            // add domain to relative links
+            // add domain to relative links  TODO integrate Auth eventually.
             $content = preg_replace(
                 "/['\"]\/([^\/\"']*)[\"']/i",
                 '"' . get_home_url() . '/$1"',
@@ -97,7 +97,7 @@ ORDER BY EventStartDateUTC";
             // TODO add setting for style url.  Possibly allow for a template.
             $content .= "<link rel=\"stylesheet\" href=\"https://west.tenth.org/tp/style.css\">";
 
-            // Android
+            // Android (apparently not used on iOS?)
             $eO['all_day'] = ! ! ($eQ['all_day'] === 'yes');
 
             // Android
