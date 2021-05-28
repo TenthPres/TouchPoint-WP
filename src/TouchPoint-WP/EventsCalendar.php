@@ -50,6 +50,7 @@ abstract class EventsCalendar
             $content = trim(get_the_content(null, true, $eQ->ID));
             $content = apply_filters( 'the_content', $content);
             $content = apply_filters( TouchPointWP::HOOK_PREFIX . 'app_events_content', $content);
+            $content = html_entity_decode($content);
 
             // Add domain to relative links
             $content = preg_replace(
@@ -63,7 +64,7 @@ abstract class EventsCalendar
             if ($dlDomain !== '') {
                 $content = preg_replace(
                     "/:\/\/{$tpDomain}\/OnlineReg\/([\d]+)/i",
-                    "://" . $dlDomain . '/registrations/register/${1}',
+                    "://" . $dlDomain . '/registrations/register/${1}?from={{MOBILE_OS}}',
                     $content
                 );
             }
@@ -83,9 +84,9 @@ abstract class EventsCalendar
             $eO['RelatedImageFileKey'] = $eO['image'];
 
             // iOS
-            $eO['Description'] = $content;
+            $eO['Description'] = str_replace("{{MOBILE_OS}}", "iOS", $content);
             // Android
-            $eO['content'] = $content;
+            $eO['content'] = str_replace("{{MOBILE_OS}}", "android", $content);
 
             // iOS
             $eO['Subject'] = $eQ->post_title;
