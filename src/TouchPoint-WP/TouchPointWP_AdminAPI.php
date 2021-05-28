@@ -24,7 +24,6 @@ class TouchPointWP_AdminAPI {
 //        add_action( 'save_post', array( $this, 'save_meta_boxes' ), 10, 1 );
     }
 
-
     /**
      * Generate HTML for displaying fields.
      *
@@ -223,140 +222,54 @@ class TouchPointWP_AdminAPI {
         }
 
         echo $html; //phpcs:ignore
-
+        return '';
     }
 
-//    /**
-//     * Validate form field
-//     *
-//     * @param  string $data Submitted value.
-//     * @param  string $type Type of field to validate.
-//     * @return string       Validated value
-//     */
-//    public function validate_field( $data = '', $type = 'text' ) {
-//
-//        switch ( $type ) {
-//            case 'text':
-//                $data = esc_attr( $data );
-//                break;
-//            case 'url':
-//                $data = esc_url( $data );
-//                break;
-//            case 'email':
-//                $data = is_email( $data );
-//                break;
-//        }
-//
-//        return $data;
-//    }
+    /**
+     * Generate the python scripts to be uploaded to TouchPoint.
+     */
+    public function generatePython() {
 
-//    /**
-//     * Add meta box to the dashboard.
-//     *
-//     * @param string $id            Unique ID for metabox.
-//     * @param string $title         Display title of metabox.
-//     * @param array  $post_types    Post types to which this metabox applies.
-//     * @param string $context       Context in which to display this metabox ('advanced' or 'side').
-//     * @param string $priority      Priority of this metabox ('default', 'low' or 'high').
-//     * @param array  $callback_args Any axtra arguments that will be passed to the display function for this metabox.
-//     * @return void
-//     */
-//    public function add_meta_box( $id = '', $title = '', $post_types = array(), $context = 'advanced', $priority = 'default', $callback_args = null ) {
-//
-//        // Get post type(s).
-//        if ( ! is_array( $post_types ) ) {
-//            $post_types = array( $post_types );
-//        }
-//
-//        // Generate each metabox.
-//        foreach ( $post_types as $post_type ) {
-//            add_meta_box( $id, $title, array( $this, 'meta_box_content' ), $post_type, $context, $priority, $callback_args );
-//        }
-//    }
+        if (! class_exists('\ZipArchive')) {
+            return new TouchPointWP_Exception("ZipArchive extension is not enabled.");
+        }
 
-//    /**
-//     * Display metabox content
-//     *
-//     * @param  object $post Post object.
-//     * @param  array  $args Arguments unique to this metabox.
-//     * @return void
-//     */
-//    public function meta_box_content( $post, $args ) {
-//
-//        $fields = apply_filters( $post->post_type . '_custom_fields', array(), $post->post_type );
-//
-//        if ( ! is_array( $fields ) || 0 === count( $fields ) ) {
-//            return;
-//        }
-//
-//        echo '<div class="custom-field-panel">' . "\n";
-//
-//        foreach ( $fields as $field ) {
-//
-//            if ( ! isset( $field['metabox'] ) ) {
-//                continue;
-//            }
-//
-//            if ( ! is_array( $field['metabox'] ) ) {
-//                $field['metabox'] = array( $field['metabox'] );
-//            }
-//
-//            if ( in_array( $args['id'], $field['metabox'], true ) ) {
-//                $this->display_meta_box_field( $field, $post );
-//            }
-//        }
-//
-//        echo '</div>' . "\n";
-//
-//    }
+        $outZipPath = tempnam(sys_get_temp_dir(), 'TouchPoint-WP-Scripts.zip');
+        $z = new \ZipArchive();
+        if (! $z->open($outZipPath, \ZipArchive::CREATE) ){
+            return new TouchPointWP_Exception("Could not create a zip file for the scripts");
+        }
 
-//    /**
-//     * Dispay field in metabox
-//     *
-//     * @param  array  $field Field data.
-//     * @param  object $post  Post object.
-//     * @return void
-//     */
-//    public function display_meta_box_field( $field = array(), $post = null ) {
-//
-//        if ( ! is_array( $field ) || 0 === count( $field ) ) {
-//            return;
-//        }
-//
-//        $field = '<p class="form-field"><label for="' . $field['id'] . '">' . $field['label'] . '</label>' . $this->display_field( $field, $post, false ) . '</p>' . "\n";
-//
-//        echo $field; //phpcs:ignore
-//    }
+        $directory = str_replace('\\', '/', __DIR__ . "/../python/");
+        $fnIndex = strlen($directory);
 
-//    /**
-//     * Save metabox fields.
-//     *
-//     * @param  integer $post_id Post ID.
-//     * @return void
-//     */
-//    public function save_meta_boxes( $post_id = 0 ) {
-//
-//        if ( ! $post_id ) {
-//            return;
-//        }
-//
-//        $post_type = get_post_type( $post_id );
-//
-//        $fields = apply_filters( $post_type . '_custom_fields', array(), $post_type );
-//
-//        if ( ! is_array( $fields ) || 0 === count( $fields ) ) {
-//            return;
-//        }
-//
-//        foreach ( $fields as $field ) {
-//            if ( isset( $_REQUEST[ $field['id'] ] ) ) { //phpcs:ignore
-//                update_post_meta( $post_id, $field['id'], $this->validate_field( $_REQUEST[ $field['id'] ], $field['type'] ) ); //phpcs:ignore
-//            } else {
-//                update_post_meta( $post_id, $field['id'], '' );
-//            }
-//        }
-//    }
+        // Static Python files
+        foreach ( glob($directory . '*.py') as $file ) {
+            $z->addFile($file, substr($file, $fnIndex));
+        }
 
+        // Python files generated via PHP
+        ob_start();
+        // Set variables for scripts
+        /** @noinspection PhpUnusedLocalVariableInspection */
+        $host = get_site_url();
+        foreach ( glob($directory . '*.php') as $file ) {
+            /** @noinspection PhpIncludeInspection */
+            include $file; // SOMEDAY This really should be in a sandbox if that were possible.
+            $fn = substr($file, $fnIndex, -3) . "py";
+            $content = ob_get_clean();
+            $z->addFromString($fn, $content);
+        }
+        ob_end_clean();
+
+        // Commit and return file
+        $z->close();
+        return $outZipPath;
+    }
+
+    /**
+     * Display an error when there's something wrong with the TouchPoint connection.
+     */
     public static function Error_TouchPoint_API()
     {
         $class = 'notice notice-error';

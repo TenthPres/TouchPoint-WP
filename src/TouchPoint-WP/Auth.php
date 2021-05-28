@@ -125,7 +125,7 @@ class Auth extends WP_REST_Controller
         $html .= '<a href="%s">';
         $html .= sprintf(
             __('Sign in with your %s account', 'TouchPoint-WP'),
-            htmlentities($this->tpwp->settings->auth_display_name)
+            htmlentities($this->tpwp->settings->system_name)
         );
         /** @noinspection HtmlUnknownTarget */
         $html .= '</a><br /><a class="dim" href="%s">'

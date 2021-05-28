@@ -35,6 +35,12 @@ class TouchPointWP
     public const TEXT_DOMAIN = "TouchPoint-WP";
 
     /**
+     * API Endpoint prefix, and specific endpoints.  All must be lower-case.
+     */
+    public const API_ENDPOINT = "touchpoint-api";
+    public const API_ENDPOINT_GENERATE_SCRIPTS = "generate-scripts";
+
+    /**
      * Prefix to use for all shortcodes.
      */
     public const SHORTCODE_PREFIX = "TP-";
@@ -68,7 +74,7 @@ class TouchPointWP
     /**
      * The admin object.
      */
-    public ?TouchPointWP_AdminAPI $admin = null;
+    protected ?TouchPointWP_AdminAPI $admin = null;
 
     /**
      * Settings object
@@ -150,10 +156,11 @@ class TouchPointWP
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_styles'], 10, 1 ); // TODO restore?
 
         // Load API for generic admin functions.
-        if (is_admin()) {
-            require_once 'TouchPointWP_AdminAPI.php';
-            $this->admin = new TouchPointWP_AdminAPI();
-        }
+//        if (is_admin()) {
+//            $this->admin(); // SOMEDAY if we ever need to interact with other post types, this should be uncommented.
+//        }
+
+        add_filter('do_parse_request', [$this, 'parseRequest'], 10, 3);
 
         // Handle localisation.
         $this->load_plugin_textdomain();
@@ -167,20 +174,90 @@ class TouchPointWP
         add_filter( 'script_loader_tag', [$this, 'filterByTag'], 10, 2 );
 
         // Load Auth tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
+        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on"
+            && ! class_exists("tp\TouchPointWP\Auth")) {
             require_once 'Auth.php';
         }
 
         // Load RSVP tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
+        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on"
+            && ! class_exists("tp\TouchPointWP\Rsvp")) {
             require_once 'Rsvp.php';
         }
 
         // Load Small Group tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_small_group') === "on") {
+        if (get_option(self::SETTINGS_PREFIX . 'enable_small_group') === "on"
+            && ! class_exists("tp\TouchPointWP\SmallGroup")) {
             require_once 'SmallGroup.php';
         }
+
+        // Load Events if enabled (by presence of Events Calendar plugin)
+        if (self::useTribeCalendar()
+            && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
+            require_once 'EventsCalendar.php';
+        }
     }
+
+    public function admin(): TouchPointWP_AdminAPI
+    {
+        if ($this->admin === null) {
+            require_once 'TouchPointWP_AdminAPI.php';
+            $this->admin = new TouchPointWP_AdminAPI();
+        }
+        return $this->admin;
+    }
+
+    public function parseRequest($continue, $wp, $extraVars): bool
+    {
+        if ($continue) {
+            $reqUri = parse_url(trim($_SERVER['REQUEST_URI'], '/'));
+
+            $reqUri['path'] = explode("/", $reqUri['path']);
+
+            if (count($reqUri['path']) < 2 || strtolower($reqUri['path'][0]) !== self::API_ENDPOINT) {
+                return $continue;
+            }
+
+            // Parse parameters
+            parse_str($reqUri['query'] ?? '', $queryParams);
+            $reqUri['query'] = $queryParams;
+            unset($queryParams);
+
+            // App Events Endpoint
+            if ($reqUri['path'][1] === "app-events" &&
+                count($reqUri['path']) === 2 &&
+                TouchPointWP::useTribeCalendar()) {
+
+                EventsCalendar::echoAppList($reqUri['query']);
+
+                exit;
+            }
+
+
+            // Generate Python Scripts
+            if ($reqUri['path'][1] === self::API_ENDPOINT_GENERATE_SCRIPTS &&
+                count($reqUri['path']) === 2 &&
+                current_user_can('administrator')) {
+
+                $fileName = $this->admin()->generatePython();
+
+                if (! is_string($fileName)) {
+                    // something went wrong...
+                    return $continue;
+                }
+
+                header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
+                header('Content-type: application/zip');
+
+                readfile($fileName);
+                unlink ($fileName);
+
+                exit;
+            }
+        }
+        return $continue;
+    }
+
 
     /**
      * Load plugin textdomain
@@ -899,6 +976,20 @@ class TouchPointWP
         update_option(self::TOKEN . '_version', self::VERSION, false);
     }
 
+    public static function useTribeCalendarPro(): bool
+    {
+        if ( ! function_exists( 'is_plugin_active' ) ){
+            require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
+        }
+
+        return is_plugin_active( 'events-calendar-pro/events-calendar-pro.php');
+    }
+
+    public static function useTribeCalendar(): bool
+    {
+        return self::useTribeCalendarPro() || is_plugin_active( 'the-events-calendar/the-events-calendar.php');
+    }
+
     /**
      * @return string The URL of the TouchPoint instance.
      */
@@ -1024,7 +1115,7 @@ class TouchPointWP
 
         // If update failed, show a notice on the admin interface.
         if ($divsObj === false) {
-            add_action('admin_notices', [$this->admin, 'Error_TouchPoint_API']);
+            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
 
             return [];
         }
@@ -1094,7 +1185,7 @@ class TouchPointWP
 
         // If update failed, show a notice on the admin interface.
         if ($rcObj === false) {
-            add_action('admin_notices', [$this->admin, 'Error_TouchPoint_API']);
+            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
 
             return [];
         }
@@ -1165,7 +1256,7 @@ class TouchPointWP
 
         // If update failed, show a notice on the admin interface.
         if ($gObj === false) {
-            add_action('admin_notices', [$this->admin, 'Error_TouchPoint_API']);
+            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
 
             return [];
         }
