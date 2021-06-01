@@ -88,7 +88,7 @@ abstract class EventsCalendar
 
             // TODO add setting for style url.  Possibly allow for a template.
             if ($content !== '' && TouchPointWP::instance()->settings->ec_use_standardizing_style === 'on') {
-                $cssUrl = TouchPointWP::instance()->assets_url . 'template/ec-standardizing-style.css';
+                $cssUrl = TouchPointWP::instance()->assets_url . 'template/ec-standardizing-style.css?v=' . TouchPointWP::VERSION;
                 $content = "<link rel=\"stylesheet\" href=\"{$cssUrl}\">" . $content;
             }
 
