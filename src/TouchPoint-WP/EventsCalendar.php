@@ -48,6 +48,7 @@ abstract class EventsCalendar
             if ($usePro && tribe_event_is_multiday($eQ->ID)) {
                 $locationContent[] = __("Multi-Day", TouchPointWP::TEXT_DOMAIN);
             }
+            $locationContent = implode(" • ", $locationContent);
 
             $content = trim(get_the_content(null, true, $eQ->ID));
             $content = apply_filters('the_content', $content);
