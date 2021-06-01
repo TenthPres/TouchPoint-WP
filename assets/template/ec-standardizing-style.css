@@ -1,0 +1,14 @@
+a.btn, a.button,
+input.btn, input.button,
+button,
+input[type='submit'],
+input[type='reset']
+{
+    background-color: #49917b;
+    border: 1px solid #40806d;
+    color: #fff;
+}
+
+a:link, a:visited{
+    color: #49917b;
+}

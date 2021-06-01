@@ -41,6 +41,8 @@ if ( ! defined('ABSPATH')) {
  *
  * @property-read int sg_cron_last_run      Timestamp of the last time the Small Groups syncing task ran.  (No setting UI.)
  *
+ * @property-read string ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.
+ *
  * @property-read string rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
  * @property-read string rc_name_singular   What a resident code should be called, singular (e.g. "Resident Code" or "Zone")
  * @property-read string rc_slug            Slug for resident code taxonomy (e.g. "zones" for church.org/zones)
@@ -277,11 +279,11 @@ class TouchPointWP_Settings
                 'label'       => __('Generate Scripts', 'TouchPoint-WP'),
                 'type'    => 'instructions',
                 'description' => strtr(
-                    __('<p>Once your settings on this page are set and saved, use this tool to generate
-the scripts needed for TouchPoint in a convenient installation package.  
-<a href="{uploadUrl}">Upload the package to {tpName} here</a>.</p>
-<p><a href="{apiUrl}" class="button-secondary" target="tp_zipIfr">Generate Scripts</a></p>
-<iframe name="tp_zipIfr" style="width:0; height:0; opacity:0;"></iframe>', 'TouchPoint-WP'),
+                    '<p>' . __('Once your settings on this page are set and saved, use this tool to generate
+the scripts needed for TouchPoint in a convenient installation package.  ', TouchPointWP::TEXT_DOMAIN) .
+'<a href="{uploadUrl}">' . __('Upload the package to {tpName} here', TouchPointWP::TEXT_DOMAIN) . '</a>.</p>
+<p><a href="{apiUrl}" class="button-secondary" target="tp_zipIfr">' . __('Generate Scripts', TouchPointWP::TEXT_DOMAIN) . '</a></p>
+<iframe name="tp_zipIfr" style="width:0; height:0; opacity:0;"></iframe>',
                     [
                         '{apiUrl}'    => "/" . TouchPointWP::API_ENDPOINT . "/" . TouchPointWP::API_ENDPOINT_GENERATE_SCRIPTS,
                         '{tpName}'    => $this->get('system_name'),
@@ -467,8 +469,27 @@ the scripts needed for TouchPoint in a convenient installation package.
         if (class_exists("tp\TouchPointWP\EventsCalendar") || $includeAll) {
             $settings['events_calendar'] = [
                 'title'       => __('Events Calendar', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Integrate with The Events Calendar from ModernTribe', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Integrate with The Events Calendar from ModernTribe.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
+                    [
+                        'id'          => 'copy-app-endpoint-address',
+                        'label'       => __('Events for Custom Mobile App', 'TouchPoint-WP'),
+                        'type'    => 'instructions',
+                        'description' => strtr(
+                            '<p>' . __('To use your Events Calendar events in the Custom mobile app, set the Provider to <code>Wordpress Plugin - Modern Tribe</code> and use this url:', TouchPointWP::TEXT_DOMAIN) . '</p>' .
+                            '<input type="url" value="{apiUrl}" readonly style="width: 100%;" />',
+                            [
+                                '{apiUrl}'    => get_site_url() . "/" . TouchPointWP::API_ENDPOINT . "/" . TouchPointWP::API_ENDPOINT_APP_EVENTS,
+                            ]
+                        ),
+                    ],
+                    [
+                        'id'          => 'ec_use_standardizing_style',
+                        'label'       => __( 'Use Standardizing Stylesheet', TouchPointWP::TEXT_DOMAIN ),
+                        'description' => __( 'Inserts some basic CSS into the events feed to clean up display', TouchPointWP::TEXT_DOMAIN ),
+                        'type'        => 'checkbox',
+                        'default'     => 'on',
+                    ],
 //                    [
 //                        'id'          => 'ec_name_plural',
 //                        'label'       => __('Resident Code Name (Plural)', TouchPointWP::TEXT_DOMAIN),

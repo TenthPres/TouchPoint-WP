@@ -45,12 +45,28 @@ abstract class EventsCalendar
             if ($usePro && tribe_is_recurring_event($eQ->ID)) {
                 $locationContent[] = __("Recurring", TouchPointWP::TEXT_DOMAIN);
             }
-            $locationContent = implode(" • ", $locationContent);
+            if ($usePro && tribe_event_is_multiday($eQ->ID)) {
+                $locationContent[] = __("Multi-Day", TouchPointWP::TEXT_DOMAIN);
+            }
 
             $content = trim(get_the_content(null, true, $eQ->ID));
-            $content = apply_filters( 'the_content', $content);
-            $content = apply_filters( TouchPointWP::HOOK_PREFIX . 'app_events_content', $content);
+            $content = apply_filters('the_content', $content);
+            $content = apply_filters(TouchPointWP::HOOK_PREFIX . 'app_events_content', $content);
+
             $content = html_entity_decode($content);
+
+            // Add Header and footer Scripts, etc.
+            if ($content !== '') {
+                ob_start();
+                do_action('wp_print_styles');
+                do_action('wp_print_head_scripts');
+                $content = ob_get_clean() . $content;
+
+                ob_start();
+                do_action('wp_print_footer_scripts');
+                do_action('wp_print_scripts');
+                $content .= ob_get_clean();
+            }
 
             // Add domain to relative links
             $content = preg_replace(
@@ -70,7 +86,10 @@ abstract class EventsCalendar
             }
 
             // TODO add setting for style url.  Possibly allow for a template.
-            $content .= "<link rel=\"stylesheet\" href=\"https://west.tenth.org/tp/style.css\">";
+            if ($content !== '' && TouchPointWP::instance()->settings->ec_use_standardizing_style === 'on') {
+                $cssUrl = TouchPointWP::instance()->assets_url . 'template/ec-standardizing-style.css';
+                $content = "<link rel=\"stylesheet\" href=\"{$cssUrl}\">" . $content;
+            }
 
             // Not needed for apps, but helpful for diagnostics
             $eO['ID'] = $eQ->ID;
