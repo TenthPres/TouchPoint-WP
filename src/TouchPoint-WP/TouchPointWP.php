@@ -39,6 +39,7 @@ class TouchPointWP
      */
     public const API_ENDPOINT = "touchpoint-api";
     public const API_ENDPOINT_GENERATE_SCRIPTS = "generate-scripts";
+    public const API_ENDPOINT_APP_EVENTS = "app-events";
 
     /**
      * Prefix to use for all shortcodes.

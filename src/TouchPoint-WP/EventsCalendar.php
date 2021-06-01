@@ -45,11 +45,29 @@ abstract class EventsCalendar
             if ($usePro && tribe_is_recurring_event($eQ->ID)) {
                 $locationContent[] = __("Recurring", TouchPointWP::TEXT_DOMAIN);
             }
+            if ($usePro && tribe_event_is_multiday($eQ->ID)) {
+                $locationContent[] = __("Multi-Day", TouchPointWP::TEXT_DOMAIN);
+            }
             $locationContent = implode(" • ", $locationContent);
 
             $content = trim(get_the_content(null, true, $eQ->ID));
-            $content = apply_filters( 'the_content', $content);
-            $content = apply_filters( TouchPointWP::HOOK_PREFIX . 'app_events_content', $content);
+            $content = apply_filters('the_content', $content);
+            $content = apply_filters(TouchPointWP::HOOK_PREFIX . 'app_events_content', $content);
+
+            $content = html_entity_decode($content);
+
+            // Add Header and footer Scripts, etc.
+            if ($content !== '') {
+                ob_start();
+                do_action('wp_print_styles');
+                do_action('wp_print_head_scripts');
+                $content = ob_get_clean() . $content;
+
+                ob_start();
+                do_action('wp_print_footer_scripts');
+                do_action('wp_print_scripts');
+                $content .= ob_get_clean();
+            }
 
             // Add domain to relative links
             $content = preg_replace(
@@ -63,13 +81,16 @@ abstract class EventsCalendar
             if ($dlDomain !== '') {
                 $content = preg_replace(
                     "/:\/\/{$tpDomain}\/OnlineReg\/([\d]+)/i",
-                    "://" . $dlDomain . '/registrations/register/${1}',
+                    "://" . $dlDomain . '/registrations/register/${1}?from={{MOBILE_OS}}',
                     $content
                 );
             }
 
             // TODO add setting for style url.  Possibly allow for a template.
-            $content .= "<link rel=\"stylesheet\" href=\"https://west.tenth.org/tp/style.css\">";
+            if ($content !== '' && TouchPointWP::instance()->settings->ec_use_standardizing_style === 'on') {
+                $cssUrl = TouchPointWP::instance()->assets_url . 'template/ec-standardizing-style.css?v=' . TouchPointWP::VERSION;
+                $content = "<link rel=\"stylesheet\" href=\"{$cssUrl}\">" . $content;
+            }
 
             // Not needed for apps, but helpful for diagnostics
             $eO['ID'] = $eQ->ID;
@@ -83,9 +104,9 @@ abstract class EventsCalendar
             $eO['RelatedImageFileKey'] = $eO['image'];
 
             // iOS
-            $eO['Description'] = $content;
+            $eO['Description'] = str_replace("{{MOBILE_OS}}", "iOS", $content);
             // Android
-            $eO['content'] = $content;
+            $eO['content'] = str_replace("{{MOBILE_OS}}", "android", $content);
 
             // iOS
             $eO['Subject'] = $eQ->post_title;
@@ -93,7 +114,7 @@ abstract class EventsCalendar
             $eO['title'] = $eQ->post_title;
 
             // iOS
-            $eO['StartDateTime'] = tribe_get_start_date($eQ->ID);
+            $eO['StartDateTime'] = tribe_get_start_date($eQ->ID, true, 'c');
             // Android
             $eO['start_date'] = $eO['StartDateTime'];
 
