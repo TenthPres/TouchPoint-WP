@@ -1,4 +1,6 @@
 a.btn, a.button,
+a:link.btn, a:link.button,
+a:visited.btn, a:visited.button,
 input.btn, input.button,
 button,
 input[type='submit'],
