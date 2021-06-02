@@ -273,7 +273,7 @@ class TouchPointWP_AdminAPI {
     public static function Error_TouchPoint_API()
     {
         $class = 'notice notice-error';
-        $message = __('Unable to connect to TouchPoint API.  This is probably because the API User / Password combination is wrong.', TouchPointWP::TEXT_DOMAIN);
+        $message = __('Unable to connect to TouchPoint API.  Please check the TouchPoint-WP Basic Settings.', TouchPointWP::TEXT_DOMAIN);
 
         printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr( $class ), esc_html( $message ) );
     }

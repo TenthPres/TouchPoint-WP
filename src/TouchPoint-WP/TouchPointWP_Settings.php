@@ -63,7 +63,9 @@ class TouchPointWP_Settings
     /**
      * Available settings for plugin.
      */
-    public array $settings = [];
+    protected array $settings = [];
+
+    protected bool $settingsIncludeDetail = false;
 
     public const UNDEFINED_PLACEHOLDER = INF;
 
@@ -136,7 +138,10 @@ class TouchPointWP_Settings
      */
     public function hasValidApiSettings(): bool
     {
+        $host = $this->getWithoutDefault('host');
+
         return !($this->getWithoutDefault('api_script_name') === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER ||
+               $host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER || $host === '' ||
                $this->getWithoutDefault('api_user') === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER ||
                $this->getWithoutDefault('api_pass') === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER);
     }
@@ -154,8 +159,13 @@ class TouchPointWP_Settings
         if ($includeDetail !== false) {
             $includeDetail = $this->hasValidApiSettings();
         }
-        $settings = [];
-        $settings['basic'] = [
+
+        if (count($this->settings) > 0 && ($includeDetail === $this->settingsIncludeDetail || !$includeDetail)) {
+            // Settings are already loaded, and they have adequate detail for the task at hand.
+            return $this->settings;
+        }
+
+        $this->settings['basic'] = [
             'title'       => __('Basic Settings', 'TouchPoint-WP'),
             'description' => __('Connect to TouchPoint and choose which features you wish to use.', 'TouchPoint-WP'),
             'fields'      => [
@@ -271,12 +281,10 @@ class TouchPointWP_Settings
         ];
 
         // Add Script generation section if necessary settings are established.
-        $host = $this->getWithoutDefault('host');
         if ($this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
-            && $host !== self::UNDEFINED_PLACEHOLDER
-            && $host !== '') {
+            && $this->hasValidApiSettings()) {
             /** @noinspection HtmlUnknownTarget */
-            $settings['basic']['fields'][] = [
+            $this->settings['basic']['fields'][] = [
                 'id'          => 'generate-scripts',
                 'label'       => __('Generate Scripts', 'TouchPoint-WP'),
                 'type'    => 'instructions',
@@ -297,7 +305,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
 
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on" || $includeAll) {
-            $settings['authentication'] = [
+            $this->settings['authentication'] = [
                 'title'       => __('Authentication', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Allow users to log into WordPress using TouchPoint.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
@@ -374,7 +382,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         }
 
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on" || $includeAll) {
-            $settings['small_groups'] = [
+            $this->settings['small_groups'] = [
                 'title'       => __('Small Groups', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Import Small Groups from TouchPoint to your website.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
@@ -469,7 +477,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
 
         if (class_exists("tp\TouchPointWP\EventsCalendar") || $includeAll) {
-            $settings['events_calendar'] = [
+            $this->settings['events_calendar'] = [
                 'title'       => __('Events Calendar', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Integrate with The Events Calendar from ModernTribe.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
@@ -509,7 +517,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
 
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on" || $includeAll) {
-            $settings['resident_codes'] = [
+            $this->settings['resident_codes'] = [
                 'title'       => __('Resident Codes', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify Small Groups and users.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
@@ -678,9 +686,9 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ),
             ); */
 
-        $settings = apply_filters($this->parent::TOKEN . '_Settings_fields', $settings);
+        $this->settings = apply_filters($this->parent::TOKEN . '_Settings_fields', $this->settings);
 
-        return $settings;
+        return $this->settings;
     }
 
     /**
@@ -941,12 +949,14 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     protected function getDefaultValueForSetting(string $id)
     {
-        foreach ($this->settingsFields(true, false) as $category) {
+        foreach ($this->settingsFields(false, false) as $category) {
             foreach ($category['fields'] as $field) {
                 if ($field['id'] === $id){
                     if (isset($field['default'])) { // Is there is a default, return it.
                         return $field['default'];
-                    } else { // If the field is defined, but there is no default, return undefined placeholder.
+                    } else {
+                        // If the field is defined, but there is no default, return undefined placeholder.
+                        // This will also be the result if a module is not enabled.
                         return self::UNDEFINED_PLACEHOLDER;
                     }
                 }
