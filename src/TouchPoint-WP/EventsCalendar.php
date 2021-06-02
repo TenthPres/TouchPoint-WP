@@ -78,7 +78,7 @@ abstract class EventsCalendar
 
             // Replace TouchPoint links with deeplinks where applicable
             // Registration Links
-            if ($dlDomain !== '') {
+            if ($tpDomain !== '' && $dlDomain !== '') {
                 $content = preg_replace(
                     "/:\/\/{$tpDomain}\/OnlineReg\/([\d]+)/i",
                     "://" . $dlDomain . '/registrations/register/${1}?from={{MOBILE_OS}}',

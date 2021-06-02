@@ -205,7 +205,7 @@ class TouchPointWP_Settings
                         TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'text',
-                    'default'     => 'mychurch.tpsdb.com',
+                    'default'     => '',
                     'placeholder' => 'mychurch.tpsdb.com',
                     'callback'    => [$this, 'validation_lowercase']
                 ],
@@ -271,8 +271,10 @@ class TouchPointWP_Settings
         ];
 
         // Add Script generation section if necessary settings are established.
+        $host = $this->getWithoutDefault('host');
         if ($this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
-            && $this->getWithoutDefault('host') !== self::UNDEFINED_PLACEHOLDER) {
+            && $host !== self::UNDEFINED_PLACEHOLDER
+            && $host !== '') {
             /** @noinspection HtmlUnknownTarget */
             $settings['basic']['fields'][] = [
                 'id'          => 'generate-scripts',
@@ -850,7 +852,12 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     protected function getWithoutDefault(string $what, $default = self::UNDEFINED_PLACEHOLDER)
     {
-        return get_option(TouchPointWP::SETTINGS_PREFIX . $what, $default);
+        $opt = get_option(TouchPointWP::SETTINGS_PREFIX . $what, $default);
+
+        if ($opt === '')
+            return self::UNDEFINED_PLACEHOLDER;
+
+        return $opt;
     }
 
     /**

@@ -996,7 +996,10 @@ class TouchPointWP
      */
     public function host(): string
     {
-        return "https://" . $this->settings->host;
+        $host = $this->settings->host;
+        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER || $host === '')
+            return TouchPointWP_Settings::UNDEFINED_PLACEHOLDER;
+        return "https://" . $host;
     }
 
     public function getApiCredentials(): object
@@ -1323,8 +1326,13 @@ class TouchPointWP
 
         $parameters['a'] = $command;
 
-        return $this->getHttpClient()->request(
-            "https://" . $this->settings->host . "/PythonApi/" .
+        $host = $this->host();
+
+        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER)
+            return new WP_Error('invalid_api_endpoint',
+                                __('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'));
+
+        return $this->getHttpClient()->request($host . "/PythonApi/" .
             $this->settings->api_script_name . "?" . http_build_query($parameters),
             [
                 'method'  => 'GET',
@@ -1351,10 +1359,16 @@ class TouchPointWP
             return new WP_Error(self::SHORTCODE_PREFIX . "api-settings", "Invalid or incomplete API Settings.");
         }
 
+        $host = $this->host();
+
+        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER)
+            return new WP_Error('invalid_api_endpoint',
+                                __('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'));
+
         $data = json_encode(['inputData' => $data]);
 
         $r = $this->getHttpClient()->request(
-            "https://" . $this->settings->host . "/PythonApi/" .
+            $host . "/PythonApi/" .
             $this->settings->api_script_name . "?" . http_build_query(['a' => $command]),
             [
                 'method'  => 'POST',
