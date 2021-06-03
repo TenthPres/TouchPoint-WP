@@ -101,7 +101,7 @@ abstract class EventsCalendar
             // Android
             $eO['image'] = get_the_post_thumbnail_url($eQ->ID, 'large');
             // iOS
-            $eO['RelatedImageFileKey'] = $eO['image'];
+            $eO['RelatedImageFileKey'] = $eO['image'] === false ? "" : $eO['image'];
 
             // iOS
             $eO['Description'] = str_replace("{{MOBILE_OS}}", "iOS", $content);
