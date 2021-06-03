@@ -114,7 +114,7 @@ abstract class EventsCalendar
             $eO['title'] = $eQ->post_title;
 
             // iOS
-            $eO['StartDateTime'] = tribe_get_start_date($eQ->ID, true, 'd-m-Y H:i:s');
+            $eO['StartDateTime'] = tribe_get_start_date($eQ->ID, true, 'Y-m-d H:i:s');
             // Android
             $eO['start_date'] = tribe_get_start_date($eQ->ID, true, 'c');
 
