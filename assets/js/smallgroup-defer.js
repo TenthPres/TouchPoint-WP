@@ -79,6 +79,10 @@ class TP_SmallGroup extends TP_Involvement {
         function joinUi(group, people) {
             // TODO if only one person, just immediately join.
 
+            if (typeof ga === "function") {
+                ga('send', 'event', 'smallgroup', 'join userIdentified', group.name);
+            }
+
             Swal.fire({
                 html: "<p id=\"swal-tp-text\">Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
                 showConfirmButton: true,
@@ -119,6 +123,10 @@ class TP_SmallGroup extends TP_Involvement {
         TP_Person.DoInformalAuth().then((res) => contactUi(group, res), () => console.log("Informal auth failed, probably user cancellation."))
 
         function contactUi(group, people) {
+            if (typeof ga === "function") {
+                ga('send', 'event', 'smallgroup', 'contact userIdentified', group.name);
+            }
+
             Swal.fire({
                 html: `<p id=\"swal-tp-text\">Contact the leaders of<br />${group.name}</p>` +
                     '<form id="tp_sg_contact_form">' +

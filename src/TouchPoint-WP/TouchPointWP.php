@@ -2,6 +2,7 @@
 
 namespace tp\TouchPointWP;
 
+use WP;
 use WP_Error;
 use WP_Http;
 
@@ -172,7 +173,7 @@ class TouchPointWP
             session_start();
 
         // Adds async and defer attributes to script tags.
-        add_filter( 'script_loader_tag', [$this, 'filterByTag'], 10, 2 );
+        add_filter('script_loader_tag', [$this, 'filterByTag'], 10, 2);
 
         // Load Auth tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on"
@@ -208,6 +209,16 @@ class TouchPointWP
         return $this->admin;
     }
 
+    /**
+     * @param bool      $continue   Whether or not to parse the request
+     * @param WP        $wp         Current WordPress environment instance
+     * @param array|string $extraVars Passed query variables
+     *
+     * @return bool Whether or not other request parsing functions should be allowed to function.
+     *
+     * @noinspection PhpMissingParamTypeInspection
+     * @noinspection PhpUnusedParameterInspection
+     */
     public function parseRequest($continue, $wp, $extraVars): bool
     {
         if ($continue) {
@@ -234,29 +245,44 @@ class TouchPointWP
                 exit;
             }
 
-
             // Generate Python Scripts
             if ($reqUri['path'][1] === self::API_ENDPOINT_GENERATE_SCRIPTS &&
                 count($reqUri['path']) === 2 &&
                 current_user_can('administrator')) {
 
-                $fileName = $this->admin()->generatePython();
-
-                if (! is_string($fileName)) {
+                if (!$this->generateAndEchoPython()) {
                     // something went wrong...
                     return $continue;
                 }
-
-                header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
-                header('Content-type: application/zip');
-
-                readfile($fileName);
-                unlink ($fileName);
-
                 exit;
             }
         }
         return $continue;
+    }
+
+
+    /**
+     * Generate scripts package and send to client.
+     *
+     * There needs to be a permission check elsewhere, before this method is called.
+     *
+     * @return bool True on success, False on failure.
+     */
+    private function generateAndEchoPython(): bool
+    {
+        $fileName = $this->admin()->generatePython();
+
+        if (! is_string($fileName)) {
+            // something went wrong...
+            return false;
+        }
+
+        header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
+        header('Content-type: application/zip');
+
+        readfile($fileName);
+        unlink ($fileName);
+        return true;
     }
 
 
@@ -349,14 +375,12 @@ class TouchPointWP
      *
      * DOES apply to ALL scripts, not just those in the template.
      *
-     * @param string $tag The script tag.
-     * @param string $handle The script handle.
+     * @param ?string $tag The script tag.
+     * @param ?string $handle The script handle.
      *
      * @return string The HTML string.
-     *
-     * TODO Do not re-create this function if the template does it.
      */
-    public function filterByTag($tag, $handle): string
+    public function filterByTag(?string $tag, ?string $handle): string
     {
         if (strpos($tag, 'async') !== false &&
             strpos($handle, '-async') > 0) {
@@ -818,21 +842,16 @@ class TouchPointWP
         return ($afIdTime <= time() + $timeout) && $afIdTime >= time();
     }
 
-    public static function getDayOfWeekNameForNumber(int $dayNum)
-    {
-        $names = [
-            __('Sunday'),
-            __('Monday'),
-            __('Tuesday'),
-            __('Wednesday'),
-            __('Thursday'),
-            __('Friday'),
-            __('Saturday'),
-        ];
-
-        return $names[$dayNum % 7];
-    }
-
+    /**
+     * Gets the plural form of a weekday name.
+     *
+     * Translation: These are deliberately not scoped to TouchPoint-WP, so if the translation exists globally, it should
+     * work here.
+     *
+     * @param int $dayNum
+     *
+     * @return string Plural weekday (e.g. Mondays)
+     */
     public static function getPluralDayOfWeekNameForNumber(int $dayNum): string
     {
         $names = [
@@ -848,6 +867,11 @@ class TouchPointWP
         return $names[$dayNum % 7];
     }
 
+    /**
+     * @param int $dayNum
+     *
+     * @return string
+     */
     public static function getDayOfWeekShortForNumber(int $dayNum): string
     {
         $names = [

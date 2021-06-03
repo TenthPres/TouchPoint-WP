@@ -12,6 +12,8 @@ if ( ! defined('ABSPATH')) {
 abstract class EventsCalendar
 {
     /**
+     * Print json for Events Calendar for Mobile app.
+     *
      * @param array $params Parameters from the request to use for filtering or such.
      */
     static function echoAppList(array $params = [])

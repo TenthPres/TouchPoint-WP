@@ -182,6 +182,11 @@ class TP_Involvement {
     async doJoin(people, showConfirm = true) {
         let group = this;
         showConfirm = !!showConfirm;
+
+        if (typeof ga === "function") {
+            ga('send', 'event', 'smallgroup', 'join complete', group.name);
+        }
+
         let res = await tpvm.postData('tp_inv_join', {invId: group.invId, people: people});
         if (res.success.length > 0) {
             if (showConfirm) {
@@ -206,6 +211,11 @@ class TP_Involvement {
     async doInvContact(fromPerson, message, showConfirm = true) {
         let group = this;
         showConfirm = !!showConfirm;
+
+        if (typeof ga === "function") {
+            ga('send', 'event', 'smallgroup', 'contact complete', group.name);
+        }
+
         let res = await tpvm.postData('tp_inv_contact', {invId: group.invId, fromPerson: fromPerson, message: message});
         if (res.success.length > 0) {
             if (showConfirm) {
