@@ -54,13 +54,6 @@ elif (Data.a == "InvsForDivs"):
 	o.description,
 	o.registrationClosed as closed,
 	o.notWeekly,
-	os1.schedTime as sched1Time,
-	os1.schedDay as sched1Day,
-	os1.nextMeetingDate as sched1NextMeeting,
-	os2.schedTime as sched2Time,
-	os2.schedDay as sched2Day,
-	os2.nextMeetingDate as sched2NextMeeting,
-	m.meetingDate as meetNextMeeting,
 	(SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
 		LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0)) as marital_denom,
 	(SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
@@ -74,18 +67,17 @@ elif (Data.a == "InvsForDivs"):
              END) as ag FROM OrganizationMembers omi
          		LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.OrganizationId
          		WHERE pi.Age > 19
-		) agg
-	) as age_groups
+		) ag_agg
+	) as age_groups,
+	(SELECT STRING_AGG(sdt, ' | ') WITHIN GROUP (ORDER BY sdt ASC) FROM
+		(SELECT CONCAT(FORMAT(NextMeetingDate, 'yyyy-MM-ddThh:mm:ss'), '|S') as sdt FROM OrgSchedule os
+			WHERE os.OrganizationId = o.OrganizationId
+		UNION
+		SELECT CONCAT(FORMAT(meetingDate, 'yyyy-MM-ddThh:mm:ss'), '|M') as sdt FROM Meetings as m
+			WHERE m.meetingDate > getdate() AND m.OrganizationId = o.OrganizationId
+		) s_agg
+	) as occurrences
 	FROM Organizations o
-	LEFT JOIN OrgSchedule AS os1 ON
-		(o.OrganizationId = os1.OrganizationId AND
-		os1.Id = 1)
-	LEFT JOIN OrgSchedule AS os2 ON
-		(o.OrganizationId = os2.OrganizationId AND
-		os2.Id = 2)
-	LEFT JOIN Meetings AS m ON
-		(o.OrganizationId = m.OrganizationId AND
-		m.meetingDate > getdate())
 	WHERE o.OrganizationId = (
 		SELECT MIN(OrgId)
 		FROM DivOrg
@@ -99,6 +91,18 @@ elif (Data.a == "InvsForDivs"):
 	for g in groups:
 		if g.age_groups != None:
 			g.age_groups = g.age_groups.split(',')
+
+		if g.occurrences != None:
+			g.occurrences = g.occurrences.split(' | ')
+			uniqueOccurrences = []
+			for i, s in enumerate(g.occurrences):
+				if s[0:19] not in uniqueOccurrences: # filter out occurrences provided by both Meetings and Schedules
+					uniqueOccurrences.append(s[0:19])
+					g.occurrences[i] = {'dt': s[0:19], 'type': s[20:]}
+				else:
+					g.occurrences.remove(s)
+		else:
+			g.occurrences = []
 
 		if leadMemTypes != "":
 			leaderSql = '''
@@ -131,13 +135,11 @@ elif (Data.a == "InvsForDivs"):
 
 	Data.invs = groups
 
-
-
 	# Get Extra Values in use on these involvements  TODO put somewhere useful
-#	 invEvSql = '''SELECT DISTINCT [Field], [Type] FROM OrganizationExtra oe
-#					  LEFT JOIN DivOrg do ON oe.OrganizationId = do.OrgId WHERE DivId IN ({})'''.format(divs)
-#
-#	 Data.invev = model.SqlListDynamicData(invEvSql) # TODO move to separate request
+	invEvSql = '''SELECT DISTINCT [Field], [Type] FROM OrganizationExtra oe
+				  LEFT JOIN DivOrg do ON oe.OrganizationId = do.OrgId WHERE DivId IN ({})'''.format(divs)
+
+	Data.invev = model.SqlListDynamicData(invEvSql) # TODO move to separate request
 
 elif (Data.a == "MemTypes"):
 	divs = Data.divs or ""

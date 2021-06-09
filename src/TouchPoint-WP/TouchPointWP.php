@@ -379,6 +379,8 @@ class TouchPointWP
      * @param ?string $handle The script handle.
      *
      * @return string The HTML string.
+     *
+     * @noinspection DuplicatedCode  This functionality is also added by Tenth's Themes.
      */
     public function filterByTag(?string $tag, ?string $handle): string
     {
@@ -885,6 +887,44 @@ class TouchPointWP
         ];
 
         return $names[$dayNum % 7];
+    }
+
+    /**
+     * Join an array of strings into a properly-formatted (English-style) list. Uses commas and ampersands by default.
+     * This will switch to written "and" when an ampersand is present in a string, and will use semi-colons instead of
+     * commas when commas are already present.
+     *
+     * Turn ['apples', 'oranges', 'pears'] into "apples, oranges & pears"
+     *
+     * @param string[] $strings
+     *
+     * @return string
+     */
+    public static function stringArrayToList(array $strings): string
+    {
+        $concat = implode('', $strings);
+
+        $comma = ', ';
+        $and = ' & ';
+        $useOxford = false;
+        if (strpos($concat, ', ') !== false) {
+            $comma     = '; ';
+            $useOxford = true;
+        }
+        if (strpos($concat, ' & ') !== false) {
+            $and = ' ' . __('and') . ' ';
+            $useOxford = true;
+        }
+
+        $last = array_pop($strings);
+        $str = implode($comma, $strings);
+        if (count($strings) > 0) {
+            if ($useOxford)
+                $str .= trim($comma);
+            $str .= $and;
+        }
+        $str .= $last;
+        return $str;
     }
 
     /**

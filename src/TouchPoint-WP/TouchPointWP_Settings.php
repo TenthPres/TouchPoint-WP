@@ -836,7 +836,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     /**
      * @param string $what
      *
-     * @return string|false
+     * @return false|string|array
      */
     public function get(string $what)
     {
