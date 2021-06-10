@@ -17,7 +17,13 @@ def getPersonSortSql(tableAbbrev):
     return " SUBSTRING({0}.LastName, 1, 1) ASC, COALESCE({0}.NickName, {0}.FirstName) ASC ".format(tableAbbrev)
 
 if (Data.a == "Divisions"):
-	divSql = '''SELECT d.id, CONCAT(p.name, ' : ', d.name) as name FROM Division d
+	divSql = '''
+	SELECT d.id,
+		CONCAT(p.name, ' : ', d.name) as name,
+		p.name as pName,
+		p.Id as proId,
+		d.name as dName
+	FROM Division d
 	JOIN Program p on d.progId = p.Id
 	ORDER BY p.name, d.name'''
 
@@ -76,7 +82,12 @@ elif (Data.a == "InvsForDivs"):
 		SELECT CONCAT(FORMAT(meetingDate, 'yyyy-MM-ddThh:mm:ss'), '|M') as sdt FROM Meetings as m
 			WHERE m.meetingDate > getdate() AND m.OrganizationId = o.OrganizationId
 		) s_agg
-	) as occurrences
+	) as occurrences,
+	(SELECT STRING_AGG(divId, ',') WITHIN GROUP (ORDER BY divId ASC) FROM
+		(SELECT divId FROM DivOrg do
+			WHERE do.OrgId = o.OrganizationId
+			) d_agg
+	) as divs
 	FROM Organizations o
 	WHERE o.OrganizationId = (
 		SELECT MIN(OrgId)
@@ -91,6 +102,9 @@ elif (Data.a == "InvsForDivs"):
 	for g in groups:
 		if g.age_groups != None:
 			g.age_groups = g.age_groups.split(',')
+
+		if g.divs != None:
+			g.divs = g.divs.split(',')
 
 		if g.occurrences != None:
 			g.occurrences = g.occurrences.split(' | ')

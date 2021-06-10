@@ -58,6 +58,7 @@ class TouchPointWP
     public const SETTINGS_PREFIX = "tp_";
 
     public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
+    public const TAX_DIV = self::HOOK_PREFIX . "div";
     public const TAX_WEEKDAY = self::HOOK_PREFIX . "weekday";
     public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
@@ -621,7 +622,7 @@ class TouchPointWP
                 'labels'            => [
                     'name'          => $this->settings->rc_name_plural,
                     'singular_name' => $this->settings->rc_name_singular,
-                    'search_items'  => __('Search ' . $this->settings->rc_name_plural),
+                    'search_items'  => __('Search ' . $this->settings->rc_name_plural), // TODO change to sprintf
                     'all_items'     => __('All ' . $this->settings->rc_name_plural),
                     'edit_item'     => __('Edit ' . $this->settings->rc_name_singular),
                     'update_item'   => __('Update ' . $this->settings->rc_name_singular),
@@ -654,7 +655,92 @@ class TouchPointWP
                 self::queueFlushRewriteRules();
             }
         }
+        // TODO remove defunct res codes
 
+        // Divisions & Programs
+        $divisionTypesToApply = ['user'];
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
+            $divisionTypesToApply[] = SmallGroup::POST_TYPE;
+        }
+        // TODO allow this taxonomy to be applied to other post types as an option.
+        register_taxonomy(
+            self::TAX_DIV,
+            $divisionTypesToApply,
+            [
+                'hierarchical'      => true,
+                'show_ui'           => true, // TODO make false
+                'description'       => sprintf(__('Classify things by %s.'), $this->settings->dv_name_singular),
+                'labels'            => [
+                    'name'          => $this->settings->dv_name_plural,
+                    'singular_name' => $this->settings->dv_name_singular,
+                    'search_items'  => __('Search ' . $this->settings->dv_name_plural), // TODO change to sprintf
+                    'all_items'     => __('All ' . $this->settings->dv_name_plural),
+                    'edit_item'     => __('Edit ' . $this->settings->dv_name_singular),
+                    'update_item'   => __('Update ' . $this->settings->dv_name_singular),
+                    'add_new_item'  => __('Add New ' . $this->settings->dv_name_singular),
+                    'new_item_name' => __('New ' . $this->settings->dv_name_singular . ' Name'),
+                    'menu_name'     => $this->settings->dv_name_plural,
+                ],
+                'public'            => true,
+                'show_in_rest'      => true,
+                'show_admin_column' => false, // TODO make an option?
+
+                // Control the slugs used for this taxonomy
+                'rewrite'           => [
+                    'slug'         => $this->settings->dv_slug,
+                    'with_front'   => false,
+                    'hierarchical' => true
+                ],
+            ]
+        );
+        $enabledDivisions = $this->settings->dv_divisions;
+        foreach ($this->getDivisions() as $d) {
+            if (in_array('div' . $d->id, $enabledDivisions)) {
+
+                // Program
+                $pTermInfo = term_exists($d->pName, self::TAX_DIV);
+                if ( $pTermInfo === null ) {
+                    $pTermInfo = wp_insert_term(
+                        $d->pName,
+                        self::TAX_DIV,
+                        [
+                            'description' => $d->pName,
+                            'slug'        => sanitize_title($d->pName)
+                        ]
+                    );
+                    update_term_meta($pTermInfo['term_id'], self::SETTINGS_PREFIX . 'programId', $d->proId);
+                    self::queueFlushRewriteRules();
+                }
+
+                // Division
+                $dTermInfo = term_exists($d->dName, self::TAX_DIV);
+                if ($dTermInfo === null) {
+                    $dTermInfo = wp_insert_term(
+                        $d->dName,
+                        self::TAX_DIV,
+                        [
+                            'description' => $d->dName,
+                            'parent'      => $pTermInfo['term_id'],
+                            'slug'        => sanitize_title($d->dName)
+                        ]
+                    );
+                    update_term_meta($dTermInfo['term_id'], self::SETTINGS_PREFIX . 'divId', $d->id);
+                    self::queueFlushRewriteRules();
+                }
+            } else {
+                // Remove terms that are no longer used. TODO also remove ones that no longer exist in TouchPoint.
+
+                // Division
+                $dTermInfo = term_exists($d->dName, self::TAX_DIV);
+                if ($dTermInfo !== null) {
+                    wp_delete_term($dTermInfo['term_id'], self::TAX_DIV);
+                    self::queueFlushRewriteRules();
+                }
+
+                // Program
+                // TODO remove program terms that are no longer used
+            }
+        }
 
         // Weekdays
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
@@ -1176,7 +1262,7 @@ class TouchPointWP
             }
         }
 
-        // Get update if needed.
+        // Get update if needed.  TODO move to cron.
         if ($needsUpdate) {
             $divsObj = $this->updateDivisions();
         }

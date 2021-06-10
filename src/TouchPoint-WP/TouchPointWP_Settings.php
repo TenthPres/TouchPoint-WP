@@ -46,6 +46,11 @@ if ( ! defined('ABSPATH')) {
  * @property-read string rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
  * @property-read string rc_name_singular   What a resident code should be called, singular (e.g. "Resident Code" or "Zone")
  * @property-read string rc_slug            Slug for resident code taxonomy (e.g. "zones" for church.org/zones)
+ *
+ * @property-read string dv_name_plural     What divisions should be called, plural (e.g. "Divisions" or "Ministries")
+ * @property-read string dv_name_singular   What a division should be called, singular (e.g. "Division" or "Ministry")
+ * @property-read string dv_slug            Slug for division taxonomy (e.g. "ministries" for church.org/ministries)
+ * @property-read array  dv_divisions       Which divisions should be imported
  */
 class TouchPointWP_Settings
 {
@@ -469,7 +474,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             'inv_marital'  => __('Marital Status', TouchPointWP::TEXT_DOMAIN),
                             'agegroup'  => __('Age Group', TouchPointWP::TEXT_DOMAIN),
                         ],
-                        'default'     => ['genderId', 'rescode', 'weekday', 'agegroup'],
+                        'default'     => ['genderId', 'rescode', 'weekday', 'agegroup']
                     ],
                 ],
             ];
@@ -515,50 +520,99 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on" || $includeAll) {
-            $this->settings['resident_codes'] = [
-                'title'       => __('Resident Codes', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify Small Groups and users.', TouchPointWP::TEXT_DOMAIN),
-                'fields'      => [
-                    [
-                        'id'          => 'rc_name_plural',
-                        'label'       => __('Resident Code Name (Plural)', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'What you call Resident Codes at your church',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'text',
-                        'default'     => 'Resident Codes',
-                        'placeholder' => 'Resident Codes'
-                    ],
-                    [
-                        'id'          => 'rc_name_singular',
-                        'label'       => __('Resident Code Name (Singular)', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'What you call a resident code at your church',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'text',
-                        'default'     => 'Resident Code',
-                        'placeholder' => 'Resident Code'
-                    ],
-                    [
-                        'id'          => 'rc_slug',
-                        'label'       => __('Resident Code Slug', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'The root path for the Resident Code Taxonomy',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'text',
-                        'default'     => 'rescodes',
-                        'placeholder' => 'rescodes',
-                        'callback'    => fn($new) => $this->validation_slug($new, 'rc_slug')
-                    ]
+        $this->settings['divisions'] = [
+            'title'       => __('Divisions', TouchPointWP::TEXT_DOMAIN),
+            'description' => __('Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify Small Groups and users.', TouchPointWP::TEXT_DOMAIN),
+            'fields'      => [
+                [
+                    'id'          => 'dv_name_plural',
+                    'label'       => __('Division Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'What you call Divisions at your church',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'Divisions',
+                    'placeholder' => 'Divisions'
                 ],
-            ];
-        }
+                [
+                    'id'          => 'dv_name_singular',
+                    'label'       => __('Division Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'What you call a Division at your church',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'Division',
+                    'placeholder' => 'Division'
+                ],
+                [
+                    'id'          => 'dv_slug',
+                    'label'       => __('Division Slug', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'The root path for the Division Taxonomy',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'div',
+                    'placeholder' => 'div',
+                    'callback'    => fn($new) => $this->validation_slug($new, 'dv_slug')
+                ],
+                [
+                    'id'          => 'dv_divisions',
+                    'label'       => __('Divisions to Import', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'These divisions will be imported for the taxonomy.',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'checkbox_multi',
+                    'options'     => $includeDetail ? $this->parent->getDivisionsAsKVArray() : [],
+                    'default'     => [],
+                    'callback'    => function($new) {sort($new); return $new;}
+                ],
+            ],
+        ];
 
+        $this->settings['resident_codes'] = [
+            'title'       => __('Resident Codes', TouchPointWP::TEXT_DOMAIN),
+            'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify Small Groups and users.', TouchPointWP::TEXT_DOMAIN),
+            'fields'      => [
+                [
+                    'id'          => 'rc_name_plural',
+                    'label'       => __('Resident Code Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'What you call Resident Codes at your church',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'Resident Codes',
+                    'placeholder' => 'Resident Codes'
+                ],
+                [
+                    'id'          => 'rc_name_singular',
+                    'label'       => __('Resident Code Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'What you call a resident code at your church',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'Resident Code',
+                    'placeholder' => 'Resident Code'
+                ],
+                [
+                    'id'          => 'rc_slug',
+                    'label'       => __('Resident Code Slug', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'The root path for the Resident Code Taxonomy',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'rescodes',
+                    'placeholder' => 'rescodes',
+                    'callback'    => fn($new) => $this->validation_slug($new, 'rc_slug')
+                ]
+            ],
+        ];
 
 
         /*	$settings['general'] = [
