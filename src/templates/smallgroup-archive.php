@@ -51,7 +51,7 @@ if ( have_posts() ) {
 } else {
     $loadedPart = get_template_part('list-none', 'smallgroup-list-none');
     if ($loadedPart === false) {
-    require TouchPointWP::$dir . "/src/templates/parts/smallgroup-list-none.php";
+        require TouchPointWP::$dir . "/src/templates/parts/smallgroup-list-none.php";
     }
 }
 

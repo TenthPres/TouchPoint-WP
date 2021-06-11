@@ -435,7 +435,7 @@ class SmallGroup extends Involvement
                 JOIN $wpdb->postmeta as mloc ON p.ID = mloc.post_id AND '{$settingsPrefix}locationName' = mloc.meta_key
                 LEFT JOIN $wpdb->postmeta as mlat ON p.ID = mlat.post_id AND '{$settingsPrefix}geo_lat' = mlat.meta_key
                 LEFT JOIN $wpdb->postmeta as mlng ON p.ID = mlng.post_id AND '{$settingsPrefix}geo_lng' = mlng.meta_key
-                WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()"; // TODO possibly add ResCode?
+                WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()";
 
             $ret = [];
             foreach ($wpdb->get_results($sql, "OBJECT") as $row) {
@@ -721,6 +721,10 @@ class SmallGroup extends Involvement
     {
         $r = self::getGroupsNear($_GET['lat'], $_GET['lng'], $_GET['limit']);
 
+        if ($r === null) {
+            $r = [];
+        }
+
         foreach ($r as $g) {
             $sg      = SmallGroup::fromObj($g);
             $g->name = $sg->name;
@@ -752,9 +756,9 @@ class SmallGroup extends Involvement
      * @param $lng    numeric Longitude
      * @param $limit  numeric Number of results to return.  0-100 inclusive.
      *
-     * @return array|object|null
+     * @return object[]|null  An array of database query result objects, or null if the location isn't provided or valid.
      */
-    protected static function getGroupsNear($lat = null, $lng = null, $limit = 3)
+    protected static function getGroupsNear(?float $lat = null, ?float $lng = null, int $limit = 3): ?array
     {
         if ($lat === null || $lng === null) {
             $geoObj = self::$tpwp->geolocate();
@@ -765,8 +769,12 @@ class SmallGroup extends Involvement
             }
         }
 
-        $lat = floatval($lat) ?? 39.949601081097036; // TODO use some kind of default.
-        $lng = floatval($lng) ?? -75.17186043802126;
+        if ($lat === null || $lng === null ||
+            $lat > 90 || $lat < -90 ||
+            $lat > 180 || $lat < -180
+        ) {
+            return null;
+        }
 
         $limit = min(max(intval($limit), 0), 100);
 
@@ -797,7 +805,7 @@ class SmallGroup extends Involvement
             ORDER BY distance LIMIT %d
             ", $lat, $lng, $lat, self::POST_TYPE, $limit );
 
-        return $wpdb->get_results($q);
+        return $wpdb->get_results($q, 'OBJECT');
     }
 
     /**
