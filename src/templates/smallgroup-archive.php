@@ -27,8 +27,8 @@ if ( have_posts() ) {
     <header class="archive-header has-text-align-center header-footer-group">
         <div class="archive-header-inner section-inner medium">
             <h1 class="archive-title page-title"><?php echo TouchPointWP::instance()->settings->sg_name_plural; ?></h1>
-            <div class="map smallgroup-map-container"><?php echo SmallGroup::mapShortcode() ?></div>
-            <?php echo SmallGroup::filterShortcode([]); ?>
+<!--            <div class="map smallgroup-map-container">--><?php //echo SmallGroup::mapShortcode() ?><!--</div>-->
+<!--            --><?php //echo SmallGroup::filterShortcode([]); ?>
             <?php if ($description) { ?>
                 <div class="archive-description"><?php echo wp_kses_post(wpautop($description)); ?></div>
             <?php } ?>
@@ -38,8 +38,16 @@ if ( have_posts() ) {
     </header>
     <div class="smallgroup-list">
     <?php
-    while (have_posts()) {
-        the_post();
+
+    global $wp_the_query;
+
+    $wp_the_query->set('posts_per_page', -1);
+    $wp_the_query->set('nopaging', true);
+
+    $wp_the_query->get_posts();
+
+    while ($wp_the_query->have_posts()) {
+        $wp_the_query->the_post();
         $loadedPart = get_template_part('list-item', 'smallgroup-list-item');
         if ($loadedPart === false) {
             require TouchPointWP::$dir . "/src/templates/parts/smallgroup-list-item.php";

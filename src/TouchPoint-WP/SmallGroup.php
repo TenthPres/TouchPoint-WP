@@ -752,9 +752,9 @@ class SmallGroup extends Involvement
     /**
      * Gets an array of ID/Distance pairs for a given lat/lng.
      *
-     * @param $lat    numeric Longitude
-     * @param $lng    numeric Longitude
-     * @param $limit  numeric Number of results to return.  0-100 inclusive.
+     * @param float|null $lat   Longitude
+     * @param float|null $lng   Longitude
+     * @param int        $limit Number of results to return.  0-100 inclusive.
      *
      * @return object[]|null  An array of database query result objects, or null if the location isn't provided or valid.
      */
