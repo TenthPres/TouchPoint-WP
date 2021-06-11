@@ -114,6 +114,11 @@ class SmallGroup extends Involvement
                     break;
             }
         }
+
+        if (!$this->acceptingNewMembers()) {
+            $ret[] = __('Currently Full', TouchPointWP::TEXT_DOMAIN);
+        }
+
         return $ret;
     }
 
@@ -349,7 +354,7 @@ class SmallGroup extends Involvement
      *
      * @noinspection PhpUnusedParameterInspection
      */
-    public static function mapShortcode(array $params, string $content = ""): string
+    public static function mapShortcode(array $params = [], string $content = ""): string
     {
         if ( ! self::$_hasUsedMap) {
             self::$_hasUsedMap = true;
@@ -820,8 +825,8 @@ class SmallGroup extends Involvement
      */
     public function acceptingNewMembers(): bool
     {
-        // TODO this.
-        return true;
+        // TODO add extra value options
+        return parent::acceptingNewMembers();
     }
 
     /**

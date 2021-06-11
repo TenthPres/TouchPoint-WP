@@ -67,6 +67,22 @@ abstract class Involvement
     }
 
     /**
+     * Whether the involvement is currently joinable.
+     *
+     * @return bool
+     */
+    public function acceptingNewMembers(): bool
+    {
+        if (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "groupFull", true) === '1') {
+            return false;
+        }
+        if (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "groupClosed", true) === '1') {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * @param $exclude
      *
      * @return string[]
