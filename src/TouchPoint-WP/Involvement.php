@@ -23,6 +23,7 @@ abstract class Involvement
     const INVOLVEMENT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "invId";
 
     public object $attributes;
+    protected array $divisions;
 
     /**
      * Involvement constructor.
@@ -63,6 +64,38 @@ abstract class Involvement
                 // TODO add an else for nonstandard/optional metadata fields
             }
         }
+    }
+
+    /**
+     * @param $exclude
+     *
+     * @return string[]
+     */
+    public function getDivisionsStrings(array $exclude): array
+    {
+        if (!isset($this->divisions)) {
+            if (count($exclude) > 1) {
+                $mq = ['relation' => "AND"];
+            } else {
+                $mq = [];
+            }
+
+            foreach ($exclude as $e) {
+                $mq[] = [
+                    'key' => TouchPointWP::SETTINGS_PREFIX . 'divId',
+                    'value' => substr($e, 3),
+                    'compare' => 'NOT LIKE'
+                ];
+            }
+
+            $this->divisions = wp_get_post_terms($this->post_id, TouchPointWP::TAX_DIV, ['meta_query' => $mq]);
+        }
+
+        $out = [];
+        foreach ($this->divisions as $d) {
+            $out[] = $d->name;
+        }
+        return $out;
     }
 
     /**
@@ -293,6 +326,17 @@ abstract class Involvement
             } else {
                 wp_set_post_terms($post->ID, $inv->age_groups, TouchPointWP::TAX_AGEGROUP, false);
             }
+
+            // Handle divisions
+            $divs = [];
+            if ($inv->divs !== null) {
+                foreach ($inv->divs as $d) {
+                    $tid = TouchPointWP::getDivisionTermIdByDivId($d);
+                    if (! $tid)
+                        $divs[] = $tid;
+                }
+            }
+            wp_set_post_terms($post->ID, $divs, TouchPointWP::TAX_DIV, false);
 
             $postsToKeep[] = $post->ID;
         }

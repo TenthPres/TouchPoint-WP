@@ -467,14 +467,15 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
-                        'options'     => [
+                        'options' => [
+                            'div'         => $this->get('dv_name_singular'),
                             'genderId'    => __('Gender', TouchPointWP::TEXT_DOMAIN),
-                            'rescode'    => $this->get('rc_name_singular'),
-                            'weekday' => __('Weekday', TouchPointWP::TEXT_DOMAIN),
-                            'inv_marital'  => __('Marital Status', TouchPointWP::TEXT_DOMAIN),
-                            'agegroup'  => __('Age Group', TouchPointWP::TEXT_DOMAIN),
+                            'rescode'     => $this->get('rc_name_singular'),
+                            'weekday'     => __('Weekday', TouchPointWP::TEXT_DOMAIN),
+                            'inv_marital' => __('Marital Status', TouchPointWP::TEXT_DOMAIN),
+                            'agegroup'    => __('Age Group', TouchPointWP::TEXT_DOMAIN),
                         ],
-                        'default'     => ['genderId', 'rescode', 'weekday', 'agegroup']
+                        'default'     => ['genderId', 'rescode', 'weekday', 'agegroup', 'div']
                     ],
                 ],
             ];
@@ -505,17 +506,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'type'        => 'checkbox',
                         'default'     => 'on',
                     ],
-//                    [
-//                        'id'          => 'ec_name_plural',
-//                        'label'       => __('Resident Code Name (Plural)', TouchPointWP::TEXT_DOMAIN),
-//                        'description' => __(
-//                            'What you call small groups at your church',
-//                            TouchPointWP::TEXT_DOMAIN
-//                        ),
-//                        'type'        => 'text',
-//                        'default'     => 'Resident Codes',
-//                        'placeholder' => 'Resident Codes'
-//                    ]
                 ],
             ];
         }

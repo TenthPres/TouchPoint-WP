@@ -5,6 +5,7 @@ namespace tp\TouchPointWP;
 use WP;
 use WP_Error;
 use WP_Http;
+use WP_Term;
 
 if ( ! defined('ABSPATH')) {
     exit;
@@ -885,6 +886,35 @@ class TouchPointWP
         }
     }
 
+    private static array $divisionTerms = [];
+
+    /**
+     * @param int $divId
+     *
+     * @return int|false Returns the term ID number or false (or 0) if the division is not found, or not enabled.
+     */
+    public static function getDivisionTermIdByDivId(int $divId): int
+    {
+        if (!isset(self::$divisionTerms['d' . $divId])) {
+            $t = get_terms(
+                [
+                    'taxonomy'   => self::TAX_DIV,
+                    'hide_empty' => false,
+                    'number'     => 1,
+                    'fields'     => 'ids',
+                    'meta_key'   => self::SETTINGS_PREFIX . 'divId',
+                    'meta_value' => $divId
+                ]
+            );
+            if (is_array($t) && count($t) > 0) {
+                self::$divisionTerms['d' . $divId] = $t[0];
+            } else { // not found, or division is not enabled for syncing.
+                self::$divisionTerms['d' . $divId] = false;
+            }
+        }
+        return self::$divisionTerms['d' . $divId];
+    }
+
     /**
      * Main TouchPointWP Instance
      *
@@ -1139,6 +1169,40 @@ class TouchPointWP
     public static function useTribeCalendar(): bool
     {
         return self::useTribeCalendarPro() || is_plugin_active( 'the-events-calendar/the-events-calendar.php');
+    }
+
+
+    /**
+     * Sort a list of heirarchical terms into a list in which each parent is immediately followed by its children.
+     *
+     * @param WP_Term[] $terms
+     *
+     * @return WP_Term[]
+     */
+    public static function orderHierarchicalTerms(array $terms): array
+    {
+        $lineage = [[]];
+        foreach ($terms as $t) {
+            if (! isset($lineage[$t->parent])) {
+                $lineage[$t->parent] = [];
+            }
+            $lineage[$t->parent][] = $t;
+        }
+
+        usort($lineage[0], fn($a, $b) => strcmp($a->name, $b->name));
+
+        $out = [];
+        foreach ($lineage[0] as $t) {
+            $out[] = $t;
+            if (isset($lineage[$t->term_id])) {
+                usort($lineage[$t->term_id], fn($a, $b) => strcmp($a->name, $b->name));
+
+                foreach ($lineage[$t->term_id] as $t2) {
+                    $out[] = $t2;
+                }
+            }
+        }
+        return $out;
     }
 
     /**
