@@ -189,8 +189,8 @@ class TouchPointWP
             require_once 'Rsvp.php';
         }
 
-        // Load Small Group tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_small_group') === "on"
+        // Load Small Group tool if enabled. // TODO apparently not used.
+        if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
             && ! class_exists("tp\TouchPointWP\SmallGroup")) {
             require_once 'SmallGroup.php';
         }
@@ -242,9 +242,17 @@ class TouchPointWP
                 count($reqUri['path']) === 2 &&
                 TouchPointWP::useTribeCalendar()) {
 
-                EventsCalendar::echoAppList($reqUri['query']);
+                if (!EventsCalendar::api($reqUri)) {
+                    return $continue;
+                }
+            }
 
-                exit;
+            if ($reqUri['path'][1] === "sg" &&
+                get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
+            ) {
+                if (!SmallGroup::api($reqUri)) {
+                    return $continue;
+                }
             }
 
             // Generate Python Scripts

@@ -495,7 +495,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             '<p>' . __('To use your Events Calendar events in the Custom mobile app, set the Provider to <code>Wordpress Plugin - Modern Tribe</code> and use this url:', TouchPointWP::TEXT_DOMAIN) . '</p>' .
                             '<input type="url" value="{apiUrl}" readonly style="width: 100%;" />',
                             [
-                                '{apiUrl}'    => get_site_url() . "/" . TouchPointWP::API_ENDPOINT . "/" . TouchPointWP::API_ENDPOINT_APP_EVENTS,
+                                '{apiUrl}'    => get_site_url() . "/" .
+                                                 TouchPointWP::API_ENDPOINT . "/" .
+                                                 TouchPointWP::API_ENDPOINT_APP_EVENTS . "?v=" .
+                                                 TouchPointWP::VERSION
                             ]
                         ),
                     ],

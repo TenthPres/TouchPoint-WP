@@ -1,5 +1,10 @@
 <?php
 namespace tp\TouchPointWP;
+
+if ( ! defined('ABSPATH')) {
+    exit(1);
+}
+
 use DateTime;
 use Exception;
 use WP_Error;
@@ -123,7 +128,7 @@ abstract class Involvement
      *
      * @return false|int  False on failure.  Otherwise, the number of updates.
      */
-    protected static function updateInvolvementPosts(string $postType, $divs, $options = []) {
+    protected static function updateInvolvementPosts(string $postType, $divs, $options = [], $verbose = false) {
         $siteTz = wp_timezone();
 
         set_time_limit(60);
@@ -147,6 +152,10 @@ abstract class Involvement
 
         foreach ($invData as $inv) {
             set_time_limit(15);
+
+            if ($verbose) {
+                var_dump($inv);
+            }
 
             $q = new WP_Query(
                 [
@@ -224,9 +233,15 @@ abstract class Involvement
             // Save next meeting metadata
             if (count($upcomingDateTimes) > 0) {
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "nextMeeting", $upcomingDateTimes[0]);
+                if ($verbose) {
+                    echo "<p>Next occurrence: " . $upcomingDateTimes[0]->format('c') . "</p>";
+                }
             } else {
                 // No upcoming dates.  Remove meta key.
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "nextMeeting");
+                if ($verbose) {
+                    echo "<p>No upcoming occurrences</p>";
+                }
             }
 
             // TODO skip most of this if there aren't any current times.
@@ -290,6 +305,9 @@ abstract class Involvement
             } else {
                 $dayStr = null;
             }
+            if ($verbose) {
+                echo "<p>Meeting schedule: $dayStr</p>";
+            }
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", $dayStr);
 
             // Day of week attributes
@@ -348,13 +366,23 @@ abstract class Involvement
             if ($inv->divs !== null) {
                 foreach ($inv->divs as $d) {
                     $tid = TouchPointWP::getDivisionTermIdByDivId($d);
-                    if (! $tid)
+                    if ( ! ! $tid) {
                         $divs[] = $tid;
+                    }
                 }
             }
             wp_set_post_terms($post->ID, $divs, TouchPointWP::TAX_DIV, false);
 
+            if ($verbose) {
+                echo "<p>Division Terms:</p>";
+                var_dump($divs);
+            }
+
             $postsToKeep[] = $post->ID;
+
+            if ($verbose) {
+                echo "<hr />";
+            }
         }
 
         // Delete posts that are no longer current

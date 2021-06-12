@@ -3,31 +3,36 @@
 
 namespace tp\TouchPointWP;
 
-use WP_Post;
-
 if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-abstract class EventsCalendar
+use WP_Post;
+
+require_once 'api.php';
+
+abstract class EventsCalendar implements api
 {
     /**
      * Print json for Events Calendar for Mobile app.
      *
      * @param array $params Parameters from the request to use for filtering or such.
      */
-    static function echoAppList(array $params = [])
+    protected static function echoAppList(array $params = [])
     {
         $eventsList = [];
 
-        // TODO involve some level of parameterization.  Ministry?
+        $params = array_merge(
+            [
+                'ends_after'                  => 'now',
+                'event_display'               => 'custom',
+                'total_per_page'              => 20,
+                'hide_subsequent_recurrences' => true
+            ],
+            $params
+        );
 
-        $eventsQ = tribe_get_events([
-            'ends_after' => 'now',
-            'event_display' => 'custom',
-            'total_per_page'    => 99,
-            'hide_subsequent_recurrences' => true
-        ]);
+        $eventsQ = tribe_get_events($params);
 
         $usePro = TouchPointWP::useTribeCalendarPro();
 
@@ -131,5 +136,12 @@ abstract class EventsCalendar
         header('Content-Type: application/json');
 
         echo json_encode($eventsList);
+    }
+
+    public static function api(array $uri): bool
+    {
+        EventsCalendar::echoAppList($uri['query']);
+
+        exit;
     }
 }

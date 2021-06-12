@@ -2,9 +2,14 @@
 
 namespace tp\TouchPointWP;
 
+if ( ! defined('ABSPATH')) {
+    exit(1);
+}
+
 use WP_Post;
 use WP_Term;
 
+require_once 'api.php';
 require_once 'Involvement.php';
 
 /**
@@ -18,7 +23,7 @@ require_once 'Involvement.php';
 /**
  * The Small Group system class.
  */
-class SmallGroup extends Involvement
+class SmallGroup extends Involvement implements api
 {
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "SgMap";
     public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "SgFilters";
@@ -233,9 +238,11 @@ class SmallGroup extends Involvement
     /**
      * Query TouchPoint and update Small Groups in WordPress
      *
+     * @param bool $verbose Whether to print debugging info.
+     *
      * @return false|int False on failure, or the number of groups that were updated or deleted.
      */
-    public static function updateSmallGroupsFromTouchPoint()
+    public static function updateSmallGroupsFromTouchPoint($verbose = false)
     {
         if (count(self::$tpwp->settings->sg_divisions) < 1) {
             // Don't update if there aren't any divisions selected yet.
@@ -254,7 +261,7 @@ class SmallGroup extends Involvement
         $hMTypes = implode(',', self::$tpwp->settings->sg_host_types);
         $hMTypes = str_replace('mt', '', $hMTypes);
 
-        $count = parent::updateInvolvementPosts(self::POST_TYPE, $divs, ['leadMemTypes' => $lMTypes, 'hostMemTypes' => $hMTypes]);
+        $count = parent::updateInvolvementPosts(self::POST_TYPE, $divs, ['leadMemTypes' => $lMTypes, 'hostMemTypes' => $hMTypes], $verbose);
 
         if ($count !== false) {
             self::$tpwp->settings->set('sg_cron_last_run', time());
@@ -519,7 +526,7 @@ class SmallGroup extends Involvement
                 $mq = [
                     'relation' => "OR",
                     [
-                        'key' => TouchPointWP::SETTINGS_PREFIX . 'divId', // Allow programs
+                        'key' => TouchPointWP::SETTINGS_PREFIX . 'divId', // Allows for programs
                         'compare' => 'NOT EXISTS'
                     ],
                     $mq
@@ -849,5 +856,23 @@ class SmallGroup extends Involvement
             $ret .= '<button type="button" data-tp-action="join">Join</button>  ';
         }
         return $ret;
+    }
+
+    /**
+     * @param $uri
+     *
+     * @return bool True on success (valid api endpoint), false on failure.
+     */
+    public static function api($uri): bool
+    {
+        if (count($uri['path']) < 3) {
+            return false;
+        }
+
+        if ($uri['path'][2] === "force-sync") {
+            echo self::updateSmallGroupsFromTouchPoint(false);
+            exit;
+        }
+        return false;
     }
 }
