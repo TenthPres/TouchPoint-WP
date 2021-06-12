@@ -88,6 +88,16 @@ abstract class Involvement
     }
 
     /**
+     * Whether the involvement should link to a registration form, rather than directly joining the org.
+     *
+     * @return bool
+     */
+    public function useRegistrationForm(): bool
+    {
+        return get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "groupFull", true) === '1';
+    }
+
+    /**
      * @param $exclude
      *
      * @return string[]
@@ -203,6 +213,8 @@ abstract class Involvement
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "genderId", $inv->genderId);
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupFull", ! ! $inv->groupFull);
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupClosed", ! ! $inv->closed);
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", ! ! $inv->hasRegQuestions);
+            // TODO add registration open/close dates
 
             //// SCHEDULING
             // Establish data model for figuring everything else out.
@@ -402,5 +414,28 @@ abstract class Involvement
         }
 
         return $removals + count($invData);
+    }
+
+    /**
+     * Returns the html with buttons for actions the user can perform.
+     *
+     * @return string
+     */
+    public function getActionButtons(): string
+    {
+        $text = __("Contact Leaders", TouchPointWP::TEXT_DOMAIN);
+        $ret = "<button type=\"button\" data-tp-action=\"contact\">{$text}</button>  ";
+
+        if ($this->acceptingNewMembers()) {
+            if ($this->useRegistrationForm()) {
+                $text = __('Register', TouchPointWP::TEXT_DOMAIN);
+                $link = "//" . TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
+                $ret  .= "<a class=\"btn button\" href=\"{$link}\">{$text}</a>  ";
+            } else {
+                $text = __('Join', TouchPointWP::TEXT_DOMAIN);
+                $ret  .= "<button type=\"button\" data-tp-action=\"join\">{$text}</button>  ";
+            }
+        }
+        return $ret;
     }
 }

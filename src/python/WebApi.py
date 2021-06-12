@@ -60,6 +60,10 @@ elif (Data.a == "InvsForDivs"):
 	o.description,
 	o.registrationClosed as closed,
 	o.notWeekly,
+	o.RegistrationTypeId,
+	o.OrgPickList,
+	o.MainLeaderId,
+	o.RegSettingXml.exist('/Settings/AskItems') AS hasRegQuestions,
 	(SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
 		LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0)) as marital_denom,
 	(SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi

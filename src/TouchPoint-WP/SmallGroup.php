@@ -315,7 +315,7 @@ class SmallGroup extends Involvement implements api
         if ($post == null)
             $post = get_the_ID();
 
-        if (get_post_type($post) === SmallGroup::POST_TYPE) {
+        if (get_post_type($post) === self::POST_TYPE) {
             if (!is_numeric($post))
                 $post = $post->ID;
             $theDate = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", true);
@@ -733,7 +733,7 @@ class SmallGroup extends Involvement implements api
         }
 
         foreach ($r as $g) {
-            $sg      = SmallGroup::fromObj($g);
+            $sg      = self::fromObj($g);
             $g->name = $sg->name;
             $g->path = get_permalink($sg->post_id);
         }
@@ -842,20 +842,6 @@ class SmallGroup extends Involvement implements api
     {
         // TODO add extra value options
         return parent::acceptingNewMembers();
-    }
-
-    /**
-     * Returns the html with buttons for actions the user can perform.
-     *
-     * @return string
-     */
-    public function getActionButtons(): string
-    {
-        $ret = '<button type="button" data-tp-action="contact">Contact Leaders</button>  ';
-        if ($this->acceptingNewMembers()) {
-            $ret .= '<button type="button" data-tp-action="join">Join</button>  ';
-        }
-        return $ret;
     }
 
     /**

@@ -123,7 +123,12 @@ class TouchPointWP
     /**
      * @var ?bool True after the Small Group feature is loaded.
      */
-    protected ?bool $smallGroup = null;
+    protected ?bool $smallGroups = null;
+
+    /**
+     * @var ?bool True after the Classes feature is loaded.
+     */
+    protected ?bool $classes = null;
 
     /**
      * @var ?WP_Http Object for API requests.
@@ -177,29 +182,30 @@ class TouchPointWP
         // Adds async and defer attributes to script tags.
         add_filter('script_loader_tag', [$this, 'filterByTag'], 10, 2);
 
-        // Load Auth tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on"
-            && ! class_exists("tp\TouchPointWP\Auth")) {
-            require_once 'Auth.php';
-        }
 
-        // Load RSVP tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on"
-            && ! class_exists("tp\TouchPointWP\Rsvp")) {
-            require_once 'Rsvp.php';
-        }
-
-        // Load Small Group tool if enabled. // TODO apparently not used.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
-            && ! class_exists("tp\TouchPointWP\SmallGroup")) {
-            require_once 'SmallGroup.php';
-        }
-
-        // Load Events if enabled (by presence of Events Calendar plugin)
-        if (self::useTribeCalendar()
-            && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
-            require_once 'EventsCalendar.php';
-        }
+//        // Load Auth tool if enabled.  TODO it would seem that these are not used. Confirm for install without composer and remove.
+//        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on"
+//            && ! class_exists("tp\TouchPointWP\Auth")) {
+//            require_once 'Auth.php';
+//        }
+//
+//        // Load RSVP tool if enabled.
+//        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on"
+//            && ! class_exists("tp\TouchPointWP\Rsvp")) {
+//            require_once 'Rsvp.php';
+//        }
+//
+//        // Load Small Group tool if enabled.
+//        if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
+//            && ! class_exists("tp\TouchPointWP\SmallGroup")) {
+//            require_once 'SmallGroup.php';
+//        }
+//
+//        // Load Events if enabled (by presence of Events Calendar plugin)
+//        if (self::useTribeCalendar()
+//            && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
+//            require_once 'EventsCalendar.php';
+//        }
     }
 
     public function admin(): TouchPointWP_AdminAPI
@@ -330,10 +336,22 @@ class TouchPointWP
             $instance->rsvp = Rsvp::load();
         }
 
-        // Load Auth tool if enabled.
+        // Load Small Groups tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
             require_once 'SmallGroup.php';
-            $instance->smallGroup = SmallGroup::load($instance);
+            $instance->smallGroups = SmallGroup::load($instance);
+        }
+
+        // Load Classes tool if enabled.
+        if (get_option(self::SETTINGS_PREFIX . 'enable_courses') === "on") {
+            require_once 'Course.php';
+            $instance->classes = Course::load($instance);
+        }
+
+        // Load Events if enabled (by presence of Events Calendar plugin)
+        if (self::useTribeCalendar()
+            && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
+            require_once 'EventsCalendar.php';
         }
 
         return $instance;
@@ -373,7 +391,7 @@ class TouchPointWP
             Rsvp::registerScriptsAndStyles();
         }
 
-        if ( ! ! $this->smallGroup) {
+        if ( ! ! $this->smallGroups) {
             SmallGroup::registerScriptsAndStyles();
         }
     }
