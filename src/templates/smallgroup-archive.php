@@ -27,8 +27,8 @@ if ( have_posts() ) {
     <header class="archive-header has-text-align-center header-footer-group">
         <div class="archive-header-inner section-inner medium">
             <h1 class="archive-title page-title"><?php echo TouchPointWP::instance()->settings->sg_name_plural; ?></h1>
-<!--            <div class="map smallgroup-map-container">--><?php //echo SmallGroup::mapShortcode() ?><!--</div>-->
-<!--            --><?php //echo SmallGroup::filterShortcode([]); ?>
+            <div class="map smallgroup-map-container"><?php echo SmallGroup::mapShortcode() ?></div>
+            <?php echo SmallGroup::filterShortcode([]); ?>
             <?php if ($description) { ?>
                 <div class="archive-description"><?php echo wp_kses_post(wpautop($description)); ?></div>
             <?php } ?>
