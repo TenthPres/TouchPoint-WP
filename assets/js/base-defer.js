@@ -132,6 +132,7 @@ class TP_Involvement {
     name = "";
     invId = "";
     _visible = true;
+    invType = "involvement"; // Can be set to something more specific like 'smallgroup'
 
     attributes = {};
 
@@ -180,14 +181,19 @@ class TP_Involvement {
     }
 
     async doJoin(people, showConfirm = true) {
-        let group = this;
+        let inv = this;
         showConfirm = !!showConfirm;
-        let res = await tpvm.postData('tp_inv_join', {invId: group.invId, people: people});
+
+        if (typeof ga === "function") {
+            ga('send', 'event', inv.invType, 'join complete', inv.name);
+        }
+
+        let res = await tpvm.postData('tp_inv_join', {invId: inv.invId, people: people});
         if (res.success.length > 0) {
             if (showConfirm) {
                 Swal.fire({
                     icon: 'success',
-                    title: `Added to ${group.name}`,
+                    title: `Added to ${inv.name}`,
                     timer: 3000
                 });
             }
@@ -204,9 +210,14 @@ class TP_Involvement {
     }
 
     async doInvContact(fromPerson, message, showConfirm = true) {
-        let group = this;
+        let inv = this;
         showConfirm = !!showConfirm;
-        let res = await tpvm.postData('tp_inv_contact', {invId: group.invId, fromPerson: fromPerson, message: message});
+
+        if (typeof ga === "function") {
+            ga('send', 'event', inv.invType, 'contact complete', inv.name);
+        }
+
+        let res = await tpvm.postData('tp_inv_contact', {invId: inv.invId, fromPerson: fromPerson, message: message});
         if (res.success.length > 0) {
             if (showConfirm) {
                 Swal.fire({

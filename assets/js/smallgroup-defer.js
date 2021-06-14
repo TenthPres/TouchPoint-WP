@@ -11,6 +11,8 @@ class TP_SmallGroup extends TP_Involvement {
     constructor(obj) {
         super(obj);
 
+        this.invType = "smallgroup";
+
         this.geo = obj.geo ?? null;
 
         TP_SmallGroup.smallGroups.push(this);
@@ -68,16 +70,18 @@ class TP_SmallGroup extends TP_Involvement {
     }
 
     joinAction() {
-        let group = this;
+        let inv = this;
 
         if (typeof ga === "function") {
-            ga('send', 'event', 'smallgroup', 'join btn click', group.name);
+            ga('send', 'event', inv.invType, 'join btn click', inv.name);
         }
 
-        TP_Person.DoInformalAuth().then((res) => joinUi(group, res), () => console.log("Informal auth failed, probably user cancellation."))
+        TP_Person.DoInformalAuth().then((res) => joinUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
 
-        function joinUi(group, people) {
-            // TODO if only one person, just immediately join.
+        function joinUi(inv, people) {
+            if (typeof ga === "function") {
+                ga('send', 'event', inv.invType, 'join userIdentified', inv.name);
+            }
 
             Swal.fire({
                 html: "<p id=\"swal-tp-text\">Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
@@ -103,24 +107,28 @@ class TP_SmallGroup extends TP_Involvement {
 
                     Swal.showLoading();
 
-                    return group.doJoin(data, true);
+                    return inv.doJoin(data, true);
                 }
             });
         }
     }
 
     contactAction() {
-        let group = this;
+        let inv = this;
 
         if (typeof ga === "function") {
-            ga('send', 'event', 'smallgroup', 'contact btn click', group.name);
+            ga('send', 'event', inv.invType, 'contact btn click', inv.name);
         }
 
-        TP_Person.DoInformalAuth().then((res) => contactUi(group, res), () => console.log("Informal auth failed, probably user cancellation."))
+        TP_Person.DoInformalAuth().then((res) => contactUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
 
-        function contactUi(group, people) {
+        function contactUi(inv, people) {
+            if (typeof ga === "function") {
+                ga('send', 'event', inv.invType, 'contact userIdentified', inv.name);
+            }
+
             Swal.fire({
-                html: `<p id=\"swal-tp-text\">Contact the leaders of<br />${group.name}</p>` +
+                html: `<p id=\"swal-tp-text\">Contact the leaders of<br />${inv.name}</p>` +
                     '<form id="tp_sg_contact_form">' +
                     '<div class="form-group"><label for="tp_sg_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_sg_contact_fromPid", "fromPid") + '</div>' +
                     '<div class="form-group"><label for="tp_sg_contact_body">Message</label><textarea name="body" id="tp_sg_contact_body"></textarea></div>' +
@@ -143,7 +151,7 @@ class TP_SmallGroup extends TP_Involvement {
 
                     Swal.showLoading();
 
-                    return group.doInvContact(fromPerson, message, true);
+                    return inv.doInvContact(fromPerson, message, true);
                 }
             });
         }
