@@ -74,15 +74,15 @@ abstract class Involvement
     /**
      * Whether the involvement is currently joinable.
      *
-     * @return bool
+     * @return bool|string  True if joinable.  Or, a string with why it can't be joined otherwise.
      */
-    public function acceptingNewMembers(): bool
+    public function acceptingNewMembers()
     {
         if (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "groupFull", true) === '1') {
-            return false;
+            return __("Currently Full", TouchPointWP::TEXT_DOMAIN);
         }
         if (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "groupClosed", true) === '1') {
-            return false;
+            return __("Currently Closed", TouchPointWP::TEXT_DOMAIN);
         }
         return true;
     }
@@ -94,7 +94,7 @@ abstract class Involvement
      */
     public function useRegistrationForm(): bool
     {
-        return get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "groupFull", true) === '1';
+        return get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", true) === '1';
     }
 
     /**
@@ -426,7 +426,8 @@ abstract class Involvement
         $text = __("Contact Leaders", TouchPointWP::TEXT_DOMAIN);
         $ret = "<button type=\"button\" data-tp-action=\"contact\">{$text}</button>  ";
 
-        if ($this->acceptingNewMembers()) {
+        $joinable = $this->acceptingNewMembers();
+        if ($joinable === true) {
             if ($this->useRegistrationForm()) {
                 $text = __('Register', TouchPointWP::TEXT_DOMAIN);
                 $link = "//" . TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;

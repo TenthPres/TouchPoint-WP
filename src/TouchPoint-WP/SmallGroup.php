@@ -120,8 +120,9 @@ class SmallGroup extends Involvement implements api
             }
         }
 
-        if (!$this->acceptingNewMembers()) {
-            $ret[] = __('Currently Full', TouchPointWP::TEXT_DOMAIN);
+        $joinable = $this->acceptingNewMembers();
+        if ($joinable !== true) {
+            $ret[] = $joinable;
         }
 
         return $ret;
@@ -834,11 +835,11 @@ class SmallGroup extends Involvement implements api
     }
 
     /**
-     * Whether the group is accepting new members.
+     * Whether the involvement is currently joinable.
      *
-     * @return bool
+     * @return bool|string  True if joinable.  Or, a string with why it can't be joined otherwise.
      */
-    public function acceptingNewMembers(): bool
+    public function acceptingNewMembers()
     {
         // TODO add extra value options
         return parent::acceptingNewMembers();
