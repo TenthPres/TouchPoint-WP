@@ -5,7 +5,7 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-use DateTime;
+use DateTimeImmutable;
 use Exception;
 use WP_Error;
 use WP_Post;
@@ -81,9 +81,26 @@ abstract class Involvement
         if (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "groupFull", true) === '1') {
             return __("Currently Full", TouchPointWP::TEXT_DOMAIN);
         }
+
         if (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "groupClosed", true) === '1') {
             return __("Currently Closed", TouchPointWP::TEXT_DOMAIN);
         }
+
+        $now = current_datetime();
+        $regStart = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regStart", true);
+        if ($regStart !== false && $regStart !== '' && $regStart > $now) {
+            return __("Registration Not Open Yet", TouchPointWP::TEXT_DOMAIN);
+        }
+
+        $regEnd = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regEnd", true);
+        if ($regEnd !== false && $regEnd !== '' && $regEnd < $now) {
+            return __("Registration Closed", TouchPointWP::TEXT_DOMAIN);
+        }
+
+        if (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true) === 0) {
+            return false; // no online registration available
+        }
+
         return true;
     }
 
@@ -94,7 +111,8 @@ abstract class Involvement
      */
     public function useRegistrationForm(): bool
     {
-        return get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", true) === '1';
+        return (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", true) === '1' ||
+                intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) !== 1);
     }
 
     /**
@@ -130,16 +148,27 @@ abstract class Involvement
     }
 
     /**
+     * Query TouchPoint and update Involvements in WordPress.  This function should generally call updateInvolvementPosts
+     *
+     * @param bool $verbose Whether to print debugging info.
+     *
+     * @return false|int False on failure, or the number of groups that were updated or deleted.
+     */
+    public static abstract function updateFromTouchPoint(bool $verbose = false);
+
+    /**
      * Update posts that are based on an involvement.
      *
-     * @param string $postType
+     * @param string     $postType
      * @param string|int $divs
-     * @param array  $options
+     * @param array      $options
+     * @param bool       $verbose
      *
      * @return false|int  False on failure.  Otherwise, the number of updates.
      */
     protected static function updateInvolvementPosts(string $postType, $divs, $options = [], $verbose = false) {
         $siteTz = wp_timezone();
+        $now = current_datetime();
 
         set_time_limit(60);
 
@@ -214,11 +243,42 @@ abstract class Involvement
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupFull", ! ! $inv->groupFull);
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupClosed", ! ! $inv->closed);
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", ! ! $inv->hasRegQuestions);
-            // TODO add registration open/close dates
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regTypeId", intval($inv->regTypeId));
 
-            //// SCHEDULING
+            // Registration start
+            if ($inv->regStart !== null) {
+                try {
+                    $inv->regStart = new DateTimeImmutable($inv->regStart, $siteTz);
+                } catch  (Exception $e) {
+                    $inv->regStart = null;
+                }
+            }
+            if ($inv->regStart === null) {
+                delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regStart");
+            } else {
+                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regStart", $inv->regStart);
+            }
+
+            // Registration end
+            if ($inv->regEnd !== null) {
+                try {
+                    $inv->regEnd = new DateTimeImmutable($inv->regEnd, $siteTz);
+                } catch  (Exception $e) {
+                    $inv->regEnd = null;
+                }
+            }
+            if ($inv->regEnd === null) {
+                delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd");
+            } else {
+                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd", $inv->regEnd);
+            }
+
+
+            ////////////////////
+            //// SCHEDULING ////
+            ////////////////////
+
             // Establish data model for figuring everything else out.
-
             if (!is_array($inv->occurrences)) {
                 $inv->occurrences = [];
             }
@@ -234,7 +294,7 @@ abstract class Involvement
                     continue;
 
                 try {
-                    $upcomingDateTimes[] = new DateTime($o->dt, $siteTz);
+                    $upcomingDateTimes[] = new DateTimeImmutable($o->dt, $siteTz);
                 } catch (Exception $e) {
                 }
             }
@@ -331,6 +391,10 @@ abstract class Involvement
 
             // TODO morning/evening/afternoon term and filter
 
+            ////////////////////////
+            //// END SCHEDULING ////
+            ////////////////////////
+
             // Handle leaders  TODO make leaders WP Users
             if (array_key_exists('leadMemTypes', $options) && property_exists($inv, "leaders")) {
                 $nameString = Person::arrangeNamesForPeople($inv->leaders);
@@ -417,6 +481,28 @@ abstract class Involvement
     }
 
     /**
+     * @param $theDate
+     * @param $format
+     * @param $post
+     *
+     * @return string
+     *
+     * @noinspection PhpUnusedParameterInspection Not used by choice, but need to comply with the api.
+     */
+    public static function filterPublishDate($theDate, $format, $post = null): string // TODO combine with SG in Involvement
+    {
+        if ($post == null)
+            $post = get_the_ID();
+
+        if (get_post_type($post) === self::POST_TYPE) {
+            if (!is_numeric($post))
+                $post = $post->ID;
+            $theDate = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", true);
+        }
+        return $theDate;
+    }
+
+    /**
      * Returns the html with buttons for actions the user can perform.
      *
      * @return string
@@ -430,7 +516,25 @@ abstract class Involvement
         if ($joinable === true) {
             if ($this->useRegistrationForm()) {
                 $text = __('Register', TouchPointWP::TEXT_DOMAIN);
-                $link = "//" . TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
+                switch (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) {
+                    case 1:
+                        break;
+                    case 6:
+                        $text = __('Volunteer', TouchPointWP::TEXT_DOMAIN);
+                        break;
+                    case 8:
+                    case 9:
+                    case 14:
+                        $text = __('Give', TouchPointWP::TEXT_DOMAIN);
+                        break;
+                    case 15:
+                        $text = __('Manage Subscriptions', TouchPointWP::TEXT_DOMAIN);
+                        break;
+                    case 18:
+                        $text = __('Record Attendance', TouchPointWP::TEXT_DOMAIN);
+                        break;
+                }
+                $link = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
                 $ret  .= "<a class=\"btn button\" href=\"{$link}\">{$text}</a>  ";
             } else {
                 $text = __('Join', TouchPointWP::TEXT_DOMAIN);

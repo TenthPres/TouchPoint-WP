@@ -223,7 +223,7 @@ class SmallGroup extends Involvement implements api
 
         // Run cron if it hasn't been run before or is overdue.
         if (self::$tpwp->settings->sg_cron_last_run * 1 < time() - 86400 - 3600) {
-            self::updateSmallGroupsFromTouchPoint();
+            self::updateFromTouchPoint();
         }
     }
 
@@ -243,7 +243,7 @@ class SmallGroup extends Involvement implements api
      *
      * @return false|int False on failure, or the number of groups that were updated or deleted.
      */
-    public static function updateSmallGroupsFromTouchPoint($verbose = false)
+    public static function updateFromTouchPoint($verbose = false)
     {
         if (count(self::$tpwp->settings->sg_divisions) < 1) {
             // Don't update if there aren't any divisions selected yet.
@@ -302,27 +302,6 @@ class SmallGroup extends Involvement implements api
         return $template;
     }
 
-    /**
-     * @param $theDate
-     * @param $format
-     * @param $post
-     *
-     * @return string
-     *
-     * @noinspection PhpUnusedParameterInspection Not used by choice, but need to comply with the api.
-     */
-    public static function filterPublishDate($theDate, $format, $post = null): string
-    {
-        if ($post == null)
-            $post = get_the_ID();
-
-        if (get_post_type($post) === self::POST_TYPE) {
-            if (!is_numeric($post))
-                $post = $post->ID;
-            $theDate = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", true);
-        }
-        return $theDate;
-    }
 
     public static function registerScriptsAndStyles(): void
     {
@@ -659,8 +638,8 @@ class SmallGroup extends Involvement implements api
     public static function enqueueTemplateStyle()
     {
         wp_enqueue_style(
-            TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style',
-            self::$tpwp->assets_url . 'template/smallgroups-template-style.css',
+            TouchPointWP::SHORTCODE_PREFIX . 'involvement-template-style',
+            self::$tpwp->assets_url . 'template/involvement-template-style.css',
             [],
             TouchPointWP::VERSION
         );
@@ -857,7 +836,7 @@ class SmallGroup extends Involvement implements api
         }
 
         if ($uri['path'][2] === "force-sync") {
-            echo self::updateSmallGroupsFromTouchPoint(false);
+            echo self::updateFromTouchPoint(true);
             exit;
         }
         return false;

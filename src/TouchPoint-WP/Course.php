@@ -20,8 +20,7 @@ require_once 'Involvement.php';
  */
 class Course extends Involvement
 {
-//    public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "SgMap";  TODO change or remove
-//    public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "SgFilters";
+    public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "CsFilters";
     public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "course";
     protected static TouchPointWP $tpwp;
     private static array $_instances = [];
@@ -110,13 +109,9 @@ class Course extends Involvement
 
         add_action('init', [self::class, 'init']);
 
-//        if ( ! shortcode_exists(self::SHORTCODE_MAP)) {  TODO change or remove
-//            add_shortcode(self::SHORTCODE_MAP, [self::class, "mapShortcode"]);
-//        }
-//
-//        if ( ! shortcode_exists(self::SHORTCODE_FILTER)) {
-//            add_shortcode(self::SHORTCODE_FILTER, [self::class, "filterShortcode"]);
-//        }
+        if ( ! shortcode_exists(self::SHORTCODE_FILTER)) {
+            add_shortcode(self::SHORTCODE_FILTER, [self::class, "filterShortcode"]);
+        }
 
         return true;
     }
@@ -126,8 +121,6 @@ class Course extends Involvement
      */
     public static function init(): void
     {
-//        self::registerAjax(); TODO remove
-
         register_post_type(
             self::POST_TYPE,
             [
@@ -136,7 +129,7 @@ class Course extends Involvement
                     'singular_name' => self::$tpwp->settings->cs_name_singular
                 ],
                 'public'           => true,
-                'hierarchical'     => true,
+                'hierarchical'     => false,
                 'show_ui'          => false,
                 'show_in_rest'     => true,
                 'supports'         => [
@@ -172,11 +165,13 @@ class Course extends Involvement
     }
 
     /**
-     * Query TouchPoint and update Courses in WordPress
+     * Query TouchPoint and update Involvements in WordPress.  This function should generally call updateInvolvementPosts
      *
-     * @return false|int False on failure, or the number of courses that were updated or deleted.
+     * @param bool $verbose Whether to print debugging info.
+     *
+     * @return false|int False on failure, or the number of groups that were updated or deleted.
      */
-    public static function updateCoursesFromTouchPoint()
+    public static function updateFromTouchPoint(bool $verbose = false)
     {
         if (count(self::$tpwp->settings->cs_divisions) < 1) {
             // Don't update if there aren't any divisions selected yet.
@@ -223,28 +218,6 @@ class Course extends Involvement
         }
 
         return $template;
-    }
-
-    /**
-     * @param $theDate
-     * @param $format
-     * @param $post
-     *
-     * @return string
-     *
-     * @noinspection PhpUnusedParameterInspection Not used by choice, but need to comply with the api.
-     */
-    public static function filterPublishDate($theDate, $format, $post = null): string // TODO combine with SG in Involvement
-    {
-        if ($post == null)
-            $post = get_the_ID();
-
-        if (get_post_type($post) === self::POST_TYPE) {
-            if (!is_numeric($post))
-                $post = $post->ID;
-            $theDate = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", true);
-        }
-        return $theDate;
     }
 
     public static function registerScriptsAndStyles(): void
@@ -443,8 +416,8 @@ class Course extends Involvement
     public static function enqueueTemplateStyle()
     {
         wp_enqueue_style(
-            TouchPointWP::SHORTCODE_PREFIX . 'courses-template-style',
-            self::$tpwp->assets_url . 'template/courses-template-style.css',
+            TouchPointWP::SHORTCODE_PREFIX . 'involvement-template-style',
+            self::$tpwp->assets_url . 'template/involvement-template-style.css',
             [],
             TouchPointWP::VERSION
         );
@@ -491,5 +464,23 @@ class Course extends Involvement
     {
         // TODO add extra value options
         return parent::acceptingNewMembers();
+    }
+
+    /**
+     * @param $uri
+     *
+     * @return bool True on success (valid api endpoint), false on failure.
+     */
+    public static function api($uri): bool
+    {
+        if (count($uri['path']) < 3) {
+            return false;
+        }
+
+        if ($uri['path'][2] === "force-sync") {
+            echo self::updateFromTouchPoint(true);
+            exit;
+        }
+        return false;
     }
 }

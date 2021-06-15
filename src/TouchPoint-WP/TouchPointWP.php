@@ -261,6 +261,14 @@ class TouchPointWP
                 }
             }
 
+            if ($reqUri['path'][1] === "cs" &&
+                get_option(self::SETTINGS_PREFIX . 'enable_courses') === "on"
+            ) {
+                if (!Course::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
             // Generate Python Scripts
             if ($reqUri['path'][1] === self::API_ENDPOINT_GENERATE_SCRIPTS &&
                 count($reqUri['path']) === 2 &&
