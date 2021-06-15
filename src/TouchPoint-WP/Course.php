@@ -149,11 +149,6 @@ class Course extends Involvement
             ]
         );
 
-        self::$tpwp->registerTaxonomies(); // TODO probably needs to be moved to parent, but order matters.
-
-        // If the slug has changed, update it.  Only executes if already enqueued.
-        self::$tpwp->flushRewriteRules();
-
         // Register default templates for Courses
         add_filter('template_include', [self::class, 'templateFilter']);
 

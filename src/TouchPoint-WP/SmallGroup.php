@@ -209,11 +209,6 @@ class SmallGroup extends Involvement implements api
             ]
         );
 
-        self::$tpwp->registerTaxonomies(); // TODO probably needs to be moved to parent, but order matters.
-
-        // If the slug has changed, update it.  Only executes if enqueued.
-        self::$tpwp->flushRewriteRules();
-
         // Register default templates for Small Groups
         add_filter('template_include', [self::class, 'templateFilter']);
 

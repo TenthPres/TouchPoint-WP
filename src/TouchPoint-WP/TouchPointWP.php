@@ -362,12 +362,21 @@ class TouchPointWP
             require_once 'EventsCalendar.php';
         }
 
+        add_action('init', [self::class, 'init']);
+
         return $instance;
+    }
+
+    public static function init(): void
+    {
+        self::instance()->registerTaxonomies();
+
+        // If any slugs have changed, flush.  Only executes if already enqueued.
+        self::instance()->flushRewriteRules();
     }
 
     public function registerScriptsAndStyles(): void
     {
-
         // Register scripts that exist for all modules
         wp_register_script(
             self::SHORTCODE_PREFIX . 'base-defer',
