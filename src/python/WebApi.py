@@ -2,6 +2,8 @@
 
 import re
 
+VERSION = "0.0.3"
+
 PersonEvNames = {
 	'geoLat': 'geoLat',
 	'geoLng': 'geoLng',
