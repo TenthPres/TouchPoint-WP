@@ -218,6 +218,16 @@ class TouchPointWP
     }
 
     /**
+     * Spit out headers that prevent caching.  Useful for API calls.
+     */
+    public static function noCacheHeaders(): void
+    {
+        header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+        header("Cache-Control: post-check=0, pre-check=0", false);
+        header("Pragma: no-cache");
+    }
+
+    /**
      * @param bool      $continue   Whether or not to parse the request
      * @param WP        $wp         Current WordPress environment instance
      * @param array|string $extraVars Passed query variables
@@ -301,6 +311,7 @@ class TouchPointWP
             return false;
         }
 
+        TouchPointWP::noCacheHeaders();
         header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
         header('Content-type: application/zip');
 

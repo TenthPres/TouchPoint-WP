@@ -473,6 +473,7 @@ class Course extends Involvement
         }
 
         if ($uri['path'][2] === "force-sync") {
+            TouchPointWP::noCacheHeaders();
             echo self::updateFromTouchPoint(true);
             exit;
         }

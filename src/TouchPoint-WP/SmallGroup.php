@@ -831,6 +831,7 @@ class SmallGroup extends Involvement implements api
         }
 
         if ($uri['path'][2] === "force-sync") {
+            TouchPointWP::noCacheHeaders();
             echo self::updateFromTouchPoint(true);
             exit;
         }

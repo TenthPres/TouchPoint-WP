@@ -140,8 +140,8 @@ abstract class EventsCalendar implements api
 
     public static function api(array $uri): bool
     {
+        TouchPointWP::noCacheHeaders();
         EventsCalendar::echoAppList($uri['query']);
-
         exit;
     }
 }
