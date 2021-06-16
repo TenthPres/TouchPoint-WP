@@ -122,9 +122,10 @@ abstract class Involvement
     /**
      * Update posts that are based on an involvement.
      *
-     * @param string $postType
+     * @param string     $postType
      * @param string|int $divs
-     * @param array  $options
+     * @param array      $options
+     * @param bool       $verbose
      *
      * @return false|int  False on failure.  Otherwise, the number of updates.
      */

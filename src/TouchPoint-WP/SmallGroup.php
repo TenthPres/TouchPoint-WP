@@ -870,7 +870,7 @@ class SmallGroup extends Involvement implements api
         }
 
         if ($uri['path'][2] === "force-sync") {
-            echo self::updateSmallGroupsFromTouchPoint(false);
+            echo self::updateSmallGroupsFromTouchPoint(true);
             exit;
         }
         return false;
