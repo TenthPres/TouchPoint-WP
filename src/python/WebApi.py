@@ -64,8 +64,8 @@ elif (Data.a == "InvsForDivs"):
 	o.orgPickList,
 	o.mainLeaderId,
 	o.RegSettingXml.exist('/Settings/AskItems') AS hasRegQuestions,
-	FORMAT(o.RegStart, 'yyyy-MM-ddThh:mm:ss') as regStart,
-	FORMAT(o.RegEnd, 'yyyy-MM-ddThh:mm:ss') as regEnd,
+	FORMAT(o.RegStart, 'yyyy-MM-ddTHH:mm:ss') as regStart,
+	FORMAT(o.RegEnd, 'yyyy-MM-ddTHH:mm:ss') as regEnd,
 	(SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
 		LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0)) as marital_denom,
 	(SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
