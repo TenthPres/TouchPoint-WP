@@ -168,7 +168,6 @@ abstract class Involvement
      */
     protected static function updateInvolvementPosts(string $postType, $divs, $options = [], $verbose = false) {
         $siteTz = wp_timezone();
-        $now = current_datetime();
 
         set_time_limit(60);
 
@@ -322,7 +321,7 @@ abstract class Involvement
             $days = [];
             $timeFormat = get_option('time_format');
             foreach ($upcomingDateTimes as $dt) {
-                /** @var $dt DateTime */
+                /** @var $dt DateTimeImmutable */
 
                 $weekday = "d" . $dt->format('w');
 
@@ -346,7 +345,7 @@ abstract class Involvement
                 foreach ($days as $dk => $dta) {
                     $timeStr = [];
                     foreach ($dta as $dt) {
-                        /** @var $dt DateTime */
+                        /** @var $dt DateTimeImmutable */
                         $timeStr[] = $dt->format($timeFormat);
                     }
                     $timeStr = __('at', TouchPointWP::TEXT_DOMAIN) . " " . TouchPointWP::stringArrayToList($timeStr);
@@ -494,7 +493,7 @@ abstract class Involvement
         if ($post == null)
             $post = get_the_ID();
 
-        if (get_post_type($post) === self::POST_TYPE) {
+        if (get_post_type($post) === self::POST_TYPE) { // TODO resolve
             if (!is_numeric($post))
                 $post = $post->ID;
             $theDate = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", true);
@@ -517,20 +516,20 @@ abstract class Involvement
             if ($this->useRegistrationForm()) {
                 $text = __('Register', TouchPointWP::TEXT_DOMAIN);
                 switch (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) {
-                    case 1:
+                    case 1:  // Join Involvement (skip other options because this option is common)
                         break;
-                    case 6:
+                    case 6:  // Choose Volunteer Times
                         $text = __('Volunteer', TouchPointWP::TEXT_DOMAIN);
                         break;
-                    case 8:
-                    case 9:
-                    case 14:
+                    case 8:  // Online Giving (legacy)
+                    case 9:  // Online Pledge (legacy)
+                    case 14: // Manage Recurring Giving (legacy)
                         $text = __('Give', TouchPointWP::TEXT_DOMAIN);
                         break;
-                    case 15:
+                    case 15: // Manage Subscriptions
                         $text = __('Manage Subscriptions', TouchPointWP::TEXT_DOMAIN);
                         break;
-                    case 18:
+                    case 18: // Record Family Attendance
                         $text = __('Record Attendance', TouchPointWP::TEXT_DOMAIN);
                         break;
                 }
