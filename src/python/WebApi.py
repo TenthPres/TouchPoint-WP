@@ -82,10 +82,10 @@ elif (Data.a == "InvsForDivs"):
 		) ag_agg
 	) as age_groups,
 	(SELECT STRING_AGG(sdt, ' | ') WITHIN GROUP (ORDER BY sdt ASC) FROM
-		(SELECT CONCAT(FORMAT(NextMeetingDate, 'yyyy-MM-ddThh:mm:ss'), '|S') as sdt FROM OrgSchedule os
+		(SELECT CONCAT(FORMAT(NextMeetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|S') as sdt FROM OrgSchedule os
 			WHERE os.OrganizationId = o.OrganizationId
 		UNION
-		SELECT CONCAT(FORMAT(meetingDate, 'yyyy-MM-ddThh:mm:ss'), '|M') as sdt FROM Meetings as m
+		SELECT CONCAT(FORMAT(meetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|M') as sdt FROM Meetings as m
 			WHERE m.meetingDate > getdate() AND m.OrganizationId = o.OrganizationId
 		) s_agg
 	) as occurrences,
