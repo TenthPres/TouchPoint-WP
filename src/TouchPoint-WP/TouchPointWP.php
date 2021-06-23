@@ -157,9 +157,6 @@ class TouchPointWP
         // Register frontend JS & CSS.
         add_action('init', [$this, 'registerScriptsAndStyles'], 0);
 
-        // Register AJAX Interfaces
-        add_action('init', [$this, 'registerAjaxCommon'], 0);
-
         // Load admin JS & CSS.
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_scripts'], 10, 1 ); // TODO restore?
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_styles'], 10, 1 ); // TODO restore?
@@ -263,6 +260,7 @@ class TouchPointWP
                 }
             }
 
+            // Smallgroup endpoint
             if ($reqUri['path'][1] === "sg" &&
                 get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
             ) {
@@ -271,10 +269,25 @@ class TouchPointWP
                 }
             }
 
+            // Courses endpoint
             if ($reqUri['path'][1] === "cs" &&
                 get_option(self::SETTINGS_PREFIX . 'enable_courses') === "on"
             ) {
                 if (!Course::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
+            // Person endpoint
+            if ($reqUri['path'][1] === "person") {
+                if (!Person::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
+            // Involvement endpoints
+            if ($reqUri['path'][1] === "inv") {
+                if (!Involvement::api($reqUri)) {
                     return $continue;
                 }
             }
@@ -289,6 +302,13 @@ class TouchPointWP
                     return $continue;
                 }
                 exit;
+            }
+
+            // Geolocate via IP TODO rework to minimize extra requests
+            if ($reqUri['path'][1] === "geolocate" &&
+                count($reqUri['path']) === 2) {
+
+                $this->ajaxGeolocate();
             }
         }
         return $continue;
@@ -453,121 +473,20 @@ class TouchPointWP
         return $tag;
     }
 
-
-
-    public function registerAjaxCommon(): void
-    {
-        $tp_ = self::HOOK_PREFIX;
-        add_action( "wp_ajax_{$tp_}ident", [$this, 'ajaxIdent'] );
-        add_action( "wp_ajax_nopriv_{$tp_}ident", [$this, 'ajaxIdent'] );
-        add_action( "wp_ajax_{$tp_}inv_join", [$this, 'ajaxInvJoin'] );
-        add_action( "wp_ajax_nopriv_{$tp_}inv_join", [$this, 'ajaxInvJoin'] );
-        add_action( "wp_ajax_{$tp_}inv_contact", [$this, 'ajaxInvContact'] );
-        add_action( "wp_ajax_nopriv_{$tp_}inv_contact", [$this, 'ajaxInvContact'] );
-        add_action( "wp_ajax_{$tp_}geolocate", [$this, 'ajaxGeolocate'] );
-        add_action( "wp_ajax_nopriv_{$tp_}geolocate", [$this, 'ajaxGeolocate'] );
-    }
-
-    public function ajaxIdent(): void
-    {
-        header('Content-Type: application/json');
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['error' => 'Only POST requests are allowed.']);
-            wp_die();
-        }
-
-        $inputData = file_get_contents('php://input');
-        if ($inputData[0] !== '{') {
-            echo json_encode(['error' => 'Invalid data provided.']);
-            wp_die();
-        }
-
-        $data = $this->apiPost('ident', json_decode($inputData));
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
-            wp_die();
-        }
-
-        $people = $data->people ?? [];
-
-        // TODO sync or queue sync of people
-
-        $ret = [];
-        foreach ($people as $p) {
-            $p->lastName = $p->lastName[0] ? $p->lastName[0] . "." : "";
-            unset($p->lastInitial);
-            $ret[] = $p;
-        }
-
-        echo json_encode(['people' => $ret]);
-        wp_die();
-    }
-
-    public function ajaxInvJoin(): void
-    {
-        header('Content-Type: application/json');
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['error' => 'Only POST requests are allowed.']);
-            wp_die();
-        }
-
-        $inputData = file_get_contents('php://input');
-        if ($inputData[0] !== '{') {
-            echo json_encode(['error' => 'Invalid data provided.']);
-            wp_die();
-        }
-
-        $data = $this->apiPost('inv_join', json_decode($inputData));
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
-            wp_die();
-        }
-
-        echo json_encode(['success' => $data->success]);
-        wp_die();
-    }
-
-
-    public function ajaxInvContact(): void
-    {
-        header('Content-Type: application/json');
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['error' => 'Only POST requests are allowed.']);
-            wp_die();
-        }
-
-        $inputData = file_get_contents('php://input');
-        if ($inputData[0] !== '{') {
-            echo json_encode(['error' => 'Invalid data provided.']);
-            wp_die();
-        }
-
-        $data = $this->apiPost('inv_contact', json_decode($inputData));
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
-            wp_die();
-        }
-
-        echo json_encode(['success' => $data->success]);
-        wp_die();
-    }
-
-
+    // TODO move to somewhere more conducive to the API data model.
     public function ajaxGeolocate(): void
     {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
             echo json_encode(['error' => 'Only GET requests are allowed.']);
-            wp_die();
+            exit;
         }
 
         // TODO validate that request is only coming from allowed referrers... or something like that.
 
         echo json_encode($this->geolocate());
-        wp_die();
+
+        exit;
     }
 
     /**
@@ -607,7 +526,7 @@ class TouchPointWP
         }
 
         $d = json_decode($return);
-        if ($d->error) {
+        if (property_exists($d, 'error')) {
             return (object)['error' => $d->reason];
         }
 
@@ -634,7 +553,7 @@ class TouchPointWP
         global $wpdb;
         $tableName = $wpdb->base_prefix . self::TABLE_IP_GEO;
         /** @noinspection SqlResolve */
-        $q = $wpdb->prepare( "SELECT * FROM {$tableName} WHERE ip = '{$ip_pton}' and updatedDt > (NOW() - INTERVAL 30 DAY)");
+        $q = $wpdb->prepare( "SELECT * FROM {$tableName} WHERE ip = %s and updatedDt > (NOW() - INTERVAL 30 DAY)", $ip_pton);
         $cache = $wpdb->get_row($q);
         if ($cache) {
             return $cache->data;

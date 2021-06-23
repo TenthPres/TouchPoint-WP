@@ -3,12 +3,14 @@
 
 namespace tp\TouchPointWP;
 
+use WP_Error;
+
 /**
  * Class Person - Fundamental object meant to correspond to a Person in TouchPoint
  *
  * @package tp\TouchPointWP
  */
-abstract class Person
+abstract class Person implements api
 {
     public static function arrangeNamesForPeople($people): string
     {
@@ -72,19 +74,6 @@ abstract class Person
         return $string;
     }
 
-    public static function peopleArrayHasDuplicateFamilies(array $people): bool // TODO remove if never used.
-    {
-        $families = [];
-        foreach ($people as $p) {
-            $fid = intval($p->familyId);
-            if (in_array($fid, $families)) {
-                return true;
-            }
-            $families[] = $fid;
-        }
-        return false;
-    }
-
     public static function groupByFamily(array $people): array
     {
         $families = [];
@@ -97,5 +86,66 @@ abstract class Person
             $families[$fid][] = $p;
         }
         return $families;
+    }
+
+    private static function ajaxIdent(): void
+    {
+        header('Content-Type: application/json');
+        TouchPointWP::noCacheHeaders();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['error' => 'Only POST requests are allowed.']);
+            exit;
+        }
+
+        $inputData = file_get_contents('php://input');
+        if ($inputData[0] !== '{') {
+            echo json_encode(['error' => 'Invalid data provided.']);
+            exit;
+        }
+
+        $data = TouchPointWP::instance()->apiPost('ident', json_decode($inputData));
+
+        if ($data instanceof WP_Error) {
+            echo json_encode(['error' => $data->get_error_message()]);
+            exit;
+        }
+
+        $people = $data->people ?? [];
+
+        // TODO sync or queue sync of people
+
+        $ret = [];
+        foreach ($people as $p) {
+            $p->lastName = $p->lastName[0] ? $p->lastName[0] . "." : "";
+            unset($p->lastInitial);
+            $ret[] = $p;
+        }
+
+        echo json_encode(['people' => $ret]);
+        exit;
+    }
+
+    /**
+     * Handle API requests
+     *
+     * @param array $uri The request URI already parsed by parse_url()
+     *
+     * @return bool False if endpoint is not found.  Should print the result.
+     */
+    public static function api(array $uri): bool
+    {
+        if (count($uri['path']) < 3) {
+            return false;
+        }
+
+        switch (strtolower($uri['path'][2])) {
+            case "ident":
+                TouchPointWP::noCacheHeaders();
+                self::ajaxIdent();
+                exit;
+        }
+
+        return false;
     }
 }

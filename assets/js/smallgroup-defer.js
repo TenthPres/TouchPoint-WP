@@ -16,21 +16,6 @@ class TP_SmallGroup extends TP_Involvement {
         this.geo = obj.geo ?? null;
 
         TP_SmallGroup.smallGroups.push(this);
-
-        for (const ei in this.connectedElements) {
-            if (!this.connectedElements.hasOwnProperty(ei)) continue;
-
-            let that = this;
-            this.connectedElements[ei].addEventListener('mouseenter', function(e){e.stopPropagation(); that.toggleHighlighted(true);});
-            this.connectedElements[ei].addEventListener('mouseleave', function(e){e.stopPropagation(); that.toggleHighlighted(false);});
-
-            let actionBtns = this.connectedElements[ei].querySelectorAll('[data-tp-action]')
-            for (const ai in actionBtns) {
-                if (!actionBtns.hasOwnProperty(ai)) continue;
-                const action = actionBtns[ai].getAttribute('data-tp-action');
-                actionBtns[ai].addEventListener('click', function(e){e.stopPropagation(); that[action + "Action"]();});
-            }
-        }
     }
 
     toggleHighlighted(hl) {
@@ -69,94 +54,6 @@ class TP_SmallGroup extends TP_Involvement {
         this.mapMarker.setVisible(shouldBeVisible);
     }
 
-    joinAction() {
-        let inv = this;
-
-        if (typeof ga === "function") {
-            ga('send', 'event', inv.invType, 'join btn click', inv.name);
-        }
-
-        TP_Person.DoInformalAuth().then((res) => joinUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
-
-        function joinUi(inv, people) {
-            if (typeof ga === "function") {
-                ga('send', 'event', inv.invType, 'join userIdentified', inv.name);
-            }
-
-            Swal.fire({
-                html: "<p id=\"swal-tp-text\">Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
-                showConfirmButton: true,
-                showCancelButton: true,
-                confirmButtonText: 'Join',
-                focusConfirm: false,
-                preConfirm: () => {
-                    let form = document.getElementById('tp_people_list_checkboxes'),
-                        inputs = form.querySelectorAll("input"),
-                        data = [];
-                    for (const ii in inputs) {
-                        if (!inputs.hasOwnProperty(ii) || !inputs[ii].checked) continue;
-                        data.push(tpvm.people[inputs[ii].value]);
-                    }
-
-                    if (data.length < 1) {
-                        let prompt = document.getElementById('swal-tp-text');
-                        prompt.innerText = "Select who should be added to the group.";
-                        prompt.classList.add('error')
-                        return false;
-                    }
-
-                    Swal.showLoading();
-
-                    return inv.doJoin(data, true);
-                }
-            });
-        }
-    }
-
-    contactAction() {
-        let inv = this;
-
-        if (typeof ga === "function") {
-            ga('send', 'event', inv.invType, 'contact btn click', inv.name);
-        }
-
-        TP_Person.DoInformalAuth().then((res) => contactUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
-
-        function contactUi(inv, people) {
-            if (typeof ga === "function") {
-                ga('send', 'event', inv.invType, 'contact userIdentified', inv.name);
-            }
-
-            Swal.fire({
-                html: `<p id=\"swal-tp-text\">Contact the leaders of<br />${inv.name}</p>` +
-                    '<form id="tp_sg_contact_form">' +
-                    '<div class="form-group"><label for="tp_sg_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_sg_contact_fromPid", "fromPid") + '</div>' +
-                    '<div class="form-group"><label for="tp_sg_contact_body">Message</label><textarea name="body" id="tp_sg_contact_body"></textarea></div>' +
-                    '</form>',
-                showConfirmButton: true,
-                showCancelButton: true,
-                confirmButtonText: 'Send',
-                focusConfirm: false,
-                preConfirm: () => {
-                    let form = document.getElementById('tp_sg_contact_form'),
-                        fromPerson = tpvm.people[parseInt(form.getElementsByTagName('select')[0].value)],
-                        message = form.getElementsByTagName('textarea')[0].value;
-
-                    if (message.length < 5) {
-                        let prompt = document.getElementById('swal-tp-text');
-                        prompt.innerText = "Please provide a message.";
-                        prompt.classList.add('error')
-                        return false;
-                    }
-
-                    Swal.showLoading();
-
-                    return inv.doInvContact(fromPerson, message, true);
-                }
-            });
-        }
-    }
-
     static fromArray(invArr) {
         let ret = [];
         for (const i in invArr) {
@@ -174,7 +71,7 @@ class TP_SmallGroup extends TP_Involvement {
     };
 
     static init() {
-        tpvm.trigger('smallgroups_loaded');
+        tpvm.trigger('involvement_class_loaded');
     }
 
     static initMap(mapDivId) {
@@ -285,7 +182,7 @@ class TP_SmallGroup extends TP_Involvement {
         TP_DataGeo.getLocation(getNearbyGroups, console.error);
 
         function getNearbyGroups() {
-            tpvm.getData('tp_sg_nearby', {
+            tpvm.getData('sg/nearby', {
                 lat: TP_DataGeo.loc.lat, // TODO reduce double-requesting
                 lng: TP_DataGeo.loc.lng,
                 limit: count,

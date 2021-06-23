@@ -82,7 +82,10 @@ class SmallGroup extends Involvement implements api
 
         $this->attributes->genderId = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "genderId", true);
 
-        if (is_object($object) && $object->geo_lat !== null && $object->geo_lat !== '') {
+        if (is_object($object) &&
+            property_exists($object, 'geo_lat') &&
+            $object->geo_lat !== null &&
+            $object->geo_lat !== '') {
             // Probably a database query result
             $this->geo = (object)[
                 'lat' => self::toFloatOrNull($object->geo_lat),
@@ -99,33 +102,6 @@ class SmallGroup extends Involvement implements api
                 )
             ];
         }
-    }
-
-    /**
-     * Get notable attributes, such as gender restrictions, as strings.
-     *
-     * @return string[]
-     */
-    public function notableAttributes(): array
-    {
-        $ret = [];
-        if ($this->attributes->genderId != 0) {
-            switch($this->attributes->genderId) {
-                case 1:
-                    $ret[] = __('Men Only', TouchPointWP::TEXT_DOMAIN);
-                    break;
-                case 2:
-                    $ret[] = __('Women Only', TouchPointWP::TEXT_DOMAIN);
-                    break;
-            }
-        }
-
-        $joinable = $this->acceptingNewMembers();
-        if ($joinable !== true) {
-            $ret[] = $joinable;
-        }
-
-        return $ret;
     }
 
     // TODO why is this here?
@@ -179,8 +155,6 @@ class SmallGroup extends Involvement implements api
      */
     public static function init(): void
     {
-        self::registerAjax();
-
         register_post_type(
             self::POST_TYPE,
             [
@@ -220,15 +194,6 @@ class SmallGroup extends Involvement implements api
         if (self::$tpwp->settings->sg_cron_last_run * 1 < time() - 86400 - 3600) {
             self::updateFromTouchPoint();
         }
-    }
-
-    /**
-     *  Register AJAX endpoints specific to Small Groups
-     */
-    public static function registerAjax(): void
-    {
-        add_action('wp_ajax_tp_sg_nearby', [self::class, 'ajaxNearby']);
-        add_action('wp_ajax_nopriv_tp_sg_nearby', [self::class, 'ajaxNearby']);
     }
 
     /**
@@ -297,7 +262,9 @@ class SmallGroup extends Involvement implements api
         return $template;
     }
 
-
+    /**
+     * Register scripts and styles to be used on display pages.
+     */
     public static function registerScriptsAndStyles(): void
     {
         wp_register_script(
@@ -311,13 +278,7 @@ class SmallGroup extends Involvement implements api
             true
         );
 
-        wp_register_script(
-            TouchPointWP::SHORTCODE_PREFIX . "knockout",
-            "https://ajax.aspnetcdn.com/ajax/knockout/knockout-3.5.0.js",
-            [],
-            '3.5.0',
-            true
-        );
+        parent:: registerScriptsAndStyles();
 
         wp_register_script(
             TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer",
@@ -714,7 +675,7 @@ class SmallGroup extends Involvement implements api
         }
 
         echo json_encode($r);
-        wp_die();
+        exit;
     }
 
     /**
@@ -820,21 +781,30 @@ class SmallGroup extends Involvement implements api
     }
 
     /**
-     * @param $uri
+     * Handle API requests
      *
-     * @return bool True on success (valid api endpoint), false on failure.
+     * @param array $uri The request URI already parsed by parse_url()
+     *
+     * @return bool False if endpoint is not found.  Should print the result.
      */
-    public static function api($uri): bool
+    public static function api(array $uri): bool
     {
         if (count($uri['path']) < 3) {
             return false;
         }
 
-        if ($uri['path'][2] === "force-sync") {
-            TouchPointWP::noCacheHeaders();
-            echo self::updateFromTouchPoint(true);
-            exit;
+        switch (strtolower($uri['path'][2])) {
+            case "nearby":
+                TouchPointWP::noCacheHeaders();
+                self::ajaxNearby();
+                exit;
+
+            case "force-sync":
+                TouchPointWP::noCacheHeaders();
+                echo self::updateFromTouchPoint(true);
+                exit;
         }
-        return false;
+
+        return parent::api($uri);
     }
 }

@@ -20,7 +20,6 @@ if ( have_posts() ) {
     Course::enqueueTemplateStyle();
     wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'swal2-defer');
     wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'base');
-    wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'courses-defer');
 
     function lengthen_course_excerpts($length): int
     {

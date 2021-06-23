@@ -70,33 +70,6 @@ class Course extends Involvement
         $this->attributes->genderId = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "genderId", true);
     }
 
-    /**
-     * Get notable attributes, such as gender restrictions, as strings.
-     *
-     * @return string[]
-     */
-    public function notableAttributes(): array
-    {
-        $ret = [];
-        if ($this->attributes->genderId != 0) {
-            switch($this->attributes->genderId) {
-                case 1:
-                    $ret[] = __('Men Only', TouchPointWP::TEXT_DOMAIN);
-                    break;
-                case 2:
-                    $ret[] = __('Women Only', TouchPointWP::TEXT_DOMAIN);
-                    break;
-            }
-        }
-
-        $joinable = $this->acceptingNewMembers();
-        if ($joinable !== true) {
-            $ret[] = $joinable;
-        }
-
-        return $ret;
-    }
-
     public static function load(TouchPointWP $tpwp): bool
     {
         if (self::$_isInitiated) {
@@ -181,7 +154,7 @@ class Course extends Involvement
         $lMTypes = implode(',', self::$tpwp->settings->cs_leader_types);
         $lMTypes = str_replace('mt', '', $lMTypes);
 
-        return parent::updateInvolvementPosts(self::POST_TYPE, $divs, ['leadMemTypes' => $lMTypes]);
+        return parent::updateInvolvementPosts(self::POST_TYPE, $divs, ['leadMemTypes' => $lMTypes], $verbose);
     }
 
     /**
@@ -213,25 +186,6 @@ class Course extends Involvement
         }
 
         return $template;
-    }
-
-    public static function registerScriptsAndStyles(): void
-    {
-        wp_register_script( // TODO combine in Involvement
-            TouchPointWP::SHORTCODE_PREFIX . "knockout",
-            "https://ajax.aspnetcdn.com/ajax/knockout/knockout-3.5.0.js",
-            [],
-            '3.5.0',
-            true
-        );
-
-        wp_register_script(
-            TouchPointWP::SHORTCODE_PREFIX . "courses-defer",
-            self::$tpwp->assets_url . 'js/courses-defer.js',
-            [TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
-            TouchPointWP::VERSION,
-            true
-        );
     }
 
     /**
@@ -477,6 +431,7 @@ class Course extends Involvement
             echo self::updateFromTouchPoint(true);
             exit;
         }
-        return false;
+
+        return parent::api($uri);
     }
 }

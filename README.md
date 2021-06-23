@@ -26,6 +26,10 @@ We don't promise support for old versions of WordPress or PHP.  You will need to
 - Suggest Small Groups physically nearby based on geolocation.
 - Allow website guests to easily contact leaders or join a group.
 
+### Course List
+- Publish a list of Classes (Sunday School, etc), with dynamic filtering similar to Small Groups.
+- Allow website guests to easily contact teachers or join a class. 
+
 ### Events
 Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by
 ModernTribe](https://theeventscalendar.com/).  This is compatible with both the free and "Pro" versions.

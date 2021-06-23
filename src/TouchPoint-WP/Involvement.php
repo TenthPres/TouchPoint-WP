@@ -17,7 +17,7 @@ use WP_Query;
  *
  * @package tp\TouchPointWP
  */
-abstract class Involvement
+abstract class Involvement implements api
 {
     public string $name;
     public int $invId;
@@ -25,7 +25,8 @@ abstract class Involvement
     public string $post_excerpt;
     protected WP_Post $post;
 
-    const INVOLVEMENT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "invId";
+    public const INVOLVEMENT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "invId";
+    public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "involvement";
 
     public object $attributes;
     protected array $divisions;
@@ -97,7 +98,7 @@ abstract class Involvement
             return __("Registration Closed", TouchPointWP::TEXT_DOMAIN);
         }
 
-        if (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true) === 0) {
+        if (intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) === 0) {
             return false; // no online registration available
         }
 
@@ -155,6 +156,20 @@ abstract class Involvement
      * @return false|int False on failure, or the number of groups that were updated or deleted.
      */
     public static abstract function updateFromTouchPoint(bool $verbose = false);
+
+    /**
+     * Register scripts and styles to be used on display pages.
+     */
+    public static function registerScriptsAndStyles(): void
+    {
+        wp_register_script(
+            TouchPointWP::SHORTCODE_PREFIX . "knockout",
+            "https://ajax.aspnetcdn.com/ajax/knockout/knockout-3.5.0.js",
+            [],
+            '3.5.0',
+            true
+        );
+    }
 
     /**
      * Update posts that are based on an involvement.
@@ -502,6 +517,33 @@ abstract class Involvement
     }
 
     /**
+     * Get notable attributes, such as gender restrictions, as strings.
+     *
+     * @return string[]
+     */
+    public function notableAttributes(): array
+    {
+        $ret = [];
+        if ($this->attributes->genderId != 0) {
+            switch($this->attributes->genderId) {
+                case 1:
+                    $ret[] = __('Men Only', TouchPointWP::TEXT_DOMAIN);
+                    break;
+                case 2:
+                    $ret[] = __('Women Only', TouchPointWP::TEXT_DOMAIN);
+                    break;
+            }
+        }
+
+        $joinable = $this->acceptingNewMembers();
+        if ($joinable !== true) {
+            $ret[] = $joinable;
+        }
+
+        return $ret;
+    }
+
+    /**
      * Returns the html with buttons for actions the user can perform.
      *
      * @return string
@@ -541,5 +583,86 @@ abstract class Involvement
             }
         }
         return $ret;
+    }
+
+    /**
+     * Handles the API call to join an involvement through a 'join' button.
+     */
+    private static function ajaxInvJoin(): void
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['error' => 'Only POST requests are allowed.']);
+            exit;
+        }
+
+        $inputData = file_get_contents('php://input');
+        if ($inputData[0] !== '{') {
+            echo json_encode(['error' => 'Invalid data provided.']);
+            exit;
+        }
+
+        $data = TouchPointWP::instance()->apiPost('inv_join', json_decode($inputData));
+
+        if ($data instanceof WP_Error) {
+            echo json_encode(['error' => $data->get_error_message()]);
+            exit;
+        }
+
+        echo json_encode(['success' => $data->success]);
+        exit;
+    }
+
+
+    /**
+     * Handles the API call to send a message through a contact form.
+     */
+    private static function ajaxInvContact(): void
+    {
+        header('Content-Type: application/json');
+        TouchPointWP::noCacheHeaders();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['error' => 'Only POST requests are allowed.']);
+            exit;
+        }
+
+        $inputData = file_get_contents('php://input');
+        if ($inputData[0] !== '{') {
+            echo json_encode(['error' => 'Invalid data provided.']);
+            exit;
+        }
+
+        $data = TouchPointWP::instance()->apiPost('inv_contact', json_decode($inputData));
+
+        if ($data instanceof WP_Error) {
+            echo json_encode(['error' => $data->get_error_message()]);
+            exit;
+        }
+
+        echo json_encode(['success' => $data->success]);
+        exit;
+    }
+
+    /**
+     * Handle API requests
+     *
+     * @param array $uri The request URI already parsed by parse_url()
+     *
+     * @return bool False if endpoint is not found.  Should print the result.
+     */
+    public static function api(array $uri): bool
+    {
+        switch (strtolower($uri['path'][2])) {
+            case "join":
+                self::ajaxInvJoin();
+                exit;
+
+            case "contact":
+                self::ajaxInvContact();
+                exit;
+        }
+
+        return false;
     }
 }
