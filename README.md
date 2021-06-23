@@ -5,21 +5,6 @@ Developed by [Tenth Presbyterian Church](https://tenth.org) for their website an
 plugin is not developed or supported by TouchPoint.  While their support team is stellar, they probably won't be able to
 help you with this.
 
-## Requirements
-
-Making this work requires notable configuration of your TouchPoint database.  We've scripted what we can, and the
-remainder is in [the Installation Instructions](https://github.com/TenthPres/TouchPoint-WP/wiki/Installation).
-
-Some features require other plugins, which may or may not be free.
-
-You will need a TouchPoint user account with API-level access.  New TouchPoint databases do not have one by default.  
-If your church doesn't have one, open a support ticket with TouchPoint to create one, referencing this plugin.
-
-
-If you're using the Authentication component, your WordPress site **MUST** use HTTPS with a valid certificate.
-
-We don't promise support for old versions of WordPress or PHP.  You will need to keep both up to date.
-
 ## Features
 ### Small Group Finder
 - Publish a list and map of Small Groups, with dynamic filtering based on actual data, such as demographics and location.
@@ -65,6 +50,23 @@ code, too.)
       for their security
 - Bios & Contact Info
     - Generate bio pages for officers or staff members from TouchPoint People records.
+    
+
+## Requirements
+
+Making this work requires notable configuration of your TouchPoint database.  We've scripted what we can, and the
+remainder is in [the Installation Instructions](https://github.com/TenthPres/TouchPoint-WP/wiki/Installation).
+
+Some features require other plugins, which may or may not be free.
+
+You will need a TouchPoint user account with API-level access.  New TouchPoint databases do not have one by default.  
+If your church doesn't have one, open a support ticket with TouchPoint to create one, referencing this plugin.
+
+
+If you're using the Authentication component, your WordPress site **MUST** use HTTPS with a valid certificate.
+
+We don't promise support for old versions of WordPress or PHP.  You will need to keep both up to date.
+
 
 ## Credit & Hat-Tips
 
