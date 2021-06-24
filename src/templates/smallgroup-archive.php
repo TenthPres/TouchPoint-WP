@@ -45,6 +45,7 @@ if ( have_posts() ) {
     $wp_the_query->set('nopaging', true);
 
     $wp_the_query->get_posts();
+    $wp_the_query->rewind_posts();
 
     while ($wp_the_query->have_posts()) {
         $wp_the_query->the_post();

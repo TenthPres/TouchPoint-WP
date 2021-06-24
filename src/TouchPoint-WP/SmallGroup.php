@@ -328,9 +328,11 @@ class SmallGroup extends Involvement implements api
                 $params['all'] = is_archive();
             }
 
+            static::enqueueLoopInvolvementsForScript();
+
             $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/smallgroup-map-inline.js");
 
-            $script = str_replace('{$smallgroupsList}', json_encode(self::getSmallGroupsForMap($params)), $script);
+            $script = str_replace('{$smallgroupsList}', json_encode(static::getInvolvementsForScript()), $script);
             $script = str_replace('{$mapDivId}', $mapDivId, $script); // TODO it should be possible to have action buttons without a map
 
             wp_add_inline_script(
@@ -344,55 +346,6 @@ class SmallGroup extends Involvement implements api
             $content = "<!-- Error: Small Group map can only be used once per page. -->";
         }
         return $content;
-    }
-
-    /**
-     * Gets a list of small groups, used to load the metadata into JS for the map and filtering capabilities.
-     *
-     * @param $params array Parameters from shortcode
-     * @param $post WP_Post A post object to use, especially if single.
-     *
-     * @return SmallGroup[]
-     */
-    protected static function getSmallGroupsForMap(array $params = [], $post = null): array
-    {
-
-        if ($params['all'] === true) {
-            global $wpdb;
-
-            $settingsPrefix = TouchPointWP::SETTINGS_PREFIX;
-            $postType       = self::POST_TYPE;
-
-            /** @noinspection SqlResolve */
-            /** @noinspection SpellCheckingInspection */
-            $sql = "SELECT 
-                        p.post_title as name,
-                        p.ID as post_id,
-                        p.post_excerpt,
-                        mloc.meta_value as location,
-                        miid.meta_value as invId,
-                        mlat.meta_value as geo_lat,
-                        mlng.meta_value as geo_lng
-                    FROM $wpdb->posts AS p 
-                JOIN $wpdb->postmeta as miid ON p.ID = miid.post_id AND '{$settingsPrefix}invId' = miid.meta_key
-                JOIN $wpdb->postmeta as mloc ON p.ID = mloc.post_id AND '{$settingsPrefix}locationName' = mloc.meta_key
-                LEFT JOIN $wpdb->postmeta as mlat ON p.ID = mlat.post_id AND '{$settingsPrefix}geo_lat' = mlat.meta_key
-                LEFT JOIN $wpdb->postmeta as mlng ON p.ID = mlng.post_id AND '{$settingsPrefix}geo_lng' = mlng.meta_key
-                WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()";
-
-            $ret = [];
-            foreach ($wpdb->get_results($sql, "OBJECT") as $row) {
-                $ret[] = self::fromObj($row);
-            }
-            return $ret;
-        }
-
-        // Single
-        if (!$post) {
-            $post = get_post();
-        }
-
-        return [self::fromPost($post)];
     }
 
     /**

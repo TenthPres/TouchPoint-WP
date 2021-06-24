@@ -1,11 +1,11 @@
 <?php
 /**
- * The default template for listing small groups. This template will only be used if no more specific template is found
+ * The default template for listing courses. This template will only be used if no more specific template is found
  * in the Theme.
  *
  * @link https://developer.wordpress.org/themes/basics/template-hierarchy/
  *
- * Template Name: TouchPoint Small Group List
+ * Template Name: TouchPoint Course List
  */
 
 use tp\TouchPointWP\Course;
@@ -52,6 +52,7 @@ if ( have_posts() ) {
     $wp_the_query->set('nopaging', true);
 
     $wp_the_query->get_posts();
+    $wp_the_query->rewind_posts();
 
     while ($wp_the_query->have_posts()) {
         $wp_the_query->the_post();

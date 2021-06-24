@@ -9,11 +9,11 @@ help you with this.
 ### Small Group Finder
 - Publish a list and map of Small Groups, with dynamic filtering based on actual data, such as demographics and location.
 - Suggest Small Groups physically nearby based on geolocation.
-- Allow website guests to easily contact leaders or join a group.
+- Allow website guests to easily contact leaders or join a group, without exposing leaders' contact info publicly.
 
 ### Course List
 - Publish a list of Classes (Sunday School, etc), with dynamic filtering similar to Small Groups.
-- Allow website guests to easily contact teachers or join a class. 
+- Allow website guests to easily contact teachers or join a class, without exposing leaders' contact info publicly. 
 
 ### Events
 Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by
@@ -62,7 +62,6 @@ Some features require other plugins, which may or may not be free.
 You will need a TouchPoint user account with API-level access.  New TouchPoint databases do not have one by default.  
 If your church doesn't have one, open a support ticket with TouchPoint to create one, referencing this plugin.
 
-
 If you're using the Authentication component, your WordPress site **MUST** use HTTPS with a valid certificate.
 
 We don't promise support for old versions of WordPress or PHP.  You will need to keep both up to date.
@@ -77,16 +76,14 @@ Several plugins have lended structure or code snippets to this plugin:
 - [Plugin Template from hlashbrooke](https://github.com/hlashbrooke/WordPress-Plugin-Template) (GPLv2)
 - [AAD SSO from psignoret](https://github.com/psignoret/aad-sso-wordpress) (MIT)
 
+### Linked Libraries
+- [SweetAlert2](https://sweetalert2.github.io/) (MIT)
+- [Knockout JS](https://knockoutjs.com/) (MIT)
+- [Google Maps Javascript API](https://developers.google.com/maps/documentation/javascript/overview) 
+  ([Proprietary](https://developers.google.com/terms))
+
 
 ## Usage Notes
-
-### Nomenclature
-
-**Involvement** is meant to correspond to an "Involvement" in TouchPoint.  This may be a small group, Bible School
-or any other Involvement in TouchPoint. However, at the time of this writing, TouchPoint has only just started to
-adopt the name "Involvement" over the previous name, "Organization". Therefore, for the purposes of this plugin,
-"Involvement" and "Organization" are interchangeable, but "Organization" should be considered deprecated.  Most
-instances have been updated in the plugin itself.
 
 ### Authentication
 
@@ -97,7 +94,7 @@ page regardless of whether TouchPoint is set as the default login mechanism.
 #### Filters
 
 `tp_auto_redirect_login`  If the option to use TouchPoint as the default login mechanism is enabled, this filter
-allows more specificity as to when you want this redirect to happen.  Be default, this feature is disabled.  However,
+allows more specificity as to when you want this redirect to happen.  By default, this feature is disabled.  However,
 once enabled, by default, the plugin will redirect all login requests to TouchPoint.
 
 `tp_prevent_admin_bar`  If the option to Prevent Subscriber Admin Bar is enabled, this filter allows more specificity as
@@ -106,4 +103,4 @@ the 'subscriber' role.
 
 ### License
 This plugin is released under the AGPL, which is "very strong copy-left".  Therefore, if you change this code and use it
-in production, you *MUST* make your changes available. 
+in production, you *MUST* make your changes available.

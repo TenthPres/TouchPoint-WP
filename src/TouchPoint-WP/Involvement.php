@@ -585,6 +585,43 @@ abstract class Involvement implements api
         return $ret;
     }
 
+
+    protected static $involvementsForScript = [];
+    protected static function enqueueLoopInvolvementsForScript(): void
+    {
+
+    }
+
+    /**
+     * @return Involvement[]
+     */
+    protected static function getInvolvementsForScript(): array
+    {
+        $ret = [];
+
+        global $wp_the_query;
+
+        $wp_the_query->set('posts_per_page', -1);
+        $wp_the_query->set('nopaging', true);
+
+        $wp_the_query->get_posts();
+        $wp_the_query->rewind_posts();
+
+        while ($wp_the_query->have_posts()) {
+            $wp_the_query->the_post();
+
+            $ret[] = static::fromPost(get_post());
+        }
+        return $ret;
+    }
+
+    /**
+     * @param WP_Post $post
+     *
+     * @return Involvement
+     */
+    public abstract static function fromPost(WP_Post $post): Involvement;
+
     /**
      * Handles the API call to join an involvement through a 'join' button.
      */
