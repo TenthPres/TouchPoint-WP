@@ -19,17 +19,31 @@ $sg = SmallGroup::fromPost($post);
         <div class="post-meta-single post-meta-single-top">
             <span class="post-meta">
                 <?php
+                $metaStrings = [];
                 $metaKeys = [
                     TouchPointWP::SETTINGS_PREFIX . "meetingSchedule",
                     TouchPointWP::SETTINGS_PREFIX . "locationName",
-                    TouchPointWP::SETTINGS_PREFIX . "leaders"
                 ];
-                $metaStrings = [];
                 foreach ($metaKeys as $mk) {
                     if ($post->$mk) {
                         $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk);
                     }
                 }
+
+                foreach ($sg->getDivisionsStrings() as $a)
+                {
+                    $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
+                }
+
+                $metaKeys = [
+                    TouchPointWP::SETTINGS_PREFIX . "leaders",
+                ];
+                foreach ($metaKeys as $mk) {
+                    if ($post->$mk) {
+                        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk);
+                    }
+                }
+
                 foreach ($sg->notableAttributes() as $a)
                 {
                     $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);

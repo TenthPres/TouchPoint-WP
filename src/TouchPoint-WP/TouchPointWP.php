@@ -2,8 +2,10 @@
 
 namespace tp\TouchPointWP;
 
+use WP;
 use WP_Error;
 use WP_Http;
+use WP_Term;
 
 if ( ! defined('ABSPATH')) {
     exit;
@@ -57,6 +59,7 @@ class TouchPointWP
     public const SETTINGS_PREFIX = "tp_";
 
     public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
+    public const TAX_DIV = self::HOOK_PREFIX . "div";
     public const TAX_WEEKDAY = self::HOOK_PREFIX . "weekday";
     public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
@@ -172,7 +175,7 @@ class TouchPointWP
             session_start();
 
         // Adds async and defer attributes to script tags.
-        add_filter( 'script_loader_tag', [$this, 'filterByTag'], 10, 2 );
+        add_filter('script_loader_tag', [$this, 'filterByTag'], 10, 2);
 
         // Load Auth tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on"
@@ -186,8 +189,8 @@ class TouchPointWP
             require_once 'Rsvp.php';
         }
 
-        // Load Small Group tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_small_group') === "on"
+        // Load Small Group tool if enabled. // TODO apparently not used.
+        if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
             && ! class_exists("tp\TouchPointWP\SmallGroup")) {
             require_once 'SmallGroup.php';
         }
@@ -208,6 +211,16 @@ class TouchPointWP
         return $this->admin;
     }
 
+    /**
+     * @param bool      $continue   Whether or not to parse the request
+     * @param WP        $wp         Current WordPress environment instance
+     * @param array|string $extraVars Passed query variables
+     *
+     * @return bool Whether or not other request parsing functions should be allowed to function.
+     *
+     * @noinspection PhpMissingParamTypeInspection
+     * @noinspection PhpUnusedParameterInspection
+     */
     public function parseRequest($continue, $wp, $extraVars): bool
     {
         if ($continue) {
@@ -229,34 +242,57 @@ class TouchPointWP
                 count($reqUri['path']) === 2 &&
                 TouchPointWP::useTribeCalendar()) {
 
-                EventsCalendar::echoAppList($reqUri['query']);
-
-                exit;
+                if (!EventsCalendar::api($reqUri)) {
+                    return $continue;
+                }
             }
 
+            if ($reqUri['path'][1] === "sg" &&
+                get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
+            ) {
+                if (!SmallGroup::api($reqUri)) {
+                    return $continue;
+                }
+            }
 
             // Generate Python Scripts
             if ($reqUri['path'][1] === self::API_ENDPOINT_GENERATE_SCRIPTS &&
                 count($reqUri['path']) === 2 &&
                 current_user_can('administrator')) {
 
-                $fileName = $this->admin()->generatePython();
-
-                if (! is_string($fileName)) {
+                if (!$this->generateAndEchoPython()) {
                     // something went wrong...
                     return $continue;
                 }
-
-                header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
-                header('Content-type: application/zip');
-
-                readfile($fileName);
-                unlink ($fileName);
-
                 exit;
             }
         }
         return $continue;
+    }
+
+
+    /**
+     * Generate scripts package and send to client.
+     *
+     * There needs to be a permission check elsewhere, before this method is called.
+     *
+     * @return bool True on success, False on failure.
+     */
+    private function generateAndEchoPython(): bool
+    {
+        $fileName = $this->admin()->generatePython();
+
+        if (! is_string($fileName)) {
+            // something went wrong...
+            return false;
+        }
+
+        header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
+        header('Content-type: application/zip');
+
+        readfile($fileName);
+        unlink ($fileName);
+        return true;
     }
 
 
@@ -349,14 +385,14 @@ class TouchPointWP
      *
      * DOES apply to ALL scripts, not just those in the template.
      *
-     * @param string $tag The script tag.
-     * @param string $handle The script handle.
+     * @param ?string $tag The script tag.
+     * @param ?string $handle The script handle.
      *
      * @return string The HTML string.
      *
-     * TODO Do not re-create this function if the template does it.
+     * @noinspection DuplicatedCode  This functionality is also added by Tenth's Themes.
      */
-    public function filterByTag($tag, $handle): string
+    public function filterByTag(?string $tag, ?string $handle): string
     {
         if (strpos($tag, 'async') !== false &&
             strpos($handle, '-async') > 0) {
@@ -595,7 +631,7 @@ class TouchPointWP
                 'labels'            => [
                     'name'          => $this->settings->rc_name_plural,
                     'singular_name' => $this->settings->rc_name_singular,
-                    'search_items'  => __('Search ' . $this->settings->rc_name_plural),
+                    'search_items'  => __('Search ' . $this->settings->rc_name_plural), // TODO change to sprintf
                     'all_items'     => __('All ' . $this->settings->rc_name_plural),
                     'edit_item'     => __('Edit ' . $this->settings->rc_name_singular),
                     'update_item'   => __('Update ' . $this->settings->rc_name_singular),
@@ -628,7 +664,92 @@ class TouchPointWP
                 self::queueFlushRewriteRules();
             }
         }
+        // TODO remove defunct res codes
 
+        // Divisions & Programs
+        $divisionTypesToApply = ['user'];
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
+            $divisionTypesToApply[] = SmallGroup::POST_TYPE;
+        }
+        // TODO allow this taxonomy to be applied to other post types as an option.
+        register_taxonomy(
+            self::TAX_DIV,
+            $divisionTypesToApply,
+            [
+                'hierarchical'      => true,
+                'show_ui'           => true, // TODO make false
+                'description'       => sprintf(__('Classify things by %s.'), $this->settings->dv_name_singular),
+                'labels'            => [
+                    'name'          => $this->settings->dv_name_plural,
+                    'singular_name' => $this->settings->dv_name_singular,
+                    'search_items'  => __('Search ' . $this->settings->dv_name_plural), // TODO change to sprintf
+                    'all_items'     => __('All ' . $this->settings->dv_name_plural),
+                    'edit_item'     => __('Edit ' . $this->settings->dv_name_singular),
+                    'update_item'   => __('Update ' . $this->settings->dv_name_singular),
+                    'add_new_item'  => __('Add New ' . $this->settings->dv_name_singular),
+                    'new_item_name' => __('New ' . $this->settings->dv_name_singular . ' Name'),
+                    'menu_name'     => $this->settings->dv_name_plural,
+                ],
+                'public'            => true,
+                'show_in_rest'      => true,
+                'show_admin_column' => false, // TODO make an option?
+
+                // Control the slugs used for this taxonomy
+                'rewrite'           => [
+                    'slug'         => $this->settings->dv_slug,
+                    'with_front'   => false,
+                    'hierarchical' => true
+                ],
+            ]
+        );
+        $enabledDivisions = $this->settings->dv_divisions;
+        foreach ($this->getDivisions() as $d) {
+            if (in_array('div' . $d->id, $enabledDivisions)) {
+
+                // Program
+                $pTermInfo = term_exists($d->pName, self::TAX_DIV);
+                if ( $pTermInfo === null ) {
+                    $pTermInfo = wp_insert_term(
+                        $d->pName,
+                        self::TAX_DIV,
+                        [
+                            'description' => $d->pName,
+                            'slug'        => sanitize_title($d->pName)
+                        ]
+                    );
+                    update_term_meta($pTermInfo['term_id'], self::SETTINGS_PREFIX . 'programId', $d->proId);
+                    self::queueFlushRewriteRules();
+                }
+
+                // Division
+                $dTermInfo = term_exists($d->dName, self::TAX_DIV);
+                if ($dTermInfo === null) {
+                    $dTermInfo = wp_insert_term(
+                        $d->dName,
+                        self::TAX_DIV,
+                        [
+                            'description' => $d->dName,
+                            'parent'      => $pTermInfo['term_id'],
+                            'slug'        => sanitize_title($d->dName)
+                        ]
+                    );
+                    update_term_meta($dTermInfo['term_id'], self::SETTINGS_PREFIX . 'divId', $d->id);
+                    self::queueFlushRewriteRules();
+                }
+            } else {
+                // Remove terms that are no longer used. TODO also remove ones that no longer exist in TouchPoint.
+
+                // Division
+                $dTermInfo = term_exists($d->dName, self::TAX_DIV);
+                if ($dTermInfo !== null) {
+                    wp_delete_term($dTermInfo['term_id'], self::TAX_DIV);
+                    self::queueFlushRewriteRules();
+                }
+
+                // Program
+                // TODO remove program terms that are no longer used
+            }
+        }
 
         // Weekdays
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
@@ -773,6 +894,35 @@ class TouchPointWP
         }
     }
 
+    private static array $divisionTerms = [];
+
+    /**
+     * @param int $divId
+     *
+     * @return int|false Returns the term ID number or false (or 0) if the division is not found, or not enabled.
+     */
+    public static function getDivisionTermIdByDivId(int $divId): int
+    {
+        if (!isset(self::$divisionTerms['d' . $divId])) {
+            $t = get_terms(
+                [
+                    'taxonomy'   => self::TAX_DIV,
+                    'hide_empty' => false,
+                    'number'     => 1,
+                    'fields'     => 'ids',
+                    'meta_key'   => self::SETTINGS_PREFIX . 'divId',
+                    'meta_value' => $divId
+                ]
+            );
+            if (is_array($t) && count($t) > 0) {
+                self::$divisionTerms['d' . $divId] = $t[0];
+            } else { // not found, or division is not enabled for syncing.
+                self::$divisionTerms['d' . $divId] = false;
+            }
+        }
+        return self::$divisionTerms['d' . $divId];
+    }
+
     /**
      * Main TouchPointWP Instance
      *
@@ -818,21 +968,16 @@ class TouchPointWP
         return ($afIdTime <= time() + $timeout) && $afIdTime >= time();
     }
 
-    public static function getDayOfWeekNameForNumber(int $dayNum)
-    {
-        $names = [
-            __('Sunday'),
-            __('Monday'),
-            __('Tuesday'),
-            __('Wednesday'),
-            __('Thursday'),
-            __('Friday'),
-            __('Saturday'),
-        ];
-
-        return $names[$dayNum % 7];
-    }
-
+    /**
+     * Gets the plural form of a weekday name.
+     *
+     * Translation: These are deliberately not scoped to TouchPoint-WP, so if the translation exists globally, it should
+     * work here.
+     *
+     * @param int $dayNum
+     *
+     * @return string Plural weekday (e.g. Mondays)
+     */
     public static function getPluralDayOfWeekNameForNumber(int $dayNum): string
     {
         $names = [
@@ -848,6 +993,11 @@ class TouchPointWP
         return $names[$dayNum % 7];
     }
 
+    /**
+     * @param int $dayNum
+     *
+     * @return string
+     */
     public static function getDayOfWeekShortForNumber(int $dayNum): string
     {
         $names = [
@@ -861,6 +1011,44 @@ class TouchPointWP
         ];
 
         return $names[$dayNum % 7];
+    }
+
+    /**
+     * Join an array of strings into a properly-formatted (English-style) list. Uses commas and ampersands by default.
+     * This will switch to written "and" when an ampersand is present in a string, and will use semi-colons instead of
+     * commas when commas are already present.
+     *
+     * Turn ['apples', 'oranges', 'pears'] into "apples, oranges & pears"
+     *
+     * @param string[] $strings
+     *
+     * @return string
+     */
+    public static function stringArrayToList(array $strings): string
+    {
+        $concat = implode('', $strings);
+
+        $comma = ', ';
+        $and = ' & ';
+        $useOxford = false;
+        if (strpos($concat, ', ') !== false) {
+            $comma     = '; ';
+            $useOxford = true;
+        }
+        if (strpos($concat, ' & ') !== false) {
+            $and = ' ' . __('and') . ' ';
+            $useOxford = true;
+        }
+
+        $last = array_pop($strings);
+        $str = implode($comma, $strings);
+        if (count($strings) > 0) {
+            if ($useOxford)
+                $str .= trim($comma);
+            $str .= $and;
+        }
+        $str .= $last;
+        return $str;
     }
 
     /**
@@ -991,6 +1179,40 @@ class TouchPointWP
         return self::useTribeCalendarPro() || is_plugin_active( 'the-events-calendar/the-events-calendar.php');
     }
 
+
+    /**
+     * Sort a list of heirarchical terms into a list in which each parent is immediately followed by its children.
+     *
+     * @param WP_Term[] $terms
+     *
+     * @return WP_Term[]
+     */
+    public static function orderHierarchicalTerms(array $terms): array
+    {
+        $lineage = [[]];
+        foreach ($terms as $t) {
+            if (! isset($lineage[$t->parent])) {
+                $lineage[$t->parent] = [];
+            }
+            $lineage[$t->parent][] = $t;
+        }
+
+        usort($lineage[0], fn($a, $b) => strcmp($a->name, $b->name));
+
+        $out = [];
+        foreach ($lineage[0] as $t) {
+            $out[] = $t;
+            if (isset($lineage[$t->term_id])) {
+                usort($lineage[$t->term_id], fn($a, $b) => strcmp($a->name, $b->name));
+
+                foreach ($lineage[$t->term_id] as $t2) {
+                    $out[] = $t2;
+                }
+            }
+        }
+        return $out;
+    }
+
     /**
      * @return string The URL of the TouchPoint instance.
      */
@@ -1112,7 +1334,7 @@ class TouchPointWP
             }
         }
 
-        // Get update if needed.
+        // Get update if needed.  TODO move to cron.
         if ($needsUpdate) {
             $divsObj = $this->updateDivisions();
         }

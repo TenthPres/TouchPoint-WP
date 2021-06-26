@@ -2,13 +2,14 @@
 
 namespace tp\TouchPointWP;
 
-use DateTime;
-use Exception;
-use WP_Error;
+if ( ! defined('ABSPATH')) {
+    exit(1);
+}
+
 use WP_Post;
-use WP_Query;
 use WP_Term;
 
+require_once 'api.php';
 require_once 'Involvement.php';
 
 /**
@@ -22,7 +23,7 @@ require_once 'Involvement.php';
 /**
  * The Small Group system class.
  */
-class SmallGroup extends Involvement
+class SmallGroup extends Involvement implements api
 {
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "SgMap";
     public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "SgFilters";
@@ -52,7 +53,8 @@ class SmallGroup extends Involvement
                 TouchPointWP::TAX_RESCODE,
                 TouchPointWP::TAX_AGEGROUP,
                 TouchPointWP::TAX_WEEKDAY,
-                TouchPointWP::TAX_INV_MARITAL
+                TouchPointWP::TAX_INV_MARITAL,
+                TouchPointWP::TAX_DIV
             ]
         );
 
@@ -117,6 +119,11 @@ class SmallGroup extends Involvement
                     break;
             }
         }
+
+        if (!$this->acceptingNewMembers()) {
+            $ret[] = __('Currently Full', TouchPointWP::TEXT_DOMAIN);
+        }
+
         return $ret;
     }
 
@@ -231,207 +238,44 @@ class SmallGroup extends Involvement
     /**
      * Query TouchPoint and update Small Groups in WordPress
      *
+     * @param bool $verbose Whether to print debugging info.
+     *
      * @return false|int False on failure, or the number of groups that were updated or deleted.
      */
-    public static function updateSmallGroupsFromTouchPoint() // TODO add OOP alignment  ... What's that?
+    public static function updateSmallGroupsFromTouchPoint($verbose = false)
     {
         if (count(self::$tpwp->settings->sg_divisions) < 1) {
             // Don't update if there aren't any divisions selected yet.
             return false;
         }
 
+        // Divisions
         $divs = implode(',', self::$tpwp->settings->sg_divisions);
         $divs = str_replace('div', '', $divs);
 
+        // Leader member types
         $lMTypes = implode(',', self::$tpwp->settings->sg_leader_types);
         $lMTypes = str_replace('mt', '', $lMTypes);
 
+        // Host member types
         $hMTypes = implode(',', self::$tpwp->settings->sg_host_types);
         $hMTypes = str_replace('mt', '', $hMTypes);
 
-        set_time_limit(60);
+        $count = parent::updateInvolvementPosts(self::POST_TYPE, $divs, ['leadMemTypes' => $lMTypes, 'hostMemTypes' => $hMTypes], $verbose);
 
-        try {
-            $response = self::$tpwp->apiGet(
-                "InvsForDivs",
-                ['divs' => $divs, 'leadMemTypes' => $lMTypes, 'hostMemTypes' => $hMTypes]
-            );
-        } catch (TouchPointWP_Exception $e) {
-            return false;
+        if ($count !== false) {
+            self::$tpwp->settings->set('sg_cron_last_run', time());
         }
 
-        $siteTz = wp_timezone();
-
-        if ($response instanceof WP_Error) {
-            return false;
-        }
-
-        $invData = json_decode($response['body'])->data->invs ?? []; // null coalesce for case where there is no data.
-
-        $postsToKeep = [];
-
-        foreach ($invData as $inv) {
-            set_time_limit(15);
-
-            $q = new WP_Query(
-                [
-                    'post_type'  => self::POST_TYPE,
-                    'meta_key'   => TouchPointWP::SETTINGS_PREFIX . "invId",
-                    'meta_value' => $inv->involvementId
-                ]
-            );
-            $post = $q->get_posts();
-            if (count($post) > 0) { // post exists already.
-                $post = $post[0];
-            } else {
-                $post = wp_insert_post(
-                    [ // create new
-                        'post_type'  => self::POST_TYPE,
-                        'post_name'  => $inv->name,
-                        'meta_input' => [
-                            TouchPointWP::SETTINGS_PREFIX . "invId" => $inv->involvementId
-                        ]
-                    ]
-                );
-                $post = get_post($post);
-            }
-
-            if ($post instanceof WP_Error) {
-                error_log($post->get_error_message());
-                continue;
-            }
-
-            /** @var $post WP_Post */
-
-            $post->post_content = strip_tags($inv->description, "<p><br><a><em><b><i><u><hr>");
-
-            if ($post->post_title != $inv->name) // only update if there's a change.  Otherwise, urls increment.
-            {
-                $post->post_title = $inv->name;
-            }
-
-            $post->post_status = 'publish';
-
-            wp_update_post($post);
-
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "locationName", $inv->location);
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "memberCount", $inv->memberCount);
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "genderId", $inv->genderId);
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupFull", ! ! $inv->groupFull);
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupClosed", ! ! $inv->closed);
-
-            // Determine next meeting date/time
-            $nextMeetingDateTime = array_diff([$inv->sched1Time, $inv->sched2Time, $inv->meetNextMeeting], [null]);
-            if (count($nextMeetingDateTime) > 0) {
-                $nextMeetingDateTime = min($nextMeetingDateTime);
-                try {
-                    $nextMeetingDateTime = new DateTime($nextMeetingDateTime, $siteTz);
-                } catch (Exception $e) {
-                    $nextMeetingDateTime = null;
-                }
-            } else {
-                $nextMeetingDateTime = null;
-            }
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "nextMeeting", $nextMeetingDateTime);
-
-            // Determine schedule string  TODO add frequency options.
-            // Day(s) of week
-            $days = array_diff([$inv->sched1Day, $inv->sched2Day], [null]);
-            if (count($days) > 1) {
-                $dayStr = TouchPointWP::getDayOfWeekShortForNumber($days[0]) .
-                        " & " . TouchPointWP::getDayOfWeekShortForNumber($days[1]);
-            } elseif (count($days) === 1) {
-                $dayStr = TouchPointWP::getPluralDayOfWeekNameForNumber(reset($days));
-            } elseif ($inv->meetNextMeeting !== null) {
-                $dayStr = TouchPointWP::getPluralDayOfWeekNameForNumber(date("w", strtotime($inv->meetNextMeeting)));
-            } else {
-                $dayStr = null;
-            }
-
-            // Day of week attributes
-            $dayTerms = [];
-            foreach ($days as $d) {
-                $dayTerms[] = TouchPointWP::getDayOfWeekShortForNumber($d);
-            }
-            wp_set_post_terms($post->ID, $dayTerms, TouchPointWP::TAX_WEEKDAY, false);
-
-            // Times of day  TODO (eventually) allow for different times of day on different days of the week.
-            if ($dayStr !== null) {
-                $times = array_diff([$inv->sched1Time, $inv->sched2Time, $inv->meetNextMeeting], [null]);
-
-                if (count($times) > 0) {
-                    $times = date(get_option('time_format'), strtotime(reset($times)));
-                    $dayStr  .= " " . __('at', TouchPointWP::TEXT_DOMAIN) . " " . $times;
-                }
-            }
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", $dayStr);
-
-            // Handle leaders  TODO make leaders WP Users
-            if (property_exists($inv, "leaders")) {
-                $nameString = Person::arrangeNamesForPeople($inv->leaders);
-                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders", $nameString);
-            }
-
-            // Handle locations TODO handle cases other than hosted at home  (Also applies to ResCode)
-            if (property_exists($inv, "hostGeo") && $inv->hostGeo !== null) {
-                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", $inv->hostGeo->lat);
-                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", $inv->hostGeo->lng);
-            }
-
-            // Handle Resident Code
-            if (property_exists($inv, "hostGeo") && $inv->hostGeo !== null && $inv->hostGeo->resCodeName !== null) {
-                wp_set_post_terms($post->ID, [$inv->hostGeo->resCodeName], TouchPointWP::TAX_RESCODE, false);
-            } else {
-                wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
-            }
-
-            // Handle Marital Status
-            $maritalTax = [];
-            if ($inv->marital_denom > 4) { // only include involvements with at least 4 people with known marital statuses.
-                $marriedProportion = (float)$inv->marital_married / $inv->marital_denom;
-                if ($marriedProportion > 0.7) {
-                    $maritalTax[] = "mostly_married";
-                } elseif ($marriedProportion < 0.3) {
-                    $maritalTax[] = "mostly_single";
-                }
-            }
-            wp_set_post_terms($post->ID, $maritalTax, TouchPointWP::TAX_INV_MARITAL, false);
-
-            // Handle Age Groups
-            if ($inv->age_groups === null) {
-                wp_set_post_terms($post->ID, [], TouchPointWP::TAX_AGEGROUP, false);
-            } else {
-                wp_set_post_terms($post->ID, $inv->age_groups, TouchPointWP::TAX_AGEGROUP, false);
-            }
-
-            $postsToKeep[] = $post->ID;
-        }
-
-        // Delete posts that are no longer current
-        $q = new WP_Query(
-            [
-                'post_type' => self::POST_TYPE,
-                'nopaging'  => true,
-            ]
-        );
-        $removals = 0;
-        foreach ($q->get_posts() as $post) {
-            if ( ! in_array($post->ID, $postsToKeep)) {
-                set_time_limit(10);
-                wp_delete_post($post->ID, true);
-                $removals++;
-            }
-        }
-
-        self::$tpwp->settings->set('sg_cron_last_run', time());
-
-        return count($invData) + $removals;
+        return $count;
     }
 
     /**
      * @param string $template
      *
      * @return string
+     *
+     * @noinspection unused
      */
     public static function templateFilter(string $template): string
     {
@@ -463,6 +307,8 @@ class SmallGroup extends Involvement
      * @param $post
      *
      * @return string
+     *
+     * @noinspection PhpUnusedParameterInspection Not used by choice, but need to comply with the api.
      */
     public static function filterPublishDate($theDate, $format, $post = null): string
     {
@@ -512,8 +358,10 @@ class SmallGroup extends Involvement
      * @param string $content
      *
      * @return string
+     *
+     * @noinspection PhpUnusedParameterInspection
      */
-    public static function mapShortcode(array $params, string $content = ""): string
+    public static function mapShortcode(array $params = [], string $content = ""): string
     {
         if ( ! self::$_hasUsedMap) {
             self::$_hasUsedMap = true;
@@ -579,6 +427,8 @@ class SmallGroup extends Involvement
             $settingsPrefix = TouchPointWP::SETTINGS_PREFIX;
             $postType       = self::POST_TYPE;
 
+            /** @noinspection SqlResolve */
+            /** @noinspection SpellCheckingInspection */
             $sql = "SELECT 
                         p.post_title as name,
                         p.ID as post_id,
@@ -592,7 +442,7 @@ class SmallGroup extends Involvement
                 JOIN $wpdb->postmeta as mloc ON p.ID = mloc.post_id AND '{$settingsPrefix}locationName' = mloc.meta_key
                 LEFT JOIN $wpdb->postmeta as mlat ON p.ID = mlat.post_id AND '{$settingsPrefix}geo_lat' = mlat.meta_key
                 LEFT JOIN $wpdb->postmeta as mlng ON p.ID = mlng.post_id AND '{$settingsPrefix}geo_lng' = mlng.meta_key
-                WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()"; // TODO possibly add ResCode?
+                WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()";
 
             $ret = [];
             foreach ($wpdb->get_results($sql, "OBJECT") as $row) {
@@ -661,6 +511,56 @@ class SmallGroup extends Involvement
 
         $any = __("Any", TouchPointWP::TEXT_DOMAIN);
 
+        // Division
+        if (in_array('div', $filters)) {
+            $exclude = TouchPointWP::instance()->settings->sg_divisions;
+            if (count($exclude) > 0) {
+                $mq = ['relation' => "AND"];
+                foreach ($exclude as $e) {
+                    $mq[] = [
+                        'key' => TouchPointWP::SETTINGS_PREFIX . 'divId',
+                        'value' => substr($e, 3),
+                        'compare' => 'NOT LIKE'
+                    ];
+                }
+                $mq = [
+                    'relation' => "OR",
+                    [
+                        'key' => TouchPointWP::SETTINGS_PREFIX . 'divId', // Allows for programs
+                        'compare' => 'NOT EXISTS'
+                    ],
+                    $mq
+                ];
+            } else {
+                $mq = [];
+            }
+            $dvName = TouchPointWP::instance()->settings->dv_name_singular;
+            $dvList = get_terms([
+                'taxonomy'   => TouchPointWP::TAX_DIV,
+                'hide_empty' => true,
+                'meta_query' => $mq,
+                'post_type'  => self::POST_TYPE
+            ]);
+            $dvList = TouchPointWP::orderHierarchicalTerms($dvList);
+            if (is_array($dvList) && count($dvList) > 1) {
+                $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"div\">";
+                $content .= "<option disabled selected>{$dvName}</option><option value=\"\">{$any}</option>";
+                $isFirst = true;
+                foreach ($dvList as $d) {
+                    if ($d->parent === 0 || $isFirst) {
+                        if (! $isFirst ) {
+                            $content .= "</optgroup>";
+                        }
+                        $content .= "<optgroup label=\"{$d->name}\">";
+                    } else {
+                        $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
+                    }
+                    $isFirst = false;
+                }
+                $content .= "</optgroup></select>";
+            }
+        }
+
         // Gender
         if (in_array('genderid', $filters)) {
             $gList   = self::$tpwp->getGenders();
@@ -681,8 +581,12 @@ class SmallGroup extends Involvement
         // Resident Codes
         if (in_array('rescode', $filters)) {
             $rcName = self::$tpwp->settings->rc_name_singular;
-            $rcList = get_terms(['taxonomy' => TouchPointWP::TAX_RESCODE, 'hide_empty' => true]);
-            if (is_array($rcList)) {
+            $rcList = get_terms([
+                'taxonomy' => TouchPointWP::TAX_RESCODE,
+                'hide_empty' => true,
+                'post_type'  => self::POST_TYPE
+            ]);
+            if (is_array($rcList) && count($rcList) > 1) {
                 $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"rescode\">";
                 $content .= "<option disabled selected>{$rcName}</option><option value=\"\">{$any}</option>";
 
@@ -699,7 +603,12 @@ class SmallGroup extends Involvement
         // Day of Week
         if (in_array('weekday', $filters)) {
             $wdName = __("Weekday");
-            $wdList = get_terms(['taxonomy' => TouchPointWP::TAX_WEEKDAY, 'hide_empty' => true, 'orderby' => 'id']);
+            $wdList = get_terms([
+                'taxonomy'   => TouchPointWP::TAX_WEEKDAY,
+                'hide_empty' => true,
+                'orderby'    => 'id',
+                'post_type'  => self::POST_TYPE
+            ]);
             if (is_array($wdList) && count($wdList) > 1) {
                 $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"weekday\">";
                 $content .= "<option disabled selected>{$wdName}</option><option value=\"\">{$any}</option>";
@@ -726,7 +635,7 @@ class SmallGroup extends Involvement
         if (in_array('agegroup', $filters)) {
             $agName = __("Age");
             $agList = get_terms(['taxonomy' => TouchPointWP::TAX_AGEGROUP, 'hide_empty' => true]);
-            if (is_array($agList)) {
+            if (is_array($agList) && count($agList) > 1) {
                 $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"agegroup\">";
                 $content .= "<option disabled selected>{$agName}</option><option value=\"\">{$any}</option>";
                 foreach ($agList as $a) {
@@ -752,8 +661,7 @@ class SmallGroup extends Involvement
             TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style',
             self::$tpwp->assets_url . 'template/smallgroups-template-style.css',
             [],
-            TouchPointWP::VERSION,
-            'all'
+            TouchPointWP::VERSION
         );
     }
 
@@ -812,9 +720,17 @@ class SmallGroup extends Involvement
         return $content;
     }
 
+    /**
+     *
+     * @noinspection PhpUnused
+     */
     public static function ajaxNearby()
     {
         $r = self::getGroupsNear($_GET['lat'], $_GET['lng'], $_GET['limit']);
+
+        if ($r === null) {
+            $r = [];
+        }
 
         foreach ($r as $g) {
             $sg      = SmallGroup::fromObj($g);
@@ -826,17 +742,30 @@ class SmallGroup extends Involvement
         wp_die();
     }
 
+    /**
+     * @param string[] $exclude
+     *
+     * @return string[]
+     */
+    public function getDivisionsStrings($exclude = null): array
+    {
+        if ($exclude === null) {
+            $exclude = self::$tpwp->settings->sg_divisions;
+        }
+        return parent::getDivisionsStrings($exclude);
+    }
+
 
     /**
      * Gets an array of ID/Distance pairs for a given lat/lng.
      *
-     * @param $lat    numeric Longitude
-     * @param $lng    numeric Longitude
-     * @param $limit  numeric Number of results to return.  0-100 inclusive.
+     * @param float|null $lat   Longitude
+     * @param float|null $lng   Longitude
+     * @param int        $limit Number of results to return.  0-100 inclusive.
      *
-     * @return array|object|null
+     * @return object[]|null  An array of database query result objects, or null if the location isn't provided or valid.
      */
-    protected static function getGroupsNear($lat = null, $lng = null, $limit = 3)
+    protected static function getGroupsNear(?float $lat = null, ?float $lng = null, int $limit = 3): ?array
     {
         if ($lat === null || $lng === null) {
             $geoObj = self::$tpwp->geolocate();
@@ -847,14 +776,20 @@ class SmallGroup extends Involvement
             }
         }
 
-        $lat = floatval($lat) ?? 39.949601081097036; // TODO use some kind of default.
-        $lng = floatval($lng) ?? -75.17186043802126;
+        if ($lat === null || $lng === null ||
+            $lat > 90 || $lat < -90 ||
+            $lat > 180 || $lat < -180
+        ) {
+            return null;
+        }
 
         $limit = min(max(intval($limit), 0), 100);
 
         global $wpdb;
         $settingsPrefix = TouchPointWP::SETTINGS_PREFIX;
-        $q = $wpdb->prepare( "
+        /** @noinspection SqlResolve */
+        /** @noinspection SpellCheckingInspection */
+        $q = $wpdb->prepare("
             SELECT l.Id as post_id,
                    l.post_title as name,
                    CAST(pmInv.meta_value AS UNSIGNED) as invId,
@@ -877,7 +812,7 @@ class SmallGroup extends Involvement
             ORDER BY distance LIMIT %d
             ", $lat, $lng, $lat, self::POST_TYPE, $limit );
 
-        return $wpdb->get_results($q);
+        return $wpdb->get_results($q, 'OBJECT');
     }
 
     /**
@@ -899,16 +834,45 @@ class SmallGroup extends Involvement
     }
 
     /**
+     * Whether the group is accepting new members.
+     *
+     * @return bool
+     */
+    public function acceptingNewMembers(): bool
+    {
+        // TODO add extra value options
+        return parent::acceptingNewMembers();
+    }
+
+    /**
      * Returns the html with buttons for actions the user can perform.
      *
      * @return string
      */
     public function getActionButtons(): string
     {
-        return '
-        <button type="button" data-tp-action="contact">Contact Leaders</button>
-        <button type="button" data-tp-action="join">Join</button>';
+        $ret = '<button type="button" data-tp-action="contact">Contact Leaders</button>  ';
+        if ($this->acceptingNewMembers()) {
+            $ret .= '<button type="button" data-tp-action="join">Join</button>  ';
+        }
+        return $ret;
     }
 
+    /**
+     * @param $uri
+     *
+     * @return bool True on success (valid api endpoint), false on failure.
+     */
+    public static function api($uri): bool
+    {
+        if (count($uri['path']) < 3) {
+            return false;
+        }
 
+        if ($uri['path'][2] === "force-sync") {
+            echo self::updateSmallGroupsFromTouchPoint(true);
+            exit;
+        }
+        return false;
+    }
 }
