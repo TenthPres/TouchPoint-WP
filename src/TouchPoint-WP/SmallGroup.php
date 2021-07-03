@@ -447,7 +447,7 @@ class SmallGroup extends Involvement implements api
                 'meta_query' => $mq,
                 'post_type'  => static::POST_TYPE
             ]);
-            $dvList = TouchPointWP::orderHierarchicalTerms($dvList);
+            $dvList = TouchPointWP::orderHierarchicalTerms($dvList, true);
             if (is_array($dvList) && count($dvList) > 1) {
                 $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"div\">";
                 $content .= "<option disabled selected>{$dvName}</option><option value=\"\">{$any}</option>";

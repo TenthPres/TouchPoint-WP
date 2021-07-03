@@ -1171,10 +1171,11 @@ class TouchPointWP
      * Sort a list of heirarchical terms into a list in which each parent is immediately followed by its children.
      *
      * @param WP_Term[] $terms
+     * @param bool      $noChildlessParents
      *
      * @return WP_Term[]
      */
-    public static function orderHierarchicalTerms(array $terms): array
+    public static function orderHierarchicalTerms(array $terms, bool $noChildlessParents = false): array
     {
         $lineage = [[]];
         foreach ($terms as $t) {
@@ -1182,6 +1183,15 @@ class TouchPointWP
                 $lineage[$t->parent] = [];
             }
             $lineage[$t->parent][] = $t;
+        }
+
+        // Remove parents that have no children
+        if ($noChildlessParents) {
+            foreach ($lineage[0] as $i => $term) {
+                if ( ! isset($lineage[$term->term_id])) {
+                    unset($lineage[0][$i]);
+                }
+            }
         }
 
         usort($lineage[0], fn($a, $b) => strcmp($a->name, $b->name));
