@@ -499,7 +499,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
 
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_courses') === "on" || $includeAll) {
-            $this->settings['classes'] = [
+            $this->settings['courses'] = [
                 'title'       => __('Courses', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Import Courses (Sunday School, etc.) from TouchPoint to your website.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
@@ -507,7 +507,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'id'          => 'cs_divisions',
                         'label'       => __('Divisions to Import', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
-                            'Involvements from these divisions will be imported as classes.',
+                            'Involvements from these divisions will be imported as courses.',
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
@@ -516,9 +516,9 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'cs_name_plural',
-                        'label'       => __('Classes Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Courses Name (Plural)', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
-                            'What you call classes at your church',
+                            'What you call courses at your church',
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'text',
@@ -527,7 +527,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'cs_name_singular',
-                        'label'       => __('Classes Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Courses Name (Singular)', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'What you call a class at your church',
                             TouchPointWP::TEXT_DOMAIN
@@ -538,7 +538,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'cs_slug',
-                        'label'       => __('Classes Slug', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Courses Slug', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'The root path for Class pages',
                             TouchPointWP::TEXT_DOMAIN
@@ -564,7 +564,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'label'       => __('Default Class Filters', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             "Filtering criteria to make available to users by default.  Can be overridden by shortcode 
-                            parameters.  Filters generally won't appear unless classes match multiple options.",
+                            parameters.  Filters generally won't appear unless courses match multiple options.",
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
