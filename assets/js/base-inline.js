@@ -10,6 +10,7 @@ const tpvm = {
         this._events[name].push(f);
     },
     trigger: function(name, arg1 = null) {
+        console.log("Firing " + name); // TODO remove.  For debugging only.
         for (const ei in this._events[name]) {
             if (!this._events[name].hasOwnProperty(ei)) continue;
 
