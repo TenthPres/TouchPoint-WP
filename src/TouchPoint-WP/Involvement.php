@@ -13,7 +13,6 @@ use WP_Query;
 
 /**
  * Class Involvement - Fundamental object meant to correspond to an Involvement in TouchPoint
- * TODO: explore whether this can (or should) extend a WP_Post object
  *
  * @package tp\TouchPointWP
  */
@@ -28,7 +27,7 @@ abstract class Involvement implements api
     protected WP_Post $post;
 
     public const INVOLVEMENT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "invId";
-    public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "involvement";
+    public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "involvement"; // would be abstract if that was a thing.
 
     public object $attributes;
     protected array $divisions;
@@ -334,7 +333,6 @@ abstract class Involvement implements api
                 }
             }
 
-            // TODO skip most of this if there aren't any current times.
             // Determine schedule characteristics for stringifying.
             $uniqueTimes = [];
             $days = [];
@@ -512,7 +510,7 @@ abstract class Involvement implements api
         if ($post == null)
             $post = get_the_ID();
 
-        if (get_post_type($post) === self::POST_TYPE) { // TODO resolve
+        if (get_post_type($post) === static::POST_TYPE) {
             if (!is_numeric($post))
                 $post = $post->ID;
             $theDate = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", true);
@@ -608,29 +606,6 @@ abstract class Involvement implements api
         return "\ttpvm.addEventListener('{$className}_class_loaded', function() {
         TP_$className.fromArray($listStr);\n\t});\n";
     }
-
-//    /**
-//     * @return Involvement[]  TODO remove
-//     */
-//    protected static function getInvolvementsForScript(): array
-//    {
-//        $ret = [];
-//
-//        global $wp_the_query;
-//
-//        $wp_the_query->set('posts_per_page', -1);
-//        $wp_the_query->set('nopaging', true);
-//
-//        $wp_the_query->get_posts();
-//        $wp_the_query->rewind_posts();
-//
-//        while ($wp_the_query->have_posts()) {
-//            $wp_the_query->the_post();
-//
-//            $ret[] = static::fromPost(get_post());
-//        }
-//        return $ret;
-//    }
 
     /**
      * @param WP_Post $post
