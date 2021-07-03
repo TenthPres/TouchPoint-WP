@@ -369,6 +369,7 @@ class SmallGroup extends Involvement implements api
         return self::$_instances[$iid];
     }
 
+    private static bool $filterJsAdded = false;
     /**
      * @param array $params
      *
@@ -377,6 +378,17 @@ class SmallGroup extends Involvement implements api
     public static function filterShortcode(array $params): string
     {
         self::requireAllObjectsInJs();
+
+        if (!self::$filterJsAdded) {
+            wp_add_inline_script(
+                TouchPointWP::SHORTCODE_PREFIX . 'base-defer',
+                "
+                tpvm.addEventListener('SmallGroup_fromArray', function() {
+                    TP_SmallGroup.initFilters('smallgroup');
+                });"
+            );
+            self::$filterJsAdded = true;
+        }
 
         // standardize parameters
         $params = array_change_key_case($params, CASE_LOWER);
@@ -433,7 +445,7 @@ class SmallGroup extends Involvement implements api
                 'taxonomy'   => TouchPointWP::TAX_DIV,
                 'hide_empty' => true,
                 'meta_query' => $mq,
-                'post_type'  => self::POST_TYPE
+                'post_type'  => static::POST_TYPE
             ]);
             $dvList = TouchPointWP::orderHierarchicalTerms($dvList);
             if (is_array($dvList) && count($dvList) > 1) {

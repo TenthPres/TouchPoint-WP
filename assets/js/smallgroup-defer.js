@@ -1,8 +1,6 @@
 "use strict";
 
 class TP_SmallGroup extends TP_Involvement {
-    static smallGroups = [];
-    static currentFilters = {};
     static mapMarkers = {};
 
     mapMarker = null;
@@ -14,8 +12,6 @@ class TP_SmallGroup extends TP_Involvement {
         this.invType = "smallgroup";
 
         this.geo = obj.geo ?? null;
-
-        TP_SmallGroup.smallGroups.push(this);
     }
 
     toggleHighlighted(hl) {
@@ -24,7 +20,7 @@ class TP_SmallGroup extends TP_Involvement {
         if (this.highlighted) {
             if (this.mapMarker !== null &&
                 this.mapMarker.getAnimation() !== google.maps.Animation.BOUNCE &&
-                TP_SmallGroup.smallGroups.length > 1) {
+                TP_SmallGroup.involvements.length > 1) {
                 this.mapMarker.setAnimation(google.maps.Animation.BOUNCE)
             }
         } else {

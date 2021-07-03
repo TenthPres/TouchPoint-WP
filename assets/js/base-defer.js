@@ -136,6 +136,9 @@ class TP_Involvement {
 
     attributes = {};
 
+    static currentFilters = {};
+    static involvements = [];
+
     constructor(obj) {
         this.name = obj.name;
         this.invId = obj.invId;
@@ -161,7 +164,7 @@ class TP_Involvement {
     }
 
     static className() {
-        return this.name.substr(3);
+        return this.name.substr(3); // refers to class name, and therefore is accessible.
     }
 
     static fromArray(invArr) {
@@ -181,41 +184,46 @@ class TP_Involvement {
         return ret;
     };
 
-    static initFilters() {
+    static initFilters(invType) {
         console.log("InitFilters"); // TODO remove
 
-        const filtOptions = document.querySelectorAll("[data-smallgroup-filter]");
+        const filtOptions = document.querySelectorAll("[data-" + invType + "-filter]"); // TODO needs to be generic
         for (const ei in filtOptions) {
             if (!filtOptions.hasOwnProperty(ei)) continue;
-            filtOptions[ei].addEventListener('change', TP_Involvement.applyFilters)
+            filtOptions[ei].addEventListener('change', this.applyFilters.bind(this, invType))
         }
     }
 
-    static applyFilters(ev = null) {
+    static applyFilters(invType, ev = null) {
         if (ev !== null) {
-            let attr = ev.target.getAttribute("data-course-filter"), // TODO needs to be generic
+            let attr = ev.target.getAttribute("data-" + invType + "-filter"), // TODO needs to be generic
                 val = ev.target.value;
             if (attr !== null) {
                 if (val === "") {
-                    delete TP_Involvement.currentFilters[attr];
+                    delete this.currentFilters[attr];
                 } else {
-                    TP_Involvement.currentFilters[attr] = val;
+                    this.currentFilters[attr] = val;
                 }
             }
         }
 
         groupLoop:
-            for (const ii in TP_SmallGroup.smallGroups) {
-                if (!TP_SmallGroup.smallGroups.hasOwnProperty(ii)) continue;
-                const group = TP_SmallGroup.smallGroups[ii];
-                for (const ai in TP_SmallGroup.currentFilters) {
-                    if (!TP_SmallGroup.currentFilters.hasOwnProperty(ai)) continue;
+            for (const ii in tpvm.involvements) {
+                if (!tpvm.involvements.hasOwnProperty(ii)) continue;
+                const group = tpvm.involvements[ii];
+                for (const ai in this.currentFilters) {
+                    if (!this.currentFilters.hasOwnProperty(ai)) continue;
 
                     if (!group.attributes.hasOwnProperty(ai) ||
                         group.attributes[ai] === null ||
-                        (!Array.isArray(group.attributes[ai]) && group.attributes[ai].slug !== TP_SmallGroup.currentFilters[ai] && group.attributes[ai] !== TP_SmallGroup.currentFilters[ai]) ||
-                        (Array.isArray(group.attributes[ai]) && group.attributes[ai].find(a => a.slug === TP_SmallGroup.currentFilters[ai]) === undefined)) {
-
+                        (   !Array.isArray(group.attributes[ai]) &&
+                            group.attributes[ai].slug !== this.currentFilters[ai] &&
+                            group.attributes[ai] !== this.currentFilters[ai]
+                        ) || (
+                            Array.isArray(group.attributes[ai]) &&
+                            group.attributes[ai].find(a => a.slug === this.currentFilters[ai]) === undefined
+                        )
+                    ) {
                         group.toggleVisibility(false)
                         continue groupLoop;
                     }
