@@ -128,7 +128,7 @@ class TouchPointWP
     /**
      * @var ?bool True after the Classes feature is loaded.
      */
-    protected ?bool $classes = null;
+    protected ?bool $courses = null;
 
     /**
      * @var ?WP_Http Object for API requests.
@@ -156,6 +156,8 @@ class TouchPointWP
 
         // Register frontend JS & CSS.
         add_action('init', [$this, 'registerScriptsAndStyles'], 0);
+
+        add_action('wp_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
 
         // Load admin JS & CSS.
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_scripts'], 10, 1 ); // TODO restore?
@@ -340,6 +342,18 @@ class TouchPointWP
         return true;
     }
 
+    public function printDynamicFooterScripts(): void
+    {
+        echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
+        if ($this->smallGroups !== null) {
+            echo SmallGroup::getJsInstantiationString();
+        }
+        if ($this->courses !== null) {
+            echo Involvement::getJsInstantiationString();
+        }
+        echo "</script>";
+    }
+
 
     /**
      * Load plugin textdomain
@@ -384,7 +398,7 @@ class TouchPointWP
         // Load Classes tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_courses') === "on") {
             require_once 'Course.php';
-            $instance->classes = Course::load($instance);
+            $instance->courses = Course::load($instance);
         }
 
         // Load Events if enabled (by presence of Events Calendar plugin)
@@ -444,6 +458,14 @@ class TouchPointWP
         }
     }
 
+    private static array $enqueuedScripts = [];
+    public static function requireScript($name): void
+    {
+        if (!in_array($name, self::$enqueuedScripts)) {
+            self::$enqueuedScripts[] = $name;
+            wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . $name);
+        }
+    }
 
     /**
      * Adds async/defer attributes to enqueued / registered scripts.  If -defer or -async is present in the script's

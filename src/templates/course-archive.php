@@ -18,8 +18,6 @@ $description = get_the_archive_description();
 
 if ( have_posts() ) {
     Course::enqueueTemplateStyle();
-    wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'swal2-defer');
-    wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'base');
 
     function lengthen_course_excerpts($length): int
     {

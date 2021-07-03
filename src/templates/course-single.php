@@ -10,8 +10,6 @@ $p  = get_post();
 $cs = Course::fromPost($p);
 
 Course::enqueueTemplateStyle();
-wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'swal2-defer');
-wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'base');
 
 ?>
 

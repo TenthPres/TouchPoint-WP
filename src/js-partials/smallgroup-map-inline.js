@@ -1,5 +1,3 @@
-tpvm.addEventListener('involvement_class_loaded', function() {
-    TP_SmallGroup.fromArray({$smallgroupsList});
+tpvm.addEventListener('SmallGroup_fromArray', function() {
     TP_SmallGroup.initMap('{$mapDivId}');
-    TP_SmallGroup.initFilters();
 });

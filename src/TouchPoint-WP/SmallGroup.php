@@ -25,6 +25,8 @@ require_once 'Involvement.php';
  */
 class SmallGroup extends Involvement implements api
 {
+    use jsInstantiation;
+
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "SgMap";
     public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "SgFilters";
     public const SHORTCODE_NEARBY = TouchPointWP::SHORTCODE_PREFIX . "SgNearby";
@@ -305,8 +307,8 @@ class SmallGroup extends Involvement implements api
             // standardize parameters
             $params = array_change_key_case($params, CASE_LOWER);
 
-            wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps");
-            wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer");
+            TouchPointWP::requireScript("googleMaps");
+            TouchPointWP::requireScript("smallgroup-defer");
 
             // set some defaults
             $params = shortcode_atts(
@@ -328,12 +330,13 @@ class SmallGroup extends Involvement implements api
                 $params['all'] = is_archive();
             }
 
-            static::enqueueLoopInvolvementsForScript();
+            if ($params['all']) {
+                self::requireAllObjectsInJs();
+            }
 
             $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/smallgroup-map-inline.js");
 
-            $script = str_replace('{$smallgroupsList}', json_encode(static::getInvolvementsForScript()), $script);
-            $script = str_replace('{$mapDivId}', $mapDivId, $script); // TODO it should be possible to have action buttons without a map
+            $script = str_replace('{$mapDivId}', $mapDivId, $script);
 
             wp_add_inline_script(
                 TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
@@ -373,6 +376,8 @@ class SmallGroup extends Involvement implements api
      */
     public static function filterShortcode(array $params): string
     {
+        self::requireAllObjectsInJs();
+
         // standardize parameters
         $params = array_change_key_case($params, CASE_LOWER);
 
@@ -563,8 +568,8 @@ class SmallGroup extends Involvement implements api
      */
     public static function nearbyShortcode($params = [], string $content = ""): string
     {
-        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "knockout");
-        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer");
+        TouchPointWP::requireScript("knockout");
+        TouchPointWP::requireScript("smallgroup-defer");
 
         if ($params === '') {
             $params = [];
@@ -731,6 +736,17 @@ class SmallGroup extends Involvement implements api
     {
         // TODO add extra value options
         return parent::acceptingNewMembers();
+    }
+
+    /**
+     * Returns the html with buttons for actions the user can perform.
+     *
+     * @return string
+     */
+    public function getActionButtons(): string
+    {
+        TouchPointWP::requireScript('smallgroup-defer');
+        return parent::getActionButtons();
     }
 
     /**

@@ -54,24 +54,8 @@ class TP_SmallGroup extends TP_Involvement {
         this.mapMarker.setVisible(shouldBeVisible);
     }
 
-    static fromArray(invArr) {
-        let ret = [];
-        for (const i in invArr) {
-            if (!invArr.hasOwnProperty(i)) continue;
-
-            if (typeof invArr[i].invId === "undefined") {
-                continue;
-            }
-
-            if (typeof tpvm.involvements[invArr[i].invId] === "undefined") {
-                ret.push(new TP_SmallGroup(invArr[i]))
-            }
-        }
-        return ret;
-    };
-
     static init() {
-        tpvm.trigger('involvement_class_loaded');
+        tpvm.trigger('SmallGroup_class_loaded');
     }
 
     static initMap(mapDivId) {
@@ -128,47 +112,6 @@ class TP_SmallGroup extends TP_Involvement {
         });
         m.initialZoom = true;
         m.fitBounds(bounds);
-    }
-
-    static initFilters() {
-        const filtOptions = document.querySelectorAll("[data-smallgroup-filter]");
-        for (const ei in filtOptions) {
-            if (!filtOptions.hasOwnProperty(ei)) continue;
-            filtOptions[ei].addEventListener('change', TP_SmallGroup.applyFilters)
-        }
-    }
-
-    static applyFilters(ev = null) {
-        if (ev !== null) {
-            let attr = ev.target.getAttribute("data-smallgroup-filter"),
-                val = ev.target.value;
-            if (attr !== null) {
-                if (val === "") {
-                    delete TP_SmallGroup.currentFilters[attr];
-                } else {
-                    TP_SmallGroup.currentFilters[attr] = val;
-                }
-            }
-        }
-
-        groupLoop:
-        for (const ii in TP_SmallGroup.smallGroups) {
-            if (!TP_SmallGroup.smallGroups.hasOwnProperty(ii)) continue;
-            const group = TP_SmallGroup.smallGroups[ii];
-            for (const ai in TP_SmallGroup.currentFilters) {
-                if (!TP_SmallGroup.currentFilters.hasOwnProperty(ai)) continue;
-
-                if (!group.attributes.hasOwnProperty(ai) ||
-                    group.attributes[ai] === null ||
-                    (!Array.isArray(group.attributes[ai]) && group.attributes[ai].slug !== TP_SmallGroup.currentFilters[ai] && group.attributes[ai] !== TP_SmallGroup.currentFilters[ai]) ||
-                    (Array.isArray(group.attributes[ai]) && group.attributes[ai].find(a => a.slug === TP_SmallGroup.currentFilters[ai]) === undefined)) {
-
-                    group.toggleVisibility(false)
-                    continue groupLoop;
-                }
-            }
-            group.toggleVisibility(true)
-        }
     }
 
     static initNearby(targetId, count) {

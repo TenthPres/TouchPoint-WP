@@ -19,6 +19,8 @@ use WP_Query;
  */
 abstract class Involvement implements api
 {
+    use jsInstantiation;
+
     public string $name;
     public int $invId;
     public int $post_id;
@@ -70,6 +72,8 @@ abstract class Involvement implements api
                 // TODO add an else for nonstandard/optional metadata fields
             }
         }
+
+        $this->registerConstruction();
     }
 
     /**
@@ -550,6 +554,10 @@ abstract class Involvement implements api
      */
     public function getActionButtons(): string
     {
+        TouchPointWP::requireScript('swal2-defer');
+        TouchPointWP::requireScript('base-defer');
+        $this->enqueueForJsInstantiation();
+
         $text = __("Contact Leaders", TouchPointWP::TEXT_DOMAIN);
         $ret = "<button type=\"button\" data-tp-action=\"contact\">{$text}</button>  ";
 
@@ -585,35 +593,44 @@ abstract class Involvement implements api
         return $ret;
     }
 
-
-    protected static $involvementsForScript = [];
-    protected static function enqueueLoopInvolvementsForScript(): void
+    public static function getJsInstantiationString(): string
     {
+        $queue = static::getQueueForJsInstantiation();
 
-    }
+        $className = basename(str_replace('\\', '/', static::CLASS));
 
-    /**
-     * @return Involvement[]
-     */
-    protected static function getInvolvementsForScript(): array
-    {
-        $ret = [];
-
-        global $wp_the_query;
-
-        $wp_the_query->set('posts_per_page', -1);
-        $wp_the_query->set('nopaging', true);
-
-        $wp_the_query->get_posts();
-        $wp_the_query->rewind_posts();
-
-        while ($wp_the_query->have_posts()) {
-            $wp_the_query->the_post();
-
-            $ret[] = static::fromPost(get_post());
+        if (count($queue) < 1) {
+            return "\t// No {$className}s to instantiate.\n";
         }
-        return $ret;
+
+        $listStr = json_encode($queue);
+
+        return "\ttpvm.addEventListener('{$className}_class_loaded', function() {
+        TP_$className.fromArray($listStr);\n\t});\n";
     }
+
+//    /**
+//     * @return Involvement[]  TODO remove
+//     */
+//    protected static function getInvolvementsForScript(): array
+//    {
+//        $ret = [];
+//
+//        global $wp_the_query;
+//
+//        $wp_the_query->set('posts_per_page', -1);
+//        $wp_the_query->set('nopaging', true);
+//
+//        $wp_the_query->get_posts();
+//        $wp_the_query->rewind_posts();
+//
+//        while ($wp_the_query->have_posts()) {
+//            $wp_the_query->the_post();
+//
+//            $ret[] = static::fromPost(get_post());
+//        }
+//        return $ret;
+//    }
 
     /**
      * @param WP_Post $post

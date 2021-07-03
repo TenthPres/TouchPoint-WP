@@ -206,13 +206,27 @@ class Course extends Involvement
         return self::$_instances[$iid];
     }
 
+    private static bool $filterJsAdded = false;
     /**
      * @param array $params
      *
      * @return string
      */
-    public static function filterShortcode(array $params): string
+    public static function filterShortcode(array $params): string // TODO why is this not in Involvement?
     {
+        self::requireAllObjectsInJs();
+
+        if (!self::$filterJsAdded) {
+            wp_add_inline_script(
+                TouchPointWP::SHORTCODE_PREFIX . 'base-defer',
+                "
+                tpvm.addEventListener('Involvement_fromArray', function() {
+                    TP_Involvement.initFilters();
+                });"
+            );
+            self::$filterJsAdded = true;
+        }
+
         // standardize parameters
         $params = array_change_key_case($params, CASE_LOWER);
 

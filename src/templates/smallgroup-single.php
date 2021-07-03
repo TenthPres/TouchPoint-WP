@@ -10,9 +10,6 @@ $p = get_post();
 $sg = SmallGroup::fromPost($p);
 
 SmallGroup::enqueueTemplateStyle();
-wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'swal2-defer');
-wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'base');
-wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-defer');
 
 ?>
 

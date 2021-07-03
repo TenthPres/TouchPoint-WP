@@ -9,7 +9,7 @@ class TP_DataGeo {
     };
 
     static init() {
-        tpvm.trigger('dataGeo_loaded');
+        tpvm.trigger('dataGeo_class_loaded');
     }
 
     static geoByNavigator(then = null, error = null) {
@@ -160,6 +160,70 @@ class TP_Involvement {
         tpvm.involvements[this.invId] = this;
     }
 
+    static className() {
+        return this.name.substr(3);
+    }
+
+    static fromArray(invArr) {
+        let ret = [];
+        for (const i in invArr) {
+            if (!invArr.hasOwnProperty(i)) continue;
+
+            if (typeof invArr[i].invId === "undefined") {
+                continue;
+            }
+
+            if (typeof tpvm.involvements[invArr[i].invId] === "undefined") {
+                ret.push(new this(invArr[i]))
+            }
+        }
+        tpvm.trigger(this.className() + "_fromArray")
+        return ret;
+    };
+
+    static initFilters() {
+        console.log("InitFilters"); // TODO remove
+
+        const filtOptions = document.querySelectorAll("[data-smallgroup-filter]");
+        for (const ei in filtOptions) {
+            if (!filtOptions.hasOwnProperty(ei)) continue;
+            filtOptions[ei].addEventListener('change', TP_Involvement.applyFilters)
+        }
+    }
+
+    static applyFilters(ev = null) {
+        if (ev !== null) {
+            let attr = ev.target.getAttribute("data-course-filter"), // TODO needs to be generic
+                val = ev.target.value;
+            if (attr !== null) {
+                if (val === "") {
+                    delete TP_Involvement.currentFilters[attr];
+                } else {
+                    TP_Involvement.currentFilters[attr] = val;
+                }
+            }
+        }
+
+        groupLoop:
+            for (const ii in TP_SmallGroup.smallGroups) {
+                if (!TP_SmallGroup.smallGroups.hasOwnProperty(ii)) continue;
+                const group = TP_SmallGroup.smallGroups[ii];
+                for (const ai in TP_SmallGroup.currentFilters) {
+                    if (!TP_SmallGroup.currentFilters.hasOwnProperty(ai)) continue;
+
+                    if (!group.attributes.hasOwnProperty(ai) ||
+                        group.attributes[ai] === null ||
+                        (!Array.isArray(group.attributes[ai]) && group.attributes[ai].slug !== TP_SmallGroup.currentFilters[ai] && group.attributes[ai] !== TP_SmallGroup.currentFilters[ai]) ||
+                        (Array.isArray(group.attributes[ai]) && group.attributes[ai].find(a => a.slug === TP_SmallGroup.currentFilters[ai]) === undefined)) {
+
+                        group.toggleVisibility(false)
+                        continue groupLoop;
+                    }
+                }
+                group.toggleVisibility(true)
+            }
+    }
+
     get connectedElements() {
         const sPath = '[data-tp-involvement="' + this.invId + '"]'
         return document.querySelectorAll(sPath);
@@ -193,6 +257,10 @@ class TP_Involvement {
         }
 
         return this._visible;
+    }
+
+    static init() {
+        tpvm.trigger('Involvement_class_loaded');
     }
 
     async doJoin(people, showConfirm = true) {
@@ -341,6 +409,7 @@ class TP_Involvement {
         }
     }
 }
+TP_Involvement.init();
 
 class TP_Person {
     peopleId;
