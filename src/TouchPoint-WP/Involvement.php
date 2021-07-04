@@ -5,6 +5,7 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
+use DateInterval;
 use DateTimeImmutable;
 use Exception;
 use WP_Error;
@@ -395,9 +396,9 @@ abstract class Involvement implements api
 
         try {
             $now = new DateTimeImmutable(null, $siteTz);
-            $aYear = new \DateInterval('P1Y');
+            $aYear = new DateInterval('P1Y');
             $nowPlus1Y = $now->add($aYear);
-            $nowMinus1Y = $now->sub($aYear);
+            unset($aYear);
         } catch  (Exception $e) {
             return false;
         }
@@ -616,16 +617,30 @@ abstract class Involvement implements api
                 $inv->firstMeeting = null; // We don't need to list info from the past.
             }
             if ($inv->lastMeeting !== null && $inv->lastMeeting > $nowPlus1Y) { // Last mtg is > 1yr away
-                $inv->lastMeeting = null; // It may as well be that it's not ending.
+                $inv->lastMeeting = null; // For all practical purposes: it's not ending.
             }
             // Convert start and end dates to strings.
             $format = get_option('date_format');
             if ($inv->firstMeeting !== null && $inv->lastMeeting !== null) {
-                $dayStr .= ", " . $inv->firstMeeting->format($format) . " " . __("through") . " " . $inv->lastMeeting->format($format);
+                if ($dayStr === null) {
+                    $dayStr = $inv->firstMeeting->format($format) . " " .
+                               __("through") . " " . $inv->lastMeeting->format($format);
+                } else {
+                    $dayStr .= ", " . $inv->firstMeeting->format($format) . " " .
+                               __("through") . " " . $inv->lastMeeting->format($format);
+                }
             } elseif ($inv->firstMeeting !== null) {
-                $dayStr .= ", " . __("starting") . " " . $inv->firstMeeting->format($format);
+                if ($dayStr === null) {
+                    $dayStr .= __("Starts") . " " . $inv->firstMeeting->format($format);
+                } else {
+                    $dayStr .= ", " . __("starting") . " " . $inv->firstMeeting->format($format);
+                }
             } elseif ($inv->lastMeeting !== null) {
-                $dayStr .= ", " . __("through") . " " . $inv->lastMeeting->format($format);
+                if ($dayStr === null) {
+                    $dayStr = __("Through") . " " . $inv->lastMeeting->format($format);
+                } else {
+                    $dayStr .= ", " . __("through") . " " . $inv->lastMeeting->format($format);
+                }
             }
 
             if ($verbose) {
