@@ -292,7 +292,7 @@ abstract class Involvement implements api
                     'taxonomy'   => TouchPointWP::TAX_WEEKDAY,
                     'hide_empty' => true,
                     'orderby'    => 'id',
-                    TouchPointWP::HOOK_PREFIX . 'post_type'
+                    TouchPointWP::HOOK_PREFIX . 'post_type' => static::POST_TYPE
                 ]
             );
             if (is_array($wdList) && count($wdList) > 1) {
