@@ -9,7 +9,7 @@ if ( ! defined('ABSPATH')) {
 use WP_Post;
 use WP_Term;
 
-require_once 'api.php';
+require_once 'api.iface.php';
 require_once 'Involvement.php';
 
 /**
@@ -25,6 +25,8 @@ require_once 'Involvement.php';
  */
 class SmallGroup extends Involvement implements api
 {
+    use jsInstantiation;
+
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "SgMap";
     public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "SgFilters";
     public const SHORTCODE_NEARBY = TouchPointWP::SHORTCODE_PREFIX . "SgNearby";
@@ -36,7 +38,10 @@ class SmallGroup extends Involvement implements api
     private static bool $_isInitiated = false;
 
     // TODO look at moving geo to a Trait or something.
+    private static bool $filterJsAdded = false;
     public object $geo;
+
+    // TODO why is this here?
 
     /**
      * SmallGroup constructor.
@@ -82,7 +87,10 @@ class SmallGroup extends Involvement implements api
 
         $this->attributes->genderId = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "genderId", true);
 
-        if (is_object($object) && $object->geo_lat !== null && $object->geo_lat !== '') {
+        if (is_object($object) &&
+            property_exists($object, 'geo_lat') &&
+            $object->geo_lat !== null &&
+            $object->geo_lat !== '') {
             // Probably a database query result
             $this->geo = (object)[
                 'lat' => self::toFloatOrNull($object->geo_lat),
@@ -101,33 +109,6 @@ class SmallGroup extends Involvement implements api
         }
     }
 
-    /**
-     * Get notable attributes, such as gender restrictions, as strings.
-     *
-     * @return string[]
-     */
-    public function notableAttributes(): array
-    {
-        $ret = [];
-        if ($this->attributes->genderId != 0) {
-            switch($this->attributes->genderId) {
-                case 1:
-                    $ret[] = __('Men Only', TouchPointWP::TEXT_DOMAIN);
-                    break;
-                case 2:
-                    $ret[] = __('Women Only', TouchPointWP::TEXT_DOMAIN);
-                    break;
-            }
-        }
-
-        if (!$this->acceptingNewMembers()) {
-            $ret[] = __('Currently Full', TouchPointWP::TEXT_DOMAIN);
-        }
-
-        return $ret;
-    }
-
-    // TODO why is this here?
     public static function toFloatOrNull($numeric): ?float
     {
         if (is_numeric($numeric)) {
@@ -165,9 +146,11 @@ class SmallGroup extends Involvement implements api
         add_action(self::CRON_HOOK, [self::class, 'updateSmallGroupsFromTouchPoint']);
         if ( ! wp_next_scheduled(self::CRON_HOOK)) {
             // Runs at 6am EST (11am UTC), hypothetically after TouchPoint runs its Morning Batches.
-            wp_schedule_event(date('U', strtotime('tomorrow') + 3600 * 11),
-                              'daily',
-                              self::CRON_HOOK);
+            wp_schedule_event(
+                date('U', strtotime('tomorrow') + 3600 * 11),
+                'daily',
+                self::CRON_HOOK
+            );
         }
 
         return true;
@@ -178,8 +161,6 @@ class SmallGroup extends Involvement implements api
      */
     public static function init(): void
     {
-        self::registerAjax();
-
         register_post_type(
             self::POST_TYPE,
             [
@@ -208,31 +189,17 @@ class SmallGroup extends Involvement implements api
             ]
         );
 
-        self::$tpwp->registerTaxonomies(); // TODO probably needs to be moved to parent, but order matters.
-
-        // If the slug has changed, update it.  Only executes if enqueued.
-        self::$tpwp->flushRewriteRules();
-
         // Register default templates for Small Groups
         add_filter('template_include', [self::class, 'templateFilter']);
 
         // Register function to return schedule instead of publishing date
-        add_filter( 'get_the_date', [self::class, 'filterPublishDate'], 10, 3 );
-        add_filter( 'get_the_time', [self::class, 'filterPublishDate'], 10, 3 );
+        add_filter('get_the_date', [self::class, 'filterPublishDate'], 10, 3);
+        add_filter('get_the_time', [self::class, 'filterPublishDate'], 10, 3);
 
         // Run cron if it hasn't been run before or is overdue.
         if (self::$tpwp->settings->sg_cron_last_run * 1 < time() - 86400 - 3600) {
-            self::updateSmallGroupsFromTouchPoint();
+            self::updateFromTouchPoint();
         }
-    }
-
-    /**
-     *  Register AJAX endpoints specific to Small Groups
-     */
-    public static function registerAjax(): void
-    {
-        add_action('wp_ajax_tp_sg_nearby', [self::class, 'ajaxNearby']);
-        add_action('wp_ajax_nopriv_tp_sg_nearby', [self::class, 'ajaxNearby']);
     }
 
     /**
@@ -242,7 +209,7 @@ class SmallGroup extends Involvement implements api
      *
      * @return false|int False on failure, or the number of groups that were updated or deleted.
      */
-    public static function updateSmallGroupsFromTouchPoint($verbose = false)
+    public static function updateFromTouchPoint($verbose = false)
     {
         if (count(self::$tpwp->settings->sg_divisions) < 1) {
             // Don't update if there aren't any divisions selected yet.
@@ -261,7 +228,12 @@ class SmallGroup extends Involvement implements api
         $hMTypes = implode(',', self::$tpwp->settings->sg_host_types);
         $hMTypes = str_replace('mt', '', $hMTypes);
 
-        $count = parent::updateInvolvementPosts(self::POST_TYPE, $divs, ['leadMemTypes' => $lMTypes, 'hostMemTypes' => $hMTypes], $verbose);
+        $count = parent::updateInvolvementPosts(
+            self::POST_TYPE,
+            $divs,
+            ['leadMemTypes' => $lMTypes, 'hostMemTypes' => $hMTypes],
+            $verbose
+        );
 
         if ($count !== false) {
             self::$tpwp->settings->set('sg_cron_last_run', time());
@@ -302,27 +274,8 @@ class SmallGroup extends Involvement implements api
     }
 
     /**
-     * @param $theDate
-     * @param $format
-     * @param $post
-     *
-     * @return string
-     *
-     * @noinspection PhpUnusedParameterInspection Not used by choice, but need to comply with the api.
+     * Register scripts and styles to be used on display pages.
      */
-    public static function filterPublishDate($theDate, $format, $post = null): string
-    {
-        if ($post == null)
-            $post = get_the_ID();
-
-        if (get_post_type($post) === SmallGroup::POST_TYPE) {
-            if (!is_numeric($post))
-                $post = $post->ID;
-            $theDate = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", true);
-        }
-        return $theDate;
-    }
-
     public static function registerScriptsAndStyles(): void
     {
         wp_register_script(
@@ -336,13 +289,7 @@ class SmallGroup extends Involvement implements api
             true
         );
 
-        wp_register_script(
-            TouchPointWP::SHORTCODE_PREFIX . "knockout",
-            "https://ajax.aspnetcdn.com/ajax/knockout/knockout-3.5.0.js",
-            [],
-            '3.5.0',
-            true
-        );
+        parent:: registerScriptsAndStyles();
 
         wp_register_script(
             TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer",
@@ -359,7 +306,7 @@ class SmallGroup extends Involvement implements api
      *
      * @return string
      *
-     * @noinspection PhpUnusedParameterInspection
+     * @noinspection PhpUnusedParameterInspection WordPress API
      */
     public static function mapShortcode(array $params = [], string $content = ""): string
     {
@@ -369,14 +316,14 @@ class SmallGroup extends Involvement implements api
             // standardize parameters
             $params = array_change_key_case($params, CASE_LOWER);
 
-            wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "googleMaps");
-            wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer");
+            TouchPointWP::requireScript("googleMaps");
+            TouchPointWP::requireScript("smallgroup-defer");
 
             // set some defaults
             $params = shortcode_atts(
                 [
                     'class' => 'TouchPoint-smallgroup map',
-                    'all' => null
+                    'all'   => null
                 ],
                 $params,
                 self::SHORTCODE_MAP
@@ -392,10 +339,13 @@ class SmallGroup extends Involvement implements api
                 $params['all'] = is_archive();
             }
 
+            if ($params['all']) {
+                self::requireAllObjectsInJs();
+            }
+
             $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/smallgroup-map-inline.js");
 
-            $script = str_replace('{$smallgroupsList}', json_encode(self::getSmallGroupsForMap($params)), $script);
-            $script = str_replace('{$mapDivId}', $mapDivId, $script); // TODO it should be possible to have action buttons without a map
+            $script = str_replace('{$mapDivId}', $mapDivId, $script);
 
             wp_add_inline_script(
                 TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
@@ -407,74 +357,8 @@ class SmallGroup extends Involvement implements api
         } else {
             $content = "<!-- Error: Small Group map can only be used once per page. -->";
         }
+
         return $content;
-    }
-
-    /**
-     * Gets a list of small groups, used to load the metadata into JS for the map and filtering capabilities.
-     *
-     * @param $params array Parameters from shortcode
-     * @param $post WP_Post A post object to use, especially if single.
-     *
-     * @return SmallGroup[]
-     */
-    protected static function getSmallGroupsForMap(array $params = [], $post = null): array
-    {
-
-        if ($params['all'] === true) {
-            global $wpdb;
-
-            $settingsPrefix = TouchPointWP::SETTINGS_PREFIX;
-            $postType       = self::POST_TYPE;
-
-            /** @noinspection SqlResolve */
-            /** @noinspection SpellCheckingInspection */
-            $sql = "SELECT 
-                        p.post_title as name,
-                        p.ID as post_id,
-                        p.post_excerpt,
-                        mloc.meta_value as location,
-                        miid.meta_value as invId,
-                        mlat.meta_value as geo_lat,
-                        mlng.meta_value as geo_lng
-                    FROM $wpdb->posts AS p 
-                JOIN $wpdb->postmeta as miid ON p.ID = miid.post_id AND '{$settingsPrefix}invId' = miid.meta_key
-                JOIN $wpdb->postmeta as mloc ON p.ID = mloc.post_id AND '{$settingsPrefix}locationName' = mloc.meta_key
-                LEFT JOIN $wpdb->postmeta as mlat ON p.ID = mlat.post_id AND '{$settingsPrefix}geo_lat' = mlat.meta_key
-                LEFT JOIN $wpdb->postmeta as mlng ON p.ID = mlng.post_id AND '{$settingsPrefix}geo_lng' = mlng.meta_key
-                WHERE p.post_type = '{$postType}' AND p.post_status = 'publish' AND p.post_date_gmt < utc_timestamp()";
-
-            $ret = [];
-            foreach ($wpdb->get_results($sql, "OBJECT") as $row) {
-                $ret[] = self::fromObj($row);
-            }
-            return $ret;
-        }
-
-        // Single
-        if (!$post) {
-            $post = get_post();
-        }
-
-        return [self::fromPost($post)];
-    }
-
-    /**
-     * Create a SmallGroup object from an object from a database query.
-     *
-     * @param object $obj A database object from which a SmallGroup object should be created.
-     *
-     * @return SmallGroup
-     */
-    private static function fromObj(object $obj): SmallGroup
-    {
-        $iid = intval($obj->invId);
-
-        if ( ! isset(self::$_instances[$iid])) {
-            self::$_instances[$iid] = new SmallGroup($obj);
-        }
-
-        return self::$_instances[$iid];
     }
 
     /**
@@ -484,172 +368,26 @@ class SmallGroup extends Involvement implements api
      */
     public static function filterShortcode(array $params): string
     {
-        // standardize parameters
-        $params = array_change_key_case($params, CASE_LOWER);
+        self::requireAllObjectsInJs();
 
-        // set some defaults
-        $params = shortcode_atts(
-            [
-                'class' => 'TouchPoint-smallgroup filterBar',
-                'filters' => strtolower(implode(",", self::$tpwp->settings->get('sg_filter_defaults')))
-            ],
+        if ( ! self::$filterJsAdded) {
+            wp_add_inline_script(
+                TouchPointWP::SHORTCODE_PREFIX . 'base-defer',
+                "
+                tpvm.addEventListener('SmallGroup_fromArray', function() {
+                    TP_SmallGroup.initFilters('smallgroup');
+                });"
+            );
+            self::$filterJsAdded = true;
+        }
+
+        return parent::filterDropdownHtml(
             $params,
-            self::SHORTCODE_FILTER
+            'smallgroup',
+            self::$tpwp->settings->get('sg_filter_defaults'),
+            self::$tpwp->settings->sg_divisions
         );
-
-        if (isset($params['id'])) {
-            $filterBarId = $params['id'];
-        } else {
-            $filterBarId = wp_unique_id('tp-filter-bar-');
-        }
-
-        $filters = explode(',', $params['filters']);
-
-        $class = $params['class'];
-
-        $content = "<div class=\"{$class}\" id=\"{$filterBarId}\">";
-
-        $any = __("Any", TouchPointWP::TEXT_DOMAIN);
-
-        // Division
-        if (in_array('div', $filters)) {
-            $exclude = TouchPointWP::instance()->settings->sg_divisions;
-            if (count($exclude) > 0) {
-                $mq = ['relation' => "AND"];
-                foreach ($exclude as $e) {
-                    $mq[] = [
-                        'key' => TouchPointWP::SETTINGS_PREFIX . 'divId',
-                        'value' => substr($e, 3),
-                        'compare' => 'NOT LIKE'
-                    ];
-                }
-                $mq = [
-                    'relation' => "OR",
-                    [
-                        'key' => TouchPointWP::SETTINGS_PREFIX . 'divId', // Allows for programs
-                        'compare' => 'NOT EXISTS'
-                    ],
-                    $mq
-                ];
-            } else {
-                $mq = [];
-            }
-            $dvName = TouchPointWP::instance()->settings->dv_name_singular;
-            $dvList = get_terms([
-                'taxonomy'   => TouchPointWP::TAX_DIV,
-                'hide_empty' => true,
-                'meta_query' => $mq,
-                'post_type'  => self::POST_TYPE
-            ]);
-            $dvList = TouchPointWP::orderHierarchicalTerms($dvList);
-            if (is_array($dvList) && count($dvList) > 1) {
-                $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"div\">";
-                $content .= "<option disabled selected>{$dvName}</option><option value=\"\">{$any}</option>";
-                $isFirst = true;
-                foreach ($dvList as $d) {
-                    if ($d->parent === 0 || $isFirst) {
-                        if (! $isFirst ) {
-                            $content .= "</optgroup>";
-                        }
-                        $content .= "<optgroup label=\"{$d->name}\">";
-                    } else {
-                        $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
-                    }
-                    $isFirst = false;
-                }
-                $content .= "</optgroup></select>";
-            }
-        }
-
-        // Gender
-        if (in_array('genderid', $filters)) {
-            $gList   = self::$tpwp->getGenders();
-            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"genderId\">";
-            $content .= "<option disabled selected>Gender</option><option value=\"\">{$any}</option>";
-            foreach ($gList as $g) {
-                if ($g->id === 0) {  // skip unknown
-                    continue;
-                }
-
-                $name    = $g->name;
-                $id      = $g->id;
-                $content .= "<option value=\"{$id}\">{$name}</option>";
-            }
-            $content .= "</select>";
-        }
-
-        // Resident Codes
-        if (in_array('rescode', $filters)) {
-            $rcName = self::$tpwp->settings->rc_name_singular;
-            $rcList = get_terms([
-                'taxonomy' => TouchPointWP::TAX_RESCODE,
-                'hide_empty' => true,
-                'post_type'  => self::POST_TYPE
-            ]);
-            if (is_array($rcList) && count($rcList) > 1) {
-                $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"rescode\">";
-                $content .= "<option disabled selected>{$rcName}</option><option value=\"\">{$any}</option>";
-
-                foreach ($rcList as $g) {
-                    $name    = $g->name;
-                    $id      = $g->slug;
-                    $content .= "<option value=\"{$id}\">{$name}</option>";
-                }
-
-                $content .= "</select>";
-            }
-        }
-
-        // Day of Week
-        if (in_array('weekday', $filters)) {
-            $wdName = __("Weekday");
-            $wdList = get_terms([
-                'taxonomy'   => TouchPointWP::TAX_WEEKDAY,
-                'hide_empty' => true,
-                'orderby'    => 'id',
-                'post_type'  => self::POST_TYPE
-            ]);
-            if (is_array($wdList) && count($wdList) > 1) {
-                $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"weekday\">";
-                $content .= "<option disabled selected>{$wdName}</option><option value=\"\">{$any}</option>";
-                foreach ($wdList as $d) {
-                    $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
-                }
-                $content .= "</select>";
-            }
-        }
-
-        // TODO Time of Day (ranges, probably)
-
-        // Marital Status
-        if (in_array('inv_marital', $filters)) {
-            $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"inv_marital\">";
-            $content .= "<option disabled selected>Marital Status</option>";
-            $content .= "<option value=\"\">{$any}</option>";
-            $content .= "<option value=\"mostly_single\">Mostly Single</option>";  // i18n
-            $content .= "<option value=\"mostly_married\">Mostly Married</option>"; // i18n
-            $content .= "</select>";
-        }
-
-        // Age Groups
-        if (in_array('agegroup', $filters)) {
-            $agName = __("Age");
-            $agList = get_terms(['taxonomy' => TouchPointWP::TAX_AGEGROUP, 'hide_empty' => true]);
-            if (is_array($agList) && count($agList) > 1) {
-                $content .= "<select class=\"smallgroup-filter\" data-smallgroup-filter=\"agegroup\">";
-                $content .= "<option disabled selected>{$agName}</option><option value=\"\">{$any}</option>";
-                foreach ($agList as $a) {
-                    $content .= "<option value=\"{$a->slug}\">{$a->name}</option>";
-                }
-                $content .= "</select>";
-            }
-        }
-
-        $content .= "</div>";
-
-        return $content;
     }
-
 
     /**
      * This function enqueues the stylesheet for the default templates, to avoid registering the style on sites where
@@ -658,13 +396,12 @@ class SmallGroup extends Involvement implements api
     public static function enqueueTemplateStyle()
     {
         wp_enqueue_style(
-            TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-template-style',
-            self::$tpwp->assets_url . 'template/smallgroups-template-style.css',
+            TouchPointWP::SHORTCODE_PREFIX . 'involvement-template-style',
+            self::$tpwp->assets_url . 'template/involvement-template-style.css',
             [],
             TouchPointWP::VERSION
         );
     }
-
 
     /**
      * @param array  $params
@@ -674,8 +411,8 @@ class SmallGroup extends Involvement implements api
      */
     public static function nearbyShortcode($params = [], string $content = ""): string
     {
-        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "knockout");
-        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . "smallgroup-defer");
+        TouchPointWP::requireScript("knockout");
+        TouchPointWP::requireScript("smallgroup-defer");
 
         if ($params === '') {
             $params = [];
@@ -721,9 +458,56 @@ class SmallGroup extends Involvement implements api
     }
 
     /**
+     * Create a SmallGroup object from an object from a WP_Post object.
+     *
+     * @param WP_Post $post
+     *
+     * @return SmallGroup
+     */
+    public static function fromPost(WP_Post $post): SmallGroup
+    {
+        $iid = intval($post->{self::INVOLVEMENT_META_KEY});
+
+        if ( ! isset(self::$_instances[$iid])) {
+            self::$_instances[$iid] = new SmallGroup($post);
+        }
+
+        return self::$_instances[$iid];
+    }
+
+    /**
      *
      * @noinspection PhpUnused
      */
+
+    /**
+     * Handle API requests
+     *
+     * @param array $uri The request URI already parsed by parse_url()
+     *
+     * @return bool False if endpoint is not found.  Should print the result.
+     */
+    public static function api(array $uri): bool
+    {
+        if (count($uri['path']) < 3) {
+            return false;
+        }
+
+        switch (strtolower($uri['path'][2])) {
+            case "nearby":
+                TouchPointWP::noCacheHeaders();
+                self::ajaxNearby();
+                exit;
+
+            case "force-sync":
+                TouchPointWP::noCacheHeaders();
+                echo self::updateFromTouchPoint(true);
+                exit;
+        }
+
+        return parent::api($uri);
+    }
+
     public static function ajaxNearby()
     {
         $r = self::getGroupsNear($_GET['lat'], $_GET['lng'], $_GET['limit']);
@@ -733,44 +517,31 @@ class SmallGroup extends Involvement implements api
         }
 
         foreach ($r as $g) {
-            $sg      = SmallGroup::fromObj($g);
+            $sg      = self::fromObj($g);
             $g->name = $sg->name;
             $g->path = get_permalink($sg->post_id);
         }
 
         echo json_encode($r);
-        wp_die();
+        exit;
     }
-
-    /**
-     * @param string[] $exclude
-     *
-     * @return string[]
-     */
-    public function getDivisionsStrings($exclude = null): array
-    {
-        if ($exclude === null) {
-            $exclude = self::$tpwp->settings->sg_divisions;
-        }
-        return parent::getDivisionsStrings($exclude);
-    }
-
 
     /**
      * Gets an array of ID/Distance pairs for a given lat/lng.
      *
-     * @param float|null $lat   Longitude
-     * @param float|null $lng   Longitude
+     * @param float|null $lat Longitude
+     * @param float|null $lng Longitude
      * @param int        $limit Number of results to return.  0-100 inclusive.
      *
-     * @return object[]|null  An array of database query result objects, or null if the location isn't provided or valid.
+     * @return object[]|null  An array of database query result objects, or null if the location isn't provided or
+     *     valid.
      */
-    protected static function getGroupsNear(?float $lat = null, ?float $lng = null, int $limit = 3): ?array
+    private static function getGroupsNear(?float $lat = null, ?float $lng = null, int $limit = 3): ?array
     {
         if ($lat === null || $lng === null) {
             $geoObj = self::$tpwp->geolocate();
 
-            if (!isset($geoObj->error)) {
+            if ( ! isset($geoObj->error)) {
                 $lat = $geoObj->lat;
                 $lng = $geoObj->lng;
             }
@@ -789,7 +560,8 @@ class SmallGroup extends Involvement implements api
         $settingsPrefix = TouchPointWP::SETTINGS_PREFIX;
         /** @noinspection SqlResolve */
         /** @noinspection SpellCheckingInspection */
-        $q = $wpdb->prepare("
+        $q = $wpdb->prepare(
+            "
             SELECT l.Id as post_id,
                    l.post_title as name,
                    CAST(pmInv.meta_value AS UNSIGNED) as invId,
@@ -810,35 +582,55 @@ class SmallGroup extends Involvement implements api
                     JOIN $wpdb->postmeta as pmInv ON l.ID = pmInv.post_id AND pmInv.meta_key = '{$settingsPrefix}invId'
                     LEFT JOIN $wpdb->postmeta as pmSch ON l.ID = pmSch.post_id AND pmSch.meta_key = '{$settingsPrefix}meetingSchedule'
             ORDER BY distance LIMIT %d
-            ", $lat, $lng, $lat, self::POST_TYPE, $limit );
+            ",
+            $lat,
+            $lng,
+            $lat,
+            self::POST_TYPE,
+            $limit
+        );
 
         return $wpdb->get_results($q, 'OBJECT');
     }
 
     /**
-     * Create a SmallGroup object from an object from a WP_Post object.
+     * Create a SmallGroup object from an object from a database query.
      *
-     * @param WP_Post $post
+     * @param object $obj A database object from which a SmallGroup object should be created.
      *
      * @return SmallGroup
      */
-    public static function fromPost(WP_Post $post): SmallGroup
+    private static function fromObj(object $obj): SmallGroup
     {
-        $iid = intval($post->{self::INVOLVEMENT_META_KEY});
+        $iid = intval($obj->invId);
 
         if ( ! isset(self::$_instances[$iid])) {
-            self::$_instances[$iid] = new SmallGroup($post);
+            self::$_instances[$iid] = new SmallGroup($obj);
         }
 
         return self::$_instances[$iid];
     }
 
     /**
-     * Whether the group is accepting new members.
+     * @param string[] $exclude
      *
-     * @return bool
+     * @return string[]
      */
-    public function acceptingNewMembers(): bool
+    public function getDivisionsStrings($exclude = null): array
+    {
+        if ($exclude === null) {
+            $exclude = self::$tpwp->settings->sg_divisions;
+        }
+
+        return parent::getDivisionsStrings($exclude);
+    }
+
+    /**
+     * Whether the involvement can be joined.
+     *
+     * @return bool|string  True if involvement can be joined.  Or, a string with why it can't be joined otherwise.
+     */
+    public function acceptingNewMembers()
     {
         // TODO add extra value options
         return parent::acceptingNewMembers();
@@ -851,28 +643,8 @@ class SmallGroup extends Involvement implements api
      */
     public function getActionButtons(): string
     {
-        $ret = '<button type="button" data-tp-action="contact">Contact Leaders</button>  ';
-        if ($this->acceptingNewMembers()) {
-            $ret .= '<button type="button" data-tp-action="join">Join</button>  ';
-        }
-        return $ret;
-    }
+        TouchPointWP::requireScript('smallgroup-defer');
 
-    /**
-     * @param $uri
-     *
-     * @return bool True on success (valid api endpoint), false on failure.
-     */
-    public static function api($uri): bool
-    {
-        if (count($uri['path']) < 3) {
-            return false;
-        }
-
-        if ($uri['path'][2] === "force-sync") {
-            echo self::updateSmallGroupsFromTouchPoint(true);
-            exit;
-        }
-        return false;
+        return parent::getActionButtons();
     }
 }

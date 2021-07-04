@@ -24,7 +24,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.2b";
+    public const VERSION = "0.0.3";
 
     /**
      * The Token
@@ -123,7 +123,12 @@ class TouchPointWP
     /**
      * @var ?bool True after the Small Group feature is loaded.
      */
-    protected ?bool $smallGroup = null;
+    protected ?bool $smallGroups = null;
+
+    /**
+     * @var ?bool True after the Classes feature is loaded.
+     */
+    protected ?bool $courses = null;
 
     /**
      * @var ?WP_Http Object for API requests.
@@ -152,8 +157,7 @@ class TouchPointWP
         // Register frontend JS & CSS.
         add_action('init', [$this, 'registerScriptsAndStyles'], 0);
 
-        // Register AJAX Interfaces
-        add_action('init', [$this, 'registerAjaxCommon'], 0);
+        add_action('wp_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
 
         // Load admin JS & CSS.
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_scripts'], 10, 1 ); // TODO restore?
@@ -177,29 +181,32 @@ class TouchPointWP
         // Adds async and defer attributes to script tags.
         add_filter('script_loader_tag', [$this, 'filterByTag'], 10, 2);
 
-        // Load Auth tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on"
-            && ! class_exists("tp\TouchPointWP\Auth")) {
-            require_once 'Auth.php';
-        }
+        add_filter('terms_clauses', [$this, 'getTermsClauses'], 10, 3);
 
-        // Load RSVP tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on"
-            && ! class_exists("tp\TouchPointWP\Rsvp")) {
-            require_once 'Rsvp.php';
-        }
 
-        // Load Small Group tool if enabled. // TODO apparently not used.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
-            && ! class_exists("tp\TouchPointWP\SmallGroup")) {
-            require_once 'SmallGroup.php';
-        }
-
-        // Load Events if enabled (by presence of Events Calendar plugin)
-        if (self::useTribeCalendar()
-            && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
-            require_once 'EventsCalendar.php';
-        }
+//        // Load Auth tool if enabled.  TODO it would seem that these are not used. Confirm for install without composer and remove.
+//        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on"
+//            && ! class_exists("tp\TouchPointWP\Auth")) {
+//            require_once 'Auth.php';
+//        }
+//
+//        // Load RSVP tool if enabled.
+//        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on"
+//            && ! class_exists("tp\TouchPointWP\Rsvp")) {
+//            require_once 'Rsvp.php';
+//        }
+//
+//        // Load Small Group tool if enabled.
+//        if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
+//            && ! class_exists("tp\TouchPointWP\SmallGroup")) {
+//            require_once 'SmallGroup.php';
+//        }
+//
+//        // Load Events if enabled (by presence of Events Calendar plugin)
+//        if (self::useTribeCalendar()
+//            && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
+//            require_once 'EventsCalendar.php';
+//        }
     }
 
     public function admin(): TouchPointWP_AdminAPI
@@ -212,6 +219,36 @@ class TouchPointWP
     }
 
     /**
+     * Spit out headers that prevent caching.  Useful for API calls.
+     */
+    public static function noCacheHeaders(): void
+    {
+        header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+        header("Cache-Control: post-check=0, pre-check=0", false);
+        header("Pragma: no-cache");
+    }
+
+
+    public static function postHeadersAndFiltering(): string
+    {
+        header('Content-Type: application/json');
+        TouchPointWP::noCacheHeaders();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['error' => 'Only POST requests are allowed.']);
+            exit;
+        }
+
+        $inputData = file_get_contents('php://input');
+        if ($inputData[0] !== '{') {
+            echo json_encode(['error' => 'Invalid data provided.']);
+            exit;
+        }
+
+        return $inputData;
+    }
+
+    /**
      * @param bool      $continue   Whether or not to parse the request
      * @param WP        $wp         Current WordPress environment instance
      * @param array|string $extraVars Passed query variables
@@ -219,7 +256,7 @@ class TouchPointWP
      * @return bool Whether or not other request parsing functions should be allowed to function.
      *
      * @noinspection PhpMissingParamTypeInspection
-     * @noinspection PhpUnusedParameterInspection
+     * @noinspection PhpUnusedParameterInspection WordPress API
      */
     public function parseRequest($continue, $wp, $extraVars): bool
     {
@@ -247,10 +284,34 @@ class TouchPointWP
                 }
             }
 
+            // Smallgroup endpoint
             if ($reqUri['path'][1] === "sg" &&
                 get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
             ) {
                 if (!SmallGroup::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
+            // Courses endpoint
+            if ($reqUri['path'][1] === "cs" &&
+                get_option(self::SETTINGS_PREFIX . 'enable_courses') === "on"
+            ) {
+                if (!Course::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
+            // Person endpoint
+            if ($reqUri['path'][1] === "person") {
+                if (!Person::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
+            // Involvement endpoints
+            if ($reqUri['path'][1] === "inv") {
+                if (!Involvement::api($reqUri)) {
                     return $continue;
                 }
             }
@@ -266,10 +327,54 @@ class TouchPointWP
                 }
                 exit;
             }
+
+            // Geolocate via IP TODO rework to minimize extra requests
+            if ($reqUri['path'][1] === "geolocate" &&
+                count($reqUri['path']) === 2) {
+
+                $this->ajaxGeolocate();
+            }
         }
         return $continue;
     }
 
+    /**
+     * Filter to add a tp_post_type option to get_terms that takes either a string of one post type or an array of post
+     * types.
+     *
+     * @param $clauses
+     * @param $taxonomy
+     * @param $args
+     *
+     * Hat tip https://dfactory.eu/wp-how-to-get-terms-post-type/
+     *
+     * @return mixed
+     * @noinspection PhpUnusedParameterInspection  WordPress API
+     */
+    public function getTermsClauses($clauses, $taxonomy, $args): array
+    {
+        if ( isset( $args[self::HOOK_PREFIX . 'post_type'] ) && ! empty( $args[self::HOOK_PREFIX . 'post_type'] ) && $args['fields'] !== 'count' ) {
+            global $wpdb;
+
+            $post_types = [];
+
+            if ( is_array( $args[self::HOOK_PREFIX . 'post_type'] ) ) {
+                foreach ( $args[self::HOOK_PREFIX . 'post_type'] as $cpt ) {
+                    $post_types[] = "'" . $cpt . "'";
+                }
+            } else {
+                $post_types[] = "'" . $args[self::HOOK_PREFIX . 'post_type'] . "'";
+            }
+
+            if ( ! empty( $post_types ) ) {
+                $clauses['fields'] = 'DISTINCT ' . str_replace( 'tt.*', 'tt.term_taxonomy_id, tt.taxonomy, tt.description, tt.parent', $clauses['fields'] ) . ', COUNT(p.post_type) AS count';
+                $clauses['join'] .= ' LEFT JOIN ' . $wpdb->term_relationships . ' AS r ON r.term_taxonomy_id = tt.term_taxonomy_id LEFT JOIN ' . $wpdb->posts . ' AS p ON p.ID = r.object_id';
+                $clauses['where'] .= ' AND (p.post_type IN (' . implode( ',', $post_types ) . ') OR (tt.parent = 0 AND tt.count = 0))';
+                $clauses['orderby'] = 'GROUP BY t.term_id ' . $clauses['orderby'];
+            }
+        }
+        return $clauses;
+    }
 
     /**
      * Generate scripts package and send to client.
@@ -287,12 +392,25 @@ class TouchPointWP
             return false;
         }
 
+        TouchPointWP::noCacheHeaders();
         header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
         header('Content-type: application/zip');
 
         readfile($fileName);
         unlink ($fileName);
         return true;
+    }
+
+    public function printDynamicFooterScripts(): void
+    {
+        echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
+        if ($this->smallGroups !== null) {
+            echo SmallGroup::getJsInstantiationString();
+        }
+        if ($this->courses !== null) {
+            echo Involvement::getJsInstantiationString();
+        }
+        echo "</script>";
     }
 
 
@@ -330,18 +448,39 @@ class TouchPointWP
             $instance->rsvp = Rsvp::load();
         }
 
-        // Load Auth tool if enabled.
+        // Load Small Groups tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
             require_once 'SmallGroup.php';
-            $instance->smallGroup = SmallGroup::load($instance);
+            $instance->smallGroups = SmallGroup::load($instance);
         }
+
+        // Load Classes tool if enabled.
+        if (get_option(self::SETTINGS_PREFIX . 'enable_courses') === "on") {
+            require_once 'Course.php';
+            $instance->courses = Course::load($instance);
+        }
+
+        // Load Events if enabled (by presence of Events Calendar plugin)
+        if (self::useTribeCalendar()
+            && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
+            require_once 'EventsCalendar.php';
+        }
+
+        add_action('init', [self::class, 'init']);
 
         return $instance;
     }
 
+    public static function init(): void
+    {
+        self::instance()->registerTaxonomies();
+
+        // If any slugs have changed, flush.  Only executes if already enqueued.
+        self::instance()->flushRewriteRules();
+    }
+
     public function registerScriptsAndStyles(): void
     {
-
         // Register scripts that exist for all modules
         wp_register_script(
             self::SHORTCODE_PREFIX . 'base-defer',
@@ -373,11 +512,19 @@ class TouchPointWP
             Rsvp::registerScriptsAndStyles();
         }
 
-        if ( ! ! $this->smallGroup) {
+        if ( ! ! $this->smallGroups) {
             SmallGroup::registerScriptsAndStyles();
         }
     }
 
+    private static array $enqueuedScripts = [];
+    public static function requireScript($name): void
+    {
+        if (!in_array($name, self::$enqueuedScripts)) {
+            self::$enqueuedScripts[] = $name;
+            wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . $name);
+        }
+    }
 
     /**
      * Adds async/defer attributes to enqueued / registered scripts.  If -defer or -async is present in the script's
@@ -407,121 +554,20 @@ class TouchPointWP
         return $tag;
     }
 
-
-
-    public function registerAjaxCommon(): void
-    {
-        $tp_ = self::HOOK_PREFIX;
-        add_action( "wp_ajax_{$tp_}ident", [$this, 'ajaxIdent'] );
-        add_action( "wp_ajax_nopriv_{$tp_}ident", [$this, 'ajaxIdent'] );
-        add_action( "wp_ajax_{$tp_}inv_join", [$this, 'ajaxInvJoin'] );
-        add_action( "wp_ajax_nopriv_{$tp_}inv_join", [$this, 'ajaxInvJoin'] );
-        add_action( "wp_ajax_{$tp_}inv_contact", [$this, 'ajaxInvContact'] );
-        add_action( "wp_ajax_nopriv_{$tp_}inv_contact", [$this, 'ajaxInvContact'] );
-        add_action( "wp_ajax_{$tp_}geolocate", [$this, 'ajaxGeolocate'] );
-        add_action( "wp_ajax_nopriv_{$tp_}geolocate", [$this, 'ajaxGeolocate'] );
-    }
-
-    public function ajaxIdent(): void
-    {
-        header('Content-Type: application/json');
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['error' => 'Only POST requests are allowed.']);
-            wp_die();
-        }
-
-        $inputData = file_get_contents('php://input');
-        if ($inputData[0] !== '{') {
-            echo json_encode(['error' => 'Invalid data provided.']);
-            wp_die();
-        }
-
-        $data = $this->apiPost('ident', json_decode($inputData));
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
-            wp_die();
-        }
-
-        $people = $data->people ?? [];
-
-        // TODO sync or queue sync of people
-
-        $ret = [];
-        foreach ($people as $p) {
-            $p->lastName = $p->lastName[0] ? $p->lastName[0] . "." : "";
-            unset($p->lastInitial);
-            $ret[] = $p;
-        }
-
-        echo json_encode(['people' => $ret]);
-        wp_die();
-    }
-
-    public function ajaxInvJoin(): void
-    {
-        header('Content-Type: application/json');
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['error' => 'Only POST requests are allowed.']);
-            wp_die();
-        }
-
-        $inputData = file_get_contents('php://input');
-        if ($inputData[0] !== '{') {
-            echo json_encode(['error' => 'Invalid data provided.']);
-            wp_die();
-        }
-
-        $data = $this->apiPost('inv_join', json_decode($inputData));
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
-            wp_die();
-        }
-
-        echo json_encode(['success' => $data->success]);
-        wp_die();
-    }
-
-
-    public function ajaxInvContact(): void
-    {
-        header('Content-Type: application/json');
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['error' => 'Only POST requests are allowed.']);
-            wp_die();
-        }
-
-        $inputData = file_get_contents('php://input');
-        if ($inputData[0] !== '{') {
-            echo json_encode(['error' => 'Invalid data provided.']);
-            wp_die();
-        }
-
-        $data = $this->apiPost('inv_contact', json_decode($inputData));
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
-            wp_die();
-        }
-
-        echo json_encode(['success' => $data->success]);
-        wp_die();
-    }
-
-
+    // TODO move to somewhere more conducive to the API data model.
     public function ajaxGeolocate(): void
     {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
             echo json_encode(['error' => 'Only GET requests are allowed.']);
-            wp_die();
+            exit;
         }
 
         // TODO validate that request is only coming from allowed referrers... or something like that.
 
         echo json_encode($this->geolocate());
-        wp_die();
+
+        exit;
     }
 
     /**
@@ -561,7 +607,7 @@ class TouchPointWP
         }
 
         $d = json_decode($return);
-        if ($d->error) {
+        if (property_exists($d, 'error')) {
             return (object)['error' => $d->reason];
         }
 
@@ -588,7 +634,7 @@ class TouchPointWP
         global $wpdb;
         $tableName = $wpdb->base_prefix . self::TABLE_IP_GEO;
         /** @noinspection SqlResolve */
-        $q = $wpdb->prepare( "SELECT * FROM {$tableName} WHERE ip = '{$ip_pton}' and updatedDt > (NOW() - INTERVAL 30 DAY)");
+        $q = $wpdb->prepare( "SELECT * FROM {$tableName} WHERE ip = %s and updatedDt > (NOW() - INTERVAL 30 DAY)", $ip_pton);
         $cache = $wpdb->get_row($q);
         if ($cache) {
             return $cache->data;
@@ -1181,13 +1227,14 @@ class TouchPointWP
 
 
     /**
-     * Sort a list of heirarchical terms into a list in which each parent is immediately followed by its children.
+     * Sort a list of hierarchical terms into a list in which each parent is immediately followed by its children.
      *
      * @param WP_Term[] $terms
+     * @param bool      $noChildlessParents
      *
      * @return WP_Term[]
      */
-    public static function orderHierarchicalTerms(array $terms): array
+    public static function orderHierarchicalTerms(array $terms, bool $noChildlessParents = false): array
     {
         $lineage = [[]];
         foreach ($terms as $t) {
@@ -1195,6 +1242,15 @@ class TouchPointWP
                 $lineage[$t->parent] = [];
             }
             $lineage[$t->parent][] = $t;
+        }
+
+        // Remove parents that have no children
+        if ($noChildlessParents) {
+            foreach ($lineage[0] as $i => $term) {
+                if ( ! isset($lineage[$term->term_id])) {
+                    unset($lineage[0][$i]);
+                }
+            }
         }
 
         usort($lineage[0], fn($a, $b) => strcmp($a->name, $b->name));

@@ -18,9 +18,6 @@ $description = get_the_archive_description();
 
 if ( have_posts() ) {
     SmallGroup::enqueueTemplateStyle();
-    wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'swal2-defer');
-    wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'base');
-    wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'smallgroups-defer');
 
     ?>
 
@@ -45,6 +42,7 @@ if ( have_posts() ) {
     $wp_the_query->set('nopaging', true);
 
     $wp_the_query->get_posts();
+    $wp_the_query->rewind_posts();
 
     while ($wp_the_query->have_posts()) {
         $wp_the_query->the_post();

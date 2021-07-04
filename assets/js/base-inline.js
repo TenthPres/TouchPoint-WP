@@ -10,6 +10,7 @@ const tpvm = {
         this._events[name].push(f);
     },
     trigger: function(name, arg1 = null) {
+        console.log("Firing " + name); // TODO remove.  For debugging only.
         for (const ei in this._events[name]) {
             if (!this._events[name].hasOwnProperty(ei)) continue;
 
@@ -21,7 +22,7 @@ const tpvm = {
         }
     },
     postData: async function(action = '', data = {}) {
-        const response = await fetch('/wp-admin/admin-ajax.php?action=' + action, {
+        const response = await fetch('/touchpoint-api/' + action, {
             method: 'POST',
             mode: 'same-origin',
             cache: 'no-cache',
@@ -33,13 +34,12 @@ const tpvm = {
         return await response.json()
     },
     getData: async function(action = '', data = {}) {
-        data.action = action;
         let params = [];
         Object.keys(data).map(
             function(key, inx) {
                 params.push(`${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`);}
         );
-        const response = await fetch('/wp-admin/admin-ajax.php?' + params.join("&"), {
+        const response = await fetch('/touchpoint-api/' + action + '?' + params.join("&"), {
             method: 'GET',
             mode: 'same-origin',
         });

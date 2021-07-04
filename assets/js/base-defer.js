@@ -9,7 +9,7 @@ class TP_DataGeo {
     };
 
     static init() {
-        tpvm.trigger('dataGeo_loaded');
+        tpvm.trigger('dataGeo_class_loaded');
     }
 
     static geoByNavigator(then = null, error = null) {
@@ -97,7 +97,7 @@ class TP_DataGeo {
     }
 
     static geoByServer(then, error) {
-        tpvm.getData('tp_geolocate').then(function (responseData) {
+        tpvm.getData('geolocate').then(function (responseData) {
             if (responseData.hasOwnProperty("error")) {
                 error(responseData.error)
                 tpvm.trigger("dataGeo_error", responseData.error)
@@ -136,13 +136,100 @@ class TP_Involvement {
 
     attributes = {};
 
+    static currentFilters = {};
+    static involvements = [];
+
     constructor(obj) {
         this.name = obj.name;
         this.invId = obj.invId;
 
         this.attributes = obj.attributes ?? null;
 
+        for (const ei in this.connectedElements) {
+            if (!this.connectedElements.hasOwnProperty(ei)) continue;
+
+            let that = this;
+            this.connectedElements[ei].addEventListener('mouseenter', function(e){e.stopPropagation(); that.toggleHighlighted(true);});
+            this.connectedElements[ei].addEventListener('mouseleave', function(e){e.stopPropagation(); that.toggleHighlighted(false);});
+
+            let actionBtns = this.connectedElements[ei].querySelectorAll('[data-tp-action]')
+            for (const ai in actionBtns) {
+                if (!actionBtns.hasOwnProperty(ai)) continue;
+                const action = actionBtns[ai].getAttribute('data-tp-action');
+                actionBtns[ai].addEventListener('click', function(e){e.stopPropagation(); window.activeInv = that; that[action + "Action"]();});
+            }
+        }
+
         tpvm.involvements[this.invId] = this;
+    }
+
+    static className() {
+        return this.name.substr(3); // refers to class name, and therefore is accessible.
+    }
+
+    static fromArray(invArr) {
+        let ret = [];
+        for (const i in invArr) {
+            if (!invArr.hasOwnProperty(i)) continue;
+
+            if (typeof invArr[i].invId === "undefined") {
+                continue;
+            }
+
+            if (typeof tpvm.involvements[invArr[i].invId] === "undefined") {
+                ret.push(new this(invArr[i]))
+            }
+        }
+        tpvm.trigger(this.className() + "_fromArray")
+        return ret;
+    };
+
+    static initFilters(invType) {
+        console.log("InitFilters"); // TODO remove
+
+        const filtOptions = document.querySelectorAll("[data-" + invType + "-filter]"); // TODO needs to be generic
+        for (const ei in filtOptions) {
+            if (!filtOptions.hasOwnProperty(ei)) continue;
+            filtOptions[ei].addEventListener('change', this.applyFilters.bind(this, invType))
+        }
+    }
+
+    static applyFilters(invType, ev = null) {
+        if (ev !== null) {
+            let attr = ev.target.getAttribute("data-" + invType + "-filter"), // TODO needs to be generic
+                val = ev.target.value;
+            if (attr !== null) {
+                if (val === "") {
+                    delete this.currentFilters[attr];
+                } else {
+                    this.currentFilters[attr] = val;
+                }
+            }
+        }
+
+        groupLoop:
+            for (const ii in tpvm.involvements) {
+                if (!tpvm.involvements.hasOwnProperty(ii)) continue;
+                const group = tpvm.involvements[ii];
+                for (const ai in this.currentFilters) {
+                    if (!this.currentFilters.hasOwnProperty(ai)) continue;
+
+                    if (!group.attributes.hasOwnProperty(ai) ||
+                        group.attributes[ai] === null ||
+                        (   !Array.isArray(group.attributes[ai]) &&
+                            group.attributes[ai].slug !== this.currentFilters[ai] &&
+                            group.attributes[ai] !== this.currentFilters[ai]
+                        ) || (
+                            Array.isArray(group.attributes[ai]) &&
+                            group.attributes[ai].find(a => a.slug === this.currentFilters[ai]) === undefined
+                        )
+                    ) {
+                        group.toggleVisibility(false)
+                        continue groupLoop;
+                    }
+                }
+                group.toggleVisibility(true)
+            }
     }
 
     get connectedElements() {
@@ -180,6 +267,10 @@ class TP_Involvement {
         return this._visible;
     }
 
+    static init() {
+        tpvm.trigger('Involvement_class_loaded');
+    }
+
     async doJoin(people, showConfirm = true) {
         let inv = this;
         showConfirm = !!showConfirm;
@@ -188,7 +279,7 @@ class TP_Involvement {
             ga('send', 'event', inv.invType, 'join complete', inv.name);
         }
 
-        let res = await tpvm.postData('tp_inv_join', {invId: inv.invId, people: people});
+        let res = await tpvm.postData('inv/join', {invId: inv.invId, people: people});
         if (res.success.length > 0) {
             if (showConfirm) {
                 Swal.fire({
@@ -217,7 +308,7 @@ class TP_Involvement {
             ga('send', 'event', inv.invType, 'contact complete', inv.name);
         }
 
-        let res = await tpvm.postData('tp_inv_contact', {invId: inv.invId, fromPerson: fromPerson, message: message});
+        let res = await tpvm.postData('inv/contact', {invId: inv.invId, fromPerson: fromPerson, message: message});
         if (res.success.length > 0) {
             if (showConfirm) {
                 Swal.fire({
@@ -237,7 +328,96 @@ class TP_Involvement {
             }
         }
     }
+
+    joinAction() {
+        let inv = this;
+
+        if (typeof ga === "function") {
+            ga('send', 'event', inv.invType, 'join btn click', inv.name);
+        }
+
+        TP_Person.DoInformalAuth().then((res) => joinUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
+
+        function joinUi(inv, people) {
+            if (typeof ga === "function") {
+                ga('send', 'event', inv.invType, 'join userIdentified', inv.name);
+            }
+
+            Swal.fire({
+                html: "<p id=\"swal-tp-text\">Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
+                showConfirmButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Join',
+                focusConfirm: false,
+                preConfirm: () => {
+                    let form = document.getElementById('tp_people_list_checkboxes'),
+                        inputs = form.querySelectorAll("input"),
+                        data = [];
+                    for (const ii in inputs) {
+                        if (!inputs.hasOwnProperty(ii) || !inputs[ii].checked) continue;
+                        data.push(tpvm.people[inputs[ii].value]);
+                    }
+
+                    if (data.length < 1) {
+                        let prompt = document.getElementById('swal-tp-text');
+                        prompt.innerText = "Select who should be added to the group.";
+                        prompt.classList.add('error')
+                        return false;
+                    }
+
+                    Swal.showLoading();
+
+                    return inv.doJoin(data, true);
+                }
+            });
+        }
+    }
+
+    contactAction() {
+        let inv = this;
+
+        if (typeof ga === "function") {
+            ga('send', 'event', inv.invType, 'contact btn click', inv.name);
+        }
+
+        TP_Person.DoInformalAuth().then((res) => contactUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
+
+        function contactUi(inv, people) {
+            if (typeof ga === "function") {
+                ga('send', 'event', inv.invType, 'contact userIdentified', inv.name);
+            }
+
+            Swal.fire({
+                html: `<p id=\"swal-tp-text\">Contact the leaders of<br />${inv.name}</p>` +
+                    '<form id="tp_inv_contact_form">' +
+                    '<div class="form-group"><label for="tp_inv_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_inv_contact_fromPid", "fromPid") + '</div>' +
+                    '<div class="form-group"><label for="tp_inv_contact_body">Message</label><textarea name="body" id="tp_inv_contact_body"></textarea></div>' +
+                    '</form>',
+                showConfirmButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Send',
+                focusConfirm: false,
+                preConfirm: () => {
+                    let form = document.getElementById('tp_inv_contact_form'),
+                        fromPerson = tpvm.people[parseInt(form.getElementsByTagName('select')[0].value)],
+                        message = form.getElementsByTagName('textarea')[0].value;
+
+                    if (message.length < 5) {
+                        let prompt = document.getElementById('swal-tp-text');
+                        prompt.innerText = "Please provide a message.";
+                        prompt.classList.add('error')
+                        return false;
+                    }
+
+                    Swal.showLoading();
+
+                    return inv.doInvContact(fromPerson, message, true);
+                }
+            });
+        }
+    }
 }
+TP_Involvement.init();
 
 class TP_Person {
     peopleId;
@@ -352,7 +532,7 @@ class TP_Person {
 
                         Swal.showLoading();
 
-                        let result = await tpvm.postData('tp_ident', data);
+                        let result = await tpvm.postData('person/ident', data);
                         if (result.people.length > 0) {
                             return result;
                         } else {

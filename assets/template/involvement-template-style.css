@@ -1,4 +1,5 @@
-.smallgroup-list {
+.smallgroup-list,
+.course-list {
     display: flex;
     flex-wrap: wrap;
     /* align-items: stretch; */
@@ -14,31 +15,49 @@ article.smallgroup-list-item {
     flex-direction: column;
 }
 
-.smallgroup-list-item .smallgroup-actions {
+article.course-list-item {
+    flex: 1 1 500px;
+    box-shadow: 10px 10px 20px #00000033;
+    margin: 0.8em;
+    position: relative;
+    padding: 0.8em;
+    display: flex;
+    flex-direction: column;
+}
+
+.smallgroup-list-item .smallgroup-actions,
+.course-list-item .course-actions {
     padding-top: .5em;
     text-align: right;
 }
 
-.smallgroup-list-item .smallgroup-actions button {
+.smallgroup-list-item .smallgroup-actions button,
+.smallgroup-list-item .smallgroup-actions a.button,
+.course-list-item .course-actions button,
+.course-list-item .course-actions a.button {
     position:relative;
     z-index:10;
 }
 
-.smallgroup-list-item div.post-meta-single {
+.smallgroup-list-item div.post-meta-single,
+.course-list-item div.post-meta-single {
     font-size: 0.8em;
     opacity: 0.7;
     font-weight: bolder;
 }
 
-.smallgroup-list-item div.thin.entry-content {
+.smallgroup-list-item div.thin.entry-content,
+.course-list-item div.thin.entry-content {
     flex: 1 1 auto;
 }
 
-div.smallgroup-list article.smallgroup-list-item h2.entry-title {
+div.smallgroup-list article.smallgroup-list-item h2.entry-title,
+div.course-list article.course-list-item h2.entry-title {
     padding: 0 0 0 0;
 }
 
-.smallgroup-list-item h2 a:after {
+.smallgroup-list-item h2 a:after,
+.course-list-item h2 a:after {
     content: ' ';
     width: 100%;
     height: 100%;
@@ -72,7 +91,8 @@ article .section-inner.smallgroup-detail {
     display: flex;
 }
 
-article .smallgroup-detail-cell {
+article .smallgroup-detail-cell,
+article .course-detail-cell {
     flex: 1 1 0;
 }
 
@@ -81,7 +101,12 @@ article .smallgroup-detail-cell.smallgroup-map-container {
     padding-bottom: 30%;
 }
 
-article .smallgroup-detail-cell .smallgroup-detail-cell-section {
+article .smallgroup-detail-cell .smallgroup-detail-cell-section,
+article .course-detail-cell .course-detail-cell-section {
     text-align:center;
     margin-bottom: 2em;
+}
+
+.swal2-content textarea {
+    width: 100%;
 }

@@ -67,7 +67,7 @@ abstract class Rsvp
 
     public static function enqueueScripts()
     {
-        wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . 'rsvp');
+        TouchPointWP::requireScript('rsvp');
     }
 
     /**

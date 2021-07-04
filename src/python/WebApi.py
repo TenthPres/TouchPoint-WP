@@ -2,6 +2,8 @@
 
 import re
 
+VERSION = "0.0.3"
+
 PersonEvNames = {
 	'geoLat': 'geoLat',
 	'geoLng': 'geoLng',
@@ -60,6 +62,14 @@ elif (Data.a == "InvsForDivs"):
 	o.description,
 	o.registrationClosed as closed,
 	o.notWeekly,
+	o.registrationTypeId as regTypeId,
+	o.orgPickList,
+	o.mainLeaderId,
+	o.RegSettingXml.exist('/Settings/AskItems') AS hasRegQuestions,
+	FORMAT(o.RegStart, 'yyyy-MM-ddTHH:mm:ss') as regStart,
+	FORMAT(o.RegEnd, 'yyyy-MM-ddTHH:mm:ss') as regEnd,
+	FORMAT(o.FirstMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as firstMeeting,
+	FORMAT(o.LastMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as lastMeeting,
 	(SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
 		LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0)) as marital_denom,
 	(SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
@@ -220,8 +230,9 @@ elif (Data.a == "inv_join"):  # This is a POST request. TODO possibly limit to p
     for p in inData.people:
         if not model.InOrg(p.peopleId, oid):
             model.AddMemberToOrg(p.peopleId, oid)
+            org = model.GetOrganization(oid)
             model.SetMemberType(p.peopleId, oid, "Prospect")
-            model.CreateTask(orgContactPid, p.peopleId, "New Small Group Member", "{0} is interested in joining your Small Group.  Please reach out to them.  ({1})".format(p.goesBy, oid))
+            model.CreateTask(orgContactPid, p.peopleId, "New Person for {1}", "{0} is interested in joining {1}.  Please reach out to them and record the contact.  {2}/person/0#tab-tasksassigned".format(p.goesBy, org.name, model.CmsHost))
 
 	Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 
@@ -248,7 +259,7 @@ elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit t
     org = model.GetOrganization(oid)
     model.CreateTask(orgContactPid, p.peopleId,
     "Online Contact Form: {0}".format(org.name),
-    "{0} sent the following message.  Please reach out to them and record the contact. <br /><br />{1}".format(p.goesBy, m))
+    "{0} sent the following message.  Please reach out to them and record the contact.  {2}/person/0#tab-tasksassigned <br /><br />{1}".format(p.goesBy, m, model.CmsHost))
 
     Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 
