@@ -106,3 +106,7 @@ article .course-detail-cell .course-detail-cell-section {
     text-align:center;
     margin-bottom: 2em;
 }
+
+.swal2-content textarea {
+    width: 100%;
+}
