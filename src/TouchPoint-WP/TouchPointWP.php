@@ -181,6 +181,8 @@ class TouchPointWP
         // Adds async and defer attributes to script tags.
         add_filter('script_loader_tag', [$this, 'filterByTag'], 10, 2);
 
+        add_filter('terms_clauses', [$this, 'getTermsClauses'], 10, 3);
+
 
 //        // Load Auth tool if enabled.  TODO it would seem that these are not used. Confirm for install without composer and remove.
 //        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on"
@@ -316,6 +318,42 @@ class TouchPointWP
         return $continue;
     }
 
+    /**
+     * Filter to add a tp_post_type option to get_terms that takes either a string of one post type or an array of post
+     * types.
+     *
+     * @param $clauses
+     * @param $taxonomy
+     * @param $args
+     *
+     * Hat tip https://dfactory.eu/wp-how-to-get-terms-post-type/
+     *
+     * @return mixed
+     */
+    public function getTermsClauses($clauses, $taxonomy, $args): array
+    {
+        if ( isset( $args[self::HOOK_PREFIX . 'post_type'] ) && ! empty( $args[self::HOOK_PREFIX . 'post_type'] ) && $args['fields'] !== 'count' ) {
+            global $wpdb;
+
+            $post_types = [];
+
+            if ( is_array( $args[self::HOOK_PREFIX . 'post_type'] ) ) {
+                foreach ( $args[self::HOOK_PREFIX . 'post_type'] as $cpt ) {
+                    $post_types[] = "'" . $cpt . "'";
+                }
+            } else {
+                $post_types[] = "'" . $args[self::HOOK_PREFIX . 'post_type'] . "'";
+            }
+
+            if ( ! empty( $post_types ) ) {
+                $clauses['fields'] = 'DISTINCT ' . str_replace( 'tt.*', 'tt.term_taxonomy_id, tt.taxonomy, tt.description, tt.parent', $clauses['fields'] ) . ', COUNT(p.post_type) AS count';
+                $clauses['join'] .= ' LEFT JOIN ' . $wpdb->term_relationships . ' AS r ON r.term_taxonomy_id = tt.term_taxonomy_id LEFT JOIN ' . $wpdb->posts . ' AS p ON p.ID = r.object_id';
+                $clauses['where'] .= ' AND (p.post_type IN (' . implode( ',', $post_types ) . ') OR (tt.parent = 0 AND tt.count = 0))';
+                $clauses['orderby'] = 'GROUP BY t.term_id ' . $clauses['orderby'];
+            }
+        }
+        return $clauses;
+    }
 
     /**
      * Generate scripts package and send to client.

@@ -279,10 +279,10 @@ class Course extends Involvement
             }
             $dvName = TouchPointWP::instance()->settings->dv_name_singular;
             $dvList = get_terms([
-                'taxonomy'   => TouchPointWP::TAX_DIV,
-                'hide_empty' => true,
-                'meta_query' => $mq,
-                'post_type'  => static::POST_TYPE
+                'taxonomy'                              => TouchPointWP::TAX_DIV,
+                'hide_empty'                            => true,
+                'meta_query'                            => $mq,
+                TouchPointWP::HOOK_PREFIX . 'post_type' => static::POST_TYPE
             ]);
             $dvList = TouchPointWP::orderHierarchicalTerms($dvList, true);
             if (is_array($dvList) && count($dvList) > 1) {
@@ -328,13 +328,13 @@ class Course extends Involvement
                 'taxonomy'   => TouchPointWP::TAX_WEEKDAY,
                 'hide_empty' => true,
                 'orderby'    => 'id',
-                'post_type'  => static::POST_TYPE
+                TouchPointWP::HOOK_PREFIX . 'post_type'  => static::POST_TYPE
             ]);
             if (is_array($wdList) && count($wdList) > 1) {
                 $content .= "<select class=\"course-filter\" data-course-filter=\"weekday\">";
                 $content .= "<option disabled selected>{$wdName}</option><option value=\"\">{$any}</option>";
                 foreach ($wdList as $d) {
-                    $content .= "<option value=\"{$d->slug}\">{$d->name} {$d->count}</option>";
+                    $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
                 }
                 $content .= "</select>";
             }
@@ -355,7 +355,12 @@ class Course extends Involvement
         // Age Groups
         if (in_array('agegroup', $filters)) {
             $agName = __("Age");
-            $agList = get_terms(['taxonomy' => TouchPointWP::TAX_AGEGROUP, 'hide_empty' => true]);
+            $agList = get_terms([
+                'taxonomy'                              => TouchPointWP::TAX_AGEGROUP,
+                'hide_empty'                            => true,
+                'orderby'                               => 't.id',
+                TouchPointWP::HOOK_PREFIX . 'post_type' => static::POST_TYPE
+            ]);
             if (is_array($agList) && count($agList) > 1) {
                 $content .= "<select class=\"course-filter\" data-course-filter=\"agegroup\">";
                 $content .= "<option disabled selected>{$agName}</option><option value=\"\">{$any}</option>";
