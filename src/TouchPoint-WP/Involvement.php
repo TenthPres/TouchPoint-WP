@@ -124,7 +124,7 @@ abstract class Involvement implements api
      *
      * @return string[]
      */
-    public function getDivisionsStrings(array $exclude): array
+    public function getDivisionsStrings(array $exclude = []): array
     {
         if (!isset($this->divisions)) {
             if (count($exclude) > 1) {
@@ -184,7 +184,7 @@ abstract class Involvement implements api
      *
      * @return false|int  False on failure.  Otherwise, the number of updates.
      */
-    protected static function updateInvolvementPosts(string $postType, $divs, $options = [], $verbose = false) {
+    final protected static function updateInvolvementPosts(string $postType, $divs, $options = [], $verbose = false) {
         $siteTz = wp_timezone();
 
         set_time_limit(60);
