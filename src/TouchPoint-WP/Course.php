@@ -212,7 +212,7 @@ class Course extends Involvement
 
         return parent::filterDropdownHtml(
             $params,
-            'smallgroup',
+            'course',
             self::$tpwp->settings->get('cs_filter_defaults'),
             self::$tpwp->settings->cs_divisions
         );
