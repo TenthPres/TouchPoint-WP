@@ -5,6 +5,8 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
+require_once "jsInstantiation.trait.php";
+
 use DateInterval;
 use DateTimeImmutable;
 use Exception;

@@ -9,7 +9,7 @@ if ( ! defined('ABSPATH')) {
 use WP_Post;
 use WP_Term;
 
-require_once 'api.php';
+require_once 'api.iface.php';
 require_once 'Involvement.php';
 
 /**
