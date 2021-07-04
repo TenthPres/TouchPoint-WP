@@ -393,6 +393,15 @@ abstract class Involvement implements api
 
         $postsToKeep = [];
 
+        try {
+            $now = new DateTimeImmutable(null, $siteTz);
+            $aYear = new \DateInterval('P1Y');
+            $nowPlus1Y = $now->add($aYear);
+            $nowMinus1Y = $now->sub($aYear);
+        } catch  (Exception $e) {
+            return false;
+        }
+
         foreach ($invData as $inv) {
             set_time_limit(15);
 
@@ -580,12 +589,51 @@ abstract class Involvement implements api
             } else {
                 $dayStr = null;
             }
+
+            // Start and end dates
+            if ($inv->firstMeeting !== null) {
+                try {
+                    $inv->firstMeeting = new DateTimeImmutable($inv->firstMeeting, $siteTz);
+                } catch  (Exception $e) {
+                    $inv->firstMeeting = null;
+                }
+            }
+            if ($inv->lastMeeting !== null) {
+                try {
+                    $inv->lastMeeting = new DateTimeImmutable($inv->lastMeeting, $siteTz);
+                } catch  (Exception $e) {
+                    $inv->lastMeeting = null;
+                }
+            }
+            // Filter start and end dates to be relevant
+            if ($inv->lastMeeting !== null && $inv->lastMeeting < $now) { // last meeting already happened.
+                if ($verbose) {
+                    echo "<p>Stopping processing because all meetings are in the past.  Involvement will be deleted from WordPress.</p>";
+                }
+                continue; // Stop processing this involvement.  This will cause it to be removed.
+            }
+            if ($inv->firstMeeting !== null && $inv->firstMeeting < $now) { // First meeting already happened.
+                $inv->firstMeeting = null; // We don't need to list info from the past.
+            }
+            if ($inv->lastMeeting !== null && $inv->lastMeeting > $nowPlus1Y) { // Last mtg is > 1yr away
+                $inv->lastMeeting = null; // It may as well be that it's not ending.
+            }
+            // Convert start and end dates to strings.
+            $format = get_option('date_format');
+            if ($inv->firstMeeting !== null && $inv->lastMeeting !== null) {
+                $dayStr .= ", " . $inv->firstMeeting->format($format) . " " . __("through") . " " . $inv->lastMeeting->format($format);
+            } elseif ($inv->firstMeeting !== null) {
+                $dayStr .= ", " . __("starting") . " " . $inv->firstMeeting->format($format);
+            } elseif ($inv->lastMeeting !== null) {
+                $dayStr .= ", " . __("through") . " " . $inv->lastMeeting->format($format);
+            }
+
             if ($verbose) {
                 echo "<p>Meeting schedule: $dayStr</p>";
             }
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", $dayStr);
 
-            // Day of week attributes
+            // Day of week taxonomy
             $dayTerms = [];
             foreach ($days as $k => $d) {
                 $dayTerms[] = TouchPointWP::getDayOfWeekShortForNumber(intval($k[1]));
