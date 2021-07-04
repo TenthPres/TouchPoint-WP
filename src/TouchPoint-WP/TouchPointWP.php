@@ -228,6 +228,26 @@ class TouchPointWP
         header("Pragma: no-cache");
     }
 
+
+    public static function postHeadersAndFiltering(): string
+    {
+        header('Content-Type: application/json');
+        TouchPointWP::noCacheHeaders();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['error' => 'Only POST requests are allowed.']);
+            exit;
+        }
+
+        $inputData = file_get_contents('php://input');
+        if ($inputData[0] !== '{') {
+            echo json_encode(['error' => 'Invalid data provided.']);
+            exit;
+        }
+
+        return $inputData;
+    }
+
     /**
      * @param bool      $continue   Whether or not to parse the request
      * @param WP        $wp         Current WordPress environment instance
@@ -236,7 +256,7 @@ class TouchPointWP
      * @return bool Whether or not other request parsing functions should be allowed to function.
      *
      * @noinspection PhpMissingParamTypeInspection
-     * @noinspection PhpUnusedParameterInspection
+     * @noinspection PhpUnusedParameterInspection WordPress API
      */
     public function parseRequest($continue, $wp, $extraVars): bool
     {
@@ -329,6 +349,7 @@ class TouchPointWP
      * Hat tip https://dfactory.eu/wp-how-to-get-terms-post-type/
      *
      * @return mixed
+     * @noinspection PhpUnusedParameterInspection  WordPress API
      */
     public function getTermsClauses($clauses, $taxonomy, $args): array
     {
@@ -1206,7 +1227,7 @@ class TouchPointWP
 
 
     /**
-     * Sort a list of heirarchical terms into a list in which each parent is immediately followed by its children.
+     * Sort a list of hierarchical terms into a list in which each parent is immediately followed by its children.
      *
      * @param WP_Term[] $terms
      * @param bool      $noChildlessParents

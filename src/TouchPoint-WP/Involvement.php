@@ -76,9 +76,9 @@ abstract class Involvement implements api
     }
 
     /**
-     * Whether the involvement is currently joinable.
+     * Whether the involvement can be joined
      *
-     * @return bool|string  True if joinable.  Or, a string with why it can't be joined otherwise.
+     * @return bool|string  True if involvement can be joined.  Or, a string with why it can't be joined otherwise.
      */
     public function acceptingNewMembers()
     {
@@ -149,6 +149,193 @@ abstract class Involvement implements api
             $out[] = $d->name;
         }
         return $out;
+    }
+
+    public static abstract function filterShortcode(array $params);
+
+    /**
+     * @param array    $params
+     * @param string   $classPostfix
+     * @param string[] $filterListSetting
+     * @param string[] $divisions
+     *
+     * @return string
+     */
+    protected static final function filterDropdownHtml(array $params, string $classPostfix, array $filterListSetting, array $divisions): string
+    {
+        // standardize parameters
+        $params = array_change_key_case($params, CASE_LOWER);
+
+        // set some defaults
+        $params = shortcode_atts(
+            [
+                'class'   => "TouchPoint-{$classPostfix} filterBar",
+                'filters' => strtolower(implode(",", $filterListSetting))
+            ],
+            $params,
+            static::SHORTCODE_FILTER
+        );
+
+        if (isset($params['id'])) {
+            $filterBarId = $params['id'];
+        } else {
+            $filterBarId = wp_unique_id('tp-filter-bar-');
+        }
+
+        $filters = explode(',', $params['filters']);
+
+        $class = $params['class'];
+
+        $content = "<div class=\"{$class}\" id=\"{$filterBarId}\">";
+
+        $any = __("Any", TouchPointWP::TEXT_DOMAIN);
+
+        // Division
+        if (in_array('div', $filters)) {
+            $exclude = $divisions;
+            if (count($exclude) > 0) {
+                $mq = ['relation' => "AND"];
+                foreach ($exclude as $e) {
+                    $mq[] = [
+                        'key'     => TouchPointWP::SETTINGS_PREFIX . 'divId',
+                        'value'   => substr($e, 3),
+                        'compare' => 'NOT LIKE'
+                    ];
+                }
+                $mq = [
+                    'relation' => "OR",
+                    [
+                        'key'     => TouchPointWP::SETTINGS_PREFIX . 'divId', // Allows for programs
+                        'compare' => 'NOT EXISTS'
+                    ],
+                    $mq
+                ];
+            } else {
+                $mq = [];
+            }
+            $dvName = TouchPointWP::instance()->settings->dv_name_singular;
+            $dvList = get_terms([
+                                    'taxonomy'                              => TouchPointWP::TAX_DIV,
+                                    'hide_empty'                            => true,
+                                    'meta_query'                            => $mq,
+                                    TouchPointWP::HOOK_PREFIX . 'post_type' => static::POST_TYPE
+                                ]);
+            $dvList = TouchPointWP::orderHierarchicalTerms($dvList, true);
+            if (is_array($dvList) && count($dvList) > 1) {
+                $content .= "<select class=\"$class-filter\" data-$classPostfix-filter=\"div\">";
+                $content .= "<option disabled selected>{$dvName}</option><option value=\"\">{$any}</option>";
+                $isFirst = true;
+                foreach ($dvList as $d) {
+                    if ($d->parent === 0 || $isFirst) {
+                        if ( ! $isFirst) {
+                            $content .= "</optgroup>";
+                        }
+                        $content .= "<optgroup label=\"{$d->name}\">";
+                    } else {
+                        $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
+                    }
+                    $isFirst = false;
+                }
+                $content .= "</optgroup></select>";
+            }
+        }
+
+        // Gender
+        if (in_array('genderid', $filters)) {
+            $gList   = TouchPointWP::instance()->getGenders();
+            $content .= "<select class=\"$class-filter\" data-$classPostfix-filter=\"genderId\">";
+            $content .= "<option disabled selected>Gender</option><option value=\"\">{$any}</option>";
+            foreach ($gList as $g) {
+                if ($g->id === 0) {  // skip unknown
+                    continue;
+                }
+
+                $name    = $g->name;
+                $id      = $g->id;
+                $content .= "<option value=\"{$id}\">{$name}</option>";
+            }
+            $content .= "</select>";
+        }
+
+        // Resident Codes
+        if (in_array('rescode', $filters)) {
+            $rcName = TouchPointWP::instance()->settings->rc_name_singular;
+            $rcList = get_terms(
+                [
+                    'taxonomy'                              => TouchPointWP::TAX_RESCODE,
+                    'hide_empty'                            => true,
+                    TouchPointWP::HOOK_PREFIX . 'post_type' => static::POST_TYPE
+                ]
+            );
+            if (is_array($rcList) && count($rcList) > 1) {
+                $content .= "<select class=\"$class-filter\" data-$classPostfix-filter=\"rescode\">";
+                $content .= "<option disabled selected>{$rcName}</option><option value=\"\">{$any}</option>";
+
+                foreach ($rcList as $g) {
+                    $name    = $g->name;
+                    $id      = $g->slug;
+                    $content .= "<option value=\"{$id}\">{$name}</option>";
+                }
+
+                $content .= "</select>";
+            }
+        }
+
+        // Day of Week
+        if (in_array('weekday', $filters)) {
+            $wdName = __("Weekday");
+            $wdList = get_terms(
+                [
+                    'taxonomy'   => TouchPointWP::TAX_WEEKDAY,
+                    'hide_empty' => true,
+                    'orderby'    => 'id',
+                    TouchPointWP::HOOK_PREFIX . 'post_type'
+                ]
+            );
+            if (is_array($wdList) && count($wdList) > 1) {
+                $content .= "<select class=\"$class-filter\" data-$classPostfix-filter=\"weekday\">";
+                $content .= "<option disabled selected>{$wdName}</option><option value=\"\">{$any}</option>";
+                foreach ($wdList as $d) {
+                    $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
+                }
+                $content .= "</select>";
+            }
+        }
+
+        // TODO Time of Day (ranges, probably)
+
+        // Marital Status
+        if (in_array('inv_marital', $filters)) {
+            $content .= "<select class=\"$class-filter\" data-$classPostfix-filter=\"inv_marital\">";
+            $content .= "<option disabled selected>Marital Status</option>";
+            $content .= "<option value=\"\">{$any}</option>";
+            $content .= "<option value=\"mostly_single\">Mostly Single</option>";  // i18n
+            $content .= "<option value=\"mostly_married\">Mostly Married</option>"; // i18n
+            $content .= "</select>";
+        }
+
+        // Age Groups
+        if (in_array('agegroup', $filters)) {
+            $agName = __("Age");
+            $agList = get_terms([
+                                    'taxonomy'                              => TouchPointWP::TAX_AGEGROUP,
+                                    'hide_empty'                            => true,
+                                    'orderby'                               => 't.id',
+                                    TouchPointWP::HOOK_PREFIX . 'post_type' => static::POST_TYPE
+                                ]);
+            if (is_array($agList) && count($agList) > 1) {
+                $content .= "<select class=\"$class-filter\" data-$classPostfix-filter=\"agegroup\">";
+                $content .= "<option disabled selected>{$agName}</option><option value=\"\">{$any}</option>";
+                foreach ($agList as $a) {
+                    $content .= "<option value=\"{$a->slug}\">{$a->name}</option>";
+                }
+                $content .= "</select>";
+            }
+        }
+
+        $content .= "</div>";
+
+        return $content;
     }
 
     /**
@@ -503,7 +690,7 @@ abstract class Involvement implements api
      *
      * @return string
      *
-     * @noinspection PhpUnusedParameterInspection Not used by choice, but need to comply with the api.
+     * @noinspection PhpUnusedParameterInspection WordPress API
      */
     public static function filterPublishDate($theDate, $format, $post = null): string // TODO combine with SG in Involvement
     {
@@ -537,9 +724,9 @@ abstract class Involvement implements api
             }
         }
 
-        $joinable = $this->acceptingNewMembers();
-        if ($joinable !== true) {
-            $ret[] = $joinable;
+        $canJoin = $this->acceptingNewMembers();
+        if ($canJoin !== true) {
+            $ret[] = $canJoin;
         }
 
         return $ret;
@@ -559,8 +746,7 @@ abstract class Involvement implements api
         $text = __("Contact Leaders", TouchPointWP::TEXT_DOMAIN);
         $ret = "<button type=\"button\" data-tp-action=\"contact\">{$text}</button>  ";
 
-        $joinable = $this->acceptingNewMembers();
-        if ($joinable === true) {
+        if ($this->acceptingNewMembers() === true) {
             if ($this->useRegistrationForm()) {
                 $text = __('Register', TouchPointWP::TEXT_DOMAIN);
                 switch (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) {
@@ -648,19 +834,7 @@ abstract class Involvement implements api
      */
     private static function ajaxInvContact(): void
     {
-        header('Content-Type: application/json');
-        TouchPointWP::noCacheHeaders();
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['error' => 'Only POST requests are allowed.']);
-            exit;
-        }
-
-        $inputData = file_get_contents('php://input');
-        if ($inputData[0] !== '{') {
-            echo json_encode(['error' => 'Invalid data provided.']);
-            exit;
-        }
+        $inputData = TouchPointWP::postHeadersAndFiltering();
 
         $data = TouchPointWP::instance()->apiPost('inv_contact', json_decode($inputData));
 

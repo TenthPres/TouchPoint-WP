@@ -90,19 +90,7 @@ abstract class Person implements api
 
     private static function ajaxIdent(): void
     {
-        header('Content-Type: application/json');
-        TouchPointWP::noCacheHeaders();
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['error' => 'Only POST requests are allowed.']);
-            exit;
-        }
-
-        $inputData = file_get_contents('php://input');
-        if ($inputData[0] !== '{') {
-            echo json_encode(['error' => 'Invalid data provided.']);
-            exit;
-        }
+        $inputData = TouchPointWP::postHeadersAndFiltering();
 
         $data = TouchPointWP::instance()->apiPost('ident', json_decode($inputData));
 

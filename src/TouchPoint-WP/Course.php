@@ -188,23 +188,6 @@ class Course extends Involvement
         return $template;
     }
 
-    /**
-     * Create a Course object from an object from a database query.  TODO is this needed?
-     *
-     * @param object $obj A database object from which a Course object should be created.
-     *
-     * @return Course
-     */
-    private static function fromObj(object $obj): Course
-    {
-        $iid = intval($obj->invId);
-
-        if ( ! isset(self::$_instances[$iid])) {
-            self::$_instances[$iid] = new Course($obj);
-        }
-
-        return self::$_instances[$iid];
-    }
 
     private static bool $filterJsAdded = false;
     /**
@@ -212,7 +195,7 @@ class Course extends Involvement
      *
      * @return string
      */
-    public static function filterShortcode(array $params): string // TODO why is this not in Involvement?
+    public static function filterShortcode(array $params): string
     {
         self::requireAllObjectsInJs();
 
@@ -227,153 +210,12 @@ class Course extends Involvement
             self::$filterJsAdded = true;
         }
 
-        // standardize parameters
-        $params = array_change_key_case($params, CASE_LOWER);
-
-        // set some defaults
-        $params = shortcode_atts(
-            [
-                'class' => 'TouchPoint-course filterBar',
-                'filters' => strtolower(implode(",", self::$tpwp->settings->get('cs_filter_defaults')))
-            ],
+        return parent::filterDropdownHtml(
             $params,
-            self::SHORTCODE_FILTER
+            'smallgroup',
+            self::$tpwp->settings->get('cs_filter_defaults'),
+            self::$tpwp->settings->cs_divisions
         );
-
-        if (isset($params['id'])) {
-            $filterBarId = $params['id'];
-        } else {
-            $filterBarId = wp_unique_id('tp-filter-bar-');
-        }
-
-        $filters = explode(',', $params['filters']);
-
-        $class = $params['class'];
-
-        $content = "<div class=\"{$class}\" id=\"{$filterBarId}\">";
-
-        $any = __("Any", TouchPointWP::TEXT_DOMAIN);
-
-        // Division
-        if (in_array('div', $filters)) {
-            $exclude = TouchPointWP::instance()->settings->cs_divisions;
-            if (count($exclude) > 0) {
-                $mq = ['relation' => "AND"];
-                foreach ($exclude as $e) {
-                    $mq[] = [
-                        'key' => TouchPointWP::SETTINGS_PREFIX . 'divId',
-                        'value' => substr($e, 3),
-                        'compare' => 'NOT LIKE'
-                    ];
-                }
-                $mq = [
-                    'relation' => "OR",
-                    [
-                        'key' => TouchPointWP::SETTINGS_PREFIX . 'divId', // Allow programs
-                        'compare' => 'NOT EXISTS'
-                    ],
-                    $mq
-                ];
-            } else {
-                $mq = [];
-            }
-            $dvName = TouchPointWP::instance()->settings->dv_name_singular;
-            $dvList = get_terms([
-                'taxonomy'                              => TouchPointWP::TAX_DIV,
-                'hide_empty'                            => true,
-                'meta_query'                            => $mq,
-                TouchPointWP::HOOK_PREFIX . 'post_type' => static::POST_TYPE
-            ]);
-            $dvList = TouchPointWP::orderHierarchicalTerms($dvList, true);
-            if (is_array($dvList) && count($dvList) > 1) {
-                $content .= "<select class=\"course-filter\" data-course-filter=\"div\">";
-                $content .= "<option disabled selected>{$dvName}</option><option value=\"\">{$any}</option>";
-                $isFirst = true;
-                foreach ($dvList as $d) {
-                    if ($d->parent === 0 || $isFirst) {
-                        if (! $isFirst ) {
-                            $content .= "</optgroup>";
-                        }
-                        $content .= "<optgroup label=\"{$d->name}\">";
-                    } else {
-                        $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
-                    }
-                    $isFirst = false;
-                }
-                $content .= "</optgroup></select>";
-            }
-        }
-
-        // Gender
-        if (in_array('genderid', $filters)) {
-            $gList   = self::$tpwp->getGenders();
-            $content .= "<select class=\"course-filter\" data-course-filter=\"genderId\">";
-            $content .= "<option disabled selected>Gender</option><option value=\"\">{$any}</option>";
-            foreach ($gList as $g) {
-                if ($g->id === 0) {  // skip unknown
-                    continue;
-                }
-
-                $name    = $g->name;
-                $id      = $g->id;
-                $content .= "<option value=\"{$id}\">{$name}</option>";
-            }
-            $content .= "</select>";
-        }
-
-        // Day of Week
-        if (in_array('weekday', $filters)) {
-            $wdName = __("Weekday");
-            $wdList = get_terms([
-                'taxonomy'   => TouchPointWP::TAX_WEEKDAY,
-                'hide_empty' => true,
-                'orderby'    => 'id',
-                TouchPointWP::HOOK_PREFIX . 'post_type'  => static::POST_TYPE
-            ]);
-            if (is_array($wdList) && count($wdList) > 1) {
-                $content .= "<select class=\"course-filter\" data-course-filter=\"weekday\">";
-                $content .= "<option disabled selected>{$wdName}</option><option value=\"\">{$any}</option>";
-                foreach ($wdList as $d) {
-                    $content .= "<option value=\"{$d->slug}\">{$d->name}</option>";
-                }
-                $content .= "</select>";
-            }
-        }
-
-        // TODO Time of Day (services?)
-
-        // Marital Status
-        if (in_array('inv_marital', $filters)) {
-            $content .= "<select class=\"course-filter\" data-course-filter=\"inv_marital\">";
-            $content .= "<option disabled selected>Marital Status</option>";
-            $content .= "<option value=\"\">{$any}</option>";
-            $content .= "<option value=\"mostly_single\">Mostly Single</option>";  // i18n
-            $content .= "<option value=\"mostly_married\">Mostly Married</option>"; // i18n
-            $content .= "</select>";
-        }
-
-        // Age Groups
-        if (in_array('agegroup', $filters)) {
-            $agName = __("Age");
-            $agList = get_terms([
-                'taxonomy'                              => TouchPointWP::TAX_AGEGROUP,
-                'hide_empty'                            => true,
-                'orderby'                               => 't.id',
-                TouchPointWP::HOOK_PREFIX . 'post_type' => static::POST_TYPE
-            ]);
-            if (is_array($agList) && count($agList) > 1) {
-                $content .= "<select class=\"course-filter\" data-course-filter=\"agegroup\">";
-                $content .= "<option disabled selected>{$agName}</option><option value=\"\">{$any}</option>";
-                foreach ($agList as $a) {
-                    $content .= "<option value=\"{$a->slug}\">{$a->name}</option>";
-                }
-                $content .= "</select>";
-            }
-        }
-
-        $content .= "</div>";
-
-        return $content;
     }
 
 
@@ -424,9 +266,9 @@ class Course extends Involvement
     }
 
     /**
-     * Whether the involvement is currently joinable.
+     * Whether the involvement is currently able to be joined.
      *
-     * @return bool|string  True if joinable.  Or, a string with why it can't be joined otherwise.
+     * @return bool|string  True if can be joined.  Or, a string with why it can't be joined otherwise.
      */
     public function acceptingNewMembers()
     {
