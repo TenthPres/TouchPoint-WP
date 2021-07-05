@@ -817,8 +817,12 @@ abstract class Involvement implements api
                 switch (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) {
                     case 1:  // Join Involvement (skip other options because this option is common)
                         break;
+                    case 5:  // Create Account
+                        $text = __('Create Account', TouchPointWP::TEXT_DOMAIN);
+                        break;
                     case 6:  // Choose Volunteer Times
-                        $text = __('Volunteer', TouchPointWP::TEXT_DOMAIN);
+                    case 22: // Volunteer Scheduler
+                        $text = __('Schedule', TouchPointWP::TEXT_DOMAIN);
                         break;
                     case 8:  // Online Giving (legacy)
                     case 9:  // Online Pledge (legacy)
@@ -830,6 +834,9 @@ abstract class Involvement implements api
                         break;
                     case 18: // Record Family Attendance
                         $text = __('Record Attendance', TouchPointWP::TEXT_DOMAIN);
+                        break;
+                    case 21: // Ticketing
+                        $text = __('Get Tickets', TouchPointWP::TEXT_DOMAIN);
                         break;
                 }
                 $link = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
