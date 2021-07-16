@@ -442,7 +442,7 @@ abstract class Involvement implements api
 
             /** @var $post WP_Post */
 
-            $post->post_content = strip_tags($inv->description, "<p><br><a><em><b><i><u><hr>");
+            $post->post_content = strip_tags($inv->description, ['p', 'br', 'a', 'em', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li']);
 
             if ($post->post_title != $inv->name) // only update if there's a change.  Otherwise, urls increment.
             {
