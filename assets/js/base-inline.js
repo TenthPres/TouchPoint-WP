@@ -1,5 +1,6 @@
 const tpvm = {
     involvements: [],
+    meetings: [],
     _events: {},
     people: {},
     _sg: {},

@@ -139,6 +139,8 @@ class TP_Involvement {
     static currentFilters = {};
     static involvements = [];
 
+    static actions = ['join', 'contact'];
+
     constructor(obj) {
         this.name = obj.name;
         this.invId = obj.invId;
@@ -156,7 +158,12 @@ class TP_Involvement {
             for (const ai in actionBtns) {
                 if (!actionBtns.hasOwnProperty(ai)) continue;
                 const action = actionBtns[ai].getAttribute('data-tp-action');
-                actionBtns[ai].addEventListener('click', function(e){e.stopPropagation(); window.activeInv = that; that[action + "Action"]();});
+                if (TP_Involvement.actions.includes(action)) {
+                    actionBtns[ai].addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        that[action + "Action"]();
+                    });
+                }
             }
         }
 
@@ -177,7 +184,7 @@ class TP_Involvement {
             }
 
             if (typeof tpvm.involvements[invArr[i].invId] === "undefined") {
-                ret.push(new this(invArr[i]))
+                ret.push(new TP_Involvement(invArr[i]))
             }
         }
         tpvm.trigger(this.className() + "_fromArray")
@@ -329,6 +336,7 @@ class TP_Involvement {
         }
     }
 
+    // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
     joinAction() {
         let inv = this;
 
@@ -336,7 +344,10 @@ class TP_Involvement {
             ga('send', 'event', inv.invType, 'join btn click', inv.name);
         }
 
-        TP_Person.DoInformalAuth().then((res) => joinUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
+        TP_Person.DoInformalAuth().then(
+            (res) => joinUi(inv, res),
+            () => console.log("Informal auth failed, probably user cancellation.")
+        )
 
         function joinUi(inv, people) {
             if (typeof ga === "function") {
@@ -459,7 +470,6 @@ class TP_Person {
     }
 
     /**
-     *
      * @param array TP_Person[]
      */
     static peopleArrayToCheckboxes(array) {
@@ -474,6 +484,48 @@ class TP_Person {
         }
 
         return out + "</tbody></table></form>"
+    }
+
+    /**
+     * @param array TP_Person[]
+     * @param options string[]
+     * @param defaultPosition int - the Nth position in the options array should be selected by default.
+     */
+    static peopleArrayToRadio(array, options, defaultPosition = -1) {
+        let out = "<form id=\"tp_people_list_radio\"><table class=\"tp-radio-list\"><tbody>"
+
+        // headers
+        out += "<tr>";
+        for (const oi in options) {
+            if (!options.hasOwnProperty(oi)) continue;
+            out += `<th>${options[oi]}</th>`
+        }
+        out += `<th colspan="2"></th></tr>`;
+
+        // people
+        for (const pi in array) {
+            if (!array.hasOwnProperty(pi)) continue;
+            let p = array[pi];
+
+            out += '<tr>'
+            for (const oi in options) {
+                if (!options.hasOwnProperty(oi)) continue;
+                let selected = (parseInt(oi, 10) === defaultPosition ? "selected" : "")
+                out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${options[oi]}" value="${options[oi]}" ${selected} /></td>`
+            }
+            out += `<td><a href="#" class="swal-tp-clear-item" onclick="TP_Person.clearRadio('${p.peopleId}'); return false;">clear</a></td>`
+            out += `<td style="text-align:left; width:50%;">${p.goesBy} ${p.lastName}</td></tr>`
+        }
+
+        return out + "</tbody></table></form>"
+    }
+
+    static clearRadio(name) {
+        let elts = document.getElementsByName(name);
+        for (const ei in elts) {
+            if (!elts.hasOwnProperty(ei)) continue;
+            elts[ei].checked = false;
+        }
     }
 
     /**
@@ -495,9 +547,9 @@ class TP_Person {
         return out + "</select>"
     }
 
-    static async DoInformalAuth() {
+    static async DoInformalAuth(forceAsk = false) {
         return new Promise(function (resolve, reject) {
-            if (tpvm._plausibleUsers.length > 0) {
+            if (tpvm._plausibleUsers.length > 0 && !forceAsk) {
                 resolve(tpvm._plausibleUsers);
             } else {
                 Swal.fire({

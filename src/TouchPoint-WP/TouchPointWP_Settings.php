@@ -190,13 +190,13 @@ class TouchPointWP_Settings
                     'type'        => 'checkbox',
                     'default'     => '',
                 ],
-//                [
-//                    'id'          => 'enable_rsvp',
-//                    'label'       => __('Enable RSVP Tool', 'TouchPoint-WP'),
-//                    'description' => __('Add a crazy-simple RSVP button to WordPress event pages.', 'TouchPoint-WP'),
-//                    'type'        => 'checkbox',
-//                    'default'     => '',
-//                ],
+                [
+                    'id'          => 'enable_rsvp',
+                    'label'       => __('Enable RSVP Tool', 'TouchPoint-WP'),
+                    'description' => __('Add a crazy-simple RSVP button to WordPress event pages.', 'TouchPoint-WP'),
+                    'type'        => 'checkbox',
+                    'default'     => '',
+                ],
                 [
                     'id'          => 'enable_small_groups',
                     'label'       => __('Enable Small Groups', 'TouchPoint-WP'),

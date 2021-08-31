@@ -2,6 +2,20 @@
 
 namespace tp\TouchPointWP;
 
+// TODO sort out what goes here, and what goes in Meetings.
+
+if ( ! defined('ABSPATH')) {
+    exit(1);
+}
+
+use WP_Post; // TODO remove
+use WP_Term;
+
+require_once 'api.iface.php';
+require_once 'Involvement.php';
+require_once 'Meeting.php';
+
+
 /**
  * RSVP class file.
  *
@@ -9,66 +23,54 @@ namespace tp\TouchPointWP;
  * @package tp\TouchPointWP
  */
 
-//if ( ! defined( 'ABSPATH' ) ) { // TODO restore
-//    exit;
-//}
-if ( ! defined('ABSPATH')) {
-    Rsvp::handleApiRequest();
-}
-
 
 /**
- * The Auth-handling class.
+ * The RSVP framework class.
  */
-abstract class Rsvp
+abstract class Rsvp implements api
 {
     public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "RSVP";
-
+    protected static TouchPointWP $tpwp;
     private static bool $_isInitiated = false;
 
-    public static function load(): bool
+    public static function load(TouchPointWP $tpwp): bool
     {
         if (self::$_isInitiated) {
             return true;
         }
-
         self::$_isInitiated = true;
 
+        self::$tpwp = $tpwp;
+
+        add_action('init', [self::class, 'init']);
+
         if ( ! shortcode_exists(self::SHORTCODE)) {
-            add_shortcode(self::SHORTCODE, [self::class, 'shortcode']);
+            add_shortcode(self::SHORTCODE, [self::class, "shortcode"]);
         }
-
-        // Register frontend JS & CSS.
-        add_action('wp_register_scripts', [__CLASS__, 'registerScriptsAndStyles'], 10);
-
-        // Enqueue scripts
-        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueueScripts']);
 
         return true;
     }
 
+
+    /**
+     * Register stuff
+     */
+    public static function init(): void
+    {
+        // register post types
+
+        // add filters
+    }
+
+
+    /**
+     * Register scripts and styles to be used on display pages.
+     */
     public static function registerScriptsAndStyles()
     {
-        wp_register_script(
-            TouchPointWP::SHORTCODE_PREFIX . 'rsvp',
-            TouchPointWP::instance()->assets_url . 'js/rsvp.js',
-            [TouchPointWP::SHORTCODE_PREFIX . 'base'],
-            TouchPointWP::VERSION,
-            true
-        );
+        Meeting::registerScriptsAndStyles();
     }
 
-    public static function unregisterShortcode()
-    {
-        if (shortcode_exists(self::SHORTCODE)) {
-            remove_shortcode(self::SHORTCODE);
-        }
-    }
-
-    public static function enqueueScripts()
-    {
-        TouchPointWP::requireScript('rsvp');
-    }
 
     /**
      * @param array  $params
@@ -78,6 +80,9 @@ abstract class Rsvp
      */
     public static function shortcode(array $params, string $content): string
     {
+        TouchPointWP::requireScript('swal2-defer');
+        TouchPointWP::requireScript('base-defer');
+
         // standardize parameters
         $params = array_change_key_case($params, CASE_LOWER);
 
@@ -100,8 +105,10 @@ abstract class Rsvp
                 TouchPointWP::VERSION
             );
 
-            return "<!-- Can't add an RSVP link without a proper Meeting ID in a meetingId parameter. -->" . $content;
+            return "<!-- Can't add an RSVP link without a proper Meeting ID in a mtgId parameter. -->" . $content;
         }
+
+        TouchPointWP::requireScript('meeting-defer');
 
         $meetingId = (int)($params['meetingid']);
 
@@ -109,20 +116,25 @@ abstract class Rsvp
         $content = do_shortcode($content);
 
 
-        $href = TouchPointWP::instance()->host(
-            ) . "/Meeting/" . $meetingId; // TODO consider options for referring to the registration instead.  Do not make API calls here.
+        $href = "#"; //TODO cleanup. //TouchPointWP::instance()->host() . "/Meeting/" . $mtgId;
 
         // create the link
-        $content = "<a href=\"" . $href . "\" class=\"" . $params['class'] . "\" onclick=\"TouchPointWP.RSVP.btnClick(this)\" onmouseover=\"TouchPointWP.RSVP.preload(this)\" data-touchpoint-mtg=\"$meetingId\">$content</a>";
+        $content = "<a href=\"" . $href . "\" class=\"" . $params['class'] . "\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\">$content</a>";
 
         return $content;
     }
 
-    public static function handleApiRequest()
+    /**
+     * Handle API requests
+     *
+     * @param array $uri The request URI already parsed by parse_url()
+     *
+     * @return bool False if endpoint is not found.  Should print the result.
+     */
+    public static function api(array $uri): bool
     {
-        // TODO this.
-//        wp_remote_post()
-        TouchPointWP::getApiCredentials();
-        echo json_encode($_GET);
+        // todo do something.
+        return false;
     }
+
 }

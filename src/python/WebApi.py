@@ -2,7 +2,7 @@
 
 import re
 
-VERSION = "0.0.3"
+VERSION = "0.0.4"
 
 PersonEvNames = {
 	'geoLat': 'geoLat',
@@ -262,5 +262,40 @@ elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit t
     "{0} sent the following message.  Please reach out to them and mark the task as complete.  <br /><br />{1}".format(p.goesBy, m))
 
     Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
+
+
+elif (Data.a == "mtg"):  # This is a POST request. TODO possibly limit to post?
+    Data.Title = 'Getting Meeting Info'
+    inData = model.JsonDeserialize(Data.data).inputData
+
+    Data.success = q.QuerySql(
+    '''
+    SELECT 	m.meetingId as mtgId,
+    		m.organizationId as invId,
+    		m.location,
+    		m.meetingDate as mtgDate,
+    		m.description,
+    		m.capacity,
+     	   	o.organizationName as invName
+    FROM Meetings m LEFT JOIN Organizations o ON m.organizationId = o.organizationId
+    WHERE MeetingId IN ({})
+    '''.format(inData.mtgRefs)
+    )
+
+elif (Data.a == "mtg_rsvp"):  # This is a POST request. TODO possibly limit to post?
+    Data.Title = 'Recording RSVPs'
+    inData = model.JsonDeserialize(Data.data).inputData
+
+    mid = inData.mtgId
+    Data.success = []
+    if inData.responses.Yes is not None:
+		for pid in inData.responses.Yes:
+			model.EditCommitment(mid, pid, "Attending")
+			Data.success.append(pid)
+
+    if inData.responses.No is not None:
+		for pid in inData.responses.No:
+			model.EditCommitment(mid, pid, "Regrets")
+			Data.success.append(pid)
 
 #

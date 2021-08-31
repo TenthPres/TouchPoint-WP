@@ -24,7 +24,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.3";
+    public const VERSION = "0.0.4";
 
     /**
      * The Token
@@ -111,7 +111,7 @@ class TouchPointWP
     public string $script_suffix;
 
     /**
-     * @var ?bool The RSVP object for the RSVP tool, if feature is enabled.
+     * @var ?bool True after the RSVP feature is loaded.
      */
     protected ?bool $rsvp = null;
 
@@ -316,6 +316,13 @@ class TouchPointWP
                 }
             }
 
+            // Meeting endpoints
+            if ($reqUri['path'][1] === "mtg") {
+                if (!Meeting::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
             // Generate Python Scripts
             if ($reqUri['path'][1] === self::API_ENDPOINT_GENERATE_SCRIPTS &&
                 count($reqUri['path']) === 2 &&
@@ -445,7 +452,7 @@ class TouchPointWP
         // Load RSVP tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
             require_once 'Rsvp.php';
-            $instance->rsvp = Rsvp::load();
+            $instance->rsvp = Rsvp::load($instance);
         }
 
         // Load Small Groups tool if enabled.
@@ -504,9 +511,9 @@ class TouchPointWP
             true
         );
 
-        if ( ! ! $this->auth) {
-            Auth::registerScriptsAndStyles();
-        }
+//        if ( ! ! $this->auth) {
+//            Auth::registerScriptsAndStyles();
+//        }
 
         if ( ! ! $this->rsvp) {
             Rsvp::registerScriptsAndStyles();
