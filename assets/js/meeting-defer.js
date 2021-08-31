@@ -107,7 +107,7 @@ class TP_Meeting {
         showConfirm = !!showConfirm;
 
         if (typeof ga === "function") {
-            ga('send', 'event', 'rsvp', 'rsvp complete', meeting.inv.name);
+            ga('send', 'event', 'rsvp', 'rsvp complete', meeting.mtgId);
         }
 
         let res = await tpvm.postData('mtg/rsvp', {mtgId: meeting.mtgId, responses: data});
@@ -141,7 +141,7 @@ class TP_Meeting {
         let meeting = this;
 
         if (typeof ga === "function") {
-            ga('send', 'event', 'rsvp', 'rsvp btn click', meeting.inv.name);
+            ga('send', 'event', 'rsvp', 'rsvp btn click', meeting.mtgId);
         }
 
         TP_Person.DoInformalAuth(forceAsk).then(
@@ -151,7 +151,7 @@ class TP_Meeting {
 
         function rsvpUi(meeting, people) {
             if (typeof ga === "function") {
-                ga('send', 'event', 'rsvp', 'rsvp userIdentified', meeting.inv.name); // TODO better naming
+                ga('send', 'event', 'rsvp', 'rsvp userIdentified', meeting.mtgId); // TODO better naming
             }
 
             Swal.fire({ // TODO add event time/date/title
