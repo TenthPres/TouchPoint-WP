@@ -174,6 +174,7 @@ class TP_Involvement {
         return this.name.substr(3); // refers to class name, and therefore is accessible.
     }
 
+    // noinspection JSUnusedGlobalSymbols  Used via dynamic instantiation.
     static fromArray(invArr) {
         let ret = [];
         for (const i in invArr) {
@@ -184,7 +185,7 @@ class TP_Involvement {
             }
 
             if (typeof tpvm.involvements[invArr[i].invId] === "undefined") {
-                ret.push(new TP_Involvement(invArr[i]))
+                ret.push(new this(invArr[i]))
             }
         }
         tpvm.trigger(this.className() + "_fromArray")

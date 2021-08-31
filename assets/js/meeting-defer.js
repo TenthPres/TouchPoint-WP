@@ -10,8 +10,6 @@ class TP_Meeting {
     constructor(obj) {
         this.mtgId = obj.mtgId;
 
-        console.log(this);
-
         // this.inv = TP_Involvement.getById(obj.invId); // TODO cleanup.
 
         for (const ei in this.connectedElements) {
@@ -97,7 +95,7 @@ class TP_Meeting {
             }
 
             if (typeof tpvm.meetings[mtgArr[i].mtgId] === "undefined") {
-                ret.push(new TP_Meeting(mtgArr[i]))
+                ret.push(new this(mtgArr[i]))
             }
         }
         tpvm.trigger(this.className() + "_fromArray")
@@ -156,7 +154,7 @@ class TP_Meeting {
                 ga('send', 'event', 'rsvp', 'rsvp userIdentified', meeting.inv.name); // TODO better naming
             }
 
-            Swal.fire({
+            Swal.fire({ // TODO add event time/date/title
                 html: `<p id="swal-tp-text">Who is coming?</p><p class="small swal-tp-instruction">Indicate who is or is not coming.  This will overwrite any existing RSVP.  <br />To avoid overwriting an existing RSVP, leave that person blank.  <br />To protect privacy, we won't show existing RSVPs here.</p></i>` + TP_Person.peopleArrayToRadio(people, ['Yes', 'No']),
                 showConfirmButton: true,
                 showCancelButton: true,
