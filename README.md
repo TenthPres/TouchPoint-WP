@@ -19,26 +19,20 @@ help you with this.
 Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by
 ModernTribe](https://theeventscalendar.com/).  This is compatible with both the free and "Pro" versions.
 
+### Crazy-Simple RSVP interface
+Let folks RSVP for an event for each member in their family (and, optionally, related families) in just a few clicks.
+No login required, just an email address and zip code. 
+
+<!--
 ### Authentication (Beta)
 Authenticate TouchPoint users to WordPress, so you can know your website users.  Optionally, this authentication can
 happen silently in the background, so that if a user is logged into TouchPoint, they are automatically logged into your
 website.
-
-
-<!--
-
-### Crazy-Simple RSVP interface
-Let folks RSVP for an event for each member in their family (and, optionally, related families) in just a few clicks.
-No login required, just an email address and zip code. (If using Authentication, below, you can skip the email and zip 
-code, too.)
-
 -->
 
 ## Future Features
-- Simple RSVP Interface
-    - For events where you only need to know who's coming, allow users to register with just an email and zip code if
-      they're already known to the church.
 - Authenticate
+    - Unify your public web properties with a single login. 
     - Track viewership of webpages and web resources non-anonymously.  (Know who attended your virtual worship service.)
     - Sync WordPress Permissions with TouchPoint involvements or roles.
 - Events (Requires [The Events Calendar from ModernTribe](https://theeventscalendar.com/))
