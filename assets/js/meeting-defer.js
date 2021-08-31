@@ -111,14 +111,24 @@ class TP_Meeting {
         }
 
         let res = await tpvm.postData('mtg/rsvp', {mtgId: meeting.mtgId, responses: data});
-        if (res.success.length > 0) {
-            let s = res.success.length === 1 ? "" : "s";
-            if (showConfirm) {
-                Swal.fire({
-                    icon: 'success',
-                    title: `Response${s} Recorded`,
-                    timer: 3000
-                });
+        if (Array.isArray(res.success)) {
+            if (res.success.length > 0) {
+                let s = res.success.length === 1 ? "" : "s";
+                if (showConfirm) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: `Response${s} Recorded`,
+                        timer: 3000
+                    });
+                }
+            } else {
+                if (showConfirm) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: `No Responses to Record`,
+                        timer: 3000
+                    });
+                }
             }
         } else {
             console.error(res);
