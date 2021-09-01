@@ -41,6 +41,9 @@ if ( have_posts() ) {
     $wp_the_query->set('posts_per_page', -1);
     $wp_the_query->set('nopaging', true);
 
+    $wp_the_query->set('orderby', 'title');
+    $wp_the_query->set('order', 'ASC');
+
     $wp_the_query->get_posts();
     $wp_the_query->rewind_posts();
 
