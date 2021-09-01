@@ -1,6 +1,10 @@
 class TP_Meeting {
 
-    mtgId = "";
+    capacity;
+    description;
+    location;
+    mtgDate;
+    mtgId;
 
     /** @property inv TP_Involvement **/
     inv;
@@ -9,8 +13,12 @@ class TP_Meeting {
 
     constructor(obj) {
         this.mtgId = obj.mtgId;
+        this.mtgDate = obj.mtgDate; // TODO parse
+        this.description = obj.description;
+        this.location = obj.location;
+        this.capacity = obj.capacity;
 
-        // this.inv = TP_Involvement.getById(obj.invId); // TODO cleanup.
+        this.inv = TP_Involvement.fromArray([{name: obj.invName, invId: obj.invId}])[0];
 
         for (const ei in this.connectedElements) {
             if (!this.connectedElements.hasOwnProperty(ei)) continue;
@@ -111,24 +119,14 @@ class TP_Meeting {
         }
 
         let res = await tpvm.postData('mtg/rsvp', {mtgId: meeting.mtgId, responses: data});
-        if (Array.isArray(res.success)) {
-            if (res.success.length > 0) {
-                let s = res.success.length === 1 ? "" : "s";
-                if (showConfirm) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: `Response${s} Recorded`,
-                        timer: 3000
-                    });
-                }
-            } else {
-                if (showConfirm) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: `No Responses to Record`,
-                        timer: 3000
-                    });
-                }
+        if (res.success.length > 0) {
+            let s = res.success.length === 1 ? "" : "s";
+            if (showConfirm) {
+                Swal.fire({
+                    icon: 'success',
+                    title: `Response${s} Recorded`,
+                    timer: 3000
+                });
             }
         } else {
             console.error(res);
@@ -154,7 +152,9 @@ class TP_Meeting {
             ga('send', 'event', 'rsvp', 'rsvp btn click', meeting.mtgId);
         }
 
-        TP_Person.DoInformalAuth(forceAsk).then(
+        let title = "RSVP for " + (meeting.description ?? meeting.inv.name) + "<br />" + meeting.mtgDate;
+
+        TP_Person.DoInformalAuth(title, forceAsk).then(
             (res) => rsvpUi(meeting, res),
             () => console.log("Informal auth failed, probably user cancellation.")
         )
@@ -169,19 +169,29 @@ class TP_Meeting {
                 showConfirmButton: true,
                 showCancelButton: true,
                 showDenyButton: true,
+                title: title,
                 denyButtonText: 'Add Someone Else',
                 confirmButtonText: 'Submit',
                 focusConfirm: false,
                 preConfirm: () => {
                     let form = document.getElementById('tp_people_list_radio'),
-                        inputs = form.querySelectorAll("input"),
+                        hasResponses = false,
                         data = {},
                         entries = Object.fromEntries(new FormData(form));
                     for (const ei in entries) {
                         if (!entries.hasOwnProperty(ei)) continue;
-                        if (typeof data[entries[ei]] === "undefined")
+                        if (typeof data[entries[ei]] === "undefined") {
                             data[entries[ei]] = [];
+                            hasResponses = true;
+                        }
                         data[entries[ei]].push(ei)
+                    }
+
+                    if (!hasResponses) {
+                        let prompt = document.getElementById('swal-tp-text');
+                        prompt.innerText = "Nothing to submit.";
+                        prompt.classList.add('error')
+                        return false;
                     }
 
                     Swal.showLoading();

@@ -273,7 +273,7 @@ elif (Data.a == "mtg"):  # This is a POST request. TODO possibly limit to post?
     SELECT 	m.meetingId as mtgId,
     		m.organizationId as invId,
     		m.location,
-    		m.meetingDate as mtgDate,
+    		FORMAT(m.meetingDate, 'yyyy-MM-ddTHH:mm:ss') as mtgDate,
     		m.description,
     		m.capacity,
      	   	o.organizationName as invName

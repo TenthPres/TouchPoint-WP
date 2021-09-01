@@ -8,13 +8,7 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-use WP_Post; // TODO remove
-use WP_Term;
-
-require_once 'api.iface.php';
-require_once 'Involvement.php';
 require_once 'Meeting.php';
-
 
 /**
  * RSVP class file.
@@ -27,10 +21,9 @@ require_once 'Meeting.php';
 /**
  * The RSVP framework class.
  */
-abstract class Rsvp implements api
+abstract class Rsvp
 {
     public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "RSVP";
-    protected static TouchPointWP $tpwp;
     private static bool $_isInitiated = false;
 
     public static function load(TouchPointWP $tpwp): bool
@@ -39,8 +32,6 @@ abstract class Rsvp implements api
             return true;
         }
         self::$_isInitiated = true;
-
-        self::$tpwp = $tpwp;
 
         add_action('init', [self::class, 'init']);
 
@@ -64,19 +55,12 @@ abstract class Rsvp implements api
 
 
     /**
-     * Register scripts and styles to be used on display pages.
-     */
-    public static function registerScriptsAndStyles()
-    {
-        Meeting::registerScriptsAndStyles();
-    }
-
-
-    /**
      * @param array  $params
      * @param string $content
      *
      * @return string
+     *
+     * TODO resolve how this works with AppEvents
      */
     public static function shortcode(array $params, string $content): string
     {
@@ -105,6 +89,7 @@ abstract class Rsvp implements api
                 TouchPointWP::VERSION
             );
 
+            // TODO alternatives to meetingid
             return "<!-- Can't add an RSVP link without a proper Meeting ID in a mtgId parameter. -->" . $content;
         }
 
@@ -115,26 +100,10 @@ abstract class Rsvp implements api
         // get any nesting
         $content = do_shortcode($content);
 
-
-        $href = "#"; //TODO cleanup. //TouchPointWP::instance()->host() . "/Meeting/" . $mtgId;
+        // TODO create a 'loading' state for when rsvp action isn't available yet
 
         // create the link
-        $content = "<a href=\"" . $href . "\" class=\"" . $params['class'] . "\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\">$content</a>";
-
-        return $content;
-    }
-
-    /**
-     * Handle API requests
-     *
-     * @param array $uri The request URI already parsed by parse_url()
-     *
-     * @return bool False if endpoint is not found.  Should print the result.
-     */
-    public static function api(array $uri): bool
-    {
-        // todo do something.
-        return false;
+        return "<a href=\"#\" onclick=\"return false;\" class=\"" . $params['class'] . "\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\">$content</a>";
     }
 
 }

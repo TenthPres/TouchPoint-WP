@@ -345,7 +345,7 @@ class TP_Involvement {
             ga('send', 'event', inv.invType, 'join btn click', inv.name);
         }
 
-        TP_Person.DoInformalAuth().then(
+        TP_Person.DoInformalAuth(`Join ${inv.name}`).then(
             (res) => joinUi(inv, res),
             () => console.log("Informal auth failed, probably user cancellation.")
         )
@@ -392,7 +392,7 @@ class TP_Involvement {
             ga('send', 'event', inv.invType, 'contact btn click', inv.name);
         }
 
-        TP_Person.DoInformalAuth().then((res) => contactUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
+        TP_Person.DoInformalAuth("Send a Message").then((res) => contactUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
 
         function contactUi(inv, people) {
             if (typeof ga === "function") {
@@ -548,7 +548,7 @@ class TP_Person {
         return out + "</select>"
     }
 
-    static async DoInformalAuth(forceAsk = false) {
+    static async DoInformalAuth(title, forceAsk = false) {
         return new Promise(function (resolve, reject) {
             if (tpvm._plausibleUsers.length > 0 && !forceAsk) {
                 resolve(tpvm._plausibleUsers);
@@ -560,6 +560,7 @@ class TP_Person {
                         '<input type="submit" hidden style="display:none;" /></form>',
                     showConfirmButton: true,
                     showCancelButton: true,
+                    title: title,
                     confirmButtonText: 'Next',
                     focusConfirm: false,
                     didOpen: () => {

@@ -8,9 +8,6 @@ use WP_Error;
 
 abstract class Meeting implements api
 {
-    public int $mtgId; // TODO use or remove.
-
-
     /**
      * Register scripts and styles to be used on display pages.
      */
@@ -23,13 +20,6 @@ abstract class Meeting implements api
             TouchPointWP::VERSION,
             true
         );
-    }
-
-    public function getActionButtons(): string // TODO use or remove
-    {
-        TouchPointWP::requireScript('meeting-defer');
-
-        return "Buttons!";
     }
 
     /**

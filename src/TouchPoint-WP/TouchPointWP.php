@@ -516,7 +516,7 @@ class TouchPointWP
 //        }
 
         if ( ! ! $this->rsvp) {
-            Rsvp::registerScriptsAndStyles();
+            Meeting::registerScriptsAndStyles();
         }
 
         if ( ! ! $this->smallGroups) {
