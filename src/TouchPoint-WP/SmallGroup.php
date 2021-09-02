@@ -40,7 +40,7 @@ class SmallGroup extends Involvement implements api
     // TODO look at moving geo to a Trait or something.
     private static bool $filterJsAdded = false;
     public object $geo;
-
+    
     static protected object $compareGeo;
 
     /**
@@ -109,6 +109,7 @@ class SmallGroup extends Involvement implements api
         }
     }
 
+    // TODO why is this here?
     public static function toFloatOrNull($numeric): ?float
     {
         if (is_numeric($numeric)) {

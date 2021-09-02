@@ -2,6 +2,14 @@
 
 namespace tp\TouchPointWP;
 
+// TODO sort out what goes here, and what goes in Meetings.
+
+if ( ! defined('ABSPATH')) {
+    exit(1);
+}
+
+require_once 'Meeting.php';
+
 /**
  * RSVP class file.
  *
@@ -9,75 +17,56 @@ namespace tp\TouchPointWP;
  * @package tp\TouchPointWP
  */
 
-//if ( ! defined( 'ABSPATH' ) ) { // TODO restore
-//    exit;
-//}
-if ( ! defined('ABSPATH')) {
-    Rsvp::handleApiRequest();
-}
-
 
 /**
- * The Auth-handling class.
+ * The RSVP framework class.
  */
 abstract class Rsvp
 {
     public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "RSVP";
-
     private static bool $_isInitiated = false;
 
-    public static function load(): bool
+    public static function load(TouchPointWP $tpwp): bool
     {
         if (self::$_isInitiated) {
             return true;
         }
-
         self::$_isInitiated = true;
 
+        add_action('init', [self::class, 'init']);
+
         if ( ! shortcode_exists(self::SHORTCODE)) {
-            add_shortcode(self::SHORTCODE, [self::class, 'shortcode']);
+            add_shortcode(self::SHORTCODE, [self::class, "shortcode"]);
         }
-
-        // Register frontend JS & CSS.
-        add_action('wp_register_scripts', [__CLASS__, 'registerScriptsAndStyles'], 10);
-
-        // Enqueue scripts
-        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueueScripts']);
 
         return true;
     }
 
-    public static function registerScriptsAndStyles()
+
+    /**
+     * Register stuff
+     */
+    public static function init(): void
     {
-        wp_register_script(
-            TouchPointWP::SHORTCODE_PREFIX . 'rsvp',
-            TouchPointWP::instance()->assets_url . 'js/rsvp.js',
-            [TouchPointWP::SHORTCODE_PREFIX . 'base'],
-            TouchPointWP::VERSION,
-            true
-        );
+        // register post types
+
+        // add filters
     }
 
-    public static function unregisterShortcode()
-    {
-        if (shortcode_exists(self::SHORTCODE)) {
-            remove_shortcode(self::SHORTCODE);
-        }
-    }
-
-    public static function enqueueScripts()
-    {
-        TouchPointWP::requireScript('rsvp');
-    }
 
     /**
      * @param array  $params
      * @param string $content
      *
      * @return string
+     *
+     * TODO resolve how this works with AppEvents
      */
     public static function shortcode(array $params, string $content): string
     {
+        TouchPointWP::requireScript('swal2-defer');
+        TouchPointWP::requireScript('base-defer');
+
         // standardize parameters
         $params = array_change_key_case($params, CASE_LOWER);
 
@@ -100,29 +89,21 @@ abstract class Rsvp
                 TouchPointWP::VERSION
             );
 
-            return "<!-- Can't add an RSVP link without a proper Meeting ID in a meetingId parameter. -->" . $content;
+            // TODO alternatives to meetingid
+            return "<!-- Can't add an RSVP link without a proper Meeting ID in a mtgId parameter. -->" . $content;
         }
+
+        TouchPointWP::requireScript('meeting-defer');
 
         $meetingId = (int)($params['meetingid']);
 
         // get any nesting
         $content = do_shortcode($content);
 
-
-        $href = TouchPointWP::instance()->host(
-            ) . "/Meeting/" . $meetingId; // TODO consider options for referring to the registration instead.  Do not make API calls here.
+        // TODO create a 'loading' state for when rsvp action isn't available yet
 
         // create the link
-        $content = "<a href=\"" . $href . "\" class=\"" . $params['class'] . "\" onclick=\"TouchPointWP.RSVP.btnClick(this)\" onmouseover=\"TouchPointWP.RSVP.preload(this)\" data-touchpoint-mtg=\"$meetingId\">$content</a>";
-
-        return $content;
+        return "<a href=\"#\" onclick=\"return false;\" class=\"" . $params['class'] . "\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\">$content</a>";
     }
 
-    public static function handleApiRequest()
-    {
-        // TODO this.
-//        wp_remote_post()
-        TouchPointWP::getApiCredentials();
-        echo json_encode($_GET);
-    }
 }
