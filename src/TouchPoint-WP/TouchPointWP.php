@@ -1641,13 +1641,13 @@ class TouchPointWP
 
 
     /**
-     * @param string     $command The thing to post
-     * @param array|null $data Data to post
+     * @param string $command The thing to post
+     * @param mixed  $data Data to post
      *
      * @return object|WP_Error An object that corresponds to the Data python object in TouchPoint, or a WP_Error
      * instance if something went wrong.
      */
-    public function apiPost(string $command, array $data = null)
+    public function apiPost(string $command, $data = null)
     {
         if (!$this->settings->hasValidApiSettings()) {
             return new WP_Error(self::SHORTCODE_PREFIX . "api-settings", "Invalid or incomplete API Settings.");
