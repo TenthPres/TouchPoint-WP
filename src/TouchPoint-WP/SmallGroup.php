@@ -690,7 +690,9 @@ class SmallGroup extends Involvement implements api
      */
     public static function setComparisonGeo(object $geo): void
     {
-        self::$compareGeo = $geo;
+        if (get_class($geo) !== \WP_Error::class) {
+            self::$compareGeo = $geo;
+        }
     }
 
 

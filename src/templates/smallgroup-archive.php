@@ -41,6 +41,7 @@ if ( have_posts() ) {
     $wp_the_query->set('posts_per_page', -1);
     $wp_the_query->set('nopaging', true);
 
+    // TODO move this functionality to a filter so it just happens.
     // Sort alphabetically.  Mostly will be overwritten by geographic sort, if available.
     $wp_the_query->set('orderby', 'title');
     $wp_the_query->set('order', 'ASC');
@@ -50,7 +51,7 @@ if ( have_posts() ) {
 
     $location = TouchPointWP::instance()->geolocate(false);
 
-    if (! ($location instanceof WP_Error) && $location !== false) {
+    if ((get_class($location) !== WP_Error::class) && $location !== false) {
         // we have a viable location. Use it for sorting by distance.
         SmallGroup::setComparisonGeo($location);
     }
