@@ -209,7 +209,7 @@ class SmallGroup extends Involvement implements api
      *
      * @return false|int False on failure, or the number of groups that were updated or deleted.
      */
-    public static function updateFromTouchPoint($verbose = false)
+    public static function updateFromTouchPoint(bool $verbose = false)
     {
         if (count(self::$tpwp->settings->sg_divisions) < 1) {
             // Don't update if there aren't any divisions selected yet.
@@ -353,7 +353,7 @@ class SmallGroup extends Involvement implements api
             );
 
             // TODO move the style to a css file... or something.
-            $content = "<div class=\"TouchPoint-SmallGroup-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0; left: 0; \" id=\"{$mapDivId}\"></div>";
+            $content = "<div class=\"TouchPoint-SmallGroup-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0; left: 0; \" id=\"$mapDivId\"></div>";
         } else {
             $content = "<!-- Error: Small Group map can only be used once per page. -->";
         }
@@ -362,12 +362,22 @@ class SmallGroup extends Involvement implements api
     }
 
     /**
-     * @param array $params
+     * @param array|string $params
      *
      * @return string
      */
-    public static function filterShortcode(array $params): string
+    public static function filterShortcode($params = []): string
     {
+        if (is_string($params)) {
+            _doing_it_wrong(
+                __FUNCTION__,
+                "Descriptive parameters are required for the filter shortcode.",
+                TouchPointWP::VERSION
+            );
+
+            return "<!-- Descriptive parameters are required for the filter shortcode. -->";
+        }
+
         self::requireAllObjectsInJs();
 
         if ( ! self::$filterJsAdded) {
@@ -404,7 +414,7 @@ class SmallGroup extends Involvement implements api
     }
 
     /**
-     * @param array  $params
+     * @param array|string  $params
      * @param string $content
      *
      * @return string
@@ -449,12 +459,10 @@ class SmallGroup extends Involvement implements api
         );
 
 
-        $content = "<div class=\"\" id=\"{$nearbyListId}\" data-bind=\"foreach: nearby\">" . $content . "</div>";
+        $content = "<div class=\"\" id=\"$nearbyListId\" data-bind=\"foreach: nearby\">" . $content . "</div>";
 
         // get any nesting
-        $content = do_shortcode($content);
-
-        return $content;
+        return do_shortcode($content);
     }
 
     /**

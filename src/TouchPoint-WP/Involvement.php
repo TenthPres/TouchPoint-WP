@@ -154,7 +154,7 @@ abstract class Involvement implements api
         return $out;
     }
 
-    public static abstract function filterShortcode(array $params);
+    public static abstract function filterShortcode($params);
 
     /**
      * @param array    $params

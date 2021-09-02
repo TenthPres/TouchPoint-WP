@@ -140,7 +140,7 @@ class TouchPointWP
      *
      * @param string $file
      */
-    protected function __construct($file = '')
+    protected function __construct(string $file = '')
     {
         // Load plugin environment variables.
         $this->file       = $file;
@@ -584,6 +584,7 @@ class TouchPointWP
         }
 
         if (!is_string($ip) || $ip === '') {
+            /** @noinspection SpellCheckingInspection */
             $ipHeaderKeys = [
                 'HTTP_CLIENT_IP',
                 'HTTP_X_FORWARDED_FOR',
@@ -642,7 +643,7 @@ class TouchPointWP
         global $wpdb;
         $tableName = $wpdb->base_prefix . self::TABLE_IP_GEO;
         /** @noinspection SqlResolve */
-        $q = $wpdb->prepare( "SELECT * FROM {$tableName} WHERE ip = %s and updatedDt > (NOW() - INTERVAL 30 DAY)", $ip_pton);
+        $q = $wpdb->prepare("SELECT * FROM $tableName WHERE ip = %s and updatedDt > (NOW() - INTERVAL 30 DAY)", $ip_pton);
         $cache = $wpdb->get_row($q);
         if ($cache) {
             return $cache->data;
@@ -662,8 +663,8 @@ class TouchPointWP
 
         /** @noinspection SqlResolve */
         $q = $wpdb->prepare( "
-            INSERT INTO {$tableName} (ip, updatedDt, data)
-            VALUES ('{$ip_pton}', NOW(), %s) ON DUPLICATE KEY UPDATE updatedDt = NOW(), data = %s;",
+            INSERT INTO $tableName (ip, updatedDt, data)
+            VALUES ('$ip_pton', NOW(), %s) ON DUPLICATE KEY UPDATE updatedDt = NOW(), data = %s;",
         $return, $return);
         $wpdb->query($q);
 
@@ -983,8 +984,6 @@ class TouchPointWP
      * Main TouchPointWP Instance
      *
      * Ensures only one instance of TouchPointWP is loaded or can be loaded.
-     *
-     * @param string $file File instance.
      *
      * @return TouchPointWP instance
      * @see TouchPointWP()
@@ -1324,11 +1323,11 @@ class TouchPointWP
     /**
      * Get the member types currently in use for the named divisions.
      *
-     * @param $divisions
+     * @param string[] $divisions
      *
      * @return array
      */
-    public function getMemberTypesForDivisions($divisions = []): array
+    public function getMemberTypesForDivisions(array $divisions = []): array
     {
         $divisions = implode(",", $divisions);
         $divisions = str_replace('div','', $divisions);
@@ -1635,13 +1634,13 @@ class TouchPointWP
 
 
     /**
-     * @param string $command The thing to post
-     * @param ?array $data Data to post
+     * @param string     $command The thing to post
+     * @param array|null $data Data to post
      *
      * @return object|WP_Error An object that corresponds to the Data python object in TouchPoint, or a WP_Error
      * instance if something went wrong.
      */
-    public function apiPost(string $command, $data = null)
+    public function apiPost(string $command, array $data = null)
     {
         if (!$this->settings->hasValidApiSettings()) {
             return new WP_Error(self::SHORTCODE_PREFIX . "api-settings", "Invalid or incomplete API Settings.");
