@@ -33,7 +33,7 @@ if ( have_posts() ) {
     <header class="archive-header has-text-align-center header-footer-group">
         <div class="archive-header-inner section-inner medium">
             <h1 class="archive-title page-title"><?php echo TouchPointWP::instance()->settings->cs_name_plural; ?></h1>
-            <?php echo Course::filterShortcode([]); ?>
+            <?php echo Course::filterShortcode(); ?>
             <?php if ($description) { ?>
                 <div class="archive-description"><?php echo wp_kses_post(wpautop($description)); ?></div>
             <?php } ?>

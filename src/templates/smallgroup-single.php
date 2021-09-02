@@ -55,7 +55,7 @@ SmallGroup::enqueueTemplateStyle();
             </div>
         </div>
         <div class="smallgroup-detail-cell smallgroup-map-container">
-            <?php echo SmallGroup::mapShortcode([]) ?>
+            <?php echo SmallGroup::mapShortcode() ?>
         </div>
     </div>
 </article>

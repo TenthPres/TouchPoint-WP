@@ -140,7 +140,7 @@ class TouchPointWP
      *
      * @param string $file
      */
-    protected function __construct($file = '')
+    protected function __construct(string $file = '')
     {
         // Load plugin environment variables.
         $this->file       = $file;
@@ -578,14 +578,20 @@ class TouchPointWP
     }
 
     /**
-     * @param ?string $ip To get info for a specific IP, pass it here.
+     * @param mixed $ip To get info for a specific IP, pass it here.  Set to false to only use cached data, and not the IP API.
      *
-     * @return object An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, an object with
+     * @return object|false An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, an object with
      * an 'error' parameter if something went wrong.
      */
     public function geolocate($ip = null): object
     {
-        if ($ip === null) {
+        $useApi = true;
+        if ($ip === false) {
+            $useApi = false;
+        }
+
+        if (!is_string($ip) || $ip === '') {
+            /** @noinspection SpellCheckingInspection */
             $ipHeaderKeys = [
                 'HTTP_CLIENT_IP',
                 'HTTP_X_FORWARDED_FOR',
@@ -607,7 +613,7 @@ class TouchPointWP
             return (object)['error' => 'No usable IP Address.'];
         }
 
-        $return = $this->getIpData($ip);
+        $return = $this->getIpData($ip, $useApi);
 
         if ($return instanceof WP_Error) {
             return (object)['error' => implode(", ", $return->get_error_messages())];
@@ -630,24 +636,29 @@ class TouchPointWP
     /**
      * The underlying IP Data function, which handles caching.
      *
-     * @param $ip
+     * @param string $ip    The IP address to lookup
+     * @param bool $useApi  If false, this won't query the API and will only used cached results.
      *
-     * @return mixed
+     * @return string|false|WP_Error The JSON data.  False if not available, or WP_Error for HTTP errors and such.
      */
-    protected function getIpData($ip)
+    protected function getIpData(string $ip, bool $useApi = true)
     {
         $ip_pton = inet_pton($ip);
+
+        // TODO allow admin to define some static IPs and corresponding locations
 
         global $wpdb;
         $tableName = $wpdb->base_prefix . self::TABLE_IP_GEO;
         /** @noinspection SqlResolve */
-        $q = $wpdb->prepare( "SELECT * FROM {$tableName} WHERE ip = %s and updatedDt > (NOW() - INTERVAL 30 DAY)", $ip_pton);
+        $q = $wpdb->prepare("SELECT * FROM $tableName WHERE ip = %s and updatedDt > (NOW() - INTERVAL 30 DAY)", $ip_pton);
         $cache = $wpdb->get_row($q);
         if ($cache) {
             return $cache->data;
         }
 
-        // TODO allow admin to define some static IPs and corresponding locations
+        if (! $useApi) {
+            return false;
+        }
 
         $return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/");
 
@@ -659,8 +670,8 @@ class TouchPointWP
 
         /** @noinspection SqlResolve */
         $q = $wpdb->prepare( "
-            INSERT INTO {$tableName} (ip, updatedDt, data)
-            VALUES ('{$ip_pton}', NOW(), %s) ON DUPLICATE KEY UPDATE updatedDt = NOW(), data = %s;",
+            INSERT INTO $tableName (ip, updatedDt, data)
+            VALUES ('$ip_pton', NOW(), %s) ON DUPLICATE KEY UPDATE updatedDt = NOW(), data = %s;",
         $return, $return);
         $wpdb->query($q);
 
@@ -980,8 +991,6 @@ class TouchPointWP
      * Main TouchPointWP Instance
      *
      * Ensures only one instance of TouchPointWP is loaded or can be loaded.
-     *
-     * @param string $file File instance.
      *
      * @return TouchPointWP instance
      * @see TouchPointWP()
@@ -1321,11 +1330,11 @@ class TouchPointWP
     /**
      * Get the member types currently in use for the named divisions.
      *
-     * @param $divisions
+     * @param string[] $divisions
      *
      * @return array
      */
-    public function getMemberTypesForDivisions($divisions = []): array
+    public function getMemberTypesForDivisions(array $divisions = []): array
     {
         $divisions = implode(",", $divisions);
         $divisions = str_replace('div','', $divisions);
@@ -1632,13 +1641,13 @@ class TouchPointWP
 
 
     /**
-     * @param string $command The thing to post
-     * @param ?array $data Data to post
+     * @param string     $command The thing to post
+     * @param array|null $data Data to post
      *
      * @return object|WP_Error An object that corresponds to the Data python object in TouchPoint, or a WP_Error
      * instance if something went wrong.
      */
-    public function apiPost(string $command, $data = null)
+    public function apiPost(string $command, array $data = null)
     {
         if (!$this->settings->hasValidApiSettings()) {
             return new WP_Error(self::SHORTCODE_PREFIX . "api-settings", "Invalid or incomplete API Settings.");
