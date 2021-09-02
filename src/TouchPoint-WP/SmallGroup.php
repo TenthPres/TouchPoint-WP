@@ -708,11 +708,11 @@ class SmallGroup extends Involvement implements api
     {
         $ad = $a->getDistance(true);
         if ($a->acceptingNewMembers() !== true) {
-            $ad += 20000;
+            $ad += 30000;
         }
         $bd = $b->getDistance(true);
         if ($b->acceptingNewMembers() !== true) {
-            $bd += 20000;
+            $bd += 30000;
         }
         if ($ad == $bd) {
             return strcasecmp($a->name, $b->name);
