@@ -25,7 +25,7 @@ if ( have_posts() ) {
         <div class="archive-header-inner section-inner medium">
             <h1 class="archive-title page-title"><?php echo TouchPointWP::instance()->settings->sg_name_plural; ?></h1>
             <div class="map smallgroup-map-container"><?php echo SmallGroup::mapShortcode() ?></div>
-            <?php echo SmallGroup::filterShortcode([]); ?>
+            <?php echo SmallGroup::filterShortcode(); ?>
             <?php if ($description) { ?>
                 <div class="archive-description"><?php echo wp_kses_post(wpautop($description)); ?></div>
             <?php } ?>
@@ -41,8 +41,22 @@ if ( have_posts() ) {
     $wp_the_query->set('posts_per_page', -1);
     $wp_the_query->set('nopaging', true);
 
+    // Sort alphabetically.  Mostly will be overwritten by geographic sort, if available.
+    $wp_the_query->set('orderby', 'title');
+    $wp_the_query->set('order', 'ASC');
+
     $wp_the_query->get_posts();
     $wp_the_query->rewind_posts();
+
+    $location = TouchPointWP::instance()->geolocate(false);
+
+    if (! ($location instanceof WP_Error) && $location !== false) {
+        // we have a viable location. Use it for sorting by distance.
+        SmallGroup::setComparisonGeo($location);
+    }
+
+    global $posts;
+    usort($posts, [SmallGroup::class, 'sortPosts']);
 
     while ($wp_the_query->have_posts()) {
         $wp_the_query->the_post();

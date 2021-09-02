@@ -87,7 +87,7 @@ abstract class EventsCalendar implements api
             // Registration Links
             if ($tpDomain !== '' && $dlDomain !== '') {
                 $content = preg_replace(
-                    "/:\/\/{$tpDomain}\/OnlineReg\/([\d]+)/i",
+                    "/:\/\/$tpDomain\/OnlineReg\/([\d]+)/i",
                     "://" . $dlDomain . '/registrations/register/${1}?from={{MOBILE_OS}}',
                     $content
                 );
@@ -96,7 +96,7 @@ abstract class EventsCalendar implements api
             // TODO add setting for style url.  Possibly allow for a template.
             if ($content !== '' && TouchPointWP::instance()->settings->ec_use_standardizing_style === 'on') {
                 $cssUrl = TouchPointWP::instance()->assets_url . 'template/ec-standardizing-style.css?v=' . TouchPointWP::VERSION;
-                $content = "<link rel=\"stylesheet\" href=\"{$cssUrl}\">" . $content;
+                $content = "<link rel=\"stylesheet\" href=\"$cssUrl\">" . $content;
             }
 
             // Not needed for apps, but helpful for diagnostics

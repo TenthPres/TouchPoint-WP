@@ -41,7 +41,7 @@ class SmallGroup extends Involvement implements api
     private static bool $filterJsAdded = false;
     public object $geo;
 
-    // TODO why is this here?
+    static protected object $compareGeo;
 
     /**
      * SmallGroup constructor.
@@ -209,7 +209,7 @@ class SmallGroup extends Involvement implements api
      *
      * @return false|int False on failure, or the number of groups that were updated or deleted.
      */
-    public static function updateFromTouchPoint($verbose = false)
+    public static function updateFromTouchPoint(bool $verbose = false)
     {
         if (count(self::$tpwp->settings->sg_divisions) < 1) {
             // Don't update if there aren't any divisions selected yet.
@@ -353,7 +353,7 @@ class SmallGroup extends Involvement implements api
             );
 
             // TODO move the style to a css file... or something.
-            $content = "<div class=\"TouchPoint-SmallGroup-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0; left: 0; \" id=\"{$mapDivId}\"></div>";
+            $content = "<div class=\"TouchPoint-SmallGroup-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0; left: 0; \" id=\"$mapDivId\"></div>";
         } else {
             $content = "<!-- Error: Small Group map can only be used once per page. -->";
         }
@@ -362,12 +362,22 @@ class SmallGroup extends Involvement implements api
     }
 
     /**
-     * @param array $params
+     * @param array|string $params
      *
      * @return string
      */
-    public static function filterShortcode(array $params): string
+    public static function filterShortcode($params = []): string
     {
+        if (is_string($params)) {
+            _doing_it_wrong(
+                __FUNCTION__,
+                "Descriptive parameters are required for the filter shortcode.",
+                TouchPointWP::VERSION
+            );
+
+            return "<!-- Descriptive parameters are required for the filter shortcode. -->";
+        }
+
         self::requireAllObjectsInJs();
 
         if ( ! self::$filterJsAdded) {
@@ -404,7 +414,7 @@ class SmallGroup extends Involvement implements api
     }
 
     /**
-     * @param array  $params
+     * @param array|string  $params
      * @param string $content
      *
      * @return string
@@ -449,12 +459,10 @@ class SmallGroup extends Involvement implements api
         );
 
 
-        $content = "<div class=\"\" id=\"{$nearbyListId}\" data-bind=\"foreach: nearby\">" . $content . "</div>";
+        $content = "<div class=\"\" id=\"$nearbyListId\" data-bind=\"foreach: nearby\">" . $content . "</div>";
 
         // get any nesting
-        $content = do_shortcode($content);
-
-        return $content;
+        return do_shortcode($content);
     }
 
     /**
@@ -529,6 +537,8 @@ class SmallGroup extends Involvement implements api
     /**
      * Gets an array of ID/Distance pairs for a given lat/lng.
      *
+     * Math from https://stackoverflow.com/a/574736/2339939
+     *
      * @param float|null $lat Longitude
      * @param float|null $lng Longitude
      * @param int        $limit Number of results to return.  0-100 inclusive.
@@ -554,12 +564,11 @@ class SmallGroup extends Involvement implements api
             return null;
         }
 
-        $limit = min(max(intval($limit), 0), 100);
+        $limit = min(max($limit, 0), 100);
 
         global $wpdb;
         $settingsPrefix = TouchPointWP::SETTINGS_PREFIX;
         /** @noinspection SqlResolve */
-        /** @noinspection SpellCheckingInspection */
         $q = $wpdb->prepare(
             "
             SELECT l.Id as post_id,
@@ -646,5 +655,81 @@ class SmallGroup extends Involvement implements api
         TouchPointWP::requireScript('smallgroup-defer');
 
         return parent::getActionButtons();
+    }
+
+
+    /**
+     * Math thanks to https://stackoverflow.com/a/574736/2339939
+     *
+     * @param bool $useHiForFalse Set to true if a high number should be used for distances that can't be computed.  Used for sorting by distance with closest first.
+     *
+     * @return float
+     */
+    public function getDistance(bool $useHiForFalse = false)
+    {
+        if ( ! isset(self::$compareGeo->lat) || ! isset(self::$compareGeo->lng) ||
+             ! isset($this->geo->lat) || ! isset($this->geo->lng) ||
+             $this->geo->lat === null || $this->geo->lng === null) {
+            return $useHiForFalse ? 25000 : false;
+        }
+
+        $latA_r = deg2rad($this->geo->lat);
+        $lngA_r = deg2rad($this->geo->lng);
+        $latB_r = deg2rad(self::$compareGeo->lat);
+        $lngB_r = deg2rad(self::$compareGeo->lng);
+
+        return round(3959 * acos(
+                cos($latA_r) * cos($latB_r) * cos($lngB_r - $lngA_r) + sin($latA_r) * sin($latB_r)
+            ), 1);
+    }
+
+
+    /**
+     * @param object $geo Set a geo object to use for distance comparisons.  Needs to be called before getDistance()
+     */
+    public static function setComparisonGeo(object $geo): void
+    {
+        self::$compareGeo = $geo;
+    }
+
+
+    /**
+     * Put SmallGroup objects in order of increasing distance.  Closed groups go to the end.
+     *
+     * @param SmallGroup $a
+     * @param SmallGroup $b
+     *
+     * @return int
+     */
+    public static function sort(SmallGroup $a, SmallGroup $b): int
+    {
+        $ad = $a->getDistance(true);
+        if ($a->acceptingNewMembers() !== true) {
+            $ad += 20000;
+        }
+        $bd = $b->getDistance(true);
+        if ($b->acceptingNewMembers() !== true) {
+            $bd += 20000;
+        }
+        if ($ad == $bd) {
+            return strcasecmp($a->name, $b->name);
+        }
+        return $ad <=> $bd;
+    }
+
+
+    /**
+     * Put Post objects that represent Small Groups in order of increasing distance.
+     *
+     * @param WP_Post $a
+     * @param WP_Post $b
+     *
+     * @return int
+     */
+    public static function sortPosts(WP_Post $a, WP_Post $b): int
+    {
+        $a = SmallGroup::fromPost($a);
+        $b = SmallGroup::fromPost($b);
+        return SmallGroup::sort($a, $b);
     }
 }

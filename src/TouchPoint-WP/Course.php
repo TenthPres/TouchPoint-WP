@@ -191,12 +191,22 @@ class Course extends Involvement
 
     private static bool $filterJsAdded = false;
     /**
-     * @param array $params
+     * @param array|string $params
      *
      * @return string
      */
-    public static function filterShortcode(array $params): string
+    public static function filterShortcode($params): string
     {
+        if (is_string($params)) {
+            _doing_it_wrong(
+                __FUNCTION__,
+                "Descriptive parameters are required for the filter shortcode.",
+                TouchPointWP::VERSION
+            );
+
+            return "<!-- Descriptive parameters are required for the filter shortcode. -->";
+        }
+
         self::requireAllObjectsInJs();
 
         if (!self::$filterJsAdded) {
