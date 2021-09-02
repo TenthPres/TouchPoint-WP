@@ -571,14 +571,19 @@ class TouchPointWP
     }
 
     /**
-     * @param ?string $ip To get info for a specific IP, pass it here.
+     * @param mixed $ip To get info for a specific IP, pass it here.  Set to false to only use cached data, and not the IP API.
      *
-     * @return object An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, an object with
+     * @return object|false An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, an object with
      * an 'error' parameter if something went wrong.
      */
     public function geolocate($ip = null): object
     {
-        if ($ip === null) {
+        $useApi = true;
+        if ($ip === false) {
+            $useApi = false;
+        }
+
+        if (!is_string($ip) || $ip === '') {
             $ipHeaderKeys = [
                 'HTTP_CLIENT_IP',
                 'HTTP_X_FORWARDED_FOR',
@@ -600,7 +605,7 @@ class TouchPointWP
             return (object)['error' => 'No usable IP Address.'];
         }
 
-        $return = $this->getIpData($ip);
+        $return = $this->getIpData($ip, $useApi);
 
         if ($return instanceof WP_Error) {
             return (object)['error' => implode(", ", $return->get_error_messages())];
@@ -623,13 +628,16 @@ class TouchPointWP
     /**
      * The underlying IP Data function, which handles caching.
      *
-     * @param $ip
+     * @param string $ip    The IP address to lookup
+     * @param bool $useApi  If false, this won't query the API and will only used cached results.
      *
-     * @return mixed
+     * @return string|false|WP_Error The JSON data.  False if not available, or WP_Error for HTTP errors and such.
      */
-    protected function getIpData($ip)
+    protected function getIpData(string $ip, bool $useApi = true)
     {
         $ip_pton = inet_pton($ip);
+
+        // TODO allow admin to define some static IPs and corresponding locations
 
         global $wpdb;
         $tableName = $wpdb->base_prefix . self::TABLE_IP_GEO;
@@ -640,7 +648,9 @@ class TouchPointWP
             return $cache->data;
         }
 
-        // TODO allow admin to define some static IPs and corresponding locations
+        if (! $useApi) {
+            return false;
+        }
 
         $return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/");
 
