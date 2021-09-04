@@ -129,7 +129,7 @@ abstract class Person implements api
 
         switch (strtolower($uri['path'][2])) {
             case "ident":
-                TouchPointWP::noCacheHeaders();
+                TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
                 self::ajaxIdent();
                 exit;
         }

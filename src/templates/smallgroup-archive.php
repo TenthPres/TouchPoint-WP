@@ -54,6 +54,7 @@ if ( have_posts() ) {
     if ((get_class($location) !== WP_Error::class) && $location !== false) {
         // we have a viable location. Use it for sorting by distance.
         SmallGroup::setComparisonGeo($location);
+        TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
     }
 
     global $posts;

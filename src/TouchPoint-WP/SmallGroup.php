@@ -504,12 +504,12 @@ class SmallGroup extends Involvement implements api
 
         switch (strtolower($uri['path'][2])) {
             case "nearby":
-                TouchPointWP::noCacheHeaders();
+                TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
                 self::ajaxNearby();
                 exit;
 
             case "force-sync":
-                TouchPointWP::noCacheHeaders();
+                TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
                 echo self::updateFromTouchPoint(true);
                 exit;
         }

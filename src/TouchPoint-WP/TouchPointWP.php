@@ -71,6 +71,14 @@ class TouchPointWP
     public const TABLE_IP_GEO = self::TABLE_PREFIX . "ipGeo";
 
     /**
+     * Caching
+     */
+    public const CACHE_PUBLIC = 0;
+    public const CACHE_PRIVATE = 10;
+    public const CACHE_NONE = 20;
+    private static int $cacheLevel = self::CACHE_PUBLIC;
+
+    /**
      * The singleton.
      */
     private static ?TouchPointWP $_instance = null;
@@ -218,21 +226,41 @@ class TouchPointWP
         return $this->admin;
     }
 
+
+    public static function setCaching(int $level): void
+    {
+        self::$cacheLevel = max(self::$cacheLevel, $level);
+    }
+
+
+
+
     /**
      * Spit out headers that prevent caching.  Useful for API calls.
      */
-    public static function noCacheHeaders(): void
+    public static function doCacheHeaders(int $cacheLevel = null): void
     {
-        header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-        header("Cache-Control: post-check=0, pre-check=0", false);
-        header("Pragma: no-cache");
+        if ($cacheLevel !== null) {
+            self::setCaching($cacheLevel);
+        }
+
+        switch (self::$cacheLevel) {
+            case self::CACHE_NONE:
+                header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+                header("Cache-Control: post-check=0, pre-check=0", false);
+                header("Pragma: no-cache");
+                break;
+            case self::CACHE_PRIVATE:
+                header("Cache-Control: private, max-age=300");
+                break;
+        }
     }
 
 
     public static function postHeadersAndFiltering(): string
     {
         header('Content-Type: application/json');
-        TouchPointWP::noCacheHeaders();
+        TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             echo json_encode(['error' => 'Only POST requests are allowed.']);
@@ -399,7 +427,7 @@ class TouchPointWP
             return false;
         }
 
-        TouchPointWP::noCacheHeaders();
+        TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
         header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
         header('Content-type: application/zip');
 

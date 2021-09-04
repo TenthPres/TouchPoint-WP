@@ -298,7 +298,7 @@ class Course extends Involvement
         }
 
         if ($uri['path'][2] === "force-sync") {
-            TouchPointWP::noCacheHeaders();
+            TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
             echo self::updateFromTouchPoint(true);
             exit;
         }
