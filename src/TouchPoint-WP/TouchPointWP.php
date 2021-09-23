@@ -251,7 +251,7 @@ class TouchPointWP
                 header("Pragma: no-cache");
                 break;
             case self::CACHE_PRIVATE:
-                header("Cache-Control: private, max-age=300");
+                header("Cache-Control: max-age=300, must-revalidate, private");
                 break;
         }
     }

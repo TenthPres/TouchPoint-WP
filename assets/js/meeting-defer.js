@@ -3,7 +3,8 @@ class TP_Meeting {
     capacity;
     description;
     location;
-    mtgDate;
+    /** @var Date */
+    mtgDateTime = null;
     mtgId;
 
     /** @property inv TP_Involvement **/
@@ -13,7 +14,7 @@ class TP_Meeting {
 
     constructor(obj) {
         this.mtgId = obj.mtgId;
-        this.mtgDate = obj.mtgDate; // TODO parse
+        this.mtgDateTime = new Date(obj.mtgDate);
         this.description = obj.description;
         this.location = obj.location;
         this.capacity = obj.capacity;
@@ -152,7 +153,7 @@ class TP_Meeting {
             ga('send', 'event', 'rsvp', 'rsvp btn click', meeting.mtgId);
         }
 
-        let title = "RSVP for " + (meeting.description ?? meeting.inv.name) + "<br />" + meeting.mtgDate;
+        let title = "RSVP for " + (meeting.description ?? meeting.inv.name) + "<br /><small>" + this.dateTimeString() + "</small>";
 
         TP_Person.DoInformalAuth(title, forceAsk).then(
             (res) => rsvpUi(meeting, res),
@@ -203,6 +204,39 @@ class TP_Meeting {
                 }
             });
         }
+    }
+
+
+    /**
+     * @return string A formatted string for the start date/time
+     */
+    // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
+    dateTimeString() {
+        if (this.mtgDateTime === null) {
+            return null
+        }
+
+        let ret;
+
+        if (this.mtgDateTime.getFullYear() !== (new Date()).getFullYear()) {
+            ret = this.mtgDateTime.toLocaleString('en-US', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric'
+            });
+        } else {
+            ret = this.mtgDateTime.toLocaleString('en-US', {
+                day: 'numeric',
+                month: 'long',
+                // year: 'numeric', // current year isn't needed.
+                hour: 'numeric',
+                minute: 'numeric'
+            });
+        }
+
+        return ret.replace(" PM", "pm").replace(" AM", "am").replace(":00", "");
     }
 }
 TP_Meeting.init();
