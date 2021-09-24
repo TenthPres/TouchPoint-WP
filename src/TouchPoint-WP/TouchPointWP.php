@@ -440,7 +440,7 @@ class TouchPointWP
     {
         echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
         if ($this->smallGroups !== null) {
-            echo SmallGroup::getJsInstantiationString();
+            echo SmallGroup::getJsInstantiationString(); // TODO this supposed error is not an error.
         }
         if ($this->courses !== null) {
             echo Involvement::getJsInstantiationString();
@@ -1362,31 +1362,41 @@ class TouchPointWP
      *
      * @return array
      */
-    public function getMemberTypesForDivisions(array $divisions = []): array
+    public function getMemberTypesForDivisions(array $divisions = []): array // TODO figure out why this is getting called on ALL admin pages.
     {
         $divisions = implode(",", $divisions);
         $divisions = str_replace('div','', $divisions);
 
-        // TODO caching.
+        $mtObj = $this->settings->get('meta_memberTypes');
+        $needsUpdate = false;
+        $divKey = "div" . str_replace(",", "_", $divisions);
 
-        try {
-            $return = $this->apiGet('MemTypes', ['divs' => $divisions]);
-        } catch (TouchPointWP_Exception $e) {
+        if ($mtObj === false) {
+            $needsUpdate = true;
+            $mtObj = (object)[];
+        } else {
+            $mtObj = json_decode($mtObj);
+            if (!isset($mtObj->$divKey)) {
+                $needsUpdate = true;
+            } else if (strtotime($mtObj->$divKey->_updated) < time() - 3600 * 2 || ! is_array($mtObj->$divKey->memTypes)) {
+                $needsUpdate = true;
+            }
+        }
+
+        if ($needsUpdate) {  // potentially move to cron
+            $mtObj->$divKey = $this->getMemberTypesForDivisions_fromApi($divisions);
+
+            $needsUpdate = ! $this->settings->set('meta_memberTypes', json_encode($mtObj));
+        }
+
+        // If update failed, show a notice on the admin interface.
+        if ($needsUpdate || ! $mtObj) {
+            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
+
             return [];
         }
 
-        if ($return instanceof WP_Error) {
-            return [];
-        }
-
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message") || ! is_array($body->data->memTypes)) {
-            // an error happened; fail quietly.
-            return [];
-        }
-
-        return $body->data->memTypes;
+        return $mtObj->$divKey->memTypes;
     }
 
     public function getMemberTypesForDivisionsAsKVArray($divisions = []): array
@@ -1482,6 +1492,35 @@ class TouchPointWP
         $this->settings->set("meta_divisions", json_encode($obj));
 
         return $obj;
+    }
+
+
+    /**
+     * @return false|object Get new MemberTypes for a Division.  Does not cache them.
+     */
+    private function getMemberTypesForDivisions_fromApi($divisions)
+    {
+        try {
+            $return = $this->apiGet('MemTypes', ['divs' => $divisions]);
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
+
+        if ($return instanceof WP_Error) {
+            return false;
+        }
+
+        $body = json_decode($return['body']);
+
+        if (property_exists($body, "message") || ! is_array($body->data->memTypes)) {
+            // an error happened; fail quietly.
+            return false;
+        }
+
+        return (object)[
+            '_updated' => date('c'),
+            'memTypes'     => $body->data->memTypes
+        ];
     }
 
 
