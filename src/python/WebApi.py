@@ -232,7 +232,7 @@ elif (Data.a == "inv_join"):  # This is a POST request. TODO possibly limit to p
             model.AddMemberToOrg(p.peopleId, oid)
             org = model.GetOrganization(oid)
             model.SetMemberType(p.peopleId, oid, "Prospect")
-            model.CreateTask(orgContactPid, p.peopleId, "New Person for {0}".format(org.name), "{0} is interested in joining {1}.  Please reach out to them and mark the task as complete. ".format(p.goesBy, org.name))
+            model.CreateTaskNote(defaultSgTaskDelegatePid, p.peopleId, orgContactPid, None, False, "{0} is interested in joining {1}.  Please reach out to them and mark the task as complete. ".format(p.goesBy, org.name), None, None, [2, 4, 5])
 
 	Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 
@@ -257,9 +257,13 @@ elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit t
     p = inData.fromPerson
     m = inData.message
     org = model.GetOrganization(oid)
-    model.CreateTask(orgContactPid, p.peopleId,
-    "Online Contact Form: {0}".format(org.name),
-    "{0} sent the following message.  Please reach out to them and mark the task as complete.  <br /><br />{1}".format(p.goesBy, m))
+
+    model.CreateTaskNote(defaultSgTaskDelegatePid, p.peopleId, orgContactPid, None, False,
+    """Online Contact Form: {0}
+    {1} sent the following message.  Please reach out to them and mark the task as complete.
+
+    {2}""".format(org.name, p.goesBy, m),
+    None, None, [2, 4, 6])
 
     Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 

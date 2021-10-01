@@ -306,7 +306,7 @@ class TouchPointWP_Settings
             && $this->hasValidApiSettings()) {
             /** @noinspection HtmlUnknownTarget */
             $this->settings['basic']['fields'][] = [
-                'id'          => 'generate-scripts',
+                'id'          => 'generate-scripts', // TODO figure out how to prevent this from saving as a setting.
                 'label'       => __('Generate Scripts', 'TouchPoint-WP'),
                 'type'    => 'instructions',
                 'description' => strtr(
