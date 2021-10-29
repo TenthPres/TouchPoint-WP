@@ -227,15 +227,32 @@ elif (Data.a == "inv_join"):  # This is a POST request. TODO possibly limit to p
 
     Data.success = []
 
+    addPeople = []
     for p in inData.people:
         if not model.InOrg(p.peopleId, oid):
             model.AddMemberToOrg(p.peopleId, oid)
-            org = model.GetOrganization(oid)
             model.SetMemberType(p.peopleId, oid, "Prospect")
-            model.CreateTaskNote(defaultSgTaskDelegatePid, p.peopleId, orgContactPid, None, False, "{0} is interested in joining {1}.  Please reach out to them and mark the task as complete. ".format(p.goesBy, org.name), None, None, [2, 4, 5])
+            addPeople.append(model.GetPerson(p.peopleId))
+        Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 
-	Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
+    if len(addPeople) > 0:
+        org = model.GetOrganization(oid)
+        names = " & ".join(p.FirstName for p in addPeople)  # TODO develop a better name listing mechanism for python.
+        pidStr = "(P" + ") (P".join(str(p.PeopleId) for p in addPeople) + ")"
+        model.CreateTaskNote(defaultSgTaskDelegatePid,
+            addPeople[0].PeopleId,
+            orgContactPid,
+            None,
+            False,
+            """**{0} {2} interested in joining {1}**. Please reach out to welcome them and mark the task as complete.
 
+They have also been added to your roster as prospective members.  Please move them to being a member of the group when appropriate.
+
+{3}
+""".format(names, org.name, "is" if len(addPeople) == 1 else "are", pidStr),
+	    	None,
+	    	None,
+	    	[2, 4, 5])  # keyword IDs
 
 elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit to post?
 	# TODO potentially merge with Join function.  Much of the code is duplicated.
@@ -259,10 +276,11 @@ elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit t
     org = model.GetOrganization(oid)
 
     model.CreateTaskNote(defaultSgTaskDelegatePid, p.peopleId, orgContactPid, None, False,
-    """Online Contact Form: {0}
-    {1} sent the following message.  Please reach out to them and mark the task as complete.
+    """**Online Contact Form: {0}**
 
-    {2}""".format(org.name, p.goesBy, m),
+{1} sent the following message.  Please reach out to them and mark the task as complete.
+
+    {2}""".format(org.name, p.goesBy, str(m).replace("\n", "\n    ")),  # being indented causes section to be treated like code
     None, None, [2, 4, 6])
 
     Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
