@@ -42,6 +42,11 @@ elif (Data.a == "Genders"):
 	Data.title = "All Genders"
 	Data.genders = q.QuerySql(rcSql, {})
 
+elif (Data.a == "Keywords"):
+	rcSql = '''SELECT Id, Code, Description as Name FROM Keyword'''
+	Data.title = "All Keywords"
+	Data.keywords = q.QuerySql(rcSql, {})
+
 elif (Data.a == "InvsForDivs"):
 	regex = re.compile('[^0-9\,]')
 	divs = regex.sub('', Data.divs)
