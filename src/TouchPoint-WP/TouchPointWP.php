@@ -291,7 +291,7 @@ class TouchPointWP
         if ($continue) {
             $reqUri = parse_url(trim($_SERVER['REQUEST_URI'], '/'));
 
-            $reqUri['path'] = explode("/", $reqUri['path']);
+            $reqUri['path'] = explode("/", $reqUri['path'] ?? "");
 
             if (count($reqUri['path']) < 2 || strtolower($reqUri['path'][0]) !== self::API_ENDPOINT) {
                 return $continue;
