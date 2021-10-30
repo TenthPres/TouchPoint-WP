@@ -533,7 +533,7 @@ class TouchPointWP
 
     public function registerScriptsAndStyles(): void
     {
-        // Register scripts that exist for all modules.  Base (inline) is not registered because it's handled in a head action.
+        // Register scripts that exist for all modules.
         wp_register_script(
             self::SHORTCODE_PREFIX . 'base',
             '',
@@ -550,7 +550,7 @@ class TouchPointWP
         wp_register_script(
             self::SHORTCODE_PREFIX . 'base-defer',
             $this->assets_url . 'js/base-defer.js',
-            ['base'],
+            [self::SHORTCODE_PREFIX . 'base'],
             self::VERSION,
             true
         );
@@ -564,7 +564,7 @@ class TouchPointWP
         );
 
         wp_register_script(
-            TouchPointWP::SHORTCODE_PREFIX . "knockout-defer",
+            self::SHORTCODE_PREFIX . "knockout-defer",
             "https://ajax.aspnetcdn.com/ajax/knockout/knockout-3.5.0.js",
             [],
             '3.5.0',
