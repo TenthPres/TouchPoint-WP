@@ -422,7 +422,7 @@ class SmallGroup extends Involvement implements api
      */
     public static function nearbyShortcode($params = [], string $content = ""): string
     {
-        TouchPointWP::requireScript("knockout");
+        TouchPointWP::requireScript("knockout-defer");
         TouchPointWP::requireScript("smallgroup-defer");
 
         if ($params === '') {

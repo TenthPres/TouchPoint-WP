@@ -198,6 +198,16 @@ class TouchPointWP_Settings
                     'default'     => '',
                 ],
                 [
+                    'id'          => 'enable_involvements',
+                    'label'       => __('Enable Involvements', 'TouchPoint-WP'),
+                    'description' => __(
+                        'Load Involvements from TouchPoint for involvement listings and entries native in your website.',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'checkbox',
+                    'default'     => '',
+                ],
+                [ // TODO remove.  Also delete existing settings.
                     'id'          => 'enable_small_groups',
                     'label'       => __('Enable Small Groups', 'TouchPoint-WP'),
                     'description' => __(
@@ -207,7 +217,7 @@ class TouchPointWP_Settings
                     'type'        => 'checkbox',
                     'default'     => '',
                 ],
-                [
+                [ // TODO remove.  Also delete existing settings.
                     'id'          => 'enable_courses',
                     'label'       => __('Enable Courses', 'TouchPoint-WP'),
                     'description' => __(
@@ -397,6 +407,29 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         ),
                         'type'        => 'checkbox',
                         'default'     => '',
+                    ],
+                ],
+            ];
+        }
+
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on" || $includeAll) {
+            $this->settings['involvements'] = [
+                'title'       => __('Involvements', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Import Involvements from TouchPoint to your website, for Small Groups, Classes, and more.  You do not need to import an involvement here to use the RSVP tool.', TouchPointWP::TEXT_DOMAIN),
+                'fields'      => [
+                    [
+                        'id'          => 'inv_json', // involvement settings json (stored as a json string)
+                        'type'        => 'textarea',
+                        'label'       => __('Involvement Posts', 'TouchPoint-WP'),
+                        'default'     => '{}',
+                        'hidden'      => true,
+                        'description' => function() {
+                            TouchPointWP::requireScript("base");
+                            TouchPointWP::requireScript("knockout-defer");
+                            ob_start();
+                            include TouchPointWP::$dir . "/src/templates/admin/invKoForm.php";
+                            return ob_get_clean();
+                        }
                     ],
                 ],
             ];
@@ -615,7 +648,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
         $this->settings['divisions'] = [
             'title'       => __('Divisions', TouchPointWP::TEXT_DOMAIN),
-            'description' => __('Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify Small Groups and users.', TouchPointWP::TEXT_DOMAIN),
+            'description' => __('Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', TouchPointWP::TEXT_DOMAIN),
             'fields'      => [
                 [
                     'id'          => 'dv_name_plural',
@@ -668,7 +701,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
         $this->settings['resident_codes'] = [
             'title'       => __('Resident Codes', TouchPointWP::TEXT_DOMAIN),
-            'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify Small Groups and users.', TouchPointWP::TEXT_DOMAIN),
+            'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify and users and involvements that have locations.', TouchPointWP::TEXT_DOMAIN),
             'fields'      => [
                 [
                     'id'          => 'rc_name_plural',
@@ -1064,9 +1097,11 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         $validation['sanitize_callback'] = $field['callback'];
                     }
 
-                    // Register field.
-                    $option_name = TouchPointWP::SETTINGS_PREFIX . $field['id'];
-                    register_setting($this->parent::TOKEN . '_Settings', $option_name, $validation);
+                    // Register field.  Don't register settings that aren't settings and shouldn't be set.
+//                    if ($field['type'] == 'instructions') {
+                        $option_name = TouchPointWP::SETTINGS_PREFIX . $field['id'];
+                        register_setting($this->parent::TOKEN . '_Settings', $option_name, $validation);
+//                    }  TODO revisit
 
                     // Add field to page.
                     add_settings_field(

@@ -351,7 +351,15 @@ class TouchPointWP
                 }
             }
 
-            // Generate Python Scripts
+            // Admin endpoints
+            if ($reqUri['path'][1] === "admin") {
+                self::admin(); // initialize the instance.
+                if (!TouchPointWP_AdminAPI::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
+            // Generate Python Scripts TODO move to admin
             if ($reqUri['path'][1] === self::API_ENDPOINT_GENERATE_SCRIPTS &&
                 count($reqUri['path']) === 2 &&
                 current_user_can('administrator')) {
@@ -512,23 +520,39 @@ class TouchPointWP
 
         // If any slugs have changed, flush.  Only executes if already enqueued.
         self::instance()->flushRewriteRules();
+
+        self::requireScript("base");
+    }
+
+    public static function renderBaseInlineScript(): void
+    {
+        echo "<script type=\"text/javascript\" id=\"base-inline\">";
+        echo file_get_contents(self::instance()->assets_dir . '/js/base-inline.js');
+        echo "</script>";
     }
 
     public function registerScriptsAndStyles(): void
     {
-        // Register scripts that exist for all modules
+        // Register scripts that exist for all modules.  Base (inline) is not registered because it's handled in a head action.
+        wp_register_script(
+            self::SHORTCODE_PREFIX . 'base',
+            '',
+            [],
+            self::VERSION,
+            false
+        );
+        wp_add_inline_script(
+            self::SHORTCODE_PREFIX . 'base',
+            file_get_contents($this->assets_dir . '/js/base-inline.js'),
+            'before'
+        );
+
         wp_register_script(
             self::SHORTCODE_PREFIX . 'base-defer',
             $this->assets_url . 'js/base-defer.js',
-            [],
+            ['base'],
             self::VERSION,
             true
-        );
-
-        wp_add_inline_script(
-            self::SHORTCODE_PREFIX . 'base-defer',
-            file_get_contents($this->assets_dir . '/js/base-inline.js'),
-            'before'
         );
 
         wp_register_script(
@@ -536,6 +560,14 @@ class TouchPointWP
             "//cdn.jsdelivr.net/npm/sweetalert2@10",
             [],
             self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            TouchPointWP::SHORTCODE_PREFIX . "knockout-defer",
+            "https://ajax.aspnetcdn.com/ajax/knockout/knockout-3.5.0.js",
+            [],
+            '3.5.0',
             true
         );
 
@@ -553,11 +585,22 @@ class TouchPointWP
     }
 
     private static array $enqueuedScripts = [];
-    public static function requireScript($name): void
+    public static function requireScript($name = "base"): void
     {
-        if (!in_array($name, self::$enqueuedScripts)) {
-            self::$enqueuedScripts[] = $name;
-            wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . $name);
+        if ( ! in_array("base", self::$enqueuedScripts)) {
+            self::$enqueuedScripts[] = "base";
+            if (is_admin()) {
+                add_action('admin_head', [self::class, "renderBaseInlineScript"]);
+            } else {
+                add_action('wp_head', [self::class, "renderBaseInlineScript"]);
+            }
+        }
+
+        if ($name !== "base") {
+            if ( ! in_array($name, self::$enqueuedScripts)) {
+                self::$enqueuedScripts[] = $name;
+                wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . $name);
+            }
         }
     }
 
@@ -1399,6 +1442,12 @@ class TouchPointWP
         return $mtObj->$divKey->memTypes;
     }
 
+    /**
+     * Format the list of member types for a given set of divisions into an array with form-name-friendly IDs as the key.
+     *
+     * @deprecated TODO remove
+     * @return string[]
+     */
     public function getMemberTypesForDivisionsAsKVArray($divisions = []): array
     {
         $r = [];
@@ -1412,6 +1461,7 @@ class TouchPointWP
     /**
      * Format the list of divisions into an array with form-name-friendly IDs as the key.
      *
+     * @deprecated TODO remove
      * @return string[]
      */
     public function getDivisionsAsKVArray(): array
@@ -1665,6 +1715,74 @@ class TouchPointWP
         return $obj;
     }
 
+    /**
+     * Returns an array of objects that correspond to keywords.  Each Keyword has a name and an id.
+     *
+     * @returns object[]
+     */
+    public function getKeywords(): array
+    {
+        $kObj = $this->settings->get('meta_keywords');
+
+        $needsUpdate = false;
+        if ($kObj === false || $kObj === null) {
+            $needsUpdate = true;
+        } else {
+            $kObj = json_decode($kObj);
+            if (strtotime($kObj->_updated) < time() - 3600 * 2 || ! is_array($kObj->genders)) {
+                $needsUpdate = true;
+            }
+        }
+
+        // Get update if needed.
+        if ($needsUpdate) {
+            $kObj = $this->updateKeywords();
+        }
+
+        // If update failed, show a notice on the admin interface.
+        if ($kObj === false) {
+            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
+
+            return [];
+        }
+
+        return $kObj->keywords;
+    }
+
+    /**
+     * @return false|object Update the keywords if they're stale.
+     */
+    private function updateKeywords()
+    {
+        try {
+            $return = $this->apiGet('Keywords');
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
+
+        if ($return instanceof WP_Error) {
+            return false;
+        }
+
+        $body = json_decode($return['body']);
+
+        if (property_exists($body, "message")) {
+            return false;
+        }
+
+        if ( ! is_array($body->data->genders)) {
+            return false;
+        }
+
+        $obj = (object)[
+            '_updated' => date('c'),
+            'keywords'     => $body->data->keywords
+        ];
+
+        $this->settings->set("meta_keywords", json_encode($obj));
+
+        return $obj;
+    }
 
     /**
      * @param string $command The thing to get
@@ -1705,7 +1823,6 @@ class TouchPointWP
             ]
         );
     }
-
 
     /**
      * @param string $command The thing to post

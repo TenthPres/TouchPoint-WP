@@ -63,7 +63,6 @@ abstract class Involvement implements api
                     esc_attr(TouchPointWP::VERSION)
                 );
 
-            /** @noinspection PhpFieldAssignmentTypeMismatchInspection  The type is correct. */
             $this->post = get_post($object, "OBJECT");
 
             foreach ($object as $property => $value) {
@@ -355,13 +354,7 @@ abstract class Involvement implements api
      */
     public static function registerScriptsAndStyles(): void
     {
-        wp_register_script(
-            TouchPointWP::SHORTCODE_PREFIX . "knockout",
-            "https://ajax.aspnetcdn.com/ajax/knockout/knockout-3.5.0.js",
-            [],
-            '3.5.0',
-            true
-        );
+        // todo remove?
     }
 
     /**

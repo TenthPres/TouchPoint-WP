@@ -15,13 +15,33 @@ if ( ! defined('ABSPATH')) {
 /**
  * Admin API class.
  */
-class TouchPointWP_AdminAPI {
+class TouchPointWP_AdminAPI implements api {
 
     /**
      * Constructor function
      */
     public function __construct() {
 //        add_action( 'save_post', array( $this, 'save_meta_boxes' ), 10, 1 );
+    }
+
+    /**
+     * Handle API requests
+     *
+     * @param array $uri The request URI already parsed by parse_url()
+     *
+     * @return bool False if endpoint is not found.  Should print the result.
+     */
+    public static function api(array $uri): bool
+    {
+        switch (strtolower($uri['path'][2])) {
+            case "memtypes":
+                $divs = explode(",", $_GET['divs']);
+                $mt = TouchPointWP::instance()->getMemberTypesForDivisions($divs);
+                echo json_encode($mt);
+                exit;
+        }
+
+        return false;
     }
 
     /**
@@ -80,6 +100,11 @@ class TouchPointWP_AdminAPI {
 
         $html = '';
 
+        // if field is hidden, hide!
+        if (array_key_exists('hidden', $field) && $field['hidden']) {
+            $html .= "<div style=\"display:none\">";
+        }
+
         switch ( $field['type'] ) {
 
             case 'text':
@@ -100,15 +125,24 @@ class TouchPointWP_AdminAPI {
                 if ( isset( $field['max'] ) ) {
                     $max = ' max="' . esc_attr( $field['max'] ) . '"';
                 }
-                $html .= '<input id="' . esc_attr( $field['id'] ) . '" type="' . esc_attr( $field['type'] ) . '" name="' . esc_attr( $option_name ) . '" placeholder="' . esc_attr( $field['placeholder'] ) . '" value="' . esc_attr( $data ) . '"' . $min . '' . $max . '/>' . "\n";
+                $html .= '<input id="' . esc_attr( $field['id'] ) .
+                         '" type="' . esc_attr( $field['type'] ) .
+                         '" name="' . esc_attr( $option_name ) .
+                         (array_key_exists('placeholder', $field) ? '" placeholder="' . esc_attr( $field['placeholder'] ) : "") .
+                         '" value="' . esc_attr( $data ) .
+                         '"' . $min . '' . $max . '/>' . "\n";
                 break;
 
             case 'text_secret':
-                $html .= '<input id="' . esc_attr( $field['id'] ) . '" type="text" name="' . esc_attr( $option_name ) . '" placeholder="' . esc_attr( $field['placeholder'] ) . '" value="" />' . "\n";
+                $html .= '<input id="' . esc_attr( $field['id'] ) . '" type="text" name="' . esc_attr( $option_name ) .
+                         (array_key_exists('placeholder', $field) ? '" placeholder="' . esc_attr( $field['placeholder'] ) : "") .
+                         '" value="" />' . "\n";
                 break;
 
             case 'textarea':
-                $html .= '<textarea id="' . esc_attr( $field['id'] ) . '" rows="5" cols="50" name="' . esc_attr( $option_name ) . '" placeholder="' . esc_attr( $field['placeholder'] ) . '">' . $data . '</textarea><br/>' . "\n";
+                $html .= '<textarea id="' . esc_attr( $field['id'] ) . '" rows="5" cols="50" name="' . esc_attr( $option_name ) .
+                         (array_key_exists('placeholder', $field) ? '" placeholder="' . esc_attr( $field['placeholder'] ) : "") .
+                         '">' . $data . '</textarea><br/>' . "\n";
                 break;
 
             case 'checkbox':
@@ -196,12 +230,23 @@ class TouchPointWP_AdminAPI {
 
         }
 
+        $description = null;
+        if (array_key_exists('description', $field)) {
+            $description = $field['description'];
+
+            if (is_callable($description)) {
+                $description = call_user_func($description);
+            }
+        }
+
         switch ( $field['type'] ) {
 
             case 'checkbox_multi':
             case 'radio':
             case 'select_multi':
-                $html .= '<br/><span class="description">' . $field['description'] . '</span>';
+                if ($description !== null && (!array_key_exists('hidden', $field) || !$field['hidden'])) {
+                    $html .= '<br/><span class="description">' . $description . '</span>';
+                }
                 break;
 
             default:
@@ -209,12 +254,23 @@ class TouchPointWP_AdminAPI {
                     $html .= '<label for="' . esc_attr( $field['id'] ) . '">' . "\n";
                 }
 
-                $html .= '<span class="description">' . $field['description'] . '</span>' . "\n";
+                if ($description != null && (!array_key_exists('hidden', $field) || !$field['hidden'])) {
+                    $html .= '<span class="description">' . $description . '</span>' . "\n";
+                }
 
                 if ( ! $post ) {
                     $html .= '</label>' . "\n";
                 }
                 break;
+        }
+
+        // if field is hidden, hide. But, show a description if there is one.
+        if (array_key_exists('hidden', $field) && $field['hidden']) {
+            $html .= "</div>";
+
+            if ($description !== null) {
+                $html .= '<div class="description">' . $description . '</div>' . "\n";
+            }
         }
 
         if ( ! $echo ) {
@@ -251,11 +307,9 @@ class TouchPointWP_AdminAPI {
         // Python files generated via PHP
         ob_start();
         // Set variables for scripts
-        /** @noinspection PhpUnusedLocalVariableInspection */
         $host = get_site_url();
         foreach ( glob($directory . '*.php') as $file ) {
-            /** @noinspection PhpIncludeInspection */
-            include $file; // SOMEDAY This really should be in a sandbox if that were possible.
+            include $file; // TODO SOMEDAY This really should be in a sandbox if that were possible.
             $fn = substr($file, $fnIndex, -3) . "py";
             $content = ob_get_clean();
             $z->addFromString($fn, $content);
