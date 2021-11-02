@@ -541,11 +541,6 @@ class TouchPointWP
             self::VERSION,
             false
         );
-        wp_add_inline_script(
-            self::SHORTCODE_PREFIX . 'base',
-            file_get_contents($this->assets_dir . '/js/base-inline.js'),
-            'before'
-        );
 
         wp_register_script(
             self::SHORTCODE_PREFIX . 'base-defer',
