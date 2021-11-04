@@ -1,0 +1,7 @@
+<div class="small-group-summary resource-listing">
+    <h3 class="resource-title">
+        <a onclick="ga('send', 'event', this.getAttribute('data-inv-type'), 'finder click', this.innerText)"
+           data-bind="text: name, attr: { href: path, 'data-inv-type': invType }"></a>
+    </h3>
+    <p><small><span data-bind="text: distance"></span>mi &sdot; <span data-bind="text: schedule"></span></small></p>
+</div>

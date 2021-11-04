@@ -5,7 +5,7 @@ const tpvm = {
     _events: {},
     _eventsTriggered: [],
     people: {},
-    _sg: {},
+    _invNear: {},
     _plausibleUsers: [],
     addEventListener: function(name, f) {
         if (typeof this._events[name] === "undefined")

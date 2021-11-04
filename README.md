@@ -11,9 +11,9 @@ help you with this.
 - Suggest Small Groups physically nearby based on geolocation.
 - Allow website guests to easily contact leaders or join a group, without exposing leaders' contact info publicly.
 
-### Course List
-- Publish a list of Classes (Sunday School, etc), with dynamic filtering similar to Small Groups.
-- Allow website guests to easily contact teachers or join a class, without exposing leaders' contact info publicly. 
+### Involvement Lists
+- Publish lists of classes or programs that correspond to Involvements, with dynamic filtering similar to Small Groups.
+- Allow website guests to easily contact leaders or join an involvement, without exposing leaders' contact info publicly. 
 
 ### Events
 Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by

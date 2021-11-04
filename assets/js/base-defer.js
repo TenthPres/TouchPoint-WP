@@ -132,18 +132,24 @@ class TP_Involvement {
     name = "";
     invId = "";
     _visible = true;
-    invType = "involvement"; // Can be set to something more specific like 'smallgroup'
+    invType = "involvement"; // overwritten by constructor
 
     attributes = {};
+
+    mapMarker = null;
+    geo = {};
 
     static currentFilters = {};
     static involvements = [];
 
     static actions = ['join', 'contact'];
 
+    static mapMarkers = {};
+
     constructor(obj) {
         this.name = obj.name;
         this.invId = obj.invId;
+        this.invType = obj.invType;
 
         this.attributes = obj.attributes ?? null;
 
@@ -167,11 +173,9 @@ class TP_Involvement {
             }
         }
 
-        tpvm.involvements[this.invId] = this;
-    }
+        this.geo = obj.geo ?? null;
 
-    static className() {
-        return this.name.substr(3); // refers to class name, and therefore is accessible.
+        tpvm.involvements[this.invId] = this;
     }
 
     // noinspection JSUnusedGlobalSymbols  Used via dynamic instantiation.
@@ -188,23 +192,21 @@ class TP_Involvement {
                 ret.push(new this(invArr[i]))
             }
         }
-        tpvm.trigger(this.className() + "_fromArray")
+        tpvm.trigger("Involvement_fromArray")
         return ret;
     };
 
-    static initFilters(invType) {
-        console.log("InitFilters"); // TODO remove
-
-        const filtOptions = document.querySelectorAll("[data-" + invType + "-filter]"); // TODO needs to be generic
+    static initFilters() {
+        const filtOptions = document.querySelectorAll("[data-involvement-filter]");
         for (const ei in filtOptions) {
             if (!filtOptions.hasOwnProperty(ei)) continue;
-            filtOptions[ei].addEventListener('change', this.applyFilters.bind(this, invType))
+            filtOptions[ei].addEventListener('change', this.applyFilters.bind(this, "Involvement"))
         }
     }
 
     static applyFilters(invType, ev = null) {
         if (ev !== null) {
-            let attr = ev.target.getAttribute("data-" + invType + "-filter"), // TODO needs to be generic
+            let attr = ev.target.getAttribute("data-involvement-filter"),
                 val = ev.target.value;
             if (attr !== null) {
                 if (val === "") {
@@ -257,6 +259,19 @@ class TP_Involvement {
     toggleHighlighted(hl)
     {
         this.highlighted = !!hl;
+
+        if (this.highlighted) {
+            if (this.mapMarker !== null &&
+                this.mapMarker.getAnimation() !== google.maps.Animation.BOUNCE &&
+                TP_Involvement.involvements.length > 1) {
+                this.mapMarker.setAnimation(google.maps.Animation.BOUNCE)
+            }
+        } else {
+            if (this.mapMarker !== null &&
+                this.mapMarker.getAnimation() !== null) {
+                this.mapMarker.setAnimation(null)
+            }
+        }
     }
 
     toggleVisibility(vis = null) {
@@ -271,6 +286,21 @@ class TP_Involvement {
 
             TP_Involvement.setElementVisibility(this.connectedElements[ei], this._visible);
         }
+
+        if (this.mapMarker === null)
+            return this._visible;
+
+        let shouldBeVisible = false;
+
+        for (const ii in this.mapMarker.involvements) {
+            if (!this.mapMarker.involvements.hasOwnProperty(ii)) continue;
+
+            if (this.mapMarker.involvements[ii].visibility) {
+                shouldBeVisible = true;
+                // TODO update marker labels to reflect which of the multiple are visible.
+            }
+        }
+        this.mapMarker.setVisible(shouldBeVisible);
 
         return this._visible;
     }
@@ -426,6 +456,86 @@ class TP_Involvement {
                     return inv.doInvContact(fromPerson, message, true);
                 }
             });
+        }
+    }
+
+    static initMap(mapDivId) {
+        const bounds = new google.maps.LatLngBounds();
+
+        let mapOptions = {
+            zoom: 0,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            center: {lat: 0, lng: 0},
+            bounds: bounds,
+            maxZoom: 15,
+            streetViewControl: false,
+            fullscreenControl: false,
+            disableDefaultUI: true
+        };
+        const m = new google.maps.Map(document.getElementById(mapDivId), mapOptions);
+
+        for (const sgi in tpvm.involvements) {
+            if (!tpvm.involvements.hasOwnProperty(sgi)) continue;
+
+            // skip small groups that aren't locatable.
+            if (tpvm.involvements[sgi].geo === null || tpvm.involvements[sgi].geo.lat === null) continue;
+
+            let mkr,
+                geoStr = "" + tpvm.involvements[sgi].geo.lat + "," + tpvm.involvements[sgi].geo.lng;
+
+            if (TP_Involvement.mapMarkers.hasOwnProperty(geoStr)) {
+                mkr = TP_Involvement.mapMarkers[geoStr];
+                mkr.setTitle("Multiple Groups"); // i18n
+            } else {
+                mkr = new google.maps.Marker({
+                    position: tpvm.involvements[sgi].geo,
+                    title: tpvm.involvements[sgi].name,
+                    map: m,
+                });
+                mkr.involvements = [];
+                bounds.extend(tpvm.involvements[sgi].geo); // only needed for a new marker.
+
+                TP_Involvement.mapMarkers[geoStr] = mkr;
+            }
+            mkr.involvements.push(tpvm.involvements[sgi]);
+
+            tpvm.involvements[sgi].mapMarker = mkr;
+        }
+        // Prevent zoom from being too close initially.
+        google.maps.event.addListener(m, 'zoom_changed', function() {
+            let zoomChangeBoundsListener = google.maps.event.addListener(m, 'bounds_changed', function(event) {
+                if (this.getZoom() > 13 && this.initialZoom === true) {
+                    this.setZoom(13);
+                    this.initialZoom = false;
+                }
+                google.maps.event.removeListener(zoomChangeBoundsListener);
+            });
+        });
+        m.initialZoom = true;
+        m.fitBounds(bounds);
+    }
+
+    static initNearby(targetId, type, count) {
+        if (window.location.pathname.substring(0, 10) === "/wp-admin/")
+            return;
+
+        let target = document.getElementById(targetId);
+        tpvm._invNear.nearby = ko.observableArray([]);
+        ko.applyBindings(tpvm._invNear, target);
+
+        TP_DataGeo.getLocation(getNearbyGroups, console.error);
+
+        function getNearbyGroups() {
+            tpvm.getData('inv/nearby', {
+                lat: TP_DataGeo.loc.lat, // TODO reduce double-requesting
+                lng: TP_DataGeo.loc.lng,
+                type: type,
+                limit: count,
+            }).then(handleGroupsLoaded);
+        }
+
+        function handleGroupsLoaded(response) {
+            tpvm._invNear.nearby(response);
         }
     }
 }

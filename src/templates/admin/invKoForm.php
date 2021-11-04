@@ -59,7 +59,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}}</script
             <td colspan="2" class="column-wrap">
                 <!-- ko foreach: $root.divisions -->
                 <p>
-                    <input id="it-div" type="checkbox" data-bind="value: id, checked: $parent.importDivs, attr: {id: 'it-' + $parent.slug() + '-div-' + id}" />
+                    <input id="it-div" type="checkbox" data-bind="value: 'div' + id, checked: $parent.importDivs, attr: {id: 'it-' + $parent.slug() + '-div-' + id}" />
                     <label for="it-div" data-bind="text: name, attr: {for: 'it-' + $parent.slug() + '-div-' + id}"></label>
                 </p>
                 <!-- /ko -->
@@ -81,7 +81,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}}</script
                 <!-- /ko -->
                 <!-- ko foreach: $data._activeMemberTypes -->
                 <p>
-                    <input id="it-leader-type" type="checkbox" data-bind="value: id, checked: $parent.leaderTypes, attr: {id: 'it-' + $parent.slug() + '-leader-type-' + id}" />
+                    <input id="it-leader-type" type="checkbox" data-bind="value: 'mt' + id, checked: $parent.leaderTypes, attr: {id: 'it-' + $parent.slug() + '-leader-type-' + id}" />
                     <label for="it-leader-type" data-bind="text: description, attr: {for: 'it-' + $parent.slug() + '-leader-type-' + id}"></label>
                 </p>
                 <!-- /ko -->
@@ -97,7 +97,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}}</script
                 <!-- /ko -->
                 <!-- ko foreach: $data._activeMemberTypes -->
                 <p>
-                    <input id="it-host-type" type="checkbox" data-bind="value: id, checked: $parent.hostTypes, attr: {id: 'it-' + $parent.slug() + '-host-type-' + id}" />
+                    <input id="it-host-type" type="checkbox" data-bind="value: 'mt' + id, checked: $parent.hostTypes, attr: {id: 'it-' + $parent.slug() + '-host-type-' + id}" />
                     <label for="it-host-type" data-bind="text: description, attr: {for: 'it-' + $parent.slug() + '-host-type-' + id}"></label>
                 </p>
                 <!-- /ko -->
@@ -156,13 +156,15 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}}</script
         this.hostTypes = ko.observableArray(data.hostTypes ?? []);
         this.filters = ko.observableArray(data.filters ?? ['genderId', 'weekday', 'rescode', 'agegroup', 'div']);
 
+        this.postType = data.postType;
+
         this._visible = ko.observable(false);
 
         this._activeMemberTypes_promise = ko.observable([]);
         this._activeMemberTypes_divs = "loading"; // value doesn't really matter
         this._activeMemberTypes = ko.pureComputed({
             read: function() {
-                let divs = self.importDivs().sort().join(',');
+                let divs = self.importDivs().sort().join(',').replaceAll('div', '');
                 if (divs !== self._activeMemberTypes_divs) {
                     self._activeMemberTypes_divs = divs;
                     tpvm.getData("admin/memtypes", {divs: divs}).then(self._activeMemberTypes_promise);

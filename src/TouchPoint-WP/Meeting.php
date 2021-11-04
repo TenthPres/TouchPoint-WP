@@ -11,7 +11,7 @@ abstract class Meeting implements api
     /**
      * Register scripts and styles to be used on display pages.
      */
-    public static function registerScriptsAndStyles()
+    public static function registerScriptsAndStyles(): void
     {
         wp_register_script(
             TouchPointWP::SHORTCODE_PREFIX . 'meeting-defer',

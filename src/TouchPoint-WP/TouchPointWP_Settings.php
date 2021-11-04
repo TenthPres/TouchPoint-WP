@@ -32,20 +32,8 @@ if ( ! defined('ABSPATH')) {
  * @property-read string auth_prevent_admin_bar Enabled to prevent Admin Bar to appearing on webpages for users who don't have special roles.
  * @property-read string auth_full_logout   Enabled to indicate that logging out of WordPress should also log the user out of TouchPoint.
  *
- * @property-read string sg_name_plural     What small groups should be called, plural (e.g. "Small Groups" or "Life Groups")
- * @property-read string sg_name_singular   What a small group should be called, singular (e.g. "Small Group" or "Life Group")
- * @property-read string sg_slug            Slug for Small Group posts (e.g. "smallgroups" for church.org/smallgroups)
- * @property-read string[] sg_divisions     Involvements that are within these divisions should be imported from TouchPoint as Small Groups.
- * @property-read string[] sg_leader_types  Member Types who should be listed as leaders for the small group
- * @property-read string[] sg_host_types    Member Types whose home addresses should be used for the small group location
- *
- * @property-read int sg_cron_last_run      Timestamp of the last time the Small Groups syncing task ran.  (No setting UI.)  TODO refactor.
- *
- * @property-read string cs_name_plural     What courses should be called, plural (e.g. "Classes")
- * @property-read string cs_name_singular   What a course should be called, singular (e.g. "Class")
- * @property-read string cs_slug            Slug for course posts (e.g. "courses" for church.org/courses)
- * @property-read string[] cs_divisions     Involvements that are within these divisions should be imported from TouchPoint as courses.
- * @property-read string[] cs_leader_types  Member Types who should be listed as leaders for the course
+ * @property-read int inv_cron_last_run     Timestamp of the last time the Involvement syncing task ran.  (No setting UI.)
+ * @property-read string inv_json           JSON string describing how Involvements should be handled.  (No direct setting UI.)
  *
  * @property-read string ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.
  *
@@ -202,26 +190,6 @@ class TouchPointWP_Settings
                     'label'       => __('Enable Involvements', 'TouchPoint-WP'),
                     'description' => __(
                         'Load Involvements from TouchPoint for involvement listings and entries native in your website.',
-                        TouchPointWP::TEXT_DOMAIN
-                    ),
-                    'type'        => 'checkbox',
-                    'default'     => '',
-                ],
-                [ // TODO remove.  Also delete existing settings.
-                    'id'          => 'enable_small_groups',
-                    'label'       => __('Enable Small Groups', 'TouchPoint-WP'),
-                    'description' => __(
-                        'Load Small Groups from TouchPoint for a web-based Small Group finder.',
-                        TouchPointWP::TEXT_DOMAIN
-                    ),
-                    'type'        => 'checkbox',
-                    'default'     => '',
-                ],
-                [ // TODO remove.  Also delete existing settings.
-                    'id'          => 'enable_courses',
-                    'label'       => __('Enable Courses', 'TouchPoint-WP'),
-                    'description' => __(
-                        'Load Courses (Sunday School, etc) from TouchPoint for a web-based listing of Courses.',
                         TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'checkbox',
@@ -429,186 +397,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             ob_start();
                             include TouchPointWP::$dir . "/src/templates/admin/invKoForm.php";
                             return ob_get_clean();
-                        }
-                    ],
-                ],
-            ];
-        }
-
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on" || $includeAll) {
-            $this->settings['small_groups'] = [
-                'title'       => __('Small Groups', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Import Small Groups from TouchPoint to your website.', TouchPointWP::TEXT_DOMAIN),
-                'fields'      => [
-                    [
-                        'id'          => 'sg_divisions',
-                        'label'       => __('Divisions to Import', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'Involvements from these divisions will be imported as small groups.',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getDivisionsAsKVArray() : [],
-                        'default'     => [],
-                    ],
-                    [
-                        'id'          => 'sg_name_plural',
-                        'label'       => __('Small Groups Name (Plural)', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'What you call small groups at your church',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'text',
-                        'default'     => 'Small Groups',
-                        'placeholder' => 'Small Groups'
-                    ],
-                    [
-                        'id'          => 'sg_name_singular',
-                        'label'       => __('Small Groups Name (Singular)', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'What you call a small group at your church',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'text',
-                        'default'     => 'Small Group',
-                        'placeholder' => 'Small Group'
-                    ],
-                    [
-                        'id'          => 'sg_slug',
-                        'label'       => __('Small Groups Slug', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'The root path for Small Group pages',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'text',
-                        'default'     => 'smallgroups',
-                        'placeholder' => 'smallgroups',
-                        'callback'    => fn($new) => $this->validation_slug($new, 'sg_slug')
-                    ],
-                    [
-                        'id'          => 'sg_leader_types',
-                        'label'       => __('Leader Member Types', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'Members of these types will be listed as leaders and used as contact persons.',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->get('sg_divisions')) : [],
-                        'default'     => [],
-                    ],
-                    [
-                        'id'          => 'sg_host_types',
-                        'label'       => __('Host Member Types', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'Members of these types will have their home address used as the location.',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->get('sg_divisions')) : [],
-                        'default'     => [],
-                    ],
-                    [
-                        'id'          => 'sg_filter_defaults',
-                        'label'       => __('Default Group Filters', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            "Filtering criteria to make available to users by default.  Can be overridden by shortcode 
-                            parameters.  Filters generally won't appear unless groups match multiple options.",
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'checkbox_multi',
-                        'options' => [
-                            'div'         => $this->get('dv_name_singular'),
-                            'genderId'    => __('Gender', TouchPointWP::TEXT_DOMAIN),
-                            'rescode'     => $this->get('rc_name_singular'),
-                            'weekday'     => __('Weekday', TouchPointWP::TEXT_DOMAIN),
-                            'inv_marital' => __('Marital Status', TouchPointWP::TEXT_DOMAIN),
-                            'agegroup'    => __('Age Group', TouchPointWP::TEXT_DOMAIN),
-                        ],
-                        'default'     => ['genderId', 'rescode', 'weekday', 'agegroup', 'div']
-                    ],
-                ],
-            ];
-        }
-
-
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_courses') === "on" || $includeAll) {
-            $this->settings['courses'] = [
-                'title'       => __('Courses', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Import Courses (Sunday School, etc.) from TouchPoint to your website.', TouchPointWP::TEXT_DOMAIN),
-                'fields'      => [
-                    [
-                        'id'          => 'cs_divisions',
-                        'label'       => __('Divisions to Import', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'Involvements from these divisions will be imported as courses.',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getDivisionsAsKVArray() : [],
-                        'default'     => [],
-                    ],
-                    [
-                        'id'          => 'cs_name_plural',
-                        'label'       => __('Courses Name (Plural)', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'What you call courses at your church',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'text',
-                        'default'     => 'Classes',
-                        'placeholder' => 'Classes'
-                    ],
-                    [
-                        'id'          => 'cs_name_singular',
-                        'label'       => __('Courses Name (Singular)', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'What you call a class at your church',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'text',
-                        'default'     => 'Class',
-                        'placeholder' => 'Class'
-                    ],
-                    [
-                        'id'          => 'cs_slug',
-                        'label'       => __('Courses Slug', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'The root path for Class pages',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'text',
-                        'default'     => 'classes',
-                        'placeholder' => 'classes',
-                        'callback'    => fn($new) => $this->validation_slug($new, 'cl_slug')
-                    ],
-                    [
-                        'id'          => 'cs_leader_types',
-                        'label'       => __('Leader Member Types', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'Members of these types will be listed as leaders and used as contact persons.',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getMemberTypesForDivisionsAsKVArray($this->get('cs_divisions')) : [],
-                        'default'     => [],
-                    ],
-                    [
-                        'id'          => 'cs_filter_defaults',
-                        'label'       => __('Default Class Filters', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            "Filtering criteria to make available to users by default.  Can be overridden by shortcode 
-                            parameters.  Filters generally won't appear unless courses match multiple options.",
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'checkbox_multi',
-                        'options' => [
-                            'div'         => $this->get('dv_name_singular'),
-                            'genderId'    => __('Gender', TouchPointWP::TEXT_DOMAIN),
-                            'weekday'     => __('Weekday', TouchPointWP::TEXT_DOMAIN),
-                            'inv_marital' => __('Marital Status', TouchPointWP::TEXT_DOMAIN),
-                            'agegroup'    => __('Age Group', TouchPointWP::TEXT_DOMAIN),
-                        ],
-                        'default'     => ['genderId', 'weekday', 'agegroup', 'div']
+                        } // TODO NOW add callback on save that adds a valid postType attribute
                     ],
                 ],
             ];
@@ -1060,6 +849,68 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         return update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, $autoload);
     }
 
+
+    /**
+     * Migrate settings from version to version.
+     */
+    public function migrate(): void
+    {
+        // 0.0.4 to 0.0.5 -- Merging Small Groups and Courses Components into a single Involvement Component
+        $sgEnabled = $this->getWithoutDefault('enable_small_groups') === "on";
+        $csEnabled = $this->getWithoutDefault('enable_courses') === "on";
+        if ($sgEnabled || $csEnabled) {
+            $this->set('enable_involvements', 'on');
+
+            $invSettings = [];
+
+            if ($sgEnabled) {
+                $settings = [
+                    'nameSingular' => $this->get('sg_name_singular'),
+                    'namePlural' => $this->get('sg_name_plural'),
+                    'slug' => $this->get('sg_slug'),
+                    'importDivs' => $this->get('sg_divisions'),
+                    'useGeo' => true,
+                    'leaderTypes' => $this->get('sg_leader_types'),
+                    'hostTypes' => $this->get('sg_host_types'),
+                    'filters' => $this->get('sg_filter_defaults'),
+                    'postType' => "smallgroup"
+                ];
+                $invSettings[] = (object)$settings;
+            }
+
+            if ($csEnabled) {
+                $settings = [
+                    'nameSingular' => $this->get('cs_name_singular'),
+                    'namePlural' => $this->get('cs_name_plural'),
+                    'slug' => $this->get('cs_slug'),
+                    'importDivs' => $this->get('cs_divisions'),
+                    'useGeo' => false,
+                    'leaderTypes' => $this->get('cs_leader_types'),
+                    'hostTypes' => [],
+                    'filters' => $this->get('cs_filter_defaults'),
+                    'postType' => "course"
+                ];
+                $invSettings[] = (object)$settings;
+            }
+
+            $this->set('inv_json', json_encode($invSettings), true);
+
+            // Remove the old settings
+            foreach (wp_load_alloptions() as $option => $value) {
+                if (strpos($option, TouchPointWP::SETTINGS_PREFIX . 'sg_') === 0 ||
+                    strpos($option, TouchPointWP::SETTINGS_PREFIX . 'cs_') === 0) {
+                    delete_option($option);
+                }
+            }
+        }
+
+        $cronLastRun = $this->get('sg_cron_last_run');
+        if ($cronLastRun) {
+            $this->set(Involvement::CRON_HOOK, $cronLastRun);
+        }
+
+    }
+
     /**
      * Register plugin settings
      *
@@ -1125,7 +976,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     }
 
     /**
-     * @param $id
+     * @param string $id
      *
      * @return mixed
      */

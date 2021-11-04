@@ -24,7 +24,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.4";
+    public const VERSION = "0.0.5";
 
     /**
      * The Token
@@ -129,14 +129,9 @@ class TouchPointWP
     protected ?bool $auth = null;
 
     /**
-     * @var ?bool True after the Small Group feature is loaded.
+     * @var ?bool True after the Involvements feature is loaded.
      */
-    protected ?bool $smallGroups = null;
-
-    /**
-     * @var ?bool True after the Classes feature is loaded.
-     */
-    protected ?bool $courses = null;
+    protected ?bool $involvements = null;
 
     /**
      * @var ?WP_Http Object for API requests.
@@ -190,31 +185,6 @@ class TouchPointWP
         add_filter('script_loader_tag', [$this, 'filterByTag'], 10, 2);
 
         add_filter('terms_clauses', [$this, 'getTermsClauses'], 10, 3);
-
-
-//        // Load Auth tool if enabled.  TODO it would seem that these are not used. Confirm for install without composer and remove.
-//        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on"
-//            && ! class_exists("tp\TouchPointWP\Auth")) {
-//            require_once 'Auth.php';
-//        }
-//
-//        // Load RSVP tool if enabled.
-//        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on"
-//            && ! class_exists("tp\TouchPointWP\Rsvp")) {
-//            require_once 'Rsvp.php';
-//        }
-//
-//        // Load Small Group tool if enabled.
-//        if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
-//            && ! class_exists("tp\TouchPointWP\SmallGroup")) {
-//            require_once 'SmallGroup.php';
-//        }
-//
-//        // Load Events if enabled (by presence of Events Calendar plugin)
-//        if (self::useTribeCalendar()
-//            && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
-//            require_once 'EventsCalendar.php';
-//        }
     }
 
     public function admin(): TouchPointWP_AdminAPI
@@ -233,12 +203,10 @@ class TouchPointWP
     }
 
 
-
-
     /**
      * Spit out headers that prevent caching.  Useful for API calls.
      */
-    public static function doCacheHeaders(int $cacheLevel = null): void
+    public static function doCacheHeaders(int $cacheLevel = null): void // TODO move to utils, maybe?
     {
         if ($cacheLevel !== null) {
             self::setCaching($cacheLevel);
@@ -312,20 +280,11 @@ class TouchPointWP
                 }
             }
 
-            // Smallgroup endpoint
-            if ($reqUri['path'][1] === "sg" &&
-                get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on"
+            // Involvement endpoint
+            if ($reqUri['path'][1] === "inv" &&
+                get_option(self::SETTINGS_PREFIX . 'enable_involvements') === "on"
             ) {
-                if (!SmallGroup::api($reqUri)) {
-                    return $continue;
-                }
-            }
-
-            // Courses endpoint
-            if ($reqUri['path'][1] === "cs" &&
-                get_option(self::SETTINGS_PREFIX . 'enable_courses') === "on"
-            ) {
-                if (!Course::api($reqUri)) {
+                if (!Involvement::api($reqUri)) {
                     return $continue;
                 }
             }
@@ -447,10 +406,7 @@ class TouchPointWP
     public function printDynamicFooterScripts(): void
     {
         echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
-        if ($this->smallGroups !== null) {
-            echo SmallGroup::getJsInstantiationString(); // TODO this supposed error is not an error.
-        }
-        if ($this->courses !== null) {
+        if ($this->involvements !== null) {
             echo Involvement::getJsInstantiationString();
         }
         echo "</script>";
@@ -491,16 +447,10 @@ class TouchPointWP
             $instance->rsvp = Rsvp::load($instance);
         }
 
-        // Load Small Groups tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
-            require_once 'SmallGroup.php';
-            $instance->smallGroups = SmallGroup::load($instance);
-        }
-
-        // Load Classes tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_courses') === "on") {
-            require_once 'Course.php';
-            $instance->courses = Course::load($instance);
+        // Load Involvements tool if enabled.
+        if (get_option(self::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+            require_once 'Involvement.php';
+            $instance->involvements = Involvement::load($instance);
         }
 
         // Load Events if enabled (by presence of Events Calendar plugin)
@@ -566,16 +516,16 @@ class TouchPointWP
             true
         );
 
+        if ( ! ! $this->involvements) {
+            Involvement::registerScriptsAndStyles();
+        }
+
 //        if ( ! ! $this->auth) {
 //            Auth::registerScriptsAndStyles();
 //        }
 
         if ( ! ! $this->rsvp) {
             Meeting::registerScriptsAndStyles();
-        }
-
-        if ( ! ! $this->smallGroups) {
-            SmallGroup::registerScriptsAndStyles();
         }
     }
 
@@ -627,7 +577,7 @@ class TouchPointWP
         return $tag;
     }
 
-    // TODO move to somewhere more conducive to the API data model.
+    // TODO move to somewhere more conducive to the API data model. (Utilities, probably?)
     public function ajaxGeolocate(): void
     {
         header('Content-Type: application/json');
@@ -747,17 +697,18 @@ class TouchPointWP
     public function registerTaxonomies(): void
     {
         // Resident Codes
-        $resCodeTypesToApply = ['user'];
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
-            $resCodeTypesToApply[] = SmallGroup::POST_TYPE;
+        $resCodeTypesToApply = [];
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+            $resCodeTypesToApply = Involvement_PostTypeSettings::getPostTypesWithGeoEnabled();
         }
+        $resCodeTypesToApply[] = 'user';
         register_taxonomy(
             self::TAX_RESCODE,
             $resCodeTypesToApply,
             [
                 'hierarchical'      => false,
                 'show_ui'           => false,
-                'description'       => __('Classify small groups and users by their general locations.'),
+                'description'       => __('Classify posts by their general locations.'),
                 'labels'            => [
                     'name'          => $this->settings->rc_name_plural,
                     'singular_name' => $this->settings->rc_name_singular,
@@ -797,17 +748,18 @@ class TouchPointWP
         // TODO remove defunct res codes
 
         // Divisions & Programs
-        $divisionTypesToApply = ['user'];
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
-            $divisionTypesToApply[] = SmallGroup::POST_TYPE;
+        $divisionTypesToApply = [];
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+            $divisionTypesToApply = Involvement_PostTypeSettings::getPostTypes();
         }
+        $divisionTypesToApply[] = 'user';
         // TODO allow this taxonomy to be applied to other post types as an option.
         register_taxonomy(
             self::TAX_DIV,
             $divisionTypesToApply,
             [
                 'hierarchical'      => true,
-                'show_ui'           => true, // TODO make false
+                'show_ui'           => true,
                 'description'       => sprintf(__('Classify things by %s.'), $this->settings->dv_name_singular),
                 'labels'            => [
                     'name'          => $this->settings->dv_name_plural,
@@ -882,14 +834,14 @@ class TouchPointWP
         }
 
         // Weekdays
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
             register_taxonomy(
                 self::TAX_WEEKDAY,
-                [SmallGroup::POST_TYPE],
+                Involvement_PostTypeSettings::getPostTypes(),
                 [
                     'hierarchical'      => false,
                     'show_ui'           => false,
-                    'description'       => __('Classify small groups by the day on which they meet.'),
+                    'description'       => __('Classify involvements by the day on which they meet.'),
                     'labels'            => [
                         'name'          => __('Weekdays'),
                         'singular_name' => __('Weekday'),
@@ -931,36 +883,41 @@ class TouchPointWP
 
 
         // Age Groups
-        $ageGroupTypesToApply = ['user'];
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
-            $ageGroupTypesToApply[] = SmallGroup::POST_TYPE;
+        $ageGroupTypesToApply = [];
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+            $ageGroupTypesToApply = Involvement_PostTypeSettings::getPostTypes();
         }
-        register_taxonomy(self::TAX_AGEGROUP, $ageGroupTypesToApply, [
-            'hierarchical' => false,
-            'show_ui' => false,
-            'description' => __( 'Classify small groups and users by their age groups.' ),
-            'labels' => [
-                'name' => __('Age Groups'),
-                'singular_name' => __('Age Group'),
-                'search_items' =>  __( 'Search Age Groups' ),
-                'all_items' => __( 'All Age Groups'  ),
-                'edit_item' => __( 'Edit Age Group' ),
-                'update_item' => __( 'Update Age Group' ),
-                'add_new_item' => __( 'Add New Age Group' ),
-                'new_item_name' => __( 'New Age Group' ),
-                'menu_name' => __('Age Groups'),
-            ],
-            'public' => true,
-            'show_in_rest' => true,
-            'show_admin_column' => true,
+        $ageGroupTypesToApply[] = 'user';
+        register_taxonomy(
+            self::TAX_AGEGROUP,
+            $ageGroupTypesToApply,
+            [
+                'hierarchical' => false,
+                'show_ui' => false,
+                'description' => __( 'Classify involvements and users by their age groups.' ),
+                'labels' => [
+                    'name' => __('Age Groups'),
+                    'singular_name' => __('Age Group'),
+                    'search_items' =>  __( 'Search Age Groups' ),
+                    'all_items' => __( 'All Age Groups'  ),
+                    'edit_item' => __( 'Edit Age Group' ),
+                    'update_item' => __( 'Update Age Group' ),
+                    'add_new_item' => __( 'Add New Age Group' ),
+                    'new_item_name' => __( 'New Age Group' ),
+                    'menu_name' => __('Age Groups'),
+                ],
+                'public' => true,
+                'show_in_rest' => true,
+                'show_admin_column' => true,
 
-            // Control the slugs used for this taxonomy
-            'rewrite' => [
-                'slug' => self::TAX_AGEGROUP,
-                'with_front' => false,
-                'hierarchical' => false
-            ],
-        ]);
+                // Control the slugs used for this taxonomy
+                'rewrite' => [
+                    'slug' => self::TAX_AGEGROUP,
+                    'with_front' => false,
+                    'hierarchical' => false
+                ],
+            ]
+        );
         foreach (["20s", "30s", "40s", "50s", "60s", "70+"] as $ag) {
             if (! term_exists($ag, self::TAX_AGEGROUP)) {
                 wp_insert_term(
@@ -977,14 +934,14 @@ class TouchPointWP
 
 
         // Involvement Marital Status
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups') === "on") {
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
             register_taxonomy(
                 self::TAX_INV_MARITAL,
-                [SmallGroup::POST_TYPE],
+                Involvement_PostTypeSettings::getPostTypes(),
                 [
                     'hierarchical'      => false,
                     'show_ui'           => false,
-                    'description'       => __('Classify small groups by whether participants are mostly single or married.'),
+                    'description'       => __('Classify involvements by whether participants are mostly single or married.'),
                     'labels'            => [
                         'name'          => __('Marital Status'),
                         'singular_name' => __('Marital Statuses'),
@@ -1221,6 +1178,8 @@ class TouchPointWP
         self::queueFlushRewriteRules();
 
         $this->createTables();
+
+        $this->migrate();
     }
 
     /**
@@ -1267,6 +1226,16 @@ class TouchPointWP
         )";
         dbDelta($sql);
     }
+
+
+    /**
+     * Migrate settings from old version if applicable.
+     */
+    protected function migrate(): void
+    {
+        $this->settings->migrate();
+    }
+
 
     /**
      * Drop database tables at uninstallation.
@@ -1438,25 +1407,8 @@ class TouchPointWP
     }
 
     /**
-     * Format the list of member types for a given set of divisions into an array with form-name-friendly IDs as the key.
-     *
-     * @deprecated TODO remove
-     * @return string[]
-     */
-    public function getMemberTypesForDivisionsAsKVArray($divisions = []): array
-    {
-        $r = [];
-        foreach (self::getMemberTypesForDivisions($divisions) as $mt) {
-            $r['mt' . $mt->id] = $mt->description;
-        }
-
-        return $r;
-    }
-
-    /**
      * Format the list of divisions into an array with form-name-friendly IDs as the key.
      *
-     * @deprecated TODO remove
      * @return string[]
      */
     public function getDivisionsAsKVArray(): array

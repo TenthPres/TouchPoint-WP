@@ -1,11 +1,10 @@
-.smallgroup-list,
-.course-list {
+.involvement-list {
     display: flex;
     flex-wrap: wrap;
     /* align-items: stretch; */
 }
 
-article.smallgroup-list-item {
+article.involvement-list-item {
     flex: 1 1 350px;
     box-shadow: 10px 10px 20px #00000033;
     margin: 0.8em;
@@ -15,49 +14,32 @@ article.smallgroup-list-item {
     flex-direction: column;
 }
 
-article.course-list-item {
-    flex: 1 1 500px;
-    box-shadow: 10px 10px 20px #00000033;
-    margin: 0.8em;
-    position: relative;
-    padding: 0.8em;
-    display: flex;
-    flex-direction: column;
-}
-
-.smallgroup-list-item .smallgroup-actions,
-.course-list-item .course-actions {
+.involvement-list-item .involvement-actions {
     padding-top: .5em;
     text-align: right;
 }
 
-.smallgroup-list-item .smallgroup-actions button,
-.smallgroup-list-item .smallgroup-actions a.button,
-.course-list-item .course-actions button,
-.course-list-item .course-actions a.button {
+.involvement-list-item .involvement-actions button,
+.involvement-list-item .involvement-actions a.button {
     position:relative;
     z-index:10;
 }
 
-.smallgroup-list-item div.post-meta-single,
-.course-list-item div.post-meta-single {
+.involvement-list-item div.post-meta-single {
     font-size: 0.8em;
     opacity: 0.7;
     font-weight: bolder;
 }
 
-.smallgroup-list-item div.thin.entry-content,
-.course-list-item div.thin.entry-content {
+.involvement-list-item div.thin.entry-content {
     flex: 1 1 auto;
 }
 
-div.smallgroup-list article.smallgroup-list-item h2.entry-title,
-div.course-list article.course-list-item h2.entry-title {
+div.involvement-list article.involvement-list-item h2.entry-title {
     padding: 0 0 0 0;
 }
 
-.smallgroup-list-item h2 a:after,
-.course-list-item h2 a:after {
+.involvement-list-item h2 a:after {
     content: ' ';
     width: 100%;
     height: 100%;
@@ -67,7 +49,7 @@ div.course-list article.course-list-item h2.entry-title {
     z-index:5;
 }
 
-div.smallgroup-map-container {
+div.involvement-map-container {
     width: 100%;
     padding-bottom: 40vh;
     position: relative;
@@ -87,22 +69,20 @@ div.swal2-content table.tp-checkbox-list {
     margin: 0 auto;
 }
 
-article .section-inner.smallgroup-detail {
+article .section-inner.involvement-detail {
     display: flex;
 }
 
-article .smallgroup-detail-cell,
-article .course-detail-cell {
+article .involvement-detail-cell {
     flex: 1 1 0;
 }
 
-article .smallgroup-detail-cell.smallgroup-map-container {
+article .involvement-detail-cell.involvement-map-container {
     flex: 2 2 0;
     padding-bottom: 30%;
 }
 
-article .smallgroup-detail-cell .smallgroup-detail-cell-section,
-article .course-detail-cell .course-detail-cell-section {
+article .involvement-detail-cell .involvement-detail-cell-section {
     text-align:center;
     margin-bottom: 2em;
 }
