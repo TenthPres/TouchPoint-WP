@@ -104,15 +104,19 @@ class TouchPointWP_Settings
      *
      * Ensures only one instance of TouchPointWP_Settings is loaded or can be loaded.
      *
-     * @param TouchPointWP $parent Object instance.
+     * @param ?TouchPointWP $parent Object instance.
      *
      * @return TouchPointWP_Settings instance
      * @since 1.0.0
      * @static
      * @see TouchPointWP()
      */
-    public static function instance(TouchPointWP $parent): TouchPointWP_Settings
+    public static function instance(?TouchPointWP $parent = null): TouchPointWP_Settings
     {
+        if (is_null($parent)) {
+            $parent = TouchPointWP::instance();
+        }
+
         if (is_null(self::$_instance)) {
             self::$_instance = new self($parent);
         }
@@ -397,7 +401,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             ob_start();
                             include TouchPointWP::$dir . "/src/templates/admin/invKoForm.php";
                             return ob_get_clean();
-                        } // TODO NOW add callback on save that adds a valid postType attribute
+                        },
+                        'callback'    => fn($new) => Involvement_PostTypeSettings::validateNewSettings($new)
                     ],
                 ],
             ];
@@ -902,13 +907,14 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     delete_option($option);
                 }
             }
+
+            delete_option(TouchPointWP::SETTINGS_PREFIX . 'enable_courses');
+            delete_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups');
         }
 
-        $cronLastRun = $this->get('sg_cron_last_run');
-        if ($cronLastRun) {
-            $this->set(Involvement::CRON_HOOK, $cronLastRun);
+        if ( wp_next_scheduled(TouchPointWP::HOOK_PREFIX . "sg_cron_hook")) {
+            wp_clear_scheduled_hook(TouchPointWP::HOOK_PREFIX . "sg_cron_hook");
         }
-
     }
 
     /**

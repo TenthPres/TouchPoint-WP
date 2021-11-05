@@ -1201,7 +1201,7 @@ class TouchPointWP
         // TODO remove all taxonomies (maybe)
         // TODO remove all posts
 
-        // TODO cancel Cron updating task.
+        wp_clear_scheduled_hook(Involvement::CRON_HOOK);
 
         self::dropTables();
     }

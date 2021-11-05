@@ -141,4 +141,98 @@ class Involvement_PostTypeSettings {
         }
         return null;
     }
+
+    /**
+     * @param string $new
+     *
+     * @return string
+     *
+     * @throws \Exception
+     */
+    public static function validateNewSettings(string $new): string
+    {
+        $postTypesSlugs = [];
+        $postTypeStrings = [];
+        $new = json_decode($new);
+
+        $settings = TouchPointWP::instance()->settings;
+
+        $old = json_decode($settings->inv_json);
+        $oldPostTypeStrings = [];
+        foreach ($old as $type) {
+            $oldPostTypeStrings[] = $type->postType;
+        }
+
+        // Validate (or forcibly replace) slugs
+        foreach ($new as $type) {
+            $first = true;
+            $lower = preg_replace('/\W+/', '-', strtolower($type->slug));
+            if ($lower !== $type->slug) { // force slug to be lowercase
+                $type->slug = $lower;
+                TouchPointWP::queueFlushRewriteRules();
+            }
+            while ( // all the conditions in which the post type will need to be regenerated.
+                in_array($type->slug, $postTypesSlugs)
+            ) {
+                $name = preg_replace('/\W+/', '-', strtolower($type->namePlural));
+                $type->slug = $name . ($first ? "" : "-" . bin2hex(random_bytes(1)));
+                $first = false;
+                TouchPointWP::queueFlushRewriteRules();
+            }
+            $postTypesSlugs[] = $type->slug;
+        }
+
+        // Generate new Post Type strings
+        foreach ($new as $type) {
+            $first = true;
+            if (!isset($type->postType) || $type->postType === "") {
+                $type->postType = null;
+            }
+            if ($type->postType !== null) {
+                $lower = preg_replace('/\W+/', '', strtolower($type->postType));
+                if ($lower !== $type->postType) { // force postType to be lowercase
+                    $type->postType = $lower;
+                    TouchPointWP::queueFlushRewriteRules();
+                }
+            }
+            while ( // all the conditions in which the post type will need to be regenerated.
+                $type->postType === null ||
+                in_array($type->postType, $postTypeStrings) ||
+                (
+                    $type->postType !== "smallgroup" &&
+                    $type->postType !== "course" &&
+                    substr($type->postType, 0, 4) !== "inv_"
+                )
+            ) {
+                $slug = preg_replace('/\W+/', '', strtolower($type->slug));
+                $type->postType = "inv_" . $slug . ($first ? "" : "_" . bin2hex(random_bytes(1)));
+                $first = false;
+                $type->postType = preg_replace('/\W+/', '_', $type->postType);
+                TouchPointWP::queueFlushRewriteRules();
+            }
+            $postTypeStrings[] = $type->postType;
+        }
+
+        // Delete Posts from defunct types
+        foreach ($oldPostTypeStrings as $typeString) {
+            if (in_array($typeString, $postTypeStrings)) {
+                continue;
+            }
+            $postsToRm = get_posts([ 'post_type' => TouchPointWP::HOOK_PREFIX . $typeString, 'numberposts' => -1 ]);
+            foreach ($postsToRm as $p) {
+                wp_delete_post($p->ID, true);
+            }
+        }
+
+        // If there are new types, do some housekeeping.
+        foreach ($postTypeStrings as $typeString) {
+            if (! in_array($typeString, $oldPostTypeStrings)) {
+                // There's something new here.
+                $settings->set('inv_cron_last_run', 0);
+                break;
+            }
+        }
+
+        return json_encode($new);
+    }
 }
