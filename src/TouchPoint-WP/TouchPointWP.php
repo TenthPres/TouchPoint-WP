@@ -820,17 +820,21 @@ class TouchPointWP
                     self::queueFlushRewriteRules();
                 }
             } else {
-                // Remove terms that are no longer used. TODO also remove ones that no longer exist in TouchPoint.
+                // Remove terms that are disabled from importing.
 
-                // Division
-                $dTermInfo = term_exists($d->dName, self::TAX_DIV);
-                if ($dTermInfo !== null) {
-                    wp_delete_term($dTermInfo['term_id'], self::TAX_DIV);
-                    self::queueFlushRewriteRules();
+                // Delete disabled divisions.  Get program, so we delete the right division.
+                $pTermInfo = term_exists($d->pName, self::TAX_DIV, 0);
+                if ( $pTermInfo !== null ) {
+                    $dTermInfo = term_exists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
+                    if ($dTermInfo !== null) {
+                        wp_delete_term($dTermInfo['term_id'], self::TAX_DIV);
+                        self::queueFlushRewriteRules();
+                    }
                 }
 
                 // Program
-                // TODO remove program terms that are no longer used
+                // TODO remove programs that no longer have a division selected for use as a term.
+                // TODO remove program & div terms that are no longer present in TouchPoint
             }
         }
 

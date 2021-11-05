@@ -1,6 +1,7 @@
 const tpvm = {
     involvements: [],
     meetings: [],
+    _utils: {},
     _vmContext: {},
     _events: {},
     _eventsTriggered: [],

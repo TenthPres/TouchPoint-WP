@@ -1330,7 +1330,7 @@ class Involvement implements api
                         /** @var $dt DateTimeImmutable */
                         $timeStr[] = $dt->format($timeFormat);
                     }
-                    $timeStr = __('at', TouchPointWP::TEXT_DOMAIN) . " " . Utilities::stringArrayToList($timeStr);
+                    $timeStr = __('at', TouchPointWP::TEXT_DOMAIN) . " " . Utilities::stringArrayToListString($timeStr);
 
                     if (count($days) > 1) {
                         $dayStr[] = Utilities::getDayOfWeekShortForNumber(intval($dk[1])) . ' ' . $timeStr;
@@ -1338,7 +1338,7 @@ class Involvement implements api
                         $dayStr[] = Utilities::getPluralDayOfWeekNameForNumber(intval($dk[1])) . ' ' . $timeStr;
                     }
                 }
-                $dayStr = Utilities::stringArrayToList($dayStr);
+                $dayStr = Utilities::stringArrayToListString($dayStr);
 
             } elseif (count($uniqueTimeStrings) == 1) {
                 // one time of day.
@@ -1348,7 +1348,7 @@ class Involvement implements api
                     foreach ($days as $k => $d) {
                         $dayStr[] = Utilities::getDayOfWeekShortForNumber(intval($k[1]));
                     }
-                    $dayStr = Utilities::stringArrayToList($dayStr);
+                    $dayStr = Utilities::stringArrayToListString($dayStr);
                 } else {
                     // one day of the week
                     $k = array_key_first($days);

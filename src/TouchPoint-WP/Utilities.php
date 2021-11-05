@@ -107,7 +107,7 @@ abstract class Utilities
      *
      * @return string
      */
-    public static function stringArrayToList(array $strings): string
+    public static function stringArrayToListString(array $strings): string
     {
         $concat = implode('', $strings);
 

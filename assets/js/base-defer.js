@@ -1,5 +1,34 @@
 "use strict";
 
+function utilInit() {
+    tpvm._utils.stringArrayToListString = function(strings) {
+        let concat = strings.join(''),
+            comma = ', ',
+            and = ' & ',
+            useOxford = false,
+            last, str;
+        if (concat.indexOf(', ') !== -1) {
+            comma     = '; ';
+            useOxford = true;
+        }
+        if (concat.indexOf(' & ') !== -1) {
+            and = ' and '; // i18n
+            useOxford = true;
+        }
+
+        last = strings.pop();
+        str = strings.join(comma);
+        if (strings.length > 0) {
+            if (useOxford)
+                str += comma.trim();
+            str += and;
+        }
+        str += last;
+        return str;
+    }
+}
+utilInit();
+
 class TP_DataGeo {
     static loc = {
         "lat": null,
@@ -296,7 +325,8 @@ class TP_Involvement {
 
             if (this.mapMarker.involvements[ii].visibility) {
                 shouldBeVisible = true;
-                // TODO update marker labels to reflect which of the multiple are visible.
+
+                TP_Involvement.updateMarkerLabels(this.mapMarker);
             }
         }
         this.mapMarker.setVisible(shouldBeVisible);
@@ -484,11 +514,9 @@ class TP_Involvement {
 
             if (TP_Involvement.mapMarkers.hasOwnProperty(geoStr)) {
                 mkr = TP_Involvement.mapMarkers[geoStr];
-                mkr.setTitle("Multiple Groups"); // i18n
             } else {
                 mkr = new google.maps.Marker({
                     position: tpvm.involvements[sgi].geo,
-                    title: tpvm.involvements[sgi].name,
                     map: m,
                 });
                 mkr.involvements = [];
@@ -499,6 +527,7 @@ class TP_Involvement {
             mkr.involvements.push(tpvm.involvements[sgi]);
 
             tpvm.involvements[sgi].mapMarker = mkr;
+            TP_Involvement.updateMarkerLabels(mkr);
         }
 
         // Prevent zoom from being too close initially.
@@ -514,6 +543,21 @@ class TP_Involvement {
         });
         m.initialZoom = true;
         m.fitBounds(bounds);
+    }
+
+    static updateMarkerLabels(mkr) {
+        if (mkr === null) {
+            return;
+        }
+        let names = []
+        for (const ii in mkr.involvements) {
+            let i = mkr.involvements[ii];
+            if (!!i._visible) {
+                names.push(i.name);
+            }
+        }
+        console.log(mkr, names);
+        mkr.setTitle(tpvm._utils.stringArrayToListString(names))
     }
 
     static initNearby(targetId, type, count) {
