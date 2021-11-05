@@ -140,7 +140,6 @@ class TP_Involvement {
     geo = {};
 
     static currentFilters = {};
-    static involvements = [];
 
     static actions = ['join', 'contact'];
 
@@ -263,7 +262,7 @@ class TP_Involvement {
         if (this.highlighted) {
             if (this.mapMarker !== null &&
                 this.mapMarker.getAnimation() !== google.maps.Animation.BOUNCE &&
-                TP_Involvement.involvements.length > 1) {
+                tpvm.involvements.length > 1) {
                 this.mapMarker.setAnimation(google.maps.Animation.BOUNCE)
             }
         } else {
@@ -501,8 +500,10 @@ class TP_Involvement {
 
             tpvm.involvements[sgi].mapMarker = mkr;
         }
+
         // Prevent zoom from being too close initially.
         google.maps.event.addListener(m, 'zoom_changed', function() {
+            // noinspection JSUnusedLocalSymbols  Symbol is used by event handler.
             let zoomChangeBoundsListener = google.maps.event.addListener(m, 'bounds_changed', function(event) {
                 if (this.getZoom() > 13 && this.initialZoom === true) {
                     this.setZoom(13);
