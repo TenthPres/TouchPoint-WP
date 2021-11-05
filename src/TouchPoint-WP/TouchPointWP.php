@@ -799,7 +799,7 @@ class TouchPointWP
             if (in_array('div' . $d->id, $enabledDivisions)) {
 
                 // Program
-                $pTermInfo = term_exists($d->pName, self::TAX_DIV);
+                $pTermInfo = term_exists($d->pName, self::TAX_DIV, 0);
                 if ( $pTermInfo === null ) {
                     $pTermInfo = wp_insert_term(
                         $d->pName,
@@ -814,7 +814,7 @@ class TouchPointWP
                 }
 
                 // Division
-                $dTermInfo = term_exists($d->dName, self::TAX_DIV);
+                $dTermInfo = term_exists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
                 if ($dTermInfo === null) {
                     $dTermInfo = wp_insert_term(
                         $d->dName,
