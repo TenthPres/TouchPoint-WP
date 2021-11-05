@@ -949,16 +949,18 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
                 foreach ($data['fields'] as $field) {
                     // Validation callback for field.
-                    $validation = [];
+                    $args = [];
                     if (isset($field['callback'])) {
-                        $validation['sanitize_callback'] = $field['callback'];
+                        $args['sanitize_callback'] = $field['callback'];
                     }
 
-                    // Register field.  Don't register settings that aren't settings and shouldn't be set.
-//                    if ($field['type'] == 'instructions') {
-                        $option_name = TouchPointWP::SETTINGS_PREFIX . $field['id'];
-                        register_setting($this->parent::TOKEN . '_Settings', $option_name, $validation);
-//                    }  TODO revisit
+                    // Register field.  Don't save a value for instruction types.
+                    if ($field['type'] == 'instructions') {
+                        $args['sanitize_callback'] = fn($new) => null;
+                    }
+
+                    $option_name = TouchPointWP::SETTINGS_PREFIX . $field['id'];
+                    register_setting($this->parent::TOKEN . '_Settings', $option_name, $args);
 
                     // Add field to page.
                     add_settings_field(
