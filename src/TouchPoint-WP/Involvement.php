@@ -57,6 +57,8 @@ class Involvement implements api
      *
      * @param $object WP_Post|object an object representing the involvement's post.
      *                  Must have post_id and inv id attributes.
+     *
+     * @throws TouchPointWP_Exception
      */
     protected function __construct(object $object)
     {
@@ -94,8 +96,7 @@ class Involvement implements api
                 // TODO add an else for nonstandard/optional metadata fields
             }
         } else {
-            echo "something has gone terribly wrong.";
-            exit;
+            throw new TouchPointWP_Exception("Could not construct an Involvement with the information provided.");
         }
 
         // clean up involvement type to not have hook prefix, if it does.
