@@ -110,6 +110,7 @@ class Involvement implements api
                 TouchPointWP::TAX_RESCODE,
                 TouchPointWP::TAX_AGEGROUP,
                 TouchPointWP::TAX_WEEKDAY,
+                TouchPointWP::TAX_DAYTIME,
                 TouchPointWP::TAX_INV_MARITAL,
                 TouchPointWP::TAX_DIV
             ]
@@ -690,7 +691,26 @@ class Involvement implements api
             }
         }
 
-        // TODO Time of Day (ranges, probably)
+        // Time of Day
+        if (in_array('timeofday', $filters)) {
+            $todName = __("Time of Day");
+            $todList = get_terms(
+                [
+                    'taxonomy'   => TouchPointWP::TAX_DAYTIME,
+                    'hide_empty' => true,
+                    'orderby'    => 'id',
+                    TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
+                ]
+            );
+            if (is_array($todList) && count($todList) > 1) {
+                $content .= "<select class=\"$class-filter\" data-involvement-filter=\"timeOfDay\">";
+                $content .= "<option disabled selected>{$todName}</option><option value=\"\">{$any}</option>";
+                foreach ($todList as $t) {
+                    $content .= "<option value=\"{$t->slug}\">{$t->name}</option>";
+                }
+                $content .= "</select>";
+            }
+        }
 
         // Marital Status
         if (in_array('inv_marital', $filters)) {
@@ -1274,7 +1294,8 @@ class Involvement implements api
             }
 
             // Determine schedule characteristics for stringifying.
-            $uniqueTimes = [];
+            $uniqueTimeStrings = [];
+            $timeTerms = [];
             $days = [];
             $timeFormat = get_option('time_format');
             foreach ($upcomingDateTimes as $dt) {
@@ -1290,13 +1311,17 @@ class Involvement implements api
 
                 // times
                 $timeStr = $dt->format($timeFormat);
-                if (!in_array($timeStr, $uniqueTimes)) {
-                    $uniqueTimes[] = $timeStr;
+                if (!in_array($timeStr, $uniqueTimeStrings)) {
+                    $uniqueTimeStrings[] = $timeStr;
+                    $timeTerm = Utilities::getTimeOfDayTermForTime($dt);
+                    if (! in_array($timeTerm, $timeTerms)) {
+                        $timeTerms[] = $timeTerm;
+                    }
                 }
                 unset($timeStr, $weekday);
             }
 
-            if (count($uniqueTimes) > 1) {
+            if (count($uniqueTimeStrings) > 1) {
                 // multiple different times of day
                 $dayStr = [];
                 foreach ($days as $dk => $dta) {
@@ -1305,31 +1330,31 @@ class Involvement implements api
                         /** @var $dt DateTimeImmutable */
                         $timeStr[] = $dt->format($timeFormat);
                     }
-                    $timeStr = __('at', TouchPointWP::TEXT_DOMAIN) . " " . TouchPointWP::stringArrayToList($timeStr);
+                    $timeStr = __('at', TouchPointWP::TEXT_DOMAIN) . " " . Utilities::stringArrayToList($timeStr);
 
                     if (count($days) > 1) {
-                        $dayStr[] = TouchPointWP::getDayOfWeekShortForNumber(intval($dk[1])) . ' ' . $timeStr;
+                        $dayStr[] = Utilities::getDayOfWeekShortForNumber(intval($dk[1])) . ' ' . $timeStr;
                     } else {
-                        $dayStr[] = TouchPointWP::getPluralDayOfWeekNameForNumber(intval($dk[1])) . ' ' . $timeStr;
+                        $dayStr[] = Utilities::getPluralDayOfWeekNameForNumber(intval($dk[1])) . ' ' . $timeStr;
                     }
                 }
-                $dayStr = TouchPointWP::stringArrayToList($dayStr);
+                $dayStr = Utilities::stringArrayToList($dayStr);
 
-            } elseif (count($uniqueTimes) == 1) {
+            } elseif (count($uniqueTimeStrings) == 1) {
                 // one time of day.
                 if (count($days) > 1) {
                     // more than one day per week
                     $dayStr = [];
                     foreach ($days as $k => $d) {
-                        $dayStr[] = TouchPointWP::getDayOfWeekShortForNumber(intval($k[1]));
+                        $dayStr[] = Utilities::getDayOfWeekShortForNumber(intval($k[1]));
                     }
-                    $dayStr = TouchPointWP::stringArrayToList($dayStr);
+                    $dayStr = Utilities::stringArrayToList($dayStr);
                 } else {
                     // one day of the week
                     $k = array_key_first($days);
-                    $dayStr = TouchPointWP::getPluralDayOfWeekNameForNumber(intval($k[1]));
+                    $dayStr = Utilities::getPluralDayOfWeekNameForNumber(intval($k[1]));
                 }
-                $dayStr .= ' ' . __('at', TouchPointWP::TEXT_DOMAIN) . " " . $uniqueTimes[0];
+                $dayStr .= ' ' . __('at', TouchPointWP::TEXT_DOMAIN) . " " . $uniqueTimeStrings[0];
             } else {
                 $dayStr = null;
             }
@@ -1394,11 +1419,12 @@ class Involvement implements api
             // Day of week taxonomy
             $dayTerms = [];
             foreach ($days as $k => $d) {
-                $dayTerms[] = TouchPointWP::getDayOfWeekShortForNumber(intval($k[1]));
+                $dayTerms[] = Utilities::getDayOfWeekShortForNumber(intval($k[1]));
             }
             wp_set_post_terms($post->ID, $dayTerms, TouchPointWP::TAX_WEEKDAY, false);
 
-            // TODO morning/evening/afternoon term and filter
+            // Time of day taxonomy
+            wp_set_post_terms($post->ID, $timeTerms, TouchPointWP::TAX_DAYTIME, false);
 
             ////////////////////////
             //// END SCHEDULING ////

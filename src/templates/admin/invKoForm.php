@@ -125,6 +125,10 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}}</script
                     <label for="it-filt-weekday" data-bind="attr: { for: 'it-' + slug() + '-filt-weekday'}"><?php _e("Weekday", TouchPointWP::TEXT_DOMAIN); ?></label>
                 </p>
                 <p>
+                    <input id="it-filt-timeOfDay" type="checkbox" value="timeOfDay" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-timeOfDay'}" />
+                    <label for="it-filt-timeOfDay" data-bind="attr: { for: 'it-' + slug() + '-filt-timeOfDay'}"><?php _e("Time of Day", TouchPointWP::TEXT_DOMAIN); ?></label>
+                </p>
+                <p>
                     <input id="it-filt-marital" type="checkbox" value="inv_marital" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-marital'}" />
                     <label for="it-filt-marital" data-bind="attr: { for: 'it-' + slug() + '-filt-marital'}"><?php _e("Prevailing Marital Status", TouchPointWP::TEXT_DOMAIN); ?></label>
                 </p>
@@ -201,6 +205,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}}</script
     }
 
     function initInvVm() {
+        // noinspection JSUnusedLocalSymbols
         ko.extenders.slug = function(target, option) {
             let result = ko.pureComputed({
                 read: target,

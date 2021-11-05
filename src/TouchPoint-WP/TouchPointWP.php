@@ -61,6 +61,7 @@ class TouchPointWP
     public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
     public const TAX_DIV = self::HOOK_PREFIX . "div";
     public const TAX_WEEKDAY = self::HOOK_PREFIX . "weekday";
+    public const TAX_DAYTIME = self::HOOK_PREFIX . "timeOfDay";
     public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
 
@@ -866,14 +867,87 @@ class TouchPointWP
                 ]
             );
             for ($di = 0; $di < 7; $di++) {
-                $name = self::getPluralDayOfWeekNameForNumber($di);
+                $name = Utilities::getPluralDayOfWeekNameForNumber($di);
                 if ( ! term_exists($name, self::TAX_WEEKDAY)) {
                     wp_insert_term(
                         $name,
                         self::TAX_WEEKDAY,
                         [
                             'description' => $name,
-                            'slug'        => self::getDayOfWeekShortForNumber($di)
+                            'slug'        => Utilities::getDayOfWeekShortForNumber($di)
+                        ]
+                    );
+                    self::queueFlushRewriteRules();
+                }
+            }
+        }
+
+
+        // Time of Day
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+            register_taxonomy(
+                self::TAX_DAYTIME,
+                Involvement_PostTypeSettings::getPostTypes(),
+                [
+                    'hierarchical'      => false,
+                    'show_ui'           => false,
+                    'description'       => __('Classify involvements by the portion of the day in which they meet.'),
+                    'labels'            => [
+                        'name'          => __('Times of Day'),
+                        'singular_name' => __('Time of Day'),
+                        'search_items'  => __('Search Times of Day'),
+                        'all_items'     => __('All Times of Day'),
+                        'edit_item'     => __('Edit Time of Day'),
+                        'update_item'   => __('Update Time of Day'),
+                        'add_new_item'  => __('Add New Time of Day'),
+                        'new_item_name' => __('New Time of Day Name'),
+                        'menu_name'     => __('Times of Day'),
+                    ],
+                    'public'            => true,
+                    'show_in_rest'      => true,
+                    'show_admin_column' => true,
+
+                    // Control the slugs used for this taxonomy
+                    'rewrite'           => [
+                        'slug'         => 'timeofday',
+                        'with_front'   => false,
+                        'hierarchical' => false
+                    ],
+                ]
+            );
+            $timesOfDay = [
+                __('Late Night'),
+                __('Early Morning'),
+                __('Morning'),
+                __('Midday'),
+                __('Afternoon'),
+                __('Evening'),
+                __('Night')
+            ];
+            foreach ($timesOfDay as $tod) {
+                if ( ! term_exists($tod, self::TAX_WEEKDAY)) {
+                    $slug = str_replace(" ", "", $tod);
+                    $slug = strtolower($slug);
+                    wp_insert_term(
+                        $tod,
+                        self::TAX_DAYTIME,
+                        [
+                            'description' => $tod,
+                            'slug'        => $slug
+                        ]
+                    );
+                    self::queueFlushRewriteRules();
+                }
+            }
+            for ($di = 0; $di < 7; $di++) {
+                $name = Utilities::getPluralDayOfWeekNameForNumber($di);
+                if ( ! term_exists($name, self::TAX_WEEKDAY)) {
+                    wp_insert_term(
+                        $name,
+                        self::TAX_WEEKDAY,
+                        [
+                            'description' => $name,
+                            'slug'        => Utilities::getDayOfWeekShortForNumber($di)
                         ]
                     );
                     self::queueFlushRewriteRules();
@@ -922,7 +996,7 @@ class TouchPointWP
             if (! term_exists($ag, self::TAX_AGEGROUP)) {
                 wp_insert_term(
                     $ag,
-                    self::TAX_RESCODE,
+                    self::TAX_AGEGROUP,
                     [
                         'description' => $ag,
                         'slug'        => sanitize_title($ag)
@@ -1054,89 +1128,6 @@ class TouchPointWP
     }
 
     /**
-     * Gets the plural form of a weekday name.
-     *
-     * Translation: These are deliberately not scoped to TouchPoint-WP, so if the translation exists globally, it should
-     * work here.
-     *
-     * @param int $dayNum
-     *
-     * @return string Plural weekday (e.g. Mondays)
-     */
-    public static function getPluralDayOfWeekNameForNumber(int $dayNum): string
-    {
-        $names = [
-            __('Sundays'),
-            __('Mondays'),
-            __('Tuesdays'),
-            __('Wednesdays'),
-            __('Thursdays'),
-            __('Fridays'),
-            __('Saturdays'),
-        ];
-
-        return $names[$dayNum % 7];
-    }
-
-    /**
-     * @param int $dayNum
-     *
-     * @return string
-     */
-    public static function getDayOfWeekShortForNumber(int $dayNum): string
-    {
-        $names = [
-            __('Sun'),
-            __('Mon'),
-            __('Tue'),
-            __('Wed'),
-            __('Thu'),
-            __('Fri'),
-            __('Sat'),
-        ];
-
-        return $names[$dayNum % 7];
-    }
-
-    /**
-     * Join an array of strings into a properly-formatted (English-style) list. Uses commas and ampersands by default.
-     * This will switch to written "and" when an ampersand is present in a string, and will use semi-colons instead of
-     * commas when commas are already present.
-     *
-     * Turn ['apples', 'oranges', 'pears'] into "apples, oranges & pears"
-     *
-     * @param string[] $strings
-     *
-     * @return string
-     */
-    public static function stringArrayToList(array $strings): string
-    {
-        $concat = implode('', $strings);
-
-        $comma = ', ';
-        $and = ' & ';
-        $useOxford = false;
-        if (strpos($concat, ', ') !== false) {
-            $comma     = '; ';
-            $useOxford = true;
-        }
-        if (strpos($concat, ' & ') !== false) {
-            $and = ' ' . __('and') . ' ';
-            $useOxford = true;
-        }
-
-        $last = array_pop($strings);
-        $str = implode($comma, $strings);
-        if (count($strings) > 0) {
-            if ($useOxford)
-                $str .= trim($comma);
-            $str .= $and;
-        }
-        $str .= $last;
-        return $str;
-    }
-
-    /**
      * Load plugin localisation
      */
     public function load_localisation()
@@ -1210,7 +1201,7 @@ class TouchPointWP
     /**
      * Create or update database tables
      */
-    protected function createTables(): void // TODO this should be called more than just installs to cover updates.
+    protected function createTables(): void
     {
         global $wpdb;
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');

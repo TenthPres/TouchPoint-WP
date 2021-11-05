@@ -288,7 +288,7 @@ class TouchPointWP_Settings
             && $this->hasValidApiSettings()) {
             /** @noinspection HtmlUnknownTarget */
             $this->settings['basic']['fields'][] = [
-                'id'          => 'generate-scripts', // TODO figure out how to prevent this from saving as a setting.
+                'id'          => 'generate-scripts',
                 'label'       => __('Generate Scripts', 'TouchPoint-WP'),
                 'type'    => 'instructions',
                 'description' => strtr(
@@ -718,7 +718,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 default:
                     return;
             }
-            add_action('admin_print_styles-' . $page, array($this, 'settings_assets'));
+            // add_action('admin_print_styles-' . $page, [$this, 'settings_assets']);  TODO SOMEDAY MAYBE if needing to upload media through inferface, uncomment this.
         }
     }
 
@@ -766,17 +766,15 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     {
         // We're including the WP media scripts here because they're needed for the image upload field.
         // If you're not including an image upload then you can leave this function call out.
-//        wp_enqueue_media(); // todo remove?
-
-        // TODO remove.  Most of this is not relevant.
-//        wp_register_script(
-//            $this->parent::TOKEN . '-settings-js',
-//            $this->parent->assets_url . 'js/settings' . $this->parent->script_suffix . '.js',
-//            ['jquery'],
-//            '1.0.0',
-//            true
-//        );
-//        wp_enqueue_script($this->parent::TOKEN . '-settings-js');
+        wp_enqueue_media();
+        wp_register_script(
+            $this->parent::TOKEN . '-settings-js',
+            $this->parent->assets_url . 'js/settings' . $this->parent->script_suffix . '.js',
+            ['jquery'],
+            '1.0.0',
+            true
+        );
+        wp_enqueue_script($this->parent::TOKEN . '-settings-js');
     }
 
     /**

@@ -69,9 +69,7 @@ abstract class Person implements api
         $string .= " " . $standingLastName; // TODO name privacy options
 
         $lastAmpPos = strrpos($string, " & ");
-        $string = str_replace(" & ", ", ", substr($string, 0, $lastAmpPos)) . substr($string, $lastAmpPos);
-
-        return $string;
+        return str_replace(" & ", ", ", substr($string, 0, $lastAmpPos)) . substr($string, $lastAmpPos);
     }
 
     public static function groupByFamily(array $people): array
