@@ -74,7 +74,8 @@ abstract class Rsvp
         $params  = shortcode_atts(
             [
                 'class'     => 'TouchPoint-RSVP btn',
-                'meetingid' => null
+                'meetingid' => null,
+                'preload' => __("Loading...", TouchPointWP::TEXT_DOMAIN)
             ],
             $params,
             self::SHORTCODE
@@ -96,14 +97,13 @@ abstract class Rsvp
         TouchPointWP::requireScript('meeting-defer');
 
         $meetingId = (int)($params['meetingid']);
+        $preloadMsg = $params['preload'];
 
         // get any nesting
         $content = do_shortcode($content);
 
-        // TODO create a 'loading' state for when rsvp action isn't available yet
-
         // create the link
-        return "<a href=\"#\" onclick=\"return false;\" class=\"" . $params['class'] . "\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\">$content</a>";
+        return "<a href=\"#\" onclick=\"return false;\" class=\"" . $params['class'] . " disabled\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$content</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
     }
 
 }

@@ -10,6 +10,9 @@ class TP_Meeting {
     /** @property inv TP_Involvement **/
     inv;
 
+    /** @var Date */
+    static _now;
+
     static actions = ['rsvp']
 
     constructor(obj) {
@@ -27,25 +30,43 @@ class TP_Meeting {
             let that = this,
                 ce = this.connectedElements[ei];
 
-            let actionBtns = ce.querySelectorAll('[data-tp-action]')
+            let actionBtns = Array.from(ce.querySelectorAll('[data-tp-action]'));
             if (ce.hasAttribute('data-tp-action')) {
                 // if there's a sole button, it should be added to the list so it works, too.
-                const action = ce.getAttribute('data-tp-action');
-                if (TP_Meeting.actions.includes(action)) {
-                    ce.addEventListener('click', function (e) {
-                        e.stopPropagation();
-                        that[action + "Action"]();
-                    });
-                }
+                actionBtns.push(ce);
             }
             for (const ai in actionBtns) {
                 if (!actionBtns.hasOwnProperty(ai)) continue;
                 const action = actionBtns[ai].getAttribute('data-tp-action');
+
+                if (action === "rsvp" && this.mtgDateTime < TP_Meeting.now()) {
+                    actionBtns[ai].innerText = "Event Past"; // i18n
+                    actionBtns[ai].classList.add("disabled");
+                    continue;
+                }
+
+                // add event listener
                 if (TP_Meeting.actions.includes(action)) {
                     actionBtns[ai].addEventListener('click', function (e) {
                         e.stopPropagation();
                         that[action + "Action"]();
                     });
+                }
+
+                // Hide preload text
+                let bc = actionBtns[ai].getElementsByClassName("rsvp-btn-preload");
+                for (const bi in bc) {
+                    if (!bc.hasOwnProperty(bi)) continue;
+                    actionBtns[ai].removeChild(bc[bi]);
+                }
+
+                // Show post-load text
+                bc = actionBtns[ai].getElementsByClassName("rsvp-btn-content");
+                actionBtns[ai].classList.remove("disabled");
+                for (const bi in bc) {
+                    if (!!bc[bi].style) {
+                        bc[bi].style.display = "unset";
+                    }
                 }
             }
         }
@@ -66,6 +87,20 @@ class TP_Meeting {
         } else {  // `DOMContentLoaded` has already fired
             this.initMeetings();
         }
+    }
+
+    /**
+     * Gets a Date object that is created when first called, probably at some point in the page load process.
+     *
+     * Does NOT update after it is initially set.
+     *
+     * @return Date
+     */
+    static now() {
+        if (!TP_Meeting._now) {
+            TP_Meeting._now = new Date(); // TODO use server time, since that's what we compare to.
+        }
+        return TP_Meeting._now;
     }
 
     static async initMeetings() {
