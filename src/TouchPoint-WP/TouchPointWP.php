@@ -641,6 +641,10 @@ class TouchPointWP
             return (object)['error' => $d->reason];
         }
 
+        if (!isset($d->latitude) || !isset($d->longitude) || !isset($d->city)) {
+            return (object)['error' => 'Geolocation data was not provided.'];
+        }
+
         if ($d->country === "US") {
             $d->human = $d->city . ", " . $d->postal;
         } else {
