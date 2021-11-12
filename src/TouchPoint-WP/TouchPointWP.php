@@ -637,6 +637,10 @@ class TouchPointWP
         }
 
         $d = json_decode($return);
+        if (!is_object($d)) {
+            return (object)['error' => 'The geocoding system unexpectedly returned a non-object.']
+        }
+
         if (property_exists($d, 'error')) {
             return (object)['error' => $d->reason];
         }
