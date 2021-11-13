@@ -346,7 +346,7 @@ class TP_Involvement {
             ga('send', 'event', inv.invType, 'join complete', inv.name);
         }
 
-        let res = await tpvm.postData('inv/join', {invId: inv.invId, people: people});
+        let res = await tpvm.postData('inv/join', {invId: inv.invId, people: people, invType: inv.invType});
         if (res.success.length > 0) {
             if (showConfirm) {
                 Swal.fire({
@@ -375,7 +375,7 @@ class TP_Involvement {
             ga('send', 'event', inv.invType, 'contact complete', inv.name);
         }
 
-        let res = await tpvm.postData('inv/contact', {invId: inv.invId, fromPerson: fromPerson, message: message});
+        let res = await tpvm.postData('inv/contact', {invId: inv.invId, fromPerson: fromPerson, message: message, invType: inv.invType});
         if (res.success.length > 0) {
             if (showConfirm) {
                 Swal.fire({
@@ -556,7 +556,6 @@ class TP_Involvement {
                 names.push(i.name);
             }
         }
-        console.log(mkr, names);
         mkr.setTitle(tpvm._utils.stringArrayToListString(names))
     }
 

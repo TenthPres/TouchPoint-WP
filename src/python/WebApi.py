@@ -12,6 +12,12 @@ PersonEvNames = {
 sgContactEvName = "Contact"
 defaultSgTaskDelegatePid = 16371
 
+def IListToList(IList):  # TODO eliminate when PR 1765 is merged
+	list = []
+	for li in IList:
+		list.append(li)
+	return list
+
 def getPersonInfoSql(tableAbbrev):
     return "SELECT DISTINCT {0}.PeopleId AS peopleId, {0}.FamilyId as familyId, {0}.LastName as lastName, COALESCE({0}.NickName, {0}.FirstName) as goesBy, SUBSTRING({0}.LastName, 1, 1) as lastInitial".format(tableAbbrev)
 
@@ -29,23 +35,23 @@ if (Data.a == "Divisions"):
     JOIN Program p on d.progId = p.Id
     ORDER BY p.name, d.name'''
 
-    Data.title = "All Divisions"
+    Data.Title = "All Divisions"
     Data.divs = q.QuerySql(divSql, {})
 
 elif (Data.a == "ResCodes"):
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.ResidentCode'''
-    Data.title = "All Resident Codes"
+    Data.Title = "All Resident Codes"
     Data.resCodes = q.QuerySql(rcSql, {})
 
 elif (Data.a == "Genders"):
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.Gender'''
-    Data.title = "All Genders"
+    Data.Title = "All Genders"
     Data.genders = q.QuerySql(rcSql, {})
 
 elif (Data.a == "Keywords"):
-    rcSql = '''SELECT Id, Code, Description as Name FROM Keyword'''
-    Data.title = "All Keywords"
-    Data.keywords = q.QuerySql(rcSql, {})
+    kwSql = '''SELECT KeywordId as Id, Code, Description as Name FROM Keyword ORDER BY Code'''
+    Data.Title = "All Keywords"
+    Data.keywords = q.QuerySql(kwSql, {})
 
 elif (Data.a == "InvsForDivs"):
     regex = re.compile('[^0-9\,]')
@@ -222,6 +228,7 @@ elif (Data.a == "inv_join"):  # This is a POST request. TODO possibly limit to p
     inData = model.JsonDeserialize(Data.data).inputData
 
     oid = inData.invId
+    keywords = IListToList(inData.keywords)
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
@@ -244,20 +251,14 @@ elif (Data.a == "inv_join"):  # This is a POST request. TODO possibly limit to p
         org = model.GetOrganization(oid)
         names = " & ".join(p.FirstName for p in addPeople)  # TODO develop a better name listing mechanism for python.
         pidStr = "(P" + ") (P".join(str(p.PeopleId) for p in addPeople) + ")"
-        model.CreateTaskNote(defaultSgTaskDelegatePid,
-            addPeople[0].PeopleId,
-            orgContactPid,
-            None,
-            False,
-            """**{0} {2} interested in joining {1}**. Please reach out to welcome them and mark the task as complete.
 
+        text = """**{0} {2} interested in joining {1}**. Please reach out to welcome them and mark the task as complete.
 They have also been added to your roster as prospective members.  Please move them to being a member of the group when appropriate.
 
-{3}
-""".format(names, org.name, "is" if len(addPeople) == 1 else "are", pidStr),
-            None,
-            None,
-            [2, 4, 5])  # keyword IDs
+{3}""".format(names, org.name, "is" if len(addPeople) == 1 else "are", pidStr)
+
+        model.CreateTaskNote(defaultSgTaskDelegatePid, addPeople[0].PeopleId, orgContactPid,
+            None, False, text, None, None, keywords)
 
 elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit to post?
     # TODO potentially merge with Join function.  Much of the code is duplicated.
@@ -266,6 +267,7 @@ elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit t
 
     oid = inData.invId
     message = inData.message
+    keywords = IListToList(inData.keywords)
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
@@ -279,14 +281,13 @@ elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit t
     p = inData.fromPerson
     m = inData.message
     org = model.GetOrganization(oid)
-
-    model.CreateTaskNote(defaultSgTaskDelegatePid, p.peopleId, orgContactPid, None, False,
-    """**Online Contact Form: {0}**
+    text = """**Online Contact Form: {0}**
 
 {1} sent the following message.  Please reach out to them and mark the task as complete.
 
-    {2}""".format(org.name, p.goesBy, str(m).replace("\n", "\n    ")),  # being indented causes section to be treated like code
-    None, None, [2, 4, 6])
+    {2}""".format(org.name, p.goesBy, str(m).replace("\n", "\n    "))  # being indented causes section to be treated like code
+
+    model.CreateTaskNote(defaultSgTaskDelegatePid, p.peopleId, orgContactPid, None, False, text, None, None, keywords)
 
     Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 

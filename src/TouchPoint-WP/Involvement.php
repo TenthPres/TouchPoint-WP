@@ -246,14 +246,9 @@ class Involvement implements api
             }
 
             // Divisions
-            $divs = implode(',', $type->importDivs);
-            $divs = str_replace('div', '', $divs);
+            $divs = Utilities::idArrayToIntArray($type->importDivs, false);
 
-            $count += self::updateInvolvementPostsForType(
-                $type,
-                $divs,
-                $verbose
-            );
+            $count += self::updateInvolvementPostsForType($type, $divs, $verbose);
         }
 
         if ($count !== false && $count !== 0) {
@@ -399,6 +394,9 @@ class Involvement implements api
      */
     public static function getSettingsForPostType($postType): ?Involvement_PostTypeSettings
     {
+        if ($postType === null) {
+            return null;
+        }
         return Involvement_PostTypeSettings::getForPostType($postType);
     }
 
@@ -463,12 +461,7 @@ class Involvement implements api
             self::$filterJsAdded = true;
         }
 
-        return self::filterDropdownHtml(
-            $params,
-            $settings->filters,
-            $settings->importDivs,
-            $settings->postType
-        );
+        return self::filterDropdownHtml($params, $settings);
     }
 
     /**
@@ -550,7 +543,7 @@ class Involvement implements api
      *
      * @return string
      */
-    protected static final function filterDropdownHtml(array $params, array $filterListSetting, array $divisions, string $postType): string
+    protected static final function filterDropdownHtml(array $params, Involvement_PostTypeSettings $settings): string
     {
         // standardize parameters
         $params = array_change_key_case($params, CASE_LOWER);
@@ -559,7 +552,7 @@ class Involvement implements api
         $params = shortcode_atts(
             [
                 'class'   => "TouchPoint-Involvement filterBar",
-                'filters' => strtolower(implode(",", $filterListSetting))
+                'filters' => strtolower(implode(",", $settings->filters))
             ],
             $params,
             static::SHORTCODE_FILTER
@@ -579,9 +572,11 @@ class Involvement implements api
 
         $any = __("Any", TouchPointWP::TEXT_DOMAIN);
 
+        $postType = $settings->postType;
+
         // Division
         if (in_array('div', $filters)) {
-            $exclude = $divisions;
+            $exclude = $settings->importDivs;
             if (count($exclude) > 0) {
                 $mq = ['relation' => "AND"];
                 foreach ($exclude as $e) {
@@ -1123,7 +1118,8 @@ class Involvement implements api
      *
      * @return false|int  False on failure.  Otherwise, the number of updates.
      */
-    final protected static function updateInvolvementPostsForType(Involvement_PostTypeSettings $typeSets, $divs, $verbose = false) {
+    final protected static function updateInvolvementPostsForType(Involvement_PostTypeSettings $typeSets, $divs, bool $verbose)
+    {
         $siteTz = wp_timezone();
 
         set_time_limit(60);
@@ -1592,7 +1588,7 @@ class Involvement implements api
                     case 5:  // Create Account
                         $text = __('Create Account', TouchPointWP::TEXT_DOMAIN);
                         break;
-                    case 6:  // Choose Volunteer Times
+                    case 6:  // Choose Volunteer Times (legacy)
                     case 22: // Volunteer Scheduler
                         $text = __('Schedule', TouchPointWP::TEXT_DOMAIN);
                         break;
@@ -1640,19 +1636,16 @@ class Involvement implements api
      */
     private static function ajaxInvJoin(): void
     {
-        header('Content-Type: application/json');
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['error' => 'Only POST requests are allowed.']);
-            exit;
+        $inputData = TouchPointWP::postHeadersAndFiltering();
+        $inputData = json_decode($inputData);
+        $inputData->keywords = [];
+
+        $settings = self::getSettingsForPostType($inputData->invType);
+        if (!!$settings || !$settings->joinKeywords) {
+            $inputData->keywords = Utilities::idArrayToIntArray($settings->joinKeywords);
         }
 
-        $inputData = file_get_contents('php://input');
-        if ($inputData[0] !== '{') {
-            echo json_encode(['error' => 'Invalid data provided.']);
-            exit;
-        }
-
-        $data = TouchPointWP::instance()->apiPost('inv_join', json_decode($inputData));
+        $data = TouchPointWP::instance()->apiPost('inv_join', $inputData);
 
         if ($data instanceof WP_Error) {
             echo json_encode(['error' => $data->get_error_message()]);
@@ -1663,15 +1656,21 @@ class Involvement implements api
         exit;
     }
 
-
     /**
      * Handles the API call to send a message through a contact form.
      */
     private static function ajaxInvContact(): void
     {
         $inputData = TouchPointWP::postHeadersAndFiltering();
+        $inputData = json_decode($inputData);
+        $inputData->keywords = [];
 
-        $data = TouchPointWP::instance()->apiPost('inv_contact', json_decode($inputData));
+        $settings = self::getSettingsForPostType($inputData->invType);
+        if (!!$settings || !$settings->contactKeywords) {
+            $inputData->keywords = Utilities::idArrayToIntArray($settings->contactKeywords);
+        }
+
+        $data = TouchPointWP::instance()->apiPost('inv_contact', $inputData);
 
         if ($data instanceof WP_Error) {
             echo json_encode(['error' => $data->get_error_message()]);

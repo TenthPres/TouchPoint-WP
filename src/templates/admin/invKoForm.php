@@ -1,8 +1,12 @@
 <?php
 namespace tp\TouchPointWP;
 
+/** @var TouchPointWP_Settings $this */
+
 $divs = json_encode($this->parent->getDivisions());
-echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}}</script>";
+$kws = json_encode($this->parent->getKeywords());
+/** @noinspection CommaExpressionJS */
+echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}, kws: {$kws} }</script>";
 ?>
 <style>
     .column-wrap {
@@ -138,6 +142,29 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}}</script
                 </p>
             </td>
         </tr>
+        <!-- TODO action buttons -->
+        <tr data-bind=""><!-- TODO visibility based on action buttons -->
+            <th><?php _e("Contact Leader Task Keywords", TouchPointWP::TEXT_DOMAIN); ?></th>
+            <td colspan="2" class="column-wrap">
+                <!-- ko foreach: $root.keywords -->
+                <p>
+                    <input id="it-clt-kw" type="checkbox" data-bind="value: 'kw' + id, checked: $parent.contactKeywords, attr: {id: 'it-' + $parent.slug() + '-clt-kw-' + id}" />
+                    <label for="it-clt-kw" data-bind="text: name, attr: {for: 'it-' + $parent.slug() + '-clt-kw-' + id}"></label>
+                </p>
+                <!-- /ko -->
+            </td>
+        </tr>
+        <tr data-bind=""><!-- TODO visibility based on action buttons -->
+            <th><?php _e("Join Task Keywords", TouchPointWP::TEXT_DOMAIN); ?></th>
+            <td colspan="2" class="column-wrap">
+                <!-- ko foreach: $root.keywords -->
+                <p>
+                    <input id="it-jt-kw" type="checkbox" data-bind="value: 'kw' + id, checked: $parent.joinKeywords, attr: {id: 'it-' + $parent.slug() + '-jt-kw-' + id}" />
+                    <label for="it-jt-kw" data-bind="text: name, attr: {for: 'it-' + $parent.slug() + '-jt-kw-' + id}"></label>
+                </p>
+                <!-- /ko -->
+            </td>
+        </tr>
     </table>
 
     <hr />
@@ -159,6 +186,8 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}}</script
         this.leaderTypes = ko.observableArray(data.leaderTypes ?? []);
         this.hostTypes = ko.observableArray(data.hostTypes ?? []);
         this.filters = ko.observableArray(data.filters ?? ['genderId', 'weekday', 'rescode', 'agegroup', 'div']);
+        this.contactKeywords = ko.observableArray(data.contactKeywords ?? []);
+        this.joinKeywords = ko.observableArray(data.joinKeywords ?? []);
 
         this.postType = data.postType;
 
@@ -195,6 +224,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}}</script
         }
         self.invTypes = ko.observableArray(invInits);
         self.divisions = tpvm._vmContext.divs;
+        self.keywords = tpvm._vmContext.kws;
 
         // Operations
         self.addInvType = function() {

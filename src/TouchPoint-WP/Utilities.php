@@ -133,4 +133,25 @@ abstract class Utilities
         $str .= $last;
         return $str;
     }
+
+    /**
+     * Convert a list (string or array) to an array of ints.  Strips out non-numerics and explodes.
+     *
+     * @param string|array $r
+     *
+     * @return int[]|string
+     */
+    public static function idArrayToIntArray($r, $explode = true)
+    {
+        if (is_array($r)) {
+            $r = implode(",", $r);
+        }
+
+        $r = preg_replace('/[^0-9,]+/', '', $r);
+
+        if ($explode) {
+            return json_decode("[" . $r . "]");
+        }
+        return $r;
+    }
 }

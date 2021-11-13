@@ -1679,7 +1679,7 @@ class TouchPointWP
             $needsUpdate = true;
         } else {
             $kObj = json_decode($kObj);
-            if (strtotime($kObj->_updated) < time() - 3600 * 2 || ! is_array($kObj->genders)) {
+            if (strtotime($kObj->_updated) < time() - 3600 * 2 || ! is_array($kObj->keywords)) {
                 $needsUpdate = true;
             }
         }
@@ -1720,7 +1720,7 @@ class TouchPointWP
             return false;
         }
 
-        if ( ! is_array($body->data->genders)) {
+        if ( ! is_array($body->data->keywords)) {
             return false;
         }
 
