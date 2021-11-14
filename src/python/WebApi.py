@@ -13,10 +13,10 @@ sgContactEvName = "Contact"
 defaultSgTaskDelegatePid = 16371
 
 def IListToList(IList):  # TODO eliminate when PR 1765 is merged
-	list = []
-	for li in IList:
-		list.append(li)
-	return list
+    list = []
+    for li in IList:
+        list.append(li)
+    return list
 
 def getPersonInfoSql(tableAbbrev):
     return "SELECT DISTINCT {0}.PeopleId AS peopleId, {0}.FamilyId as familyId, {0}.LastName as lastName, COALESCE({0}.NickName, {0}.FirstName) as goesBy, SUBSTRING({0}.LastName, 1, 1) as lastInitial".format(tableAbbrev)
@@ -303,7 +303,7 @@ elif (Data.a == "mtg"):  # This is a POST request. TODO possibly limit to post?
             m.organizationId as invId,
             m.location,
             FORMAT(m.meetingDate, 'yyyy-MM-ddTHH:mm:ss') as mtgDate,
-            m.description,
+            COALESCE(m.description, '') as description,
             m.capacity,
             o.organizationName as invName
     FROM Meetings m LEFT JOIN Organizations o ON m.organizationId = o.organizationId
@@ -311,11 +311,11 @@ elif (Data.a == "mtg"):  # This is a POST request. TODO possibly limit to post?
     '''.format(inData.mtgRefs)
     ):
         mtg.description = mtg.description.strip()
+        if mtg.description == "":
+            mtg.description = None
         if mtg.location is not None:
             mtg.location = mtg.location.strip()
         mtg.invName = mtg.invName.strip()
-        if mtg.description == "":
-            mtg.description = None
         Data.success.append(mtg)
 
 elif (Data.a == "mtg_rsvp"):  # This is a POST request. TODO possibly limit to post?
