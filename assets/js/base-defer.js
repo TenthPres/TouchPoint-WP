@@ -26,6 +26,16 @@ function utilInit() {
         str += last;
         return str;
     }
+
+    tpvm._utils.registerAction = function(action, object, id) {
+        let itemUId = object.classShort + id;
+        if (!tpvm._actions.hasOwnProperty(action)) {
+            tpvm._actions[action] = {};
+        }
+        if (typeof object[action + "Action"] === "function") {
+            tpvm._actions[action][itemUId] = object[action + "Action"];
+        }
+    }
 }
 utilInit();
 
@@ -154,10 +164,10 @@ class TP_DataGeo {
         }
     }
 }
+TP_DataGeo.prototype.classShort = "geo";
 TP_DataGeo.init();
 
 class TP_Involvement {
-
     name = "";
     invId = "";
     _visible = true;
@@ -184,18 +194,19 @@ class TP_Involvement {
         for (const ei in this.connectedElements) {
             if (!this.connectedElements.hasOwnProperty(ei)) continue;
 
-            let that = this;
-            this.connectedElements[ei].addEventListener('mouseenter', function(e){e.stopPropagation(); that.toggleHighlighted(true);});
-            this.connectedElements[ei].addEventListener('mouseleave', function(e){e.stopPropagation(); that.toggleHighlighted(false);});
+            let inv = this;
+            this.connectedElements[ei].addEventListener('mouseenter', function(e){e.stopPropagation(); inv.toggleHighlighted(true);});
+            this.connectedElements[ei].addEventListener('mouseleave', function(e){e.stopPropagation(); inv.toggleHighlighted(false);});
 
             let actionBtns = this.connectedElements[ei].querySelectorAll('[data-tp-action]')
             for (const ai in actionBtns) {
                 if (!actionBtns.hasOwnProperty(ai)) continue;
                 const action = actionBtns[ai].getAttribute('data-tp-action');
                 if (TP_Involvement.actions.includes(action)) {
+                    tpvm._utils.registerAction(action, inv, inv.invId)
                     actionBtns[ai].addEventListener('click', function (e) {
                         e.stopPropagation();
-                        that[action + "Action"]();
+                        inv[action + "Action"]();
                     });
                 }
             }
@@ -217,10 +228,12 @@ class TP_Involvement {
             }
 
             if (typeof tpvm.involvements[invArr[i].invId] === "undefined") {
-                ret.push(new this(invArr[i]))
+                ret.push(new this(invArr[i]));
+            } else {
+                ret.push(tpvm.involvements[invArr[i].invId]);
             }
         }
-        tpvm.trigger("Involvement_fromArray")
+        tpvm.trigger("Involvement_fromArray");
         return ret;
     };
 
@@ -583,6 +596,7 @@ class TP_Involvement {
         }
     }
 }
+TP_Involvement.prototype.classShort = "i";
 TP_Involvement.init();
 
 class TP_Person {
@@ -779,3 +793,4 @@ class TP_Person {
         });
     }
 }
+TP_Person.prototype.classShort = "p";

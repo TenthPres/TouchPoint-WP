@@ -27,7 +27,7 @@ class TP_Meeting {
         for (const ei in this.connectedElements) {
             if (!this.connectedElements.hasOwnProperty(ei)) continue;
 
-            let that = this,
+            let mtg = this,
                 ce = this.connectedElements[ei];
 
             let actionBtns = Array.from(ce.querySelectorAll('[data-tp-action]'));
@@ -47,9 +47,10 @@ class TP_Meeting {
 
                 // add event listener
                 if (TP_Meeting.actions.includes(action)) {
+                    tpvm._utils.registerAction(action, mtg, mtg.mtgId);
                     actionBtns[ai].addEventListener('click', function (e) {
                         e.stopPropagation();
-                        that[action + "Action"]();
+                        mtg[action + "Action"]();
                     });
                 }
 
@@ -274,4 +275,5 @@ class TP_Meeting {
         return ret.replace(" PM", "pm").replace(" AM", "am").replace(":00", "");
     }
 }
+TP_Meeting.prototype.classShort = "m";
 TP_Meeting.init();

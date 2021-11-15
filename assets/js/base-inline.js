@@ -1,11 +1,12 @@
 const tpvm = {
     involvements: [],
     meetings: [],
+    people: {},
+    _actions: {}, // collection of actions that have been registered that can be linked via location.hash.
     _utils: {},
     _vmContext: {},
     _events: {},
     _eventsTriggered: [],
-    people: {},
     _invNear: {},
     _plausibleUsers: [],
     addEventListener: function(name, f) {
