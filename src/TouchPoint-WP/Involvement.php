@@ -30,6 +30,7 @@ class Involvement implements api
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "Inv-Map";
     public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "Inv-Filters";
     public const SHORTCODE_NEARBY = TouchPointWP::SHORTCODE_PREFIX . "Inv-Nearby";
+    public const SHORTCODE_ACTIONS = TouchPointWP::SHORTCODE_PREFIX . "Inv-Actions";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
     protected static TouchPointWP $tpwp;
     protected static bool $_hasUsedMap = false;
@@ -72,6 +73,10 @@ class Involvement implements api
             $this->invId = intval($object->{self::INVOLVEMENT_META_KEY});
             $this->post_id = $object->ID;
             $this->invType = get_post_type($this->post_id);
+
+            if ($this->invId === 0) {
+                throw new TouchPointWP_Exception("No Involvement ID provided in the post.");
+            }
 
         } elseif (gettype($object) === "object") {
             // Sql Object, probably.
@@ -398,6 +403,85 @@ class Involvement implements api
             return null;
         }
         return Involvement_PostTypeSettings::getForPostType($postType);
+    }
+
+    /**
+     * Get an array of Involvement Post Types
+     *
+     * @return array
+     */
+    public static function getPostTypes(): array
+    {
+        $r = [];
+        foreach (self::settings() as $pt) {
+            $r[] = $pt->postTypeWithPrefix();
+        }
+        return $r;
+    }
+
+    /**
+     * Display action buttons for an involvement.  Takes an id parameter for the Involvement Id.  If not provided,
+     * the current post will be used.
+     *
+     * @param array|string  $params
+     * @param string $content
+     *
+     * @return string
+     */
+    public static function actionsShortcode($params = [], string $content = ""): string
+    {
+        // standardize parameters
+        if (is_string($params)) {
+            $params = explode(",", $params);
+        }
+        $params = array_change_key_case($params, CASE_LOWER);
+
+        // set some defaults
+        $params = shortcode_atts(
+            [
+                'class' => 'TouchPoint-involvement actions',
+                'invid' => null,
+                'id'    => wp_unique_id('tp-actions-')
+            ],
+            $params,
+            self::SHORTCODE_ACTIONS
+        );
+
+        $iid = $params['invid'];
+
+        // If there's no invId, try to get one from the Post
+        if ($iid === null) {
+            $post = get_post();
+
+            if (is_object($post)) {
+                try {
+                    $inv = Involvement::fromPost($post);
+                    $iid = $inv->invId;
+                } catch (TouchPointWP_Exception $e) {
+                    $iid = null;
+                }
+            }
+        }
+
+        // If there is no invId at this point, this is an error.
+        if ($iid === null) {
+            return "<!-- Error: Can't create Involvement Actions because there is no clear involvement.  Define the InvId and make sure it's imported. -->";
+        }
+
+        try {
+            $inv = Involvement::fromInvId($iid);
+        } catch(TouchPointWP_Exception $e) {
+            return "<!-- Error: " . $e->getMessage() . " -->";
+        }
+
+        if ($inv === null) {
+            return "<!-- Error: Involvement isn't instantiated. -->";
+        }
+
+        $eltId = $params['id'];
+        $class = $params['class'];
+
+        return "<div id=\"$eltId\" class=\"$class\" data-tp-involvement=\"{$inv->invId}\">{$inv->getActionButtons()}</div>";
     }
 
     /**
@@ -747,6 +831,8 @@ class Involvement implements api
      * @param WP_Post $post
      *
      * @return Involvement
+     *
+     * @throws TouchPointWP_Exception If the involvement can't be created from the post, an exception is thrown.
      */
     public static function fromPost(WP_Post $post): Involvement
     {
@@ -912,6 +998,37 @@ class Involvement implements api
         return self::$_instances[$iid];
     }
 
+    /**
+     * Create an Involvement object from an Involvement ID.  Only Involvements that are already imported as Posts are
+     * currently available.
+     *
+     * @param int $iid A database object from which an Involvement object should be created.
+     *
+     * @return ?Involvement  Null if the involvement is not imported/available.
+     * @throws TouchPointWP_Exception
+     */
+    private static function fromInvId(int $iid): ?Involvement
+    {
+        if ( ! isset(self::$_instances[$iid])) {
+            $q = new WP_Query(
+                [
+                    'post_type' => Involvement::getPostTypes(),
+                    'meta_key'   => TouchPointWP::SETTINGS_PREFIX . "invId",
+                    'meta_value' => (string)$iid
+                ]
+            );
+            $post = $q->get_posts();
+            if (count($post) > 0) { // post exists.
+                $post = $post[0];
+            } else {
+                return null;
+            }
+            self::$_instances[$iid] = new Involvement($post);
+        }
+
+        return self::$_instances[$iid];
+    }
+
 
     public static function load(TouchPointWP $tpwp): bool
     {
@@ -935,6 +1052,10 @@ class Involvement implements api
 
         if ( ! shortcode_exists(self::SHORTCODE_NEARBY)) {
             add_shortcode(self::SHORTCODE_NEARBY, [self::class, "nearbyShortcode"]);
+        }
+
+        if ( ! shortcode_exists(self::SHORTCODE_ACTIONS)) {
+            add_shortcode(self::SHORTCODE_ACTIONS, [self::class, "actionsShortcode"]);
         }
 
         // Setup cron for updating Small Groups daily.
@@ -1566,7 +1687,8 @@ class Involvement implements api
     }
 
     /**
-     * Returns the html with buttons for actions the user can perform.
+     * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with the
+     * `data-tp-involvement` attribute with the invId as the value.
      *
      * @return string
      */
