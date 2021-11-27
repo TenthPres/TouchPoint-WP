@@ -865,7 +865,7 @@ class Involvement implements api
                 exit;
 
             case "contact":
-                self::ajaxInvContact();
+                self::ajaxContact();
                 exit;
 
             case "nearby":
@@ -1781,7 +1781,7 @@ class Involvement implements api
     /**
      * Handles the API call to send a message through a contact form.
      */
-    private static function ajaxInvContact(): void
+    private static function ajaxContact(): void
     {
         $inputData = TouchPointWP::postHeadersAndFiltering();
         $inputData = json_decode($inputData);

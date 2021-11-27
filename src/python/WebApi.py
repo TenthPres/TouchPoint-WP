@@ -292,6 +292,33 @@ elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit t
     Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 
 
+elif (Data.a == "p_contact"):  # This is a POST request. TODO possibly limit to post?
+    # TODO potentially merge with Join function.  Much of the code is duplicated.
+    Data.Title = 'Contacting Person'
+    inData = model.JsonDeserialize(Data.data).inputData
+
+    pid = inData.pid
+    subj = inData.subj
+    message = inData.message
+    keywords = IListToList(inData.keywords)
+    # TODO get owner from somewhere
+
+    Data.success = []
+
+    p = inData.fromPerson
+    m = inData.message
+    org = model.GetOrganization(oid)
+    text = """**Online Contact Form: {0}**
+
+{1} sent the following message.  Please respond and mark the task as complete.
+
+    {2}""".format(subj, p.goesBy, str(m).replace("\n", "\n    "))  # being indented causes section to be treated like code
+
+    model.CreateTaskNote(owner, p.peopleId, pid, None, False, text, None, None, keywords)
+
+    Data.success.append({'pid': p.peopleId, 'to': pid})
+
+
 elif (Data.a == "mtg"):  # This is a POST request. TODO possibly limit to post?
     Data.Title = 'Getting Meeting Info'
     inData = model.JsonDeserialize(Data.data).inputData

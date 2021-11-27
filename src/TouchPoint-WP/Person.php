@@ -10,7 +10,7 @@ use WP_Error;
  *
  * @package tp\TouchPointWP
  */
-abstract class Person implements api
+class Person extends \WP_User implements api
 {
     public static function arrangeNamesForPeople($people): string
     {
@@ -130,8 +130,53 @@ abstract class Person implements api
                 TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
                 self::ajaxIdent();
                 exit;
+
+            case "contact":
+                self::ajaxContact();
+                exit;
         }
 
         return false;
+    }
+
+    /**
+     * Handles the API call to send a message through a contact form.
+     */
+    private static function ajaxContact(): void
+    {
+        $inputData = TouchPointWP::postHeadersAndFiltering();
+        $inputData = json_decode($inputData);
+        $inputData->keywords = [];
+
+        // TODO get keywords from somewhere
+        if (!!$settings || !$settings->contactKeywords) {
+            $inputData->keywords = Utilities::idArrayToIntArray($settings->contactKeywords);
+        }
+
+        $data = TouchPointWP::instance()->apiPost('p_contact', $inputData);
+
+        if ($data instanceof WP_Error) {
+            echo json_encode(['error' => $data->get_error_message()]);
+            exit;
+        }
+
+        echo json_encode(['success' => $data->success]);
+        exit;
+    }
+
+    /**
+     * Internal.  Sync person data from the API Object into WordPress objects.
+     *
+     * @param object $data
+     *
+     * @return bool
+     */
+    private static function syncPersonData(object $data): bool
+    {
+        // Get User ID if already exists
+
+        // Else, create user
+
+        // Sync metas
     }
 }
