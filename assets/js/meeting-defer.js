@@ -40,18 +40,21 @@ class TP_Meeting {
                 const action = actionBtns[ai].getAttribute('data-tp-action');
 
                 if (action === "rsvp" && this.mtgDateTime < TP_Meeting.now()) {
-                    actionBtns[ai].innerText = "Event Past"; // i18n
+                    actionBtns[ai].title = "Event Past"; // i18n
+                    actionBtns[ai].setAttribute("disabled", "disabled");
                     actionBtns[ai].classList.add("disabled");
-                    continue;
-                }
+                } else {
+                    actionBtns[ai].classList.remove("disabled");
+                    actionBtns[ai].removeAttribute("disabled");
 
-                // add event listener
-                if (TP_Meeting.actions.includes(action)) {
-                    tpvm._utils.registerAction(action, mtg, mtg.mtgId);
-                    actionBtns[ai].addEventListener('click', function (e) {
-                        e.stopPropagation();
-                        mtg[action + "Action"]();
-                    });
+                    // add event listener
+                    if (TP_Meeting.actions.includes(action)) {
+                        tpvm._utils.registerAction(action, mtg, mtg.mtgId);
+                        actionBtns[ai].addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            mtg[action + "Action"]();
+                        });
+                    }
                 }
 
                 // Hide preload text
@@ -63,7 +66,6 @@ class TP_Meeting {
 
                 // Show post-load text
                 bc = actionBtns[ai].getElementsByClassName("rsvp-btn-content");
-                actionBtns[ai].classList.remove("disabled");
                 for (const bi in bc) {
                     if (!!bc[bi].style) {
                         bc[bi].style.display = "unset";
