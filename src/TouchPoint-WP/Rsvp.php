@@ -100,7 +100,7 @@ abstract class Rsvp
         $preloadMsg = $params['preload'];
 
         // get any nesting
-        $content = do_shortcode($content);
+        $content = apply_shortcodes($content);
 
         // create the link
         return "<a href=\"#\" onclick=\"return false;\" class=\"" . $params['class'] . " disabled\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$content</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";

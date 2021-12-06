@@ -3,6 +3,11 @@
 
 namespace tp\TouchPointWP;
 
+if ( ! defined('ABSPATH')) {
+    exit(1);
+}
+
+require_once 'api.iface.php';
 
 use WP_Error;
 

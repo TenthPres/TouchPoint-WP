@@ -36,9 +36,11 @@ if ( ! function_exists('com_create_guid')) {
     /**
      * Generates a Microsoft-friendly globally unique identifier ( Guid ).
      *
+     * @deprecated TODO at least move to Utils
+     *
      * @return string A new random globally unique identifier.
      */
-    function com_create_guid()
+    function com_create_guid(): string
     {
         mt_srand(( double )microtime() * 10000);
         $char   = strtoupper(md5(uniqid(rand(), true)));

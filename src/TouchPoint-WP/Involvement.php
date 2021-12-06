@@ -81,17 +81,19 @@ class Involvement implements api
         } elseif (gettype($object) === "object") {
             // Sql Object, probably.
 
-            if (!property_exists($object, 'post_id'))
+            if (! property_exists($object, 'post_id')) {
                 _doing_it_wrong(
                     __FUNCTION__,
-                    esc_html(__('Creating an Involvement object from an object without a post_id is not yet supported.')),
+                    esc_html(
+                        __('Creating an Involvement object from an object without a post_id is not yet supported.')
+                    ),
                     esc_attr(TouchPointWP::VERSION)
                 );
+            }
 
             $this->post = get_post($object, "OBJECT");
             $this->post_id = $this->post->ID;
             $this->invType = $object->invType;
-
 
             foreach ($object as $property => $value) {
                 if (property_exists(self::class, $property)) {
@@ -615,7 +617,7 @@ class Involvement implements api
         $content = "<div class=\"\" id=\"$nearbyListId\" data-bind=\"foreach: nearby\">" . $content . "</div>";
 
         // get any nesting
-        return do_shortcode($content);
+        return apply_shortcodes($content);
     }
 
 
