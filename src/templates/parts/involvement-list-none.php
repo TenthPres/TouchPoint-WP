@@ -5,7 +5,7 @@ use tp\TouchPointWP\TouchPointWP;
 
 ?>
 
-<article id="smallgroup-none" class="error">
+<article id="involvement-none" class="error">
     <header class="entry-header">
         <div class="entry-header-inner">
         <?php
