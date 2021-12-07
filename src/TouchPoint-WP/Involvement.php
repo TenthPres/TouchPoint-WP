@@ -936,7 +936,7 @@ class Involvement implements api
 
         if ($lat === null || $lng === null ||
             $lat > 90 || $lat < -90 ||
-            $lat > 180 || $lat < -180
+            $lng > 180 || $lng < -180
         ) {
             return null;
         }
