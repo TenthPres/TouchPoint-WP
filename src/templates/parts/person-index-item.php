@@ -37,10 +37,10 @@ use tp\TouchPointWP\Person;
             </span><!-- .post-meta -->
         </div>
     </header><!-- .entry-header -->
-    <div class="thin entry-content">
+    <div class="entry-content">
         <?php //echo wp_trim_words($person->description, 20, "..."); ?>
     </div>
-    <div class="thin actions involvement-actions person-actions">
+    <div class="actions person-actions">
         <?php echo $person->getActionButtons(); ?>
     </div>
 </article>

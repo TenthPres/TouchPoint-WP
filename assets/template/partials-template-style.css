@@ -19,7 +19,7 @@ article.involvement-list-item {
     text-align: center;
 }
 
-article.people-index-item {
+.people-index-item {
     box-shadow: 10px 10px 20px #00000033;
     margin: 0.8em;
     position: relative;
@@ -29,6 +29,24 @@ article.people-index-item {
     height: 17em;
     overflow: hidden;
     background-size: cover;
+    background-position: center;
+}
+
+.people-index-item * {
+    transition: opacity .3s;
+}
+
+.people-index-item .person-actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 1.5em 1em;
+    opacity: 0;
+}
+
+.people-index-item:hover .person-actions {
+    opacity: 1;
 }
 
 .involvement-list-item .involvement-actions {
@@ -55,7 +73,7 @@ article.people-index-item {
     text-align: center;
 }
 
-.involvement-list-item div.thin.entry-content {
+.involvement-list-item div.entry-content {
     flex: 1 1 auto;
 }
 
@@ -68,9 +86,14 @@ div.involvement-list article.involvement-list-item h2.entry-title {
     left: 0;
     right: 0;
     bottom: 0;
-    padding-top: 2em;
     padding-bottom: 1em;
-    background: linear-gradient(0deg, #ffffffee 0%, #ffffffdd 45%, #ffffff00 100%);
+    background: linear-gradient(0deg, #00000011 0%, #00000011 60%, #00000000 100%);
+    color: #fff;
+    text-shadow: 0 0 3px #000, 0 0 5px #000;
+}
+
+.people-index-item:hover header.entry-header > * {
+    opacity: 0;
 }
 
 .involvement-list-item h2 a:after {
