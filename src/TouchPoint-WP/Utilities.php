@@ -156,15 +156,16 @@ abstract class Utilities
     }
 
     /**
-     * Gets the posts that contain a particular shortcode.
+     * Gets the post content that contain a particular shortcode.
      *
      * @param $shortcode
      *
-     * @return \WP_Post[]
+     * @return stdClass
      */
-    public static function getPostsWithShortcode($shortcode): array
+    public static function getPostContentWithShortcode($shortcode): array
     {
-        $q = new \WP_Query(['s' => $shortcode]);
-        return $q->get_posts();
+        global $wpdb;
+        /** @noinspection SqlResolve */
+        return $wpdb->get_results("SELECT post_content FROM {$wpdb->posts} WHERE post_content LIKE '%{$shortcode}%'");
     }
 }

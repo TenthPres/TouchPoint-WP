@@ -9,6 +9,8 @@ if ( ! defined('ABSPATH')) {
 
 require_once 'api.iface.php';
 require_once "jsInstantiation.php";
+require_once 'InvolvementMembership.php';
+require_once "Utilities/PersonQuery.php";
 
 use stdClass;
 use tp\TouchPointWP\Utilities\PersonQuery;
@@ -307,7 +309,7 @@ class Person extends \WP_User implements api, \JsonSerializable
         self::$_indexingQueries = [];
 
         // Update People Indexes
-        $posts = Utilities::getPostsWithShortcode(self::SHORTCODE_PEOPLE_INDEX);
+        $posts = Utilities::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_INDEX);
 
         self::$_indexingMode = true;
         foreach ($posts as $postI) {
@@ -322,6 +324,10 @@ class Person extends \WP_User implements api, \JsonSerializable
         // Update Involvement Leaders
         // TODO DIR this
 
+        // Make sure there's something to submit
+        if (!isset(self::$_indexingQueries)) {
+            return;
+        }
 
         // Submit to API
         $data = TouchPointWP::instance()->apiPost('people_get', self::$_indexingQueries);
