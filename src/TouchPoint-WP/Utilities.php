@@ -160,9 +160,9 @@ abstract class Utilities
      *
      * @param $shortcode
      *
-     * @return stdClass
+     * @return object
      */
-    public static function getPostContentWithShortcode($shortcode): array
+    public static function getPostContentWithShortcode($shortcode): object
     {
         global $wpdb;
         /** @noinspection SqlResolve */

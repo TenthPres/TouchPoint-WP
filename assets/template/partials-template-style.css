@@ -30,6 +30,7 @@ article.involvement-list-item {
     overflow: hidden;
     background-size: cover;
     background-position: center;
+    background-repeat: no-repeat;
 }
 
 .people-index-item * {
