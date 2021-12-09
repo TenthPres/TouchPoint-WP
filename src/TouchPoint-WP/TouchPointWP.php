@@ -446,13 +446,13 @@ class TouchPointWP
         // Load RSVP tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
             require_once 'Rsvp.php';
-            $instance->rsvp = Rsvp::load($instance);
+            $instance->rsvp = Rsvp::load();
         }
 
         // Load Involvements tool if enabled.
         if (get_option(self::SETTINGS_PREFIX . 'enable_involvements') === "on") {
             require_once 'Involvement.php';
-            $instance->involvements = Involvement::load($instance);
+            $instance->involvements = Involvement::load();
         }
 
         // Load Person for People Indexes.

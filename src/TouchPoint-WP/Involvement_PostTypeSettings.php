@@ -21,7 +21,6 @@ if ( ! defined('ABSPATH')) {
  * @property-read string $postType
  */
 class Involvement_PostTypeSettings {
-    private static TouchPointWP $tpwp;
     protected static array $settings;
 
     protected string $nameSingular;
@@ -41,11 +40,8 @@ class Involvement_PostTypeSettings {
      */
     final public static function &instance(): array
     {
-        if (! isset(self::$tpwp)) {
-            self::$tpwp = TouchPointWP::instance();
-        }
         if (! isset(self::$settings)) {
-            $json = json_decode(self::$tpwp->settings->inv_json);
+            $json = json_decode(TouchPointWP::instance()->settings->inv_json);
             $settingsArr = [];
 
             foreach ($json as $o) {

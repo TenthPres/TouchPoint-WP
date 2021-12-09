@@ -229,7 +229,7 @@ class Involvement implements api
         add_filter('get_the_time', [self::class, 'filterPublishDate'], 10, 3);
 
         // Run cron if it hasn't been run before or is overdue.
-        if (self::$tpwp->settings->inv_cron_last_run * 1 < time() - 86400 - 3600) {
+        if (TouchPointWP::instance()->settings->inv_cron_last_run * 1 < time() - 86400 - 3600) {
             self::updateFromTouchPoint();
         }
     }
@@ -259,7 +259,7 @@ class Involvement implements api
         }
 
         if ($count !== false && $count !== 0) {
-            self::$tpwp->settings->set('inv_cron_last_run', time());
+            TouchPointWP::instance()->settings->set('inv_cron_last_run', time());
         }
 
         return $count;
@@ -350,7 +350,7 @@ class Involvement implements api
     public function getDivisionsStrings(array $exclude = []): array
     {
         if ($exclude === null) {
-            $exclude = self::$tpwp->settings->sg_divisions;
+            $exclude = TouchPointWP::instance()->settings->sg_divisions; // TODO INV deal with reference to sg_divisions
         }
 
         if (!isset($this->divisions)) {
@@ -912,7 +912,7 @@ class Involvement implements api
     private static function getGroupsNear(?float $lat = null, ?float $lng = null, string $postType = null, int $limit = 3): ?array
     {
         if ($lat === null || $lng === null) {
-            $geoObj = self::$tpwp->geolocate();
+            $geoObj = TouchPointWP::instance()->geolocate();
 
             if ( ! isset($geoObj->error)) {
                 $lat = $geoObj->lat;
@@ -1019,13 +1019,11 @@ class Involvement implements api
     }
 
 
-    public static function load(TouchPointWP $tpwp): bool
+    public static function load(): bool
     {
         if (self::$_isInitiated) {
             return true;
         }
-
-        self::$tpwp = $tpwp;
 
         self::$_isInitiated = true;
 
@@ -1149,7 +1147,7 @@ class Involvement implements api
             TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
             sprintf(
                 "https://maps.googleapis.com/maps/api/js?key=%s&v=3&libraries=geometry",
-                self::$tpwp->settings->google_maps_api_key
+                TouchPointWP::instance()->settings->google_maps_api_key
             ),
             [TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
             null,

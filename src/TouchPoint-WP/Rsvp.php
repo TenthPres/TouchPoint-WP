@@ -26,7 +26,7 @@ abstract class Rsvp
     public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "RSVP";
     private static bool $_isInitiated = false;
 
-    public static function load(TouchPointWP $tpwp): bool
+    public static function load(): bool
     {
         if (self::$_isInitiated) {
             return true;
