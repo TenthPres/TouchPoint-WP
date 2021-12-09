@@ -33,7 +33,7 @@ trait jsInstantiation {
         }
 
         // Remove duplicates.  (array_unique won't handle objects cleanly)
-        $ids     = array_map(fn(Involvement $inv) => $inv->invId, $list);
+        $ids     = array_map(fn($item) => $item->getTouchPointId(), $list);
         $uniqIds = array_unique($ids);
 
         return array_values(array_intersect_key($list, $uniqIds));
@@ -46,8 +46,8 @@ trait jsInstantiation {
      */
     protected function enqueueForJsInstantiation(): void
     {
-        if (!isset(static::$queueForJsInstantiation[$this->invId]))
-            static::$queueForJsInstantiation[$this->invId] = $this;
+        if (!isset(static::$queueForJsInstantiation[$this->getTouchPointId()]))
+            static::$queueForJsInstantiation[$this->getTouchPointId()] = $this;
     }
 
     /**
@@ -57,8 +57,8 @@ trait jsInstantiation {
      */
     protected function registerConstruction()
     {
-        if (!isset(self::$constructedObjects[$this->invId]))
-            self::$constructedObjects[$this->invId] = $this;
+        if (!isset(self::$constructedObjects[$this->getTouchPointId()]))
+            self::$constructedObjects[$this->getTouchPointId()] = $this;
     }
 
     /**
@@ -70,6 +70,13 @@ trait jsInstantiation {
     {
         self::$requireAllObjectsInJs = $require;
     }
+
+    /**
+     * Gets a TouchPoint item ID number, regardless of what type of object this is.
+     *
+     * @return int
+     */
+    public abstract function getTouchPointId(): int;
 
     /**
      * Get the JS for instantiation.

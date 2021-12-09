@@ -32,7 +32,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string auth_prevent_admin_bar Enabled to prevent Admin Bar to appearing on webpages for users who don't have special roles.
  * @property-read string auth_full_logout   Enabled to indicate that logging out of WordPress should also log the user out of TouchPoint.
  *
- * @property-read int inv_cron_last_run     Timestamp of the last time the Involvement syncing task ran.  (No setting UI.)
+ * @property-read int|false inv_cron_last_run     Timestamp of the last time the Involvement syncing task ran.  (No setting UI.)
  * @property-read string inv_json           JSON string describing how Involvements should be handled.  (No direct setting UI.)
  *
  * @property-read string ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.

@@ -6,7 +6,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 require_once 'api.iface.php';
-require_once "jsInstantiation.trait.php";
+require_once "jsInstantiation.php";
 require_once "Utilities.php";
 require_once "Involvement_PostTypeSettings.php";
 
@@ -297,20 +297,6 @@ class Involvement implements api
         return $template;
     }
 
-    /**
-     * This function enqueues the stylesheet for the default templates, to avoid registering the style on sites where
-     * custom templates exist.
-     */
-    public static function enqueueTemplateStyle()
-    {
-        wp_enqueue_style(
-            TouchPointWP::SHORTCODE_PREFIX . 'involvement-template-style',
-            self::$tpwp->assets_url . 'template/involvement-template-style.css',
-            [],
-            TouchPointWP::VERSION
-        );
-    }
-
 
     /**
      * Whether the involvement can be joined
@@ -540,7 +526,7 @@ class Involvement implements api
             wp_add_inline_script(
                 TouchPointWP::SHORTCODE_PREFIX . 'base-defer',
                 "
-                tpvm.addEventListener('Involvement_fromArray', function() {
+                tpvm.addEventListener('Involvement_fromObjArray', function() {
                     TP_Involvement.initFilters();
                 });"
             );
@@ -988,6 +974,7 @@ class Involvement implements api
      * @param object $obj A database object from which an Involvement object should be created.
      *
      * @return Involvement
+     * @throws TouchPointWP_Exception
      */
     private static function fromObj(object $obj): Involvement
     {
@@ -1752,7 +1739,12 @@ class Involvement implements api
         $listStr = json_encode($queue);
 
         return "\ttpvm.addEventListener('Involvement_class_loaded', function() {
-        TP_Involvement.fromArray($listStr);\n\t});\n";
+        TP_Involvement.fromObjArray($listStr);\n\t});\n";
+    }
+
+    public function getTouchPointId(): int
+    {
+        return $this->invId;
     }
 
     /**

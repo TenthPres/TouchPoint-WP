@@ -154,4 +154,17 @@ abstract class Utilities
         }
         return $r;
     }
+
+    /**
+     * Gets the posts that contain a particular shortcode.
+     *
+     * @param $shortcode
+     *
+     * @return \WP_Post[]
+     */
+    public static function getPostsWithShortcode($shortcode): array
+    {
+        $q = new \WP_Query(['s' => $shortcode]);
+        return $q->get_posts();
+    }
 }

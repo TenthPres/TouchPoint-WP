@@ -22,7 +22,7 @@ class TP_Meeting {
         this.location = obj.location;
         this.capacity = obj.capacity;
 
-        this.inv = TP_Involvement.fromArray([{name: obj.invName, invId: obj.invId}])[0];
+        this.inv = TP_Involvement.fromObjArray([{name: obj.invName, invId: obj.invId}])[0];
 
         for (const ei in this.connectedElements) {
             if (!this.connectedElements.hasOwnProperty(ei)) continue;
@@ -123,7 +123,7 @@ class TP_Meeting {
             if (res.hasOwnProperty("error")) {
                 console.error(res.error);
             } else {
-                this.fromArray(res.success)
+                this.fromObjArray(res.success)
             }
         }
     }
@@ -132,7 +132,7 @@ class TP_Meeting {
         return this.name.substr(3); // refers to class name, and therefore is accessible.
     }
 
-    static fromArray(mtgArr) {
+    static fromObjArray(mtgArr) {
         let ret = [];
         for (const i in mtgArr) {
             if (!mtgArr.hasOwnProperty(i)) continue;
@@ -145,7 +145,7 @@ class TP_Meeting {
                 ret.push(new this(mtgArr[i]))
             }
         }
-        tpvm.trigger(this.className() + "_fromArray")
+        tpvm.trigger(this.className() + "_fromObjArray")
         return ret;
     };
 

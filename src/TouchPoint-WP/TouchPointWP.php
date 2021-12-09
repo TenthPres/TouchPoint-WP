@@ -407,6 +407,7 @@ class TouchPointWP
     public function printDynamicFooterScripts(): void
     {
         echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
+        echo Person::getJsInstantiationString(); // TODO DIR add condition
         if ($this->involvements !== null) {
             echo Involvement::getJsInstantiationString();
         }
@@ -452,6 +453,12 @@ class TouchPointWP
         if (get_option(self::SETTINGS_PREFIX . 'enable_involvements') === "on") {
             require_once 'Involvement.php';
             $instance->involvements = Involvement::load($instance);
+        }
+
+        // Load Person for People Indexes.
+        if (true) {  // TODO DIR add condition here.
+            require_once 'Person.php';
+            $instance->involvements = Person::load();
         }
 
         // Load Events if enabled (by presence of Events Calendar plugin)
@@ -1815,8 +1822,11 @@ class TouchPointWP
 
         $respDecoded = json_decode($r['body']);
 
-        if ($respDecoded->output !== '') {
+        if (property_exists($respDecoded, 'output') && $respDecoded->output !== '') {
             return new WP_Error(self::SHORTCODE_PREFIX . "api-remote", $respDecoded->output);
+        }
+        if (property_exists($respDecoded, 'message') && $respDecoded->message !== '') {
+            return new WP_Error(self::SHORTCODE_PREFIX . "api-remote", $respDecoded->message);
         }
 
         return $respDecoded->data;
@@ -1872,5 +1882,19 @@ class TouchPointWP
             flush_rewrite_rules();
             unset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'flushRewriteOnNextLoad']);
         }
+    }
+
+    /**
+     * This function enqueues the stylesheet for the default templates, to avoid registering the style on sites where
+     * custom templates exist.
+     */
+    public static function enqueuePartialsStyle()
+    {
+        wp_enqueue_style(
+            TouchPointWP::SHORTCODE_PREFIX . 'partials-template-style',
+            self::instance()->assets_url . 'template/partials-template-style.css',
+            [],
+            TouchPointWP::VERSION
+        );
     }
 }

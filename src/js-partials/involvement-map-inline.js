@@ -1,3 +1,3 @@
-tpvm.addEventListener('Involvement_fromArray', function() {
+tpvm.addEventListener('Involvement_fromObjArray', function() {
     TP_Involvement.initMap('{$mapDivId}');
 });

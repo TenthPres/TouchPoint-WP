@@ -218,7 +218,7 @@ class TP_Involvement {
     }
 
     // noinspection JSUnusedGlobalSymbols  Used via dynamic instantiation.
-    static fromArray(invArr) {
+    static fromObjArray(invArr) {
         let ret = [];
         for (const i in invArr) {
             if (!invArr.hasOwnProperty(i)) continue;
@@ -233,7 +233,7 @@ class TP_Involvement {
                 ret.push(tpvm.involvements[invArr[i].invId]);
             }
         }
-        tpvm.trigger("Involvement_fromArray");
+        tpvm.trigger("Involvement_fromObjArray");
         return ret;
     };
 
@@ -601,10 +601,33 @@ TP_Involvement.init();
 
 class TP_Person {
     peopleId;
+    displayName;
+
+    static actions = ['join', 'contact'];
 
     constructor(peopleId) {
         peopleId = Number(peopleId);
         this.peopleId = peopleId;
+
+        for (const ei in this.connectedElements) {
+            if (!this.connectedElements.hasOwnProperty(ei)) continue;
+
+            let psn = this;
+
+            let actionBtns = this.connectedElements[ei].querySelectorAll('[data-tp-action]')
+            for (const ai in actionBtns) {
+                if (!actionBtns.hasOwnProperty(ai)) continue;
+                const action = actionBtns[ai].getAttribute('data-tp-action');
+                if (TP_Person.actions.includes(action)) {
+                    tpvm._utils.registerAction(action, psn, psn.peopleId)
+                    actionBtns[ai].addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        psn[action + "Action"]();
+                    });
+                }
+            }
+        }
+
         tpvm.people[peopleId] = this;
     }
 
@@ -634,11 +657,22 @@ class TP_Person {
         return ret;
     }
 
+    static init() {
+        tpvm.trigger('Person_class_loaded');
+    }
+
+    get connectedElements() {
+        const sPath = '[data-tp-person="' + this.peopleId + '"]'
+        return document.querySelectorAll(sPath);
+    }
+
     static mergePeopleArrays(a, b) {
         return [...new Set([...a, ...b])]
     }
 
     /**
+     * Take an array of person-like objects and make a list of checkboxes out of them.  These are NOT TP_People objects. TODO they should be.
+     *
      * @param array TP_Person[]
      */
     static peopleArrayToCheckboxes(array) {
@@ -656,6 +690,8 @@ class TP_Person {
     }
 
     /**
+     * Take an array of person-like objects and make a list of checkboxes out of them.  These are NOT TP_People objects. TODO they should be.
+     *
      * @param array TP_Person[]
      * @param options string[]
      * @param defaultPosition int - the Nth position in the options array should be selected by default.
@@ -694,6 +730,79 @@ class TP_Person {
         for (const ei in elts) {
             if (!elts.hasOwnProperty(ei)) continue;
             elts[ei].checked = false;
+        }
+    }
+
+    contactAction() {
+        let psn = this;
+
+        if (typeof ga === "function") {
+            ga('send', 'event', 'Person', 'contact btn click', psn.peopleId);
+        }
+
+        TP_Person.DoInformalAuth("Send a Message").then((res) => contactUi(psn, res), () => console.log("Informal auth failed, probably user cancellation."))
+
+        function contactUi(psn, people) {
+            if (typeof ga === "function") {
+                ga('send', 'event', 'Person', 'contact userIdentified', psn.peopleId);
+            }
+
+            Swal.fire({
+                html: `<p id=\"swal-tp-text\">Contact ${psn.displayName}</p>` +
+                    '<form id="tp_person_contact_form">' +
+                    '<div class="form-group"><label for="tp_person_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_person_contact_fromPid", "fromPid") + '</div>' +
+                    '<div class="form-group"><label for="tp_person_contact_body">Message</label><textarea name="body" id="tp_person_contact_body"></textarea></div>' +
+                    '</form>',
+                showConfirmButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Send',
+                focusConfirm: false,
+                preConfirm: () => {
+                    let form = document.getElementById('tp_person_contact_form'),
+                        fromPerson = tpvm.people[parseInt(form.getElementsByTagName('select')[0].value)],
+                        message = form.getElementsByTagName('textarea')[0].value;
+
+                    if (message.length < 5) {
+                        let prompt = document.getElementById('swal-tp-text');
+                        prompt.innerText = "Please provide a message.";
+                        prompt.classList.add('error')
+                        return false;
+                    }
+
+                    Swal.showLoading();
+
+                    return psn.doPersonContact(fromPerson, message, true);
+                }
+            });
+        }
+    }
+
+    async doPersonContact(fromPerson, message, showConfirm = true) {
+        let psn = this;
+        showConfirm = !!showConfirm;
+
+        if (typeof ga === "function") {
+            ga('send', 'event', 'Person', 'contact complete', psn.peopleId);
+        }
+
+        let res = await tpvm.postData('person/contact', {toId: psn.peopleId, fromPerson: fromPerson, message: message});
+        if (res.success.length > 0) {
+            if (showConfirm) {
+                Swal.fire({
+                    icon: 'success',
+                    title: `Your message has been sent.`,
+                    timer: 3000
+                });
+            }
+        } else {
+            console.error(res);
+            if (showConfirm) {
+                Swal.fire({
+                    icon: 'error',
+                    title: `Something strange happened.`,
+                    timer: 3000
+                });
+            }
         }
     }
 
@@ -794,3 +903,4 @@ class TP_Person {
     }
 }
 TP_Person.prototype.classShort = "p";
+TP_Person.init();

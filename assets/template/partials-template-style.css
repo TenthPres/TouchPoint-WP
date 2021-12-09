@@ -14,6 +14,23 @@ article.involvement-list-item {
     flex-direction: column;
 }
 
+
+.people-index {
+    text-align: center;
+}
+
+article.people-index-item {
+    box-shadow: 10px 10px 20px #00000033;
+    margin: 0.8em;
+    position: relative;
+    padding: 0.8em;
+    display: inline-block;
+    width: 12em;
+    height: 17em;
+    overflow: hidden;
+    background-size: cover;
+}
+
 .involvement-list-item .involvement-actions {
     padding-top: .5em;
     text-align: right;
@@ -31,12 +48,29 @@ article.involvement-list-item {
     font-weight: bolder;
 }
 
+.people-index-item div.post-meta-single {
+    font-size: 0.8em;
+    opacity: 0.7;
+    font-weight: bolder;
+    text-align: center;
+}
+
 .involvement-list-item div.thin.entry-content {
     flex: 1 1 auto;
 }
 
 div.involvement-list article.involvement-list-item h2.entry-title {
     padding: 0 0 0 0;
+}
+
+.people-index-item header.entry-header {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding-top: 2em;
+    padding-bottom: 1em;
+    background: linear-gradient(0deg, #ffffffee 0%, #ffffffdd 45%, #ffffff00 100%);
 }
 
 .involvement-list-item h2 a:after {
@@ -47,6 +81,21 @@ div.involvement-list article.involvement-list-item h2.entry-title {
     left: 0;
     position: absolute;
     z-index:5;
+}
+
+.people-index-item h2 a:after {
+    content: ' ';
+    width: 100%;
+    height: 30em;
+    top: -15em;
+    left: 0;
+    position: absolute;
+    z-index:5;
+}
+
+.people-index-item h2 {
+    text-align: center;
+    font-size: 20px;
 }
 
 div.involvement-map-container {
