@@ -15,13 +15,16 @@ help you with this.
 - Publish lists of classes or programs that correspond to Involvements, with dynamic filtering similar to Small Groups.
 - Allow website guests to easily contact leaders or join an involvement, without exposing leaders' contact info publicly. 
 
+### Crazy-Simple RSVP interface
+Let folks RSVP for an event for each member in their family in just a few clicks.
+No login required, just an email address and zip code.
+
+### People Lists
+Show your Staff members, Elders, or other collections of people, automatically kept in sync with TouchPoint.
+
 ### Events
 Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by
 ModernTribe](https://theeventscalendar.com/).  This is compatible with both the free and "Pro" versions.
-
-### Crazy-Simple RSVP interface
-Let folks RSVP for an event for each member in their family (and, optionally, related families) in just a few clicks.
-No login required, just an email address and zip code. 
 
 <!--
 ### Authentication (Beta)
@@ -75,25 +78,6 @@ Several plugins have lended structure or code snippets to this plugin:
 - [Knockout JS](https://knockoutjs.com/) (MIT)
 - [Google Maps Javascript API](https://developers.google.com/maps/documentation/javascript/overview) 
   ([Proprietary](https://developers.google.com/terms))
-
-
-## Usage Notes
-
-### Authentication
-
-#### Special URL parameters
-`tp_no_redirect`  If added to the url for the WordPress login, the user will not be redirected to the TouchPoint login
-page regardless of whether TouchPoint is set as the default login mechanism.
-
-#### Filters
-
-`tp_auto_redirect_login`  If the option to use TouchPoint as the default login mechanism is enabled, this filter
-allows more specificity as to when you want this redirect to happen.  By default, this feature is disabled.  However,
-once enabled, by default, the plugin will redirect all login requests to TouchPoint.
-
-`tp_prevent_admin_bar`  If the option to Prevent Subscriber Admin Bar is enabled, this filter allows more specificity as
-to whether to show the admin bar.  By default, if this option is enabled, the admin bar will be hidden for any user with
-the 'subscriber' role.
 
 ### License
 This plugin is released under the AGPL, which is "very strong copy-left".  Therefore, if you change this code and use it
