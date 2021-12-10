@@ -311,24 +311,25 @@ class Person extends WP_User implements api, JsonSerializable
     }
 
     /**
-     * Updates the data for all People Lists in the site.  TODO DIR Multisite: does not update for all sites in the network.
+     * Updates the data for all People Lists in the site.
      */
     protected static function updateFromTouchPoint(): void
     {
         self::$_indexingQueries = [];
 
         // Update People Indexes
-        $posts = Utilities::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_LIST);
+        if (TouchPointWP::instance()->settings->enable_people_lists) {
+            $posts = Utilities::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_LIST);
 
-        self::$_indexingMode = true;
-        foreach ($posts as $postI) {
-            global $post;
-            $post = $postI;
-            set_time_limit(10);
-            apply_shortcodes($postI->post_content);
+            self::$_indexingMode = true;
+            foreach ($posts as $postI) {
+                global $post;
+                $post = $postI;
+                set_time_limit(10);
+                apply_shortcodes($postI->post_content);
+            }
+            self::$_indexingMode = false;
         }
-        self::$_indexingMode = false;
-
 
         // Update Involvement Leaders
         // TODO DIR this
