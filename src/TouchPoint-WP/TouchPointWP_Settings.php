@@ -32,6 +32,8 @@ if ( ! defined('ABSPATH')) {
  * @property-read string api_secret_key     The secret key used for the Auth API
  * @property-read string google_maps_api_key Google Maps API Key for embedded maps and such
  *
+ * @property-read array people_contact_keywords Keywords to use for the generic Contact person button.
+ *
  * @property-read string auth_script_name   The name of the Python script within TouchPoint
  * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
  * @property-read string auth_change_profile_urls Enabled to indicate the profiles should be located on TouchPoint
@@ -325,6 +327,25 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on" || $includeAll) {
+            $this->settings['people'] = [
+                'title'       => __('People', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Manage how people are synchronized between TouchPoint and WordPress.', TouchPointWP::TEXT_DOMAIN),
+                'fields'      => [
+                    [
+                        'id'          => 'people_contact_keywords',
+                        'label'       => __('Contact Keywords', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'These keywords will be used when someone clicks the "Contact" button on a Person\'s listing or profile.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'checkbox_multi',
+                        'options'     => $includeDetail ? $this->parent->getKeywordsAsKVArray() : [],
+                        'default'     => [],
+                    ],
+                ],
+            ];
+        }
 
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on" || $includeAll) {
             $this->settings['authentication'] = [

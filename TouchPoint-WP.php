@@ -58,7 +58,7 @@ if ( ! function_exists('com_create_guid')) {
 
 
 if ( ! function_exists('getallheaders')) {
-    function getallheaders()
+    function getallheaders(): array
     {
         $headers = [];
         foreach ($_SERVER as $name => $value) {

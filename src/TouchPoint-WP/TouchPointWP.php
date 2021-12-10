@@ -1716,6 +1716,21 @@ class TouchPointWP
     }
 
     /**
+     * Format the list of divisions into an array with form-name-friendly IDs as the key.
+     *
+     * @return string[]
+     */
+    public function getKeywordsAsKVArray(): array
+    {
+        $r = [];
+        foreach ($this->getKeywords() as $k) {
+            $r['key' . $k->id] = $k->name;
+        }
+
+        return $r;
+    }
+
+    /**
      * @return false|object Update the keywords if they're stale.
      */
     private function updateKeywords()
@@ -1740,9 +1755,11 @@ class TouchPointWP
             return false;
         }
 
+        usort($body->data->keywords, fn($a, $b) => strcmp($a->name, $b->name));
+
         $obj = (object)[
             '_updated' => date('c'),
-            'keywords'     => $body->data->keywords
+            'keywords' => $body->data->keywords
         ];
 
         $this->settings->set("meta_keywords", json_encode($obj));

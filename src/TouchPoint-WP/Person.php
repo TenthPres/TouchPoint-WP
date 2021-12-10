@@ -771,13 +771,9 @@ class Person extends WP_User implements api, JsonSerializable
     {
         $inputData = TouchPointWP::postHeadersAndFiltering();
         $inputData = json_decode($inputData);
-        $inputData->keywords = [];
 
-        // TODO DIR get keywords from somewhere
-//        if (!!$settings || !$settings->contactKeywords) {
-//            $inputData->keywords = Utilities::idArrayToIntArray($settings->contactKeywords);
-//        }
-        $inputData->keywords = []; // TODO DIR remove
+        $kw = TouchPointWP::instance()->settings->people_contact_keywords;
+        $inputData->keywords = Utilities::idArrayToIntArray($kw);
 
         $data = TouchPointWP::instance()->apiPost('person_contact', $inputData);
 
