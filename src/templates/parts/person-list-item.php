@@ -31,7 +31,9 @@ use tp\TouchPointWP\Person;
                 <?php
                 if (isset($iid)) {
                     $membership = $person->getInvolvementMemberships($iid);
-                    echo $membership->description;
+                    if ($membership !== null) {
+                        echo $membership->description;
+                    }
                 }
                 ?>
             </span><!-- .post-meta -->

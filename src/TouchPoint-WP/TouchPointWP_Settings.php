@@ -18,6 +18,11 @@ if ( ! defined('ABSPATH')) {
  *
  * @property-read string version            The plugin version.  Used for tracking updates.
  *
+ * @property-read string enable_authentication  Whether the Authentication module is included.
+ * @property-read string enable_involvements  Whether the Involvement module is included.
+ * @property-read string enable_people_lists  Whether to allow public People Lists.
+ * @property-read string enable_rsvp        Whether the RSVP module is included.
+ *
  * @property-read string host               The domain for the TouchPoint instance
  * @property-read string host_deeplink      The domain for mobile deep linking to the Custom Mobile App
  * @property-read string system_name        What the church calls TouchPoint
@@ -33,6 +38,8 @@ if ( ! defined('ABSPATH')) {
  * @property-read string auth_auto_provision Enabled to indicate that new users should be created automatically.
  * @property-read string auth_prevent_admin_bar Enabled to prevent Admin Bar to appearing on webpages for users who don't have special roles.
  * @property-read string auth_full_logout   Enabled to indicate that logging out of WordPress should also log the user out of TouchPoint.
+ *
+ * @property-read int|false person_cron_last_run Timestamp of the last time the Person syncing task ran.  (No setting UI.)
  *
  * @property-read int|false inv_cron_last_run Timestamp of the last time the Involvement syncing task ran.  (No setting UI.)
  * @property-read string inv_json           JSON string describing how Involvements should be handled.  (No direct setting UI.)
@@ -196,6 +203,16 @@ class TouchPointWP_Settings
                     'label'       => __('Enable Involvements', 'TouchPoint-WP'),
                     'description' => __(
                         'Load Involvements from TouchPoint for involvement listings and entries native in your website.',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'checkbox',
+                    'default'     => '',
+                ],
+                [
+                    'id'          => 'enable_people_lists',
+                    'label'       => __('Enable Public People Lists', 'TouchPoint-WP'),
+                    'description' => __(
+                        'Import public people listings from TouchPoint (e.g. staff or elders)',
                         TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'checkbox',

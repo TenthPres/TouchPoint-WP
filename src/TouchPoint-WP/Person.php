@@ -12,20 +12,23 @@ require_once "jsInstantiation.php";
 require_once 'InvolvementMembership.php';
 require_once "Utilities/PersonQuery.php";
 
+use JsonSerializable;
 use stdClass;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use WP_Error;
+use WP_User;
 
 /**
  * Class Person - Fundamental object meant to correspond to a Person in TouchPoint
  *
  * @package tp\TouchPointWP
  */
-class Person extends \WP_User implements api, \JsonSerializable
+class Person extends WP_User implements api, JsonSerializable
 {
     use jsInstantiation;
 
-    public const SHORTCODE_PEOPLE_INDEX = TouchPointWP::SHORTCODE_PREFIX . "People";
+    public const SHORTCODE_PEOPLE_LIST = TouchPointWP::SHORTCODE_PREFIX . "People";
+    public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
     public const BACKUP_USER_PREFIX = "touchpoint-";
 
     public const META_PEOPLEID = TouchPointWP::SETTINGS_PREFIX . 'peopleId';
@@ -33,7 +36,7 @@ class Person extends \WP_User implements api, \JsonSerializable
     public const META_INV_ATTEND_PREFIX = TouchPointWP::SETTINGS_PREFIX . "inv_att_";
     public const META_INV_DESC_PREFIX = TouchPointWP::SETTINGS_PREFIX . "inv_desc_";
 
-    private static bool $_isInitiated = false;
+    private static bool $_isLoaded = false;
     private static bool $_indexingMode = false;
     private static array $_indexingQueries;
 
@@ -59,8 +62,7 @@ class Person extends \WP_User implements api, \JsonSerializable
     /**
      * @param $queryResult
      *
-     * @return Person
-     * @throws TouchPointWP_Exception If a WP User ID is not provided, this exception is thrown.
+     * @return Person|TouchPointWP_Exception If a WP User ID is not provided, this exception is returned.
      */
     public static function fromQueryResult($queryResult): Person
     {
@@ -68,8 +70,8 @@ class Person extends \WP_User implements api, \JsonSerializable
             return new Person($queryResult);
         }
 
-        else if (! property_exists($queryResult, "ID")) {
-            throw new TouchPointWP_Exception(__("No WordPress User ID provided for initializing a person object."));
+        if (! property_exists($queryResult, "ID")) {
+            return new TouchPointWP_Exception(__("No WordPress User ID provided for initializing a person object.", TouchPointWP::TEXT_DOMAIN));
         }
 
         return new Person($queryResult->ID);
@@ -85,6 +87,7 @@ class Person extends \WP_User implements api, \JsonSerializable
     public function __get($key)
     {
         switch (strtolower($key)) {
+            /** @noinspection SpellCheckingInspection */
             case "peopleid":
                 return $this->peopleId;
         }
@@ -103,6 +106,7 @@ class Person extends \WP_User implements api, \JsonSerializable
     public function __set($key, $value)
     {
         switch (strtolower($key)) {
+            /** @noinspection SpellCheckingInspection */
             case "peopleid":
             case "id":
                 _doing_it_wrong(__FUNCTION__, "IDs can only be updated within the Person class.", TouchPointWP::VERSION);
@@ -147,7 +151,7 @@ class Person extends \WP_User implements api, \JsonSerializable
      * @return string
      * @throws TouchPointWP_Exception
      */
-    public static function peopleIndexShortcode($params = [], string $content = ""): string
+    public static function peopleListShortcode($params = [], string $content = ""): string
     {
         // standardize parameters
         if (is_string($params)) {
@@ -156,6 +160,7 @@ class Person extends \WP_User implements api, \JsonSerializable
         $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
+        /** @noinspection SpellCheckingInspection */
         $params = shortcode_atts(
             [
                 'class' => 'TouchPoint-involvement actions',
@@ -163,18 +168,19 @@ class Person extends \WP_User implements api, \JsonSerializable
                 'id'    => wp_unique_id('tp-actions-')
             ],
             $params,
-            self::SHORTCODE_PEOPLE_INDEX
+            self::SHORTCODE_PEOPLE_LIST
         );
 
+        /** @noinspection SpellCheckingInspection */
         $iid = intval($params['invid']);
 
         // If there's no invId, try to get one from the Post
-        if ($iid === null) {
+        if ($iid === null && TouchPointWP::instance()->settings->enable) {
             $post = get_post();
 
             if (is_object($post)) {
                 try {
-                    $inv = Involvement::fromPost($post); // TODO involvement should not necessarily need to be imported as a post type
+                    $inv = Involvement::fromPost($post);
                     $iid = $inv->invId;
                 } catch (TouchPointWP_Exception $e) {
                     $iid = null;
@@ -230,11 +236,12 @@ class Person extends \WP_User implements api, \JsonSerializable
 
         $people = $q->get_results();
 
-        $loadedPart = get_template_part('person-index', 'person-index');
+        $loadedPart = get_template_part('person-list', 'person-list');
         if ($loadedPart === false) {
             TouchPointWP::enqueuePartialsStyle();
             ob_start();
-            require TouchPointWP::$dir . "/src/templates/parts/person-index.php";
+            /** @noinspection PhpIncludeInspection */
+            require TouchPointWP::$dir . "/src/templates/parts/person-list.php";
             $out .= ob_get_clean();
         }
         // TODO DIR make sure this actually works with external partials.
@@ -245,8 +252,10 @@ class Person extends \WP_User implements api, \JsonSerializable
     }
 
     /**
+     * Gets Involvement Memberships.  If an involvement ID is provided, the matching membership is provided or null if no
+     * membership exists.
+     *
      * @return InvolvementMembership[]|InvolvementMembership
-     * @throws TouchPointWP_Exception
      */
     public function getInvolvementMemberships(?int $iid = null)
     {
@@ -267,16 +276,16 @@ class Person extends \WP_User implements api, \JsonSerializable
             $metaDescPrefix = self::META_INV_DESC_PREFIX;
             $metaMemPrefixLength = strlen($metaMemPrefix) + 1;
             /** @noinspection SqlResolve */
-            $sql = "SELECT SUBSTR(mt.meta_key, {$metaMemPrefixLength}) AS iid, mt.meta_value AS mt, at.meta_value as at, d.meta_value AS descr
-                    FROM {$wpdb->usermeta} AS mt
-                    LEFT JOIN {$wpdb->usermeta} AS at ON CONCAT('{$metaAttPrefix}', SUBSTR(mt.meta_key, {$metaMemPrefixLength})) = at.meta_key AND at.user_id = {$this->ID}
-                    LEFT JOIN {$wpdb->usermeta} AS d ON CONCAT('{$metaDescPrefix}', SUBSTR(mt.meta_key, {$metaMemPrefixLength})) = d.meta_key AND d.user_id = {$this->ID}
-                    WHERE mt.user_id = {$this->ID}";
+            $sql = "SELECT SUBSTR(mt.meta_key, $metaMemPrefixLength) AS iid, mt.meta_value AS mt, at.meta_value as at, d.meta_value AS descr
+                    FROM $wpdb->usermeta AS mt
+                    LEFT JOIN $wpdb->usermeta AS at ON CONCAT('$metaAttPrefix', SUBSTR(mt.meta_key, $metaMemPrefixLength)) = at.meta_key AND at.user_id = $this->ID
+                    LEFT JOIN $wpdb->usermeta AS d ON CONCAT('$metaDescPrefix', SUBSTR(mt.meta_key, $metaMemPrefixLength)) = d.meta_key AND d.user_id = $this->ID
+                    WHERE mt.user_id = $this->ID";
 
             if ($fetchAll) {
-                $sql .= " AND mt.meta_key LIKE '{$metaMemPrefix}%'";
+                $sql .= " AND mt.meta_key LIKE '$metaMemPrefix%'";
             } else {
-                $sql .= " AND mt.meta_key = '{$metaMemPrefix}{$iid}'";
+                $sql .= " AND mt.meta_key = '$metaMemPrefix$iid'";
             }
 
             $invMeta = $wpdb->get_results($sql);
@@ -297,19 +306,19 @@ class Person extends \WP_User implements api, \JsonSerializable
         } elseif (isset($this->_invs[$iid])) {
             return $this->_invs[$iid];
         } else {
-            throw new TouchPointWP_Exception("Requested membership could not be found.");
+            return null;
         }
     }
 
     /**
-     * Updates the data for all People Indexes in the site.  TODO DIR Multisite: does not update for all sites in the network.
+     * Updates the data for all People Lists in the site.  TODO DIR Multisite: does not update for all sites in the network.
      */
-    protected static function updatePeopleIndexes(): void
+    protected static function updateFromTouchPoint(): void
     {
         self::$_indexingQueries = [];
 
         // Update People Indexes
-        $posts = Utilities::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_INDEX);
+        $posts = Utilities::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_LIST);
 
         self::$_indexingMode = true;
         foreach ($posts as $postI) {
@@ -337,29 +346,36 @@ class Person extends \WP_User implements api, \JsonSerializable
             exit;
         }
 
+        // Validate that the API returned something
+        if (!isset($data->people) || !is_array($data->people)) {
+            // API error or something.  No update took place.
+            return;
+        }
+
         // Parse the API results
         $people = $data->people ?? [];
-        self::updatePeopleFromApiData($people);
+        $count = self::updatePeopleFromApiData($people);
+
+        if ($count !== 0) {
+            TouchPointWP::instance()->settings->set('person_cron_last_run', time());
+        }
     }
 
-
     /**
-     * @param stdClass[] $people
+     * @param stdClass[] $people An array of objects from TouchPoint that each corresponds with a Person.
      *
-     * @throws TouchPointWP_Exception
+     * @return int  False on failure.  Otherwise, the number of updates.
      */
-    protected static function updatePeopleFromApiData(array $people): void
+    protected static function updatePeopleFromApiData(array $people): int
     {
         $peopleUpdated = 0;
-        $fieldsUpdated = 0;
-
         foreach ($people as $pData) {
-            $updated = false;
+            $peopleUpdated++;
 
             set_time_limit(30);
             $person = null;
 
-            // Find person by WordPress Id, if provided.
+            // Find person by WordPress ID, if provided.
             if (isset($pData->WordPressId) && intval($pData->WordPressId) !== 0) {
                 $q = new PersonQuery(
                     [
@@ -367,7 +383,7 @@ class Person extends \WP_User implements api, \JsonSerializable
                     ]
                 );
                 if ($q->get_total() > 0) {
-                    $person = array_values($q->get_results())[0];
+                    $person = $q->get_first_result();
                 }
             }
 
@@ -381,28 +397,26 @@ class Person extends \WP_User implements api, \JsonSerializable
                     ]
                 );
                 if ($q->get_total() === 1) {
-                    $person = array_values($q->get_results())[0];
+                    $person = $q->get_first_result();
                 }
             }
 
             // Create new person
             if ($person === null) {
-                if (true || TouchPointWP::instance()->settings->auth_auto_provision === 'on') { // TODO DIR replace with a condition that makes sense for the task at hand
+                if (TouchPointWP::instance()->settings->enable_people_lists === "on") { // TODO DIR replace with a condition that makes sense for the task at hand
                     // Provision a new user, since we were unsuccessful in finding one.
                     set_time_limit(60); // TODO DIR remove because this is absurd.
-                    $uid = wp_create_user(self::generateUserName($pData), com_create_guid(), '');
+                    $uid = wp_create_user(self::generateUserName($pData), com_create_guid(), ''); // TODO DIR email addresses
                     if (is_numeric($uid)) { // user was successfully generated.
                         update_user_option($uid, 'created_by', 'TouchPoint-WP', true);
                         update_user_option($uid, self::META_PEOPLEID, $pData->PeopleId, true);
                         $person = new Person($uid);
-                        $updated = true;
                     }
                 }
             }
 
             // User doesn't exist.
             if ($person === null) {
-                $peopleUpdated += $updated;
                 continue;
             }
 
@@ -419,19 +433,19 @@ class Person extends \WP_User implements api, \JsonSerializable
                 $person->user_email = null;
             }
 //            var_dump($pData);
-            $person->user_image = $pData->Picture;
+            $person->user_image = $pData->Picture; // TODO DIR this... mess...
 
             // Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
 
             // Involvements!
             $currentInvs = $person->getInvolvementMemberships();
-            $inv_dels = array_keys($currentInvs);
+            $inv_del = array_keys($currentInvs);
             $inv_updates = [];
 
             // Process diffs, as appropriate.
             foreach ($pData->Inv as $i) {
-                if(($key = array_search($i->iid, $inv_dels)) !== false){
-                    unset($inv_dels[$key]);
+                if(($key = array_search($i->iid, $inv_del)) !== false){
+                    unset($inv_del[$key]);
                 }
 
                 if (!isset($currentInvs[$i->iid])) {
@@ -459,7 +473,7 @@ class Person extends \WP_User implements api, \JsonSerializable
             foreach ($inv_updates as $k => $v) {
                 update_user_option($person->ID, $k, $v, true);
             }
-            foreach ($inv_dels as $iid) {
+            foreach ($inv_del as $iid) {
                 delete_user_option($person->ID, self::META_INV_MEMBER_PREFIX . $iid, true);
                 delete_user_option($person->ID, self::META_INV_ATTEND_PREFIX . $iid, true);
                 delete_user_option($person->ID, self::META_INV_DESC_PREFIX . $iid, true);
@@ -469,8 +483,9 @@ class Person extends \WP_User implements api, \JsonSerializable
             $person->submitUpdate();
         }
         set_time_limit(30);
-    }
 
+        return $peopleUpdated;
+    }
 
     /**
      * Save any user updates back to the database.
@@ -482,7 +497,6 @@ class Person extends \WP_User implements api, \JsonSerializable
             $this->_fieldsToUpdate = [];
         }
     }
-
 
     /**
      * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with the
@@ -497,7 +511,9 @@ class Person extends \WP_User implements api, \JsonSerializable
         $this->enqueueForJsInstantiation();
 
         $text = __("Contact", TouchPointWP::TEXT_DOMAIN);
-        $ret = "<button type=\"button\" data-tp-action=\"contact\">{$text}</button>  ";
+        $ret = "<button type=\"button\" data-tp-action=\"contact\">$text</button>  ";
+
+        // TODO DIR add a filter to allow additional buttons (twitter, etc.)
 
         return $ret;
     }
@@ -534,7 +550,6 @@ class Person extends \WP_User implements api, \JsonSerializable
         TP_Person.fromObjArray($listStr);\n\t});\n";
     }
 
-
     /**
      * Gets the PeopleId number.  Required by jsInstantiation trait.
      * @return int
@@ -543,7 +558,6 @@ class Person extends \WP_User implements api, \JsonSerializable
     {
         return $this->peopleId;
     }
-
 
     /**
      * @return stdClass Assembles an object with updates to be submitted to the database by wp_update_user
@@ -743,7 +757,7 @@ class Person extends \WP_User implements api, \JsonSerializable
 
             case "force-sync":
                 TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
-                self::updatePeopleIndexes();
+                self::updateFromTouchPoint();
                 exit;
         }
 
@@ -778,19 +792,39 @@ class Person extends \WP_User implements api, \JsonSerializable
 
     public static function load(): bool
     {
-        if (self::$_isInitiated) {
+        if (self::$_isLoaded) {
             return true;
         }
 
-        self::$_isInitiated = true;
+        self::$_isLoaded = true;
 
-        if ( ! shortcode_exists(self::SHORTCODE_PEOPLE_INDEX)) {
-            add_shortcode(self::SHORTCODE_PEOPLE_INDEX, [self::class, "peopleIndexShortcode"]);
+        if ( ! shortcode_exists(self::SHORTCODE_PEOPLE_LIST) && TouchPointWP::instance()->settings->enable_people_lists === "on") {
+            add_shortcode(self::SHORTCODE_PEOPLE_LIST, [self::class, "peopleListShortcode"]);
         }
 
-        // Setup cron for updating Users--especially those who are in indexes.
-        // TODO DIR cron for updates @see Involvement:load()
+        add_action('init', [self::class, 'checkUpdates']);
+
+        // Setup cron for updating People daily.
+        add_action(self::CRON_HOOK, [self::class, 'updateFromTouchPoint']);
+        if ( ! wp_next_scheduled(self::CRON_HOOK)) {
+            // Runs at 6:30am EST (11:30am UTC), hypothetically after TouchPoint runs its Morning Batches.
+            wp_schedule_event(
+                date('U', strtotime('tomorrow') + 3600 * 11.5),
+                'daily',
+                self::CRON_HOOK
+            );
+        }
 
         return true;
+    }
+
+    /**
+     * Run cron if it hasn't been run before or is overdue.
+     */
+    public static function checkUpdates(): void
+    {
+        if (TouchPointWP::instance()->settings->person_cron_last_run * 1 < time() - 86400 - 3600) {
+            self::updateFromTouchPoint();
+        }
     }
 }

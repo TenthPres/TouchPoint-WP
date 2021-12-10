@@ -3,6 +3,8 @@
 namespace tp\TouchPointWP\Utilities;
 
 use tp\TouchPointWP\Person;
+use tp\TouchPointWP\TouchPointWP_Exception;
+use WP_User_Query;
 
 if ( ! defined('ABSPATH')) {
     exit(1);
@@ -13,7 +15,7 @@ if ( ! defined('ABSPATH')) {
  *
  * @package tp\TouchPointWP
  */
-class PersonQuery extends \WP_User_Query
+class PersonQuery extends WP_User_Query
 {
     protected bool $forceResultToPerson;
     private array $results;
@@ -32,8 +34,8 @@ class PersonQuery extends \WP_User_Query
     }
 
     /**
-     * @return Person[]
-     * @throws \tp\TouchPointWP\TouchPointWP_Exception
+     * @return Person[]  Generally, a Person array.  Individual elements may be
+     *          TouchPointWP_Exception objects if the person could not be found.
      */
     public function get_results(): array
     {
@@ -50,5 +52,28 @@ class PersonQuery extends \WP_User_Query
         }
 
         return $this->results;
+    }
+
+    /**
+     * @return ?Person
+     */
+    public function get_first_result(): ?Person
+    {
+
+        if (! isset($this->results)) {
+            try {
+                $this->get_results();
+            } catch (TouchPointWP_Exception $e) {
+                return null;
+            }
+        }
+
+        $r = array_values($this->results)[0];
+
+        if (get_class($r) === Person::CLASS) {
+            return $r;
+        } else {
+            return null;
+        }
     }
 }

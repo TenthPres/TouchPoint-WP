@@ -1,6 +1,8 @@
 <?php
 namespace tp\TouchPointWP;
 
+use Exception;
+
 if ( ! defined('ABSPATH')) {
     exit(1);
 }
@@ -147,7 +149,7 @@ class Involvement_PostTypeSettings {
      *
      * @return string
      *
-     * @throws \Exception
+     * @zthrows Exception
      */
     public static function validateNewSettings(string $new): string
     {
@@ -171,11 +173,16 @@ class Involvement_PostTypeSettings {
                 $type->slug = $lower;
                 TouchPointWP::queueFlushRewriteRules();
             }
+            $count = 1;
             while ( // all the conditions in which the post type will need to be regenerated.
                 in_array($type->slug, $postTypesSlugs)
             ) {
                 $name = preg_replace('/\W+/', '-', strtolower($type->namePlural));
-                $type->slug = $name . ($first ? "" : "-" . bin2hex(random_bytes(1)));
+                try {
+                    $type->slug = $name . ($first ? "" : "-" . bin2hex(random_bytes(1)));
+                } catch (Exception $e) {
+                    $type->slug = $name . ($first ? "" : "-" . bin2hex($count++));
+                }
                 $first = false;
                 TouchPointWP::queueFlushRewriteRules();
             }
@@ -195,6 +202,7 @@ class Involvement_PostTypeSettings {
                     TouchPointWP::queueFlushRewriteRules();
                 }
             }
+            $count = 1;
             while ( // all the conditions in which the post type will need to be regenerated.
                 $type->postType === null ||
                 in_array($type->postType, $postTypeStrings) ||
@@ -205,7 +213,11 @@ class Involvement_PostTypeSettings {
                 )
             ) {
                 $slug = preg_replace('/\W+/', '', strtolower($type->slug));
-                $type->postType = "inv_" . $slug . ($first ? "" : "_" . bin2hex(random_bytes(1)));
+                try {
+                    $type->postType = "inv_" . $slug . ($first ? "" : "_" . bin2hex(random_bytes(1)));
+                } catch (Exception $e) {
+                    $type->postType = "inv_" . $slug . ($first ? "" : "_" . bin2hex($count++));
+                }
                 $first = false;
                 $type->postType = preg_replace('/\W+/', '_', $type->postType);
                 TouchPointWP::queueFlushRewriteRules();
@@ -218,7 +230,8 @@ class Involvement_PostTypeSettings {
             if (in_array($typeString, $postTypeStrings)) {
                 continue;
             }
-            $postsToRm = get_posts([ 'post_type' => TouchPointWP::HOOK_PREFIX . $typeString, 'numberposts' => -1 ]);
+            /** @noinspection SpellCheckingInspection */
+            $postsToRm = get_posts(['post_type' => TouchPointWP::HOOK_PREFIX . $typeString, 'numberposts' => -1 ]);
             foreach ($postsToRm as $p) {
                 wp_delete_post($p->ID, true);
             }

@@ -135,7 +135,7 @@ abstract class Utilities
     }
 
     /**
-     * Convert a list (string or array) to an array of ints.  Strips out non-numerics and explodes.
+     * Convert a list (string or array) to an int array.  Strips out non-numerics and explodes.
      *
      * @param string|array $r
      *
@@ -156,16 +156,16 @@ abstract class Utilities
     }
 
     /**
-     * Gets the post content that contain a particular shortcode.
+     * Gets the post content for all posts that contain a particular shortcode.
      *
      * @param $shortcode
      *
-     * @return object
+     * @return object[]
      */
-    public static function getPostContentWithShortcode($shortcode): object
+    public static function getPostContentWithShortcode($shortcode): array
     {
         global $wpdb;
         /** @noinspection SqlResolve */
-        return $wpdb->get_results("SELECT post_content FROM {$wpdb->posts} WHERE post_content LIKE '%{$shortcode}%'");
+        return $wpdb->get_results("SELECT post_content FROM $wpdb->posts WHERE post_content LIKE '%$shortcode%'");
     }
 }

@@ -7,14 +7,14 @@ use tp\TouchPointWP\TouchPointWP;
 
 if (! empty($people)) { ?>
 
-<div <?php post_class("people-index"); ?>>
+<div <?php post_class("person-list"); ?>>
 <?php
     foreach ($people as $person) {
-        require TouchPointWP::$dir . "/src/templates/parts/person-index-item.php";
+        require TouchPointWP::$dir . "/src/templates/parts/person-list-item.php";
     } ?>
 </div>
 <?php
 } else {
     echo "<!-- Error: No people to show -->";
-    // TODO return some useful output indicating that there's no one to show.
+    // TODO DIR return some useful output indicating that there's no one to show.
 }

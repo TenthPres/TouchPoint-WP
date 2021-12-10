@@ -283,7 +283,7 @@ class TouchPointWP
 
             // Involvement endpoint
             if ($reqUri['path'][1] === "inv" &&
-                get_option(self::SETTINGS_PREFIX . 'enable_involvements') === "on"
+                $this->settings->enable_involvements === "on"
             ) {
                 if (!Involvement::api($reqUri)) {
                     return $continue;
@@ -456,25 +456,25 @@ class TouchPointWP
         }
 
         // Load Auth tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
+        if ($instance->settings->enable_authentication === "on") {
             require_once 'Auth.php';
             $instance->auth = Auth::load($instance);
         }
 
         // Load RSVP tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
+        if ($instance->settings->enable_rsvp === "on") {
             require_once 'Rsvp.php';
             $instance->rsvp = Rsvp::load();
         }
 
         // Load Involvements tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($instance->settings->enable_involvements === "on") {
             require_once 'Involvement.php';
             $instance->involvements = Involvement::load();
         }
 
         // Load Person for People Indexes.
-        if (true) {  // TODO DIR add condition here.
+        if ($instance->settings->enable_people_lists === "on") {
             require_once 'Person.php';
             $instance->involvements = Person::load();
         }
@@ -732,7 +732,7 @@ class TouchPointWP
     {
         // Resident Codes
         $resCodeTypesToApply = [];
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             $resCodeTypesToApply = Involvement_PostTypeSettings::getPostTypesWithGeoEnabled();
         }
         $resCodeTypesToApply[] = 'user';
@@ -783,7 +783,7 @@ class TouchPointWP
 
         // Divisions & Programs
         $divisionTypesToApply = [];
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             $divisionTypesToApply = Involvement_PostTypeSettings::getPostTypes();
         }
         $divisionTypesToApply[] = 'user';
@@ -872,7 +872,7 @@ class TouchPointWP
         }
 
         // Weekdays
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             register_taxonomy(
                 self::TAX_WEEKDAY,
                 Involvement_PostTypeSettings::getPostTypes(),
@@ -921,7 +921,7 @@ class TouchPointWP
 
 
         // Time of Day
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             register_taxonomy(
                 self::TAX_DAYTIME,
                 Involvement_PostTypeSettings::getPostTypes(),
@@ -995,7 +995,7 @@ class TouchPointWP
 
         // Age Groups
         $ageGroupTypesToApply = [];
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             $ageGroupTypesToApply = Involvement_PostTypeSettings::getPostTypes();
         }
         $ageGroupTypesToApply[] = 'user';
@@ -1045,7 +1045,7 @@ class TouchPointWP
 
 
         // Involvement Marital Status
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             register_taxonomy(
                 self::TAX_INV_MARITAL,
                 Involvement_PostTypeSettings::getPostTypes(),

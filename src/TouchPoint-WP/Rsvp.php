@@ -24,14 +24,14 @@ require_once 'Meeting.php';
 abstract class Rsvp
 {
     public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "RSVP";
-    private static bool $_isInitiated = false;
+    private static bool $_isLoaded = false;
 
     public static function load(): bool
     {
-        if (self::$_isInitiated) {
+        if (self::$_isLoaded) {
             return true;
         }
-        self::$_isInitiated = true;
+        self::$_isLoaded = true;
 
         add_action('init', [self::class, 'init']);
 
