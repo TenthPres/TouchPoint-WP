@@ -7,7 +7,7 @@ use tp\TouchPointWP\Person;
 
 ?>
 
-<article id="person-<?php echo $person->peopleId; ?>" <?php post_class("people-index-item"); ?> data-tp-person="<?php echo $person->peopleId ?>">
+<article id="person-<?php echo $person->peopleId; ?>" <?php post_class("person-list-item"); ?> data-tp-person="<?php echo $person->peopleId ?>">
     <header class="entry-header">
         <div class="entry-header-inner">
             <?php
