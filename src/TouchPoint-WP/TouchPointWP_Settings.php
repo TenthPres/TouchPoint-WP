@@ -327,7 +327,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on" || $includeAll) {
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on" || $includeAll) { // TODO MULTI
             $this->settings['people'] = [
                 'title'       => __('People', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Manage how people are synchronized between TouchPoint and WordPress.', TouchPointWP::TEXT_DOMAIN),
@@ -347,7 +347,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on" || $includeAll) {
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on" || $includeAll) { // TODO MULTI
             $this->settings['authentication'] = [
                 'title'       => __('Authentication', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Allow users to log into WordPress using TouchPoint.', TouchPointWP::TEXT_DOMAIN),
@@ -424,7 +424,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on" || $includeAll) {
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on" || $includeAll) {  // TODO MULTI
             $this->settings['involvements'] = [
                 'title'       => __('Involvements', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Import Involvements from TouchPoint to your website, for Small Groups, Classes, and more.  You do not need to import an involvement here to use the RSVP tool.', TouchPointWP::TEXT_DOMAIN),
@@ -872,7 +872,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     protected function getWithoutDefault(string $what, $default = self::UNDEFINED_PLACEHOLDER)
     {
-        $opt = get_option(TouchPointWP::SETTINGS_PREFIX . $what, $default);
+        $opt = get_option(TouchPointWP::SETTINGS_PREFIX . $what, $default); // TODO MULTI
 
         if ($opt === '')
             return self::UNDEFINED_PLACEHOLDER;
@@ -889,7 +889,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     public function set(string $what, $value, bool $autoload = false): bool
     {
-        return update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, $autoload);
+        return update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, $autoload); // TODO MULTI
     }
 
 
@@ -947,11 +947,13 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             foreach (wp_load_alloptions() as $option => $value) {
                 if (strpos($option, TouchPointWP::SETTINGS_PREFIX . 'sg_') === 0 ||
                     strpos($option, TouchPointWP::SETTINGS_PREFIX . 'cs_') === 0) {
-                    delete_option($option);
+                    delete_option($option); // TODO MULTI
                 }
             }
 
+//            delete_network_option(null, TouchPointWP::SETTINGS_PREFIX . 'enable_courses'); // TODO MULTI
             delete_option(TouchPointWP::SETTINGS_PREFIX . 'enable_courses');
+//            delete_network_option(null, TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups'); // TODO MULTI
             delete_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups');
         }
 

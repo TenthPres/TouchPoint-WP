@@ -83,7 +83,7 @@ class TouchPointWP_AdminAPI implements api {
 
             // Get saved option.
             $option_name .= $field['id'];
-            $option       = get_option( $option_name );
+            $option       = get_option($option_name); // TODO MULTI
 
             // Get data to display in field.
             if ( isset( $option ) ) {

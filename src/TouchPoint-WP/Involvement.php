@@ -1408,7 +1408,7 @@ class Involvement implements api
             $uniqueTimeStrings = [];
             $timeTerms = [];
             $days = [];
-            $timeFormat = get_option('time_format');
+            $timeFormat = get_option('time_format'); // TODO MULTI figure out how to make this work with different settings on different sites
             foreach ($upcomingDateTimes as $dt) {
                 /** @var $dt DateTimeImmutable */
 
@@ -1499,7 +1499,7 @@ class Involvement implements api
                 $inv->lastMeeting = null; // For all practical purposes: it's not ending.
             }
             // Convert start and end to string.
-            $format = get_option('date_format');
+            $format = get_option('date_format'); // TODO MULTI figure out how to make this work with different settings on different sites
             if ($inv->firstMeeting !== null && $inv->lastMeeting !== null) {
                 if ($dayStr === null) {
                     $dayStr = $inv->firstMeeting->format($format) . " " .

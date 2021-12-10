@@ -162,7 +162,7 @@ abstract class Utilities
      *
      * @return object[]
      */
-    public static function getPostContentWithShortcode($shortcode): array
+    public static function getPostContentWithShortcode($shortcode): array // TODO MULTI: does not update for all sites in the network.
     {
         global $wpdb;
         /** @noinspection SqlResolve */
