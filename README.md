@@ -63,6 +63,12 @@ If you're using the Authentication component, your WordPress site **MUST** use H
 
 We don't promise support for old versions of WordPress or PHP.  You will need to keep both up to date.
 
+## Multisite Support
+
+At the moment, this plugin won't perform very well in a multisite environment.  We're working on that, though, as we 
+plan on moving our own infrastructure toward multisite soon.  As currently planned, ALL sites in a multisite network 
+will share ONE TouchPoint connection, and many (though not all) of the settings would be shared across the network.  If 
+you're interested in using this plugin in a multisite environment, [please get in touch](mailto:jkurtz@tenth.org). 
 
 ## Credit & Hat-Tips
 
