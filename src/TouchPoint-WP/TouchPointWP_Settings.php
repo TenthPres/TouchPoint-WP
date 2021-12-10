@@ -16,6 +16,8 @@ if ( ! defined('ABSPATH')) {
 /**
  * Settings class.
  *
+ * @property-read string version            The plugin version.  Used for tracking updates.
+ *
  * @property-read string host               The domain for the TouchPoint instance
  * @property-read string host_deeplink      The domain for mobile deep linking to the Custom Mobile App
  * @property-read string system_name        What the church calls TouchPoint
@@ -32,7 +34,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string auth_prevent_admin_bar Enabled to prevent Admin Bar to appearing on webpages for users who don't have special roles.
  * @property-read string auth_full_logout   Enabled to indicate that logging out of WordPress should also log the user out of TouchPoint.
  *
- * @property-read int|false inv_cron_last_run     Timestamp of the last time the Involvement syncing task ran.  (No setting UI.)
+ * @property-read int|false inv_cron_last_run Timestamp of the last time the Involvement syncing task ran.  (No setting UI.)
  * @property-read string inv_json           JSON string describing how Involvements should be handled.  (No direct setting UI.)
  *
  * @property-read string ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.
@@ -854,10 +856,12 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
 
     /**
-     * Migrate settings from version to version.
+     * Migrate settings from version to version.  This may be called even when a migration isn't necessary.
      */
     public function migrate(): void
     {
+        global $wpdb;
+
         // 0.0.4 to 0.0.5 -- Merging Small Groups and Courses Components into a single Involvement Component
         $sgEnabled = $this->getWithoutDefault('enable_small_groups') === "on";
         $csEnabled = $this->getWithoutDefault('enable_courses') === "on";
@@ -866,6 +870,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
             $invSettings = [];
 
+            // Migrate Smallgroup settings
             if ($sgEnabled) {
                 $settings = [
                     'nameSingular' => $this->get('sg_name_singular'),
@@ -881,6 +886,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 $invSettings[] = (object)$settings;
             }
 
+            // Migrate Course settings
             if ($csEnabled) {
                 $settings = [
                     'nameSingular' => $this->get('cs_name_singular'),
@@ -896,6 +902,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 $invSettings[] = (object)$settings;
             }
 
+            // Save Smallgroup & Course settings
             $this->set('inv_json', json_encode($invSettings), true);
 
             // Remove the old settings
@@ -910,9 +917,26 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             delete_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups');
         }
 
+        // Remove former smallgroup cron hook
         if ( wp_next_scheduled(TouchPointWP::HOOK_PREFIX . "sg_cron_hook")) {
             wp_clear_scheduled_hook(TouchPointWP::HOOK_PREFIX . "sg_cron_hook");
         }
+
+        // Replace SgNearby shortcode with newer Inv-Nearby
+        $oldShortcode = "[" . TouchPointWP::SHORTCODE_PREFIX . "SgNearby";
+        $newShortcode = "[" . Involvement::SHORTCODE_NEARBY;
+        if ($sgEnabled) {
+            $newShortcode .= " type=smallgroup";
+        }
+        /** @noinspection SqlResolve */
+        $wpdb->query("
+            UPDATE {$wpdb->posts} 
+            SET post_content = REPLACE(post_content, '{$oldShortcode}', '{$newShortcode}') 
+            WHERE post_content LIKE '%{$oldShortcode}%'
+        ");
+
+        // Update version string
+        $this->set('version', TouchPointWP::VERSION);
     }
 
     /**
@@ -982,6 +1006,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     }
 
     /**
+     * Gets the default value for a setting field, if one exists.  Otherwise, the UNDEFINED_PLACEHOLDER is returned.
+     *
      * @param string $id
      *
      * @return mixed
@@ -991,13 +1017,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         foreach ($this->settingsFields(false, false) as $category) {
             foreach ($category['fields'] as $field) {
                 if ($field['id'] === $id){
-                    if (isset($field['default'])) { // Is there is a default, return it.
-                        return $field['default'];
-                    } else {
-                        // If the field is defined, but there is no default, return undefined placeholder.
-                        // This will also be the result if a module is not enabled.
-                        return self::UNDEFINED_PLACEHOLDER;
-                    }
+                    return $field['default'] ?? self::UNDEFINED_PLACEHOLDER;
                 }
             }
         }
@@ -1086,7 +1106,15 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         echo $html;
     }
 
-    public function validation_secret($new, $field): string
+    /**
+     * Validator for Secret settings, like API keys.  If a new value is not provided, the old value is kept intact.
+     *
+     * @param string $new
+     * @param string $field
+     *
+     * @return string
+     */
+    public function validation_secret(string $new, string $field): string
     {
         if ($new === '') { // If there is no value, submit the already-saved one.
             return $this->$field;
@@ -1096,7 +1124,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     }
 
     /**
-     * Slug validator.  Also (more importantly) tells WP that it needs to flush rewrite rules.
+     * Slug validator.  Also, (more importantly) tells WP that it needs to flush rewrite rules.
      *
      * @param mixed  $new The new value.
      * @param string $field The name of the setting.  Used to determine if the setting is actually changed.

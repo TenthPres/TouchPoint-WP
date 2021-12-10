@@ -43,7 +43,7 @@ class Involvement implements api
 
     public string $name;
     public int $invId;
-    public string $invType;
+    public string $invType; // TODO INV clarify terminology between post type and invType.
     public int $post_id; // TODO Determine if there needs to be the possibility for instantiating multiple posts and/or multiple Involvement objs to account for the multiple Types an involvement could have.
     public string $post_excerpt;
     protected WP_Post $post;
@@ -343,14 +343,20 @@ class Involvement implements api
     }
 
     /**
-     * @param $exclude
+     * @param array|null $exclude
      *
      * @return string[]
      */
-    public function getDivisionsStrings(array $exclude = []): array
+    public function getDivisionsStrings(?array $exclude = null): array
     {
         if ($exclude === null) {
-            $exclude = TouchPointWP::instance()->settings->sg_divisions; // TODO INV deal with reference to sg_divisions
+            $importDivs = Involvement_PostTypeSettings::getForPostType($this->invType)->importDivs;
+            if (count($importDivs) < 2) {
+                // Exclude the import divs if there's only one of them, and all invs have the same div
+                $exclude = $importDivs;
+            } else {
+                $exclude = [];
+            }
         }
 
         if (!isset($this->divisions)) {
@@ -649,7 +655,7 @@ class Involvement implements api
         // Division
         if (in_array('div', $filters)) {
             $exclude = $settings->importDivs;
-            if (count($exclude) > 0) {
+            if (count($exclude) == 1) { // Exclude the imported div if there's only one, as all invs would have that div.
                 $mq = ['relation' => "AND"];
                 foreach ($exclude as $e) {
                     $mq[] = [

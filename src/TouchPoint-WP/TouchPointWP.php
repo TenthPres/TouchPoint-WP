@@ -429,12 +429,30 @@ class TouchPointWP
         load_plugin_textdomain(self::TEXT_DOMAIN, false, dirname(plugin_basename($this->file)) . '/lang/');
     }
 
+    /**
+     * Compare the version numbers to determine if a migration is needed.
+     */
+    public function checkMigrations(): void
+    {
+        if ($this->settings->version !== self::VERSION) {
+            $this->settings->migrate();
+        }
+    }
+
+    /**
+     * Load the settings, connect the references, and check that there are no pending migrations.
+     *
+     * @param $file
+     *
+     * @return TouchPointWP
+     */
     public static function load($file): TouchPointWP
     {
         $instance = self::instance($file);
 
         if (is_null($instance->settings)) {
             $instance->settings = TouchPointWP_Settings::instance($instance);
+            $instance->checkMigrations();
         }
 
         // Load Auth tool if enabled.
@@ -1189,7 +1207,7 @@ class TouchPointWP
 
         $this->createTables();
 
-        $this->migrate();
+        $this->settings->migrate();
     }
 
     /**
@@ -1235,15 +1253,6 @@ class TouchPointWP
             PRIMARY KEY  (id)
         )";
         dbDelta($sql);
-    }
-
-
-    /**
-     * Migrate settings from old version if applicable.
-     */
-    protected function migrate(): void
-    {
-        $this->settings->migrate();
     }
 
 
