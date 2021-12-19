@@ -46,8 +46,9 @@ trait jsInstantiation {
      */
     protected function enqueueForJsInstantiation(): void
     {
-        if (!isset(static::$queueForJsInstantiation[$this->getTouchPointId()]))
+        if (!isset(static::$queueForJsInstantiation[$this->getTouchPointId()])) {
             static::$queueForJsInstantiation[$this->getTouchPointId()] = $this;
+        }
     }
 
     /**

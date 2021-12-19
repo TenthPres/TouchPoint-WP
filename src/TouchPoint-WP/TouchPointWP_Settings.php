@@ -439,6 +439,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::requireScript("base");
                             TouchPointWP::requireScript("knockout-defer");
                             ob_start();
+                            /** @noinspection PhpIncludeInspection */
                             include TouchPointWP::$dir . "/src/templates/admin/invKoForm.php";
                             return ob_get_clean();
                         },
@@ -735,7 +736,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             switch ($args['location']) {
                 case 'options':
                 case 'submenu':
-                    $page = add_submenu_page(
+                    add_submenu_page(
                         $args['parent_slug'],
                         $args['page_title'],
                         $args['menu_title'],
@@ -745,7 +746,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     );
                     break;
                 case 'menu':
-                    $page = add_menu_page(
+                    add_menu_page(
                         $args['page_title'],
                         $args['menu_title'],
                         $args['capability'],
@@ -758,7 +759,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 default:
                     return;
             }
-            // add_action('admin_print_styles-' . $page, [$this, 'settings_assets']);  TODO SOMEDAY MAYBE if needing to upload media through inferface, uncomment this.
+            // add_action('admin_print_styles-' . $page, [$this, 'settings_assets']);  TODO SOMEDAY MAYBE if needing to upload media through interface, uncomment this.
         }
     }
 
@@ -957,7 +958,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             delete_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups');
         }
 
-        // Remove former smallgroup cron hook
+        // Remove former smallgroup cron hook.  New cron is scheduled elsewhere.
         if ( wp_next_scheduled(TouchPointWP::HOOK_PREFIX . "sg_cron_hook")) {
             wp_clear_scheduled_hook(TouchPointWP::HOOK_PREFIX . "sg_cron_hook");
         }
@@ -970,9 +971,9 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         }
         /** @noinspection SqlResolve */
         $wpdb->query("
-            UPDATE {$wpdb->posts} 
-            SET post_content = REPLACE(post_content, '{$oldShortcode}', '{$newShortcode}') 
-            WHERE post_content LIKE '%{$oldShortcode}%'
+            UPDATE $wpdb->posts
+            SET post_content = REPLACE(post_content, '$oldShortcode', '$newShortcode') 
+            WHERE post_content LIKE '%$oldShortcode%'
         ");
 
         // Update version string

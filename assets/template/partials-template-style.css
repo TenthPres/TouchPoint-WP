@@ -87,8 +87,9 @@ div.involvement-list article.involvement-list-item h2.entry-title {
     left: 0;
     right: 0;
     bottom: 0;
+    margin: 0;
     padding-bottom: 1em;
-    background: linear-gradient(0deg, #00000011 0%, #00000011 60%, #00000000 100%);
+    background: linear-gradient(0deg, #0000001a 0%, #0000001a 60%, #00000000 100%);
     color: #fff;
     text-shadow: 0 0 3px #000, 0 0 5px #000;
 }
@@ -158,8 +159,4 @@ article .involvement-detail-cell.involvement-map-container {
 article .involvement-detail-cell .involvement-detail-cell-section {
     text-align:center;
     margin-bottom: 2em;
-}
-
-.swal2-content textarea {
-    width: 100%;
 }

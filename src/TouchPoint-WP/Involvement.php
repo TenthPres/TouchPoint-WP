@@ -1693,7 +1693,8 @@ class Involvement implements api
         $this->enqueueForJsInstantiation();
 
         $text = __("Contact Leaders", TouchPointWP::TEXT_DOMAIN);
-        $ret = "<button type=\"button\" data-tp-action=\"contact\">$text</button>  ";
+        $ret = "<button type=\"button\" data-tp-action=\"contact\">$text</button> ";
+        TouchPointWP::enqueueActionsStyle('inv-contact');
 
         if ($this->acceptingNewMembers() === true) {
             if ($this->useRegistrationForm()) {
@@ -1725,9 +1726,11 @@ class Involvement implements api
                 }
                 $link = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
                 $ret  .= "<a class=\"btn button\" href=\"$link\">$text</a>  ";
+                TouchPointWP::enqueueActionsStyle('inv-register');
             } else {
                 $text = __('Join', TouchPointWP::TEXT_DOMAIN);
                 $ret  .= "<button type=\"button\" data-tp-action=\"join\">$text</button>  ";
+                TouchPointWP::enqueueActionsStyle('inv-join');
             }
         }
         return $ret;

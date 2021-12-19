@@ -22,6 +22,9 @@ use WP_User;
  * Class Person - Fundamental object meant to correspond to a Person in TouchPoint
  *
  * @package tp\TouchPointWP
+ *
+ * @property ?object $picture An object with the picture URLs and other metadata
+ *
  */
 class Person extends WP_User implements api, JsonSerializable
 {
@@ -32,6 +35,7 @@ class Person extends WP_User implements api, JsonSerializable
     public const BACKUP_USER_PREFIX = "touchpoint-";
 
     public const META_PEOPLEID = TouchPointWP::SETTINGS_PREFIX . 'peopleId';
+    public const META_CUSTOM_PREFIX = 'c_'; // setters and getters also insert standard setting prefix
     public const META_INV_MEMBER_PREFIX = TouchPointWP::SETTINGS_PREFIX . "inv_mem_";
     public const META_INV_ATTEND_PREFIX = TouchPointWP::SETTINGS_PREFIX . "inv_att_";
     public const META_INV_DESC_PREFIX = TouchPointWP::SETTINGS_PREFIX . "inv_desc_";
@@ -39,12 +43,44 @@ class Person extends WP_User implements api, JsonSerializable
     private static bool $_isLoaded = false;
     private static bool $_indexingMode = false;
     private static array $_indexingQueries;
+    private static array $_instances = [];
 
     public int $peopleId;
 
-    private array $_fieldsToUpdate = [];
+    private array $_userFieldsToUpdate = [];
+    private array $_userMetaToUpdate = [];
+    private array $_meta = [];
     private array $_invs;
     private bool $_invsAllFetched = false;
+
+    private const FIELDS_FOR_USER_UPDATE = [
+        'user_pass',
+        'user_login',
+        'user_nicename',
+        'user_url',
+        'user_email',
+        'display_name',
+        'nickname',
+        'first_name',
+        'last_name',
+        'description',
+        'rich_editing',
+        'syntax_highlighting',
+        'comment_shortcuts',
+        'admin_color',
+        'use_ssl',
+        'user_registered',
+        'user_activation_key',
+        'spam',
+        'show_admin_bar_front',
+//        'role', // Excluding prevents this from being set through __set
+        'locale'
+    ];
+
+    private const FIELDS_FOR_META = [
+        'picture',
+        'familyId'
+    ];
 
 
     /**
@@ -56,7 +92,9 @@ class Person extends WP_User implements api, JsonSerializable
     {
         parent::__construct($id, $name, $site_id);
 
-        $this->peopleId = $this->get(self::META_PEOPLEID);
+        $this->peopleId = intval($this->get(self::META_PEOPLEID));
+
+        self::$_instances[$this->ID] = $this;
     }
 
     /**
@@ -78,6 +116,37 @@ class Person extends WP_User implements api, JsonSerializable
     }
 
     /**
+     * @param $id
+     *
+     * @return Person|null
+     */
+    public static function fromId($id): ?Person
+    {
+        if (isset(self::$_instances[$id])) {
+            return self::$_instances[$id];
+        }
+
+        return new Person($id);
+    }
+
+    /**
+     * @param $field
+     * @param $value
+     *
+     * @return Person|null
+     */
+    public static function from($field, $value): ?Person
+    {
+        $userdata = WP_User::get_data_by($field, $value);
+
+        if ( ! $userdata) {
+            return null;
+        }
+
+        return new Person($userdata);
+    }
+
+    /**
      * Generic getter for fields and meta attributes.
      *
      * @param string $key
@@ -90,11 +159,35 @@ class Person extends WP_User implements api, JsonSerializable
             /** @noinspection SpellCheckingInspection */
             case "peopleid":
                 return $this->peopleId;
+            case "id":
+                return $this->ID;
         }
 
-        // TODO DIR deal with prefixed fields
+        // Direct user fields
+        if (in_array($key, self::FIELDS_FOR_USER_UPDATE)) {
+            return parent::__get($key);
+        }
 
-        return parent::__get($key);
+        // standardized meta fields
+        if (in_array($key, self::FIELDS_FOR_META)) {
+            $v = parent::__get(TouchPointWP::SETTINGS_PREFIX . $key);
+            $this->_meta[$key] = $v;
+            return $v;
+        }
+
+        // Try a direct field, potentially from a different plugin.
+        $v = parent::__get($key);
+        if ($v !== '') {
+            return $v;
+        }
+
+        // Custom meta through TouchPoint-WP
+        $v = parent::__get(self::META_CUSTOM_PREFIX . $key);
+        if ($v === '') {
+            $v = null;
+        }
+        $this->_meta[self::META_CUSTOM_PREFIX . $key] = $v;
+        return $v;
     }
 
     /**
@@ -113,15 +206,29 @@ class Person extends WP_User implements api, JsonSerializable
                 return;
         }
 
-        // TODO DIR deal with prefixed fields
-
-        if ($this->$key == $value) { // need '3' = 3 and '' == null
+        // If value isn't changed, don't update.
+        if ($this->$key == $value) {
             return;
         }
 
-        parent::__set($key, $value);
+        if (in_array($key, self::FIELDS_FOR_USER_UPDATE)) {
+            parent::__set($key, $value);
+            $this->_userFieldsToUpdate[] = $key;
+            return;
+        }
 
-        $this->_fieldsToUpdate[] = $key;
+        // Standardized Meta fields
+        if (in_array($key, self::FIELDS_FOR_META)) {
+            $this->_meta[$key] = $value;
+            parent::__set(TouchPointWP::SETTINGS_PREFIX . $key, $value);
+            $this->_userMetaToUpdate[] = $key;
+            return;
+        }
+
+        // Custom Meta fields
+        $this->_meta[self::META_CUSTOM_PREFIX . $key] = $value;
+        parent::__set(TouchPointWP::SETTINGS_PREFIX . self::META_CUSTOM_PREFIX . $key, $value);
+        $this->_userMetaToUpdate[] = self::META_CUSTOM_PREFIX . $key;
     }
 
     /**
@@ -149,7 +256,6 @@ class Person extends WP_User implements api, JsonSerializable
      * @param string       $content
      *
      * @return string
-     * @throws TouchPointWP_Exception
      */
     public static function peopleListShortcode($params = [], string $content = ""): string
     {
@@ -163,19 +269,23 @@ class Person extends WP_User implements api, JsonSerializable
         /** @noinspection SpellCheckingInspection */
         $params = shortcode_atts(
             [
-                'class' => 'TouchPoint-involvement actions',
+                'class' => 'TouchPoint-person people-list',
                 'invid' => null,
-                'id'    => wp_unique_id('tp-actions-')
+                'id'    => wp_unique_id('tp-actions-'),
+                'withsubgroups' => false
             ],
             $params,
             self::SHORTCODE_PEOPLE_LIST
         );
 
         /** @noinspection SpellCheckingInspection */
+        $params['withsubgroups'] = !!$params['withsubgroups'];
+
+        /** @noinspection SpellCheckingInspection */
         $iid = intval($params['invid']);
 
         // If there's no invId, try to get one from the Post
-        if ($iid === null && TouchPointWP::instance()->settings->enable) {
+        if ($iid === null) {
             $post = get_post();
 
             if (is_object($post)) {
@@ -188,8 +298,7 @@ class Person extends WP_User implements api, JsonSerializable
             }
         }
 
-        // TODO DIR other types of queries
-        // TODO DIR standardize this this query concept to simplify mapping between TouchPoint concepts and WP_User_Query
+        // For now, lists are generated 100% from involvement lists.
         if (self::$_indexingMode) {
             if ($iid === null) {
                 return "";
@@ -198,12 +307,19 @@ class Person extends WP_User implements api, JsonSerializable
                 self::$_indexingQueries['inv'] = [];
             }
             if (! isset(self::$_indexingQueries['inv'][$iid])) {
+                /** @noinspection SpellCheckingInspection */
                 self::$_indexingQueries['inv'][$iid] = [
                     'memTypes' => null,
-                    'subGroups' => null,
-                    'with_subGroups' => false
+//                    'subGroups' => null,
+                    'with_subGroups' => false // populated below
                 ];
             }
+
+            // Populating here so all info is imported if an involvement is embedded multiple times with different parameters.
+            /** @noinspection SpellCheckingInspection */
+            self::$_indexingQueries['inv'][$iid]['with_subGroups'] =
+                self::$_indexingQueries['inv'][$iid]['with_subGroups'] || $params['withsubgroups'];
+
             return "";
         }
 
@@ -216,7 +332,6 @@ class Person extends WP_User implements api, JsonSerializable
             'order' => 'ASC'
         ];
 
-        // TODO DIR also allow status flags or such
         // If there is no invId at this point, this is an error.
         if ($iid === null) {
             return "<!-- Error: Can't create Involvement Actions because there is no clear involvement.  Define the InvId and make sure it's imported. -->";
@@ -308,6 +423,69 @@ class Person extends WP_User implements api, JsonSerializable
         } else {
             return null;
         }
+    }
+
+    /**
+     * @param mixed $idEmailUserOrPerson
+     * @param array $args
+     *
+     * @return string|null
+     */
+    public static function getPictureForPerson($idEmailUserOrPerson, $args = []): ?string
+    {
+        $p = null;
+        if ( ! is_object($idEmailUserOrPerson)) {
+            if (is_numeric($idEmailUserOrPerson)) {
+                $p = Person::fromId($idEmailUserOrPerson);
+            } elseif (is_object($idEmailUserOrPerson) && get_class($idEmailUserOrPerson) === self::class) {
+                $p = $idEmailUserOrPerson;
+            } elseif (is_object($idEmailUserOrPerson) && ! empty($id_or_email->user_id)) {
+                $p = Person::fromId($id_or_email->user_id);
+            } elseif (is_string($idEmailUserOrPerson)) {
+                $p = Person::from('email', $idEmailUserOrPerson);
+            }
+        }
+
+        if ($p === null) {
+            return null;
+        }
+
+        $pictureData = $p->picture;
+
+        if (empty($pictureData)) {
+            return null;
+        }
+
+        if ((!isset($args['height']) || !isset($args['width'])) && !isset($args['size'])) {
+            return $pictureData->large;
+        }
+        $h = max($args['size'], $args['height']);
+        $w = max($args['size'], $args['width']);
+
+        if ($w <= 50 && $h <= 50) {
+            return $pictureData->thumb;
+        }
+
+        if ($w <= 120 && $h <= 120) {
+            return $pictureData->small;
+        }
+
+        if ($w <= 320 && $h <= 400) {
+            return $pictureData->medium;
+        }
+
+        return $pictureData->large;
+    }
+
+    /**
+     * @param string $url       The URL of the avatar.
+     * @param mixed $idEmailOrObject The person for whom to retrieve. Accepts a user_id, gravatar md5 hash, user email,
+     *                          WP_User object, WP_Post object, or WP_Comment object.
+     * @param array $args       Arguments passed to get_avatar_data(…), after processing.
+     */
+    public static function pictureFilter($url, $idEmailOrObject, $args = [])
+    {
+        return self::getPictureForPerson($idEmailOrObject, $args);
     }
 
     /**
@@ -404,10 +582,10 @@ class Person extends WP_User implements api, JsonSerializable
 
             // Create new person
             if ($person === null) {
-                if (TouchPointWP::instance()->settings->enable_people_lists === "on") { // TODO DIR replace with a condition that makes sense for the task at hand
+                if (Person::createUsers()) {
                     // Provision a new user, since we were unsuccessful in finding one.
-                    set_time_limit(60); // TODO DIR remove because this is absurd.
-                    $uid = wp_create_user(self::generateUserName($pData), com_create_guid(), ''); // TODO DIR email addresses
+                    set_time_limit(60);
+                    $uid = wp_create_user(self::generateUserName($pData), com_create_guid(), ''); // Email addresses are imported/updated later, which prevents notification emails.
                     if (is_numeric($uid)) { // user was successfully generated.
                         update_user_option($uid, 'created_by', 'TouchPoint-WP', true);
                         update_user_option($uid, self::META_PEOPLEID, $pData->PeopleId, true);
@@ -433,8 +611,7 @@ class Person extends WP_User implements api, JsonSerializable
             } else {
                 $person->user_email = null;
             }
-//            var_dump($pData);
-            $person->user_image = $pData->Picture; // TODO DIR this... mess...
+            $person->picture = $pData->Picture;
 
             // Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
 
@@ -463,7 +640,7 @@ class Person extends WP_User implements api, JsonSerializable
                     $inv_updates[self::META_INV_ATTEND_PREFIX . $i->iid] = $i->attType;
                 }
                 if ($currentInvs[$i->iid]->description !== $i->descr) {
-                    if (trim($i->descr) == null) {
+                    if ($i->descr === null || trim($i->descr) === '') {
                         delete_user_option($person->ID, self::META_INV_DESC_PREFIX . $i->iid, true);
                     } else {
                         $inv_updates[self::META_INV_DESC_PREFIX . $i->iid] = $i->descr;
@@ -493,10 +670,19 @@ class Person extends WP_User implements api, JsonSerializable
      */
     protected function submitUpdate(): void
     {
-        if (count($this->_fieldsToUpdate) > 0) {
+        if (count($this->_userFieldsToUpdate) > 0) {
+            add_filter('send_password_change_email', '__return_false');
+            add_filter('send_email_change_email', '__return_false');
             wp_update_user($this->fieldsForUpdate());
-            $this->_fieldsToUpdate = [];
+            remove_filter('send_password_change_email', '__return_false');
+            remove_filter('send_email_change_email', '__return_false');
+            $this->_userFieldsToUpdate = [];
         }
+
+        foreach ($this->_userMetaToUpdate as $f) {
+            update_user_option($this->ID, TouchPointWP::SETTINGS_PREFIX . $f, $this->_meta[$f], true);
+        }
+        $this->_userMetaToUpdate = [];
     }
 
     /**
@@ -512,11 +698,10 @@ class Person extends WP_User implements api, JsonSerializable
         $this->enqueueForJsInstantiation();
 
         $text = __("Contact", TouchPointWP::TEXT_DOMAIN);
+        TouchPointWP::enqueueActionsStyle('person-contact');
         $ret = "<button type=\"button\" data-tp-action=\"contact\">$text</button>  ";
 
-        // TODO DIR add a filter to allow additional buttons (twitter, etc.)
-
-        return $ret;
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this);
     }
 
     /**
@@ -552,6 +737,16 @@ class Person extends WP_User implements api, JsonSerializable
     }
 
     /**
+     * Determines whether JS Instantiation should be used.
+     *
+     * @return bool
+     */
+    public static function useJsInstantiation(): bool
+    {
+        return count(static::$queueForJsInstantiation) > 0;
+    }
+
+    /**
      * Gets the PeopleId number.  Required by jsInstantiation trait.
      * @return int
      */
@@ -565,7 +760,7 @@ class Person extends WP_User implements api, JsonSerializable
      */
     private function fieldsForUpdate(): stdClass
     {
-        $fields = $this->_fieldsToUpdate;
+        $fields = $this->_userFieldsToUpdate;
         $updates = [];
 
         foreach ($fields as $f) {
@@ -720,7 +915,7 @@ class Person extends WP_User implements api, JsonSerializable
 
         $people = $data->people ?? [];
 
-        // TODO sync or queue sync of people... maybe...
+        // TODO consider adding person as a user and/or authenticating user.
 
         $ret = [];
         foreach ($people as $p) {
@@ -812,6 +1007,10 @@ class Person extends WP_User implements api, JsonSerializable
             );
         }
 
+        // Add filter for TouchPoint pictures to be used as avatars.  Priority is high so this can be easily overridden by
+        // another plugin if desired.
+        add_filter('get_avatar_url', [self::class, 'pictureFilter'], 10, 3);
+
         return true;
     }
 
@@ -823,5 +1022,15 @@ class Person extends WP_User implements api, JsonSerializable
         if (TouchPointWP::instance()->settings->person_cron_last_run * 1 < time() - 86400 - 3600) {
             self::updateFromTouchPoint();
         }
+    }
+
+    /**
+     * Determines whether users should be imported when presented through a sync process.
+     *
+     * @return bool
+     */
+    protected static function createUsers(): bool
+    {
+        return TouchPointWP::instance()->settings->enable_people_lists === "on";
     }
 }

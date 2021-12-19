@@ -73,7 +73,7 @@ abstract class Rsvp
         // set some defaults
         $params  = shortcode_atts(
             [
-                'class'     => 'TouchPoint-RSVP btn',
+                'class'     => 'TouchPoint-RSVP btn button',
                 'meetingid' => null,
                 'preload' => __("Loading...", TouchPointWP::TEXT_DOMAIN)
             ],
@@ -103,6 +103,7 @@ abstract class Rsvp
         $content = apply_shortcodes($content);
 
         // create the link
+        TouchPointWP::enqueueActionsStyle('rsvp');
         return "<a href=\"#\" onclick=\"return false;\" class=\"" . $params['class'] . " disabled\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$content</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
     }
 

@@ -5,9 +5,15 @@ use tp\TouchPointWP\Person;
 /** @var $person Person */
 /** @var $iid int */
 
+$image = get_avatar_url($person->id, ['width' => 200, 'height' => 300] );
+
+if (!empty($image)) {
+    $image = " style=\"background-image: url('$image');\"";
+}
+
 ?>
 
-<article id="person-<?php echo $person->peopleId; ?>" <?php post_class("person-list-item"); ?> data-tp-person="<?php echo $person->peopleId ?>">
+<article id="person-<?php echo $person->peopleId; ?>" <?php post_class("person-list-item"); ?> data-tp-person="<?php echo $person->peopleId ?>"<?php echo $image ?>>
     <header class="entry-header">
         <div class="entry-header-inner">
             <?php

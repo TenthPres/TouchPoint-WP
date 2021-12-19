@@ -164,7 +164,8 @@ class TP_Meeting {
                 Swal.fire({
                     icon: 'success',
                     title: `Response${s} Recorded`,
-                    timer: 3000
+                    timer: 3000,
+                    customClass: tpvm._utils.defaultSwalClasses()
                 });
             }
         } else {
@@ -173,7 +174,8 @@ class TP_Meeting {
                 Swal.fire({
                     icon: 'error',
                     title: `Something strange happened.`,
-                    timer: 3000
+                    timer: 3000,
+                    customClass: tpvm._utils.defaultSwalClasses()
                 });
             }
         }
@@ -205,6 +207,7 @@ class TP_Meeting {
 
             Swal.fire({
                 html: `<p id="swal-tp-text">Who is coming?</p><p class="small swal-tp-instruction">Indicate who is or is not coming.  This will overwrite any existing RSVP.  <br />To avoid overwriting an existing RSVP, leave that person blank.  <br />To protect privacy, we won't show existing RSVPs here.</p></i>` + TP_Person.peopleArrayToRadio(people, ['Yes', 'No']),
+                customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,
                 showDenyButton: true,

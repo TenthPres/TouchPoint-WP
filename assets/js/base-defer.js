@@ -36,6 +36,12 @@ function utilInit() {
             tpvm._actions[action][itemUId] = object[action + "Action"];
         }
     }
+
+    tpvm._utils.defaultSwalClasses = function() {
+        return {
+            container: 'tp-swal-container'
+        }
+    }
 }
 utilInit();
 
@@ -365,7 +371,8 @@ class TP_Involvement {
                 Swal.fire({
                     icon: 'success',
                     title: `Added to ${inv.name}`,
-                    timer: 3000
+                    timer: 3000,
+                    customClass: tpvm._utils.defaultSwalClasses()
                 });
             }
         } else {
@@ -374,7 +381,8 @@ class TP_Involvement {
                 Swal.fire({
                     icon: 'error',
                     title: `Something strange happened.`,
-                    timer: 3000
+                    timer: 3000,
+                    customClass: tpvm._utils.defaultSwalClasses()
                 });
             }
         }
@@ -394,7 +402,8 @@ class TP_Involvement {
                 Swal.fire({
                     icon: 'success',
                     title: `Your message has been sent.`,
-                    timer: 3000
+                    timer: 3000,
+                    customClass: tpvm._utils.defaultSwalClasses()
                 });
             }
         } else {
@@ -403,7 +412,8 @@ class TP_Involvement {
                 Swal.fire({
                     icon: 'error',
                     title: `Something strange happened.`,
-                    timer: 3000
+                    timer: 3000,
+                    customClass: tpvm._utils.defaultSwalClasses()
                 });
             }
         }
@@ -411,13 +421,14 @@ class TP_Involvement {
 
     // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
     joinAction() {
-        let inv = this;
+        let inv = this,
+            title = `Join ${inv.name}`;
 
         if (typeof ga === "function") {
             ga('send', 'event', inv.invType, 'join btn click', inv.name);
         }
 
-        TP_Person.DoInformalAuth(`Join ${inv.name}`).then(
+        TP_Person.DoInformalAuth(title).then(
             (res) => joinUi(inv, res),
             () => console.log("Informal auth failed, probably user cancellation.")
         )
@@ -428,7 +439,9 @@ class TP_Involvement {
             }
 
             Swal.fire({
+                title: title,
                 html: "<p id=\"swal-tp-text\">Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
+                customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,
                 confirmButtonText: 'Join',
@@ -458,13 +471,14 @@ class TP_Involvement {
     }
 
     contactAction() {
-        let inv = this;
+        let inv = this,
+            title = `<span class="no-wrap">Contact the leaders</span> of <span class="no-wrap">${inv.name}</span>`;
 
         if (typeof ga === "function") {
             ga('send', 'event', inv.invType, 'contact btn click', inv.name);
         }
 
-        TP_Person.DoInformalAuth("Send a Message").then((res) => contactUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
+        TP_Person.DoInformalAuth(title).then((res) => contactUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
 
         function contactUi(inv, people) {
             if (typeof ga === "function") {
@@ -472,11 +486,12 @@ class TP_Involvement {
             }
 
             Swal.fire({
-                html: `<p id=\"swal-tp-text\">Contact the leaders of<br />${inv.name}</p>` +
-                    '<form id="tp_inv_contact_form">' +
+                title: title,
+                html: '<form id="tp_inv_contact_form">' +
                     '<div class="form-group"><label for="tp_inv_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_inv_contact_fromPid", "fromPid") + '</div>' +
                     '<div class="form-group"><label for="tp_inv_contact_body">Message</label><textarea name="body" id="tp_inv_contact_body"></textarea></div>' +
                     '</form>',
+                customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,
                 confirmButtonText: 'Send',
@@ -734,13 +749,14 @@ class TP_Person {
     }
 
     contactAction() {
-        let psn = this;
+        let psn = this,
+            title = `Contact ${psn.displayName}`;
 
         if (typeof ga === "function") {
             ga('send', 'event', 'Person', 'contact btn click', psn.peopleId);
         }
 
-        TP_Person.DoInformalAuth("Send a Message").then((res) => contactUi(psn, res), () => console.log("Informal auth failed, probably user cancellation."))
+        TP_Person.DoInformalAuth(title).then((res) => contactUi(psn, res), () => console.log("Informal auth failed, probably user cancellation."))
 
         function contactUi(psn, people) {
             if (typeof ga === "function") {
@@ -748,11 +764,12 @@ class TP_Person {
             }
 
             Swal.fire({
-                html: `<p id=\"swal-tp-text\">Contact ${psn.displayName}</p>` +
-                    '<form id="tp_person_contact_form">' +
+                title: title,
+                html: '<form id="tp_person_contact_form">' +
                     '<div class="form-group"><label for="tp_person_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_person_contact_fromPid", "fromPid") + '</div>' +
                     '<div class="form-group"><label for="tp_person_contact_body">Message</label><textarea name="body" id="tp_person_contact_body"></textarea></div>' +
                     '</form>',
+                customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,
                 confirmButtonText: 'Send',
@@ -791,7 +808,8 @@ class TP_Person {
                 Swal.fire({
                     icon: 'success',
                     title: `Your message has been sent.`,
-                    timer: 3000
+                    timer: 3000,
+                    customClass: tpvm._utils.defaultSwalClasses()
                 });
             }
         } else {
@@ -800,7 +818,8 @@ class TP_Person {
                 Swal.fire({
                     icon: 'error',
                     title: `Something strange happened.`,
-                    timer: 3000
+                    timer: 3000,
+                    customClass: tpvm._utils.defaultSwalClasses()
                 });
             }
         }
@@ -831,10 +850,12 @@ class TP_Person {
                 resolve(tpvm._plausibleUsers);
             } else {
                 Swal.fire({
-                    html: '<form id="tp_ident_form">' +
+                    html: `<p id=\"swal-tp-text\">Tell us about yourself.</p>` +
+                        '<form id="tp_ident_form">' +
                         '<div class="form-group"><label for="tp_ident_email">Email Address</label><input type="email" name="email" id="tp_ident_email" required /></div>' +
                         '<div class="form-group"><label for="tp_ident_zip">Zip Code</label><input type="text" name="zip" id="tp_ident_zip" pattern="[0-9]{5}" maxlength="5" required /></div>' +
                         '<input type="submit" hidden style="display:none;" /></form>',
+                    customClass: tpvm._utils.defaultSwalClasses(),
                     showConfirmButton: true,
                     showCancelButton: true,
                     title: title,
