@@ -166,6 +166,6 @@ abstract class Utilities
     {
         global $wpdb;
         /** @noinspection SqlResolve */
-        return $wpdb->get_results("SELECT post_content FROM $wpdb->posts WHERE post_content LIKE '%$shortcode%'");
+        return $wpdb->get_results("SELECT post_content FROM $wpdb->posts WHERE post_content LIKE '%$shortcode%' AND post_status <> 'inherit'");
     }
 }
