@@ -1,14 +1,29 @@
 const tpvm = {
     involvements: [],
     meetings: [],
-    _events: {},
     people: {},
-    _sg: {},
+    _actions: {}, // collection of actions that have been registered that can be linked via location.hash.
+    _utils: {},
+    _vmContext: {},
+    _events: {},
+    _eventsTriggered: [],
+    _invNear: {},
     _plausibleUsers: [],
     addEventListener: function(name, f) {
         if (typeof this._events[name] === "undefined")
             this._events[name] = [];
         this._events[name].push(f);
+    },
+    addOrTriggerEventListener: function(name, f) {
+        if (this._eventsTriggered.hasOwnProperty(name)) {
+            if (this._eventsTriggered[name] === null) {
+                f();
+            } else {
+                f(this._eventsTriggered[name]);
+            }
+        } else {
+            this.addEventListener(name, f);
+        }
     },
     trigger: function(name, arg1 = null) {
         console.log("Firing " + name); // TODO remove.  For debugging only.
@@ -21,6 +36,7 @@ const tpvm = {
                 this._events[name][ei](arg1);
             }
         }
+        this._eventsTriggered[name] = arg1;
     },
     postData: async function(action = '', data = {}) {
         const response = await fetch('/touchpoint-api/' + action, {
@@ -36,10 +52,7 @@ const tpvm = {
     },
     getData: async function(action = '', data = {}) {
         let params = [];
-        Object.keys(data).map(
-            function(key, inx) {
-                params.push(`${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`);}
-        );
+        Object.keys(data).map(key => params.push(`${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`));
         const response = await fetch('/touchpoint-api/' + action + '?' + params.join("&"), {
             method: 'GET',
             mode: 'same-origin',
@@ -47,3 +60,4 @@ const tpvm = {
         return response.json();
     }
 }
+window.addEventListener('load', () => tpvm.trigger('load'))

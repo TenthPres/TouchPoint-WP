@@ -1,15 +1,18 @@
 <?php
 
-use tp\TouchPointWP\SmallGroup;
+use tp\TouchPointWP\Involvement;
 use tp\TouchPointWP\TouchPointWP;
 
-get_header("smallgroups");
+$postType = get_post_type();
+$settings = Involvement::getSettingsForPostType($postType);
+
+get_header($postType);
 
 the_post();
-$p = get_post();
-$sg = SmallGroup::fromPost($p);
+$p   = get_post();
+$inv = Involvement::fromPost($p);
 
-SmallGroup::enqueueTemplateStyle();
+Involvement::enqueueTemplateStyle();
 
 ?>
 
@@ -19,8 +22,8 @@ SmallGroup::enqueueTemplateStyle();
     </div>
 </header>
 
-<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-involvement="<?php echo $sg->invId ?>">
-    <div class="post-inner smallgroup-inner">
+<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-involvement="<?php echo $inv->invId ?>">
+    <div class="post-inner involvement-inner">
         <div class="entry-content">
             <?php
                 the_content();
@@ -28,9 +31,9 @@ SmallGroup::enqueueTemplateStyle();
         </div><!-- .entry-content -->
     </div><!-- .post-inner -->
 
-    <div class="section-inner smallgroup-detail">
-        <div class="smallgroup-detail-cell">
-            <div class="smallgroup-detail-cell-section smallgroup-logistics" >
+    <div class="section-inner involvement-detail">
+        <div class="involvement-detail-cell">
+            <div class="involvement-detail-cell-section involvement-logistics" >
                 <?php
                 $metaKeys    = [
                     TouchPointWP::SETTINGS_PREFIX . "meetingSchedule",
@@ -43,20 +46,22 @@ SmallGroup::enqueueTemplateStyle();
                         $metaStrings[] = sprintf('<span class="meta-text">%s</span>', $p->$mk);
                     }
                 }
-                foreach ($sg->notableAttributes() as $a)
+                foreach ($inv->notableAttributes() as $a)
                 {
                     $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
                 }
                 echo implode("<br />", $metaStrings);
                 ?>
             </div>
-            <div class="smallgroup-detail-cell-section smallgroup-actions">
-                <?php echo $sg->getActionButtons() ?>
+            <div class="involvement-detail-cell-section involvement-actions">
+                <?php echo $inv->getActionButtons() ?>
             </div>
         </div>
-        <div class="smallgroup-detail-cell smallgroup-map-container">
-            <?php echo SmallGroup::mapShortcode() ?>
+        <?php if ($settings->useGeo) { ?>
+        <div class="involvement-detail-cell involvement-map-container">
+            <?php echo Involvement::mapShortcode() ?>
         </div>
+        <?php } ?>
     </div>
 </article>
 

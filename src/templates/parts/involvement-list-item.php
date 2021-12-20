@@ -1,15 +1,18 @@
 <?php
 
-use tp\TouchPointWP\SmallGroup;
+use tp\TouchPointWP\Involvement;
 use tp\TouchPointWP\TouchPointWP;
 
 /** @var $post WP_Post */
 
-$sg = SmallGroup::fromPost($post);
+$inv = Involvement::fromPost($post);
+
+$postTypeClass = get_post_type($post);
+$postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
 
 ?>
 
-<article id="smallgroup-<?php the_ID(); ?>" <?php post_class("smallgroup-list-item"); ?> data-tp-involvement="<?php echo $sg->invId ?>">
+<article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class("involvement-list-item"); ?> data-tp-involvement="<?php echo $inv->invId ?>">
     <header class="entry-header">
         <div class="entry-header-inner">
         <?php
@@ -30,7 +33,7 @@ $sg = SmallGroup::fromPost($post);
                     }
                 }
 
-                foreach ($sg->getDivisionsStrings() as $a)
+                foreach ($inv->getDivisionsStrings() as $a)
                 {
                     $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
                 }
@@ -44,7 +47,7 @@ $sg = SmallGroup::fromPost($post);
                     }
                 }
 
-                foreach ($sg->notableAttributes() as $a)
+                foreach ($inv->notableAttributes() as $a)
                 {
                     $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
                 }
@@ -57,7 +60,7 @@ $sg = SmallGroup::fromPost($post);
     <div class="thin entry-content">
         <?php echo wp_trim_words(get_the_excerpt(), 20, "..."); ?>
     </div>
-    <div class="thin actions smallgroup-actions">
-        <?php echo $sg->getActionButtons(); ?>
+    <div class="thin actions involvement-actions <?php echo $postTypeClass; ?>-actions">
+        <?php echo $inv->getActionButtons(); ?>
     </div>
 </article>

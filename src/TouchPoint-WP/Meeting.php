@@ -11,7 +11,7 @@ abstract class Meeting implements api
     /**
      * Register scripts and styles to be used on display pages.
      */
-    public static function registerScriptsAndStyles()
+    public static function registerScriptsAndStyles(): void
     {
         wp_register_script(
             TouchPointWP::SHORTCODE_PREFIX . 'meeting-defer',
@@ -46,6 +46,18 @@ abstract class Meeting implements api
     }
 
     /**
+     * @param $opts
+     *
+     * @return object
+     */
+    private static function getMeetingInfo($opts): object
+    {
+        // TODO caching
+
+        return TouchPointWP::instance()->apiPost('mtg', $opts);
+    }
+
+    /**
      * Handles the API call to get meetings, mostly to prep RSVP links.
      */
     private static function ajaxGetMeetingInfo(): void
@@ -56,9 +68,7 @@ abstract class Meeting implements api
             exit;
         }
 
-        // TODO caching!
-
-        $data = TouchPointWP::instance()->apiPost('mtg', $_GET);
+        $data = self::getMeetingInfo($_GET);
 
         if ($data instanceof WP_Error) {
             echo json_encode(['error' => $data->get_error_message()]);

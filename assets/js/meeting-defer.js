@@ -10,6 +10,9 @@ class TP_Meeting {
     /** @property inv TP_Involvement **/
     inv;
 
+    /** @var Date */
+    static _now;
+
     static actions = ['rsvp']
 
     constructor(obj) {
@@ -24,28 +27,49 @@ class TP_Meeting {
         for (const ei in this.connectedElements) {
             if (!this.connectedElements.hasOwnProperty(ei)) continue;
 
-            let that = this,
+            let mtg = this,
                 ce = this.connectedElements[ei];
 
-            let actionBtns = ce.querySelectorAll('[data-tp-action]')
+            let actionBtns = Array.from(ce.querySelectorAll('[data-tp-action]'));
             if (ce.hasAttribute('data-tp-action')) {
                 // if there's a sole button, it should be added to the list so it works, too.
-                const action = ce.getAttribute('data-tp-action');
-                if (TP_Meeting.actions.includes(action)) {
-                    ce.addEventListener('click', function (e) {
-                        e.stopPropagation();
-                        that[action + "Action"]();
-                    });
-                }
+                actionBtns.push(ce);
             }
             for (const ai in actionBtns) {
                 if (!actionBtns.hasOwnProperty(ai)) continue;
                 const action = actionBtns[ai].getAttribute('data-tp-action');
-                if (TP_Meeting.actions.includes(action)) {
-                    actionBtns[ai].addEventListener('click', function (e) {
-                        e.stopPropagation();
-                        that[action + "Action"]();
-                    });
+
+                if (action === "rsvp" && this.mtgDateTime < TP_Meeting.now()) {
+                    actionBtns[ai].title = "Event Past"; // i18n
+                    actionBtns[ai].setAttribute("disabled", "disabled");
+                    actionBtns[ai].classList.add("disabled");
+                } else {
+                    actionBtns[ai].classList.remove("disabled");
+                    actionBtns[ai].removeAttribute("disabled");
+
+                    // add event listener
+                    if (TP_Meeting.actions.includes(action)) {
+                        tpvm._utils.registerAction(action, mtg, mtg.mtgId);
+                        actionBtns[ai].addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            mtg[action + "Action"]();
+                        });
+                    }
+                }
+
+                // Hide preload text
+                let bc = actionBtns[ai].getElementsByClassName("rsvp-btn-preload");
+                for (const bi in bc) {
+                    if (!bc.hasOwnProperty(bi)) continue;
+                    actionBtns[ai].removeChild(bc[bi]);
+                }
+
+                // Show post-load text
+                bc = actionBtns[ai].getElementsByClassName("rsvp-btn-content");
+                for (const bi in bc) {
+                    if (!!bc[bi].style) {
+                        bc[bi].style.display = "unset";
+                    }
                 }
             }
         }
@@ -66,6 +90,20 @@ class TP_Meeting {
         } else {  // `DOMContentLoaded` has already fired
             this.initMeetings();
         }
+    }
+
+    /**
+     * Gets a Date object that is created when first called, probably at some point in the page load process.
+     *
+     * Does NOT update after it is initially set.
+     *
+     * @return Date
+     */
+    static now() {
+        if (!TP_Meeting._now) {
+            TP_Meeting._now = new Date(); // TODO use server time, since that's what we compare to.
+        }
+        return TP_Meeting._now;
     }
 
     static async initMeetings() {
@@ -162,10 +200,10 @@ class TP_Meeting {
 
         function rsvpUi(meeting, people) {
             if (typeof ga === "function") {
-                ga('send', 'event', 'rsvp', 'rsvp userIdentified', meeting.mtgId); // TODO better naming
+                ga('send', 'event', 'rsvp', 'rsvp userIdentified', meeting.mtgId);
             }
 
-            Swal.fire({ // TODO add event time/date/title
+            Swal.fire({
                 html: `<p id="swal-tp-text">Who is coming?</p><p class="small swal-tp-instruction">Indicate who is or is not coming.  This will overwrite any existing RSVP.  <br />To avoid overwriting an existing RSVP, leave that person blank.  <br />To protect privacy, we won't show existing RSVPs here.</p></i>` + TP_Person.peopleArrayToRadio(people, ['Yes', 'No']),
                 showConfirmButton: true,
                 showCancelButton: true,
@@ -239,4 +277,5 @@ class TP_Meeting {
         return ret.replace(" PM", "pm").replace(" AM", "am").replace(":00", "");
     }
 }
+TP_Meeting.prototype.classShort = "m";
 TP_Meeting.init();
