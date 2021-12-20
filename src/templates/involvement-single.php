@@ -12,7 +12,7 @@ the_post();
 $p   = get_post();
 $inv = Involvement::fromPost($p);
 
-Involvement::enqueueTemplateStyle();
+TouchPointWP::enqueuePartialsStyle();
 
 ?>
 

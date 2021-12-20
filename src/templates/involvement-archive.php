@@ -19,7 +19,7 @@ get_header($postType);
 $description = get_the_archive_description();
 
 if ( have_posts() ) {
-    Involvement::enqueueTemplateStyle();
+    TouchPointWP::enqueuePartialsStyle();
     ?>
     <header class="archive-header has-text-align-center header-footer-group">
         <div class="archive-header-inner section-inner medium">

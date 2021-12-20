@@ -16,6 +16,13 @@ if ( ! defined('ABSPATH')) {
 /**
  * Settings class.
  *
+ * @property-read string version            The plugin version.  Used for tracking updates.
+ *
+ * @property-read string enable_authentication  Whether the Authentication module is included.
+ * @property-read string enable_involvements  Whether the Involvement module is included.
+ * @property-read string enable_people_lists  Whether to allow public People Lists.
+ * @property-read string enable_rsvp        Whether the RSVP module is included.
+ *
  * @property-read string host               The domain for the TouchPoint instance
  * @property-read string host_deeplink      The domain for mobile deep linking to the Custom Mobile App
  * @property-read string system_name        What the church calls TouchPoint
@@ -25,6 +32,8 @@ if ( ! defined('ABSPATH')) {
  * @property-read string api_secret_key     The secret key used for the Auth API
  * @property-read string google_maps_api_key Google Maps API Key for embedded maps and such
  *
+ * @property-read array people_contact_keywords Keywords to use for the generic Contact person button.
+ *
  * @property-read string auth_script_name   The name of the Python script within TouchPoint
  * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
  * @property-read string auth_change_profile_urls Enabled to indicate the profiles should be located on TouchPoint
@@ -32,7 +41,9 @@ if ( ! defined('ABSPATH')) {
  * @property-read string auth_prevent_admin_bar Enabled to prevent Admin Bar to appearing on webpages for users who don't have special roles.
  * @property-read string auth_full_logout   Enabled to indicate that logging out of WordPress should also log the user out of TouchPoint.
  *
- * @property-read int inv_cron_last_run     Timestamp of the last time the Involvement syncing task ran.  (No setting UI.)
+ * @property-read int|false person_cron_last_run Timestamp of the last time the Person syncing task ran.  (No setting UI.)
+ *
+ * @property-read int|false inv_cron_last_run Timestamp of the last time the Involvement syncing task ran.  (No setting UI.)
  * @property-read string inv_json           JSON string describing how Involvements should be handled.  (No direct setting UI.)
  *
  * @property-read string ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.
@@ -200,6 +211,16 @@ class TouchPointWP_Settings
                     'default'     => '',
                 ],
                 [
+                    'id'          => 'enable_people_lists',
+                    'label'       => __('Enable Public People Lists', 'TouchPoint-WP'),
+                    'description' => __(
+                        'Import public people listings from TouchPoint (e.g. staff or elders)',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'checkbox',
+                    'default'     => '',
+                ],
+                [
                     'id'          => 'system_name',
                     'label'       => __('Display Name', TouchPointWP::TEXT_DOMAIN),
                     'description' => __(
@@ -306,8 +327,27 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on" || $includeAll) { // TODO MULTI
+            $this->settings['people'] = [
+                'title'       => __('People', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Manage how people are synchronized between TouchPoint and WordPress.', TouchPointWP::TEXT_DOMAIN),
+                'fields'      => [
+                    [
+                        'id'          => 'people_contact_keywords',
+                        'label'       => __('Contact Keywords', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'These keywords will be used when someone clicks the "Contact" button on a Person\'s listing or profile.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'checkbox_multi',
+                        'options'     => $includeDetail ? $this->parent->getKeywordsAsKVArray() : [],
+                        'default'     => [],
+                    ],
+                ],
+            ];
+        }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on" || $includeAll) {
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on" || $includeAll) { // TODO MULTI
             $this->settings['authentication'] = [
                 'title'       => __('Authentication', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Allow users to log into WordPress using TouchPoint.', TouchPointWP::TEXT_DOMAIN),
@@ -384,7 +424,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on" || $includeAll) {
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on" || $includeAll) {  // TODO MULTI
             $this->settings['involvements'] = [
                 'title'       => __('Involvements', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Import Involvements from TouchPoint to your website, for Small Groups, Classes, and more.  You do not need to import an involvement here to use the RSVP tool.', TouchPointWP::TEXT_DOMAIN),
@@ -399,6 +439,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::requireScript("base");
                             TouchPointWP::requireScript("knockout-defer");
                             ob_start();
+                            /** @noinspection PhpIncludeInspection */
                             include TouchPointWP::$dir . "/src/templates/admin/invKoForm.php";
                             return ob_get_clean();
                         },
@@ -695,7 +736,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             switch ($args['location']) {
                 case 'options':
                 case 'submenu':
-                    $page = add_submenu_page(
+                    add_submenu_page(
                         $args['parent_slug'],
                         $args['page_title'],
                         $args['menu_title'],
@@ -705,7 +746,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     );
                     break;
                 case 'menu':
-                    $page = add_menu_page(
+                    add_menu_page(
                         $args['page_title'],
                         $args['menu_title'],
                         $args['capability'],
@@ -718,7 +759,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 default:
                     return;
             }
-            // add_action('admin_print_styles-' . $page, [$this, 'settings_assets']);  TODO SOMEDAY MAYBE if needing to upload media through inferface, uncomment this.
+            // add_action('admin_print_styles-' . $page, [$this, 'settings_assets']);  TODO SOMEDAY MAYBE if needing to upload media through interface, uncomment this.
         }
     }
 
@@ -832,7 +873,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     protected function getWithoutDefault(string $what, $default = self::UNDEFINED_PLACEHOLDER)
     {
-        $opt = get_option(TouchPointWP::SETTINGS_PREFIX . $what, $default);
+        $opt = get_option(TouchPointWP::SETTINGS_PREFIX . $what, $default); // TODO MULTI
 
         if ($opt === '')
             return self::UNDEFINED_PLACEHOLDER;
@@ -849,15 +890,17 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     public function set(string $what, $value, bool $autoload = false): bool
     {
-        return update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, $autoload);
+        return update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, $autoload); // TODO MULTI
     }
 
 
     /**
-     * Migrate settings from version to version.
+     * Migrate settings from version to version.  This may be called even when a migration isn't necessary.
      */
     public function migrate(): void
     {
+        global $wpdb;
+
         // 0.0.4 to 0.0.5 -- Merging Small Groups and Courses Components into a single Involvement Component
         $sgEnabled = $this->getWithoutDefault('enable_small_groups') === "on";
         $csEnabled = $this->getWithoutDefault('enable_courses') === "on";
@@ -866,6 +909,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
             $invSettings = [];
 
+            // Migrate Smallgroup settings
             if ($sgEnabled) {
                 $settings = [
                     'nameSingular' => $this->get('sg_name_singular'),
@@ -881,6 +925,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 $invSettings[] = (object)$settings;
             }
 
+            // Migrate Course settings
             if ($csEnabled) {
                 $settings = [
                     'nameSingular' => $this->get('cs_name_singular'),
@@ -896,23 +941,43 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 $invSettings[] = (object)$settings;
             }
 
+            // Save Smallgroup & Course settings
             $this->set('inv_json', json_encode($invSettings), true);
 
             // Remove the old settings
             foreach (wp_load_alloptions() as $option => $value) {
                 if (strpos($option, TouchPointWP::SETTINGS_PREFIX . 'sg_') === 0 ||
                     strpos($option, TouchPointWP::SETTINGS_PREFIX . 'cs_') === 0) {
-                    delete_option($option);
+                    delete_option($option); // TODO MULTI
                 }
             }
 
+//            delete_network_option(null, TouchPointWP::SETTINGS_PREFIX . 'enable_courses'); // TODO MULTI
             delete_option(TouchPointWP::SETTINGS_PREFIX . 'enable_courses');
+//            delete_network_option(null, TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups'); // TODO MULTI
             delete_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups');
         }
 
+        // Remove former smallgroup cron hook.  New cron is scheduled elsewhere.
         if ( wp_next_scheduled(TouchPointWP::HOOK_PREFIX . "sg_cron_hook")) {
             wp_clear_scheduled_hook(TouchPointWP::HOOK_PREFIX . "sg_cron_hook");
         }
+
+        // Replace SgNearby shortcode with newer Inv-Nearby
+        $oldShortcode = "[" . TouchPointWP::SHORTCODE_PREFIX . "SgNearby";
+        $newShortcode = "[" . Involvement::SHORTCODE_NEARBY;
+        if ($sgEnabled) {
+            $newShortcode .= " type=smallgroup";
+        }
+        /** @noinspection SqlResolve */
+        $wpdb->query("
+            UPDATE $wpdb->posts
+            SET post_content = REPLACE(post_content, '$oldShortcode', '$newShortcode') 
+            WHERE post_content LIKE '%$oldShortcode%'
+        ");
+
+        // Update version string
+        $this->set('version', TouchPointWP::VERSION);
     }
 
     /**
@@ -982,6 +1047,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     }
 
     /**
+     * Gets the default value for a setting field, if one exists.  Otherwise, the UNDEFINED_PLACEHOLDER is returned.
+     *
      * @param string $id
      *
      * @return mixed
@@ -991,13 +1058,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         foreach ($this->settingsFields(false, false) as $category) {
             foreach ($category['fields'] as $field) {
                 if ($field['id'] === $id){
-                    if (isset($field['default'])) { // Is there is a default, return it.
-                        return $field['default'];
-                    } else {
-                        // If the field is defined, but there is no default, return undefined placeholder.
-                        // This will also be the result if a module is not enabled.
-                        return self::UNDEFINED_PLACEHOLDER;
-                    }
+                    return $field['default'] ?? self::UNDEFINED_PLACEHOLDER;
                 }
             }
         }
@@ -1086,7 +1147,15 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         echo $html;
     }
 
-    public function validation_secret($new, $field): string
+    /**
+     * Validator for Secret settings, like API keys.  If a new value is not provided, the old value is kept intact.
+     *
+     * @param string $new
+     * @param string $field
+     *
+     * @return string
+     */
+    public function validation_secret(string $new, string $field): string
     {
         if ($new === '') { // If there is no value, submit the already-saved one.
             return $this->$field;
@@ -1096,7 +1165,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     }
 
     /**
-     * Slug validator.  Also (more importantly) tells WP that it needs to flush rewrite rules.
+     * Slug validator.  Also, (more importantly) tells WP that it needs to flush rewrite rules.
      *
      * @param mixed  $new The new value.
      * @param string $field The name of the setting.  Used to determine if the setting is actually changed.

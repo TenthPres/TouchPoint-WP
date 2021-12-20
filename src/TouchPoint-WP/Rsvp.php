@@ -24,14 +24,14 @@ require_once 'Meeting.php';
 abstract class Rsvp
 {
     public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "RSVP";
-    private static bool $_isInitiated = false;
+    private static bool $_isLoaded = false;
 
-    public static function load(TouchPointWP $tpwp): bool
+    public static function load(): bool
     {
-        if (self::$_isInitiated) {
+        if (self::$_isLoaded) {
             return true;
         }
-        self::$_isInitiated = true;
+        self::$_isLoaded = true;
 
         add_action('init', [self::class, 'init']);
 
@@ -73,7 +73,7 @@ abstract class Rsvp
         // set some defaults
         $params  = shortcode_atts(
             [
-                'class'     => 'TouchPoint-RSVP btn',
+                'class'     => 'TouchPoint-RSVP btn button',
                 'meetingid' => null,
                 'preload' => __("Loading...", TouchPointWP::TEXT_DOMAIN)
             ],
@@ -100,9 +100,10 @@ abstract class Rsvp
         $preloadMsg = $params['preload'];
 
         // get any nesting
-        $content = do_shortcode($content);
+        $content = apply_shortcodes($content);
 
         // create the link
+        TouchPointWP::enqueueActionsStyle('rsvp');
         return "<a href=\"#\" onclick=\"return false;\" class=\"" . $params['class'] . " disabled\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$content</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
     }
 

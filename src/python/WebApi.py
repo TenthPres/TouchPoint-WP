@@ -1,6 +1,7 @@
 #API
 
 import re
+import json
 
 VERSION = "0.0.5"
 
@@ -12,17 +13,44 @@ PersonEvNames = {
 sgContactEvName = "Contact"
 defaultSgTaskDelegatePid = 16371
 
-def IListToList(IList):  # TODO eliminate when PR 1765 is merged
-    list = []
-    for li in IList:
-        list.append(li)
-    return list
-
 def getPersonInfoSql(tableAbbrev):
     return "SELECT DISTINCT {0}.PeopleId AS peopleId, {0}.FamilyId as familyId, {0}.LastName as lastName, COALESCE({0}.NickName, {0}.FirstName) as goesBy, SUBSTRING({0}.LastName, 1, 1) as lastInitial".format(tableAbbrev)
 
 def getPersonSortSql(tableAbbrev):
     return " SUBSTRING({0}.LastName, 1, 1) ASC, COALESCE({0}.NickName, {0}.FirstName) ASC ".format(tableAbbrev)
+
+def getPersonInfoForSync(PersonObj):
+    p = model.DynamicData()
+    p.Exclude = False
+    p.LastName = PersonObj.LastName
+    p.GoesBy = PersonObj.NickName if PersonObj.NickName is not None else PersonObj.FirstName
+    p.DisplayName = " "
+    p.Emails = []
+
+    model.Data.Person = PersonObj
+    model.Data.Info = p
+
+    model.CallScript('WebPublicPerson')
+
+    p = model.Data.Info
+    model.Data.Person = None
+    model.Data.Info = None
+
+    if p.Exclude is True:
+        return None
+
+    if PersonObj.Picture is None:
+        p.Picture = None
+    else:
+        p.Picture = PersonObj.Picture.LargeUrl
+
+    if p.DisplayName == " ": # default DisplayName
+        p.DisplayName = (p.GoesBy + " " + p.LastName).strip()
+
+    p.Usernames = map(lambda u: u.Username, PersonObj.Users)
+
+    p.PeopleId = PersonObj.PeopleId
+    return p
 
 if (Data.a == "Divisions"):
     divSql = '''
@@ -228,7 +256,7 @@ elif (Data.a == "inv_join"):  # This is a POST request. TODO possibly limit to p
     inData = model.JsonDeserialize(Data.data).inputData
 
     oid = inData.invId
-    keywords = IListToList(inData.keywords)
+    keywords = inData.keywords
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
@@ -267,7 +295,7 @@ elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit t
 
     oid = inData.invId
     message = inData.message
-    keywords = IListToList(inData.keywords)
+    keywords = inData.keywords
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
@@ -290,6 +318,30 @@ elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit t
     model.CreateTaskNote(defaultSgTaskDelegatePid, p.peopleId, orgContactPid, None, False, text, None, None, keywords)
 
     Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
+
+
+elif (Data.a == "person_contact"):  # This is a POST request. TODO possibly limit to post?
+    # TODO potentially merge with Join function.  Much of the code is duplicated.
+    Data.Title = 'Contacting Person'
+    inData = model.JsonDeserialize(Data.data).inputData
+
+    t = inData.toId
+    message = inData.message
+    keywords = inData.keywords
+
+    Data.success = []
+
+    p = inData.fromPerson
+    m = inData.message
+    text = """**Online Contact Form**
+
+{0} sent the following message.  Please reach out to them and mark the task as complete.
+
+    {1}""".format(p.goesBy, str(m).replace("\n", "\n    "))  # being indented causes section to be treated like code
+
+    model.CreateTaskNote(t, p.peopleId, None, None, False, text, None, None, keywords)
+
+    Data.success.append({'pid': p.peopleId, 'to': t})
 
 
 elif (Data.a == "mtg"):  # This is a POST request. TODO possibly limit to post?
@@ -333,5 +385,45 @@ elif (Data.a == "mtg_rsvp"):  # This is a POST request. TODO possibly limit to p
         for pid in inData.responses.No:
             model.EditCommitment(mid, pid, "Regrets")
             Data.success.append(pid)
+
+
+elif (Data.a == "people_get"):  # This is a POST request. TODO possibly limit to post?
+    Data.Title = 'Getting People Info Based on Submitted Query'
+    inData = json.loads(Data.data)['inputData']
+
+    rules = []
+    invsMembershipsToImport = []
+    joiner = "OR"
+
+    # Build the query
+    for iid in inData['inv']:
+        if inData['inv'][iid]['memTypes'] == None:
+            rules.append("IsMemberOf( Org={} ) = 1".format(iid))
+
+        if not iid in invsMembershipsToImport:
+            invsMembershipsToImport.append(iid)
+
+    joiner = " " + joiner + " "
+    rules = joiner.join(rules)
+
+    Data.people = []
+
+    for po in q.QueryList(rules):
+        pr = getPersonInfoForSync(po)
+
+        if pr is None: # Make sure person should not be excluded
+            continue
+        if pr.Exclude is True:  # Make sure person should not be excluded if PersonInfo didn't go right.
+            continue
+
+		# TODO move to getPersonInfoForSync method or... something.
+        invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
+        invSql = invSql.format(pr.PeopleId, ', '.join(invsMembershipsToImport))
+        pr.Inv = q.QuerySql(invSql)
+        Data.people.append(pr)
+
+    Data.rules = rules  # handy for debugging TODO remove, probably.
+
+    Data.success = True
 
 #

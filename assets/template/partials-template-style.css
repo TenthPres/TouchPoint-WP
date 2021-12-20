@@ -14,6 +14,42 @@ article.involvement-list-item {
     flex-direction: column;
 }
 
+
+.person-list {
+    text-align: center;
+}
+
+.person-list-item {
+    box-shadow: 10px 10px 20px #00000033;
+    margin: 0.8em;
+    position: relative;
+    padding: 0.8em;
+    display: inline-block;
+    width: 12em;
+    height: 17em;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.person-list-item * {
+    transition: opacity .3s;
+}
+
+.person-list-item .person-actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 1.5em 1em;
+    opacity: 0;
+}
+
+.person-list-item:hover .person-actions {
+    opacity: 1;
+}
+
 .involvement-list-item .involvement-actions {
     padding-top: .5em;
     text-align: right;
@@ -31,12 +67,35 @@ article.involvement-list-item {
     font-weight: bolder;
 }
 
-.involvement-list-item div.thin.entry-content {
+.person-list-item div.post-meta-single {
+    font-size: 0.8em;
+    opacity: 0.7;
+    font-weight: bolder;
+    text-align: center;
+}
+
+.involvement-list-item div.entry-content {
     flex: 1 1 auto;
 }
 
 div.involvement-list article.involvement-list-item h2.entry-title {
     padding: 0 0 0 0;
+}
+
+.person-list-item header.entry-header {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    padding-bottom: 1em;
+    background: linear-gradient(0deg, #0000001a 0%, #0000001a 60%, #00000000 100%);
+    color: #fff;
+    text-shadow: 0 0 3px #000, 0 0 5px #000;
+}
+
+.person-list-item:hover header.entry-header > * {
+    opacity: 0;
 }
 
 .involvement-list-item h2 a:after {
@@ -47,6 +106,21 @@ div.involvement-list article.involvement-list-item h2.entry-title {
     left: 0;
     position: absolute;
     z-index:5;
+}
+
+.person-list-item h2 a:after {
+    content: ' ';
+    width: 100%;
+    height: 30em;
+    top: -15em;
+    left: 0;
+    position: absolute;
+    z-index:5;
+}
+
+.person-list-item h2 {
+    text-align: center;
+    font-size: 20px;
 }
 
 div.involvement-map-container {
@@ -85,8 +159,4 @@ article .involvement-detail-cell.involvement-map-container {
 article .involvement-detail-cell .involvement-detail-cell-section {
     text-align:center;
     margin-bottom: 2em;
-}
-
-.swal2-content textarea {
-    width: 100%;
 }

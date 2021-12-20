@@ -135,7 +135,7 @@ abstract class Utilities
     }
 
     /**
-     * Convert a list (string or array) to an array of ints.  Strips out non-numerics and explodes.
+     * Convert a list (string or array) to an int array.  Strips out non-numerics and explodes.
      *
      * @param string|array $r
      *
@@ -153,5 +153,19 @@ abstract class Utilities
             return json_decode("[" . $r . "]");
         }
         return $r;
+    }
+
+    /**
+     * Gets the post content for all posts that contain a particular shortcode.
+     *
+     * @param $shortcode
+     *
+     * @return object[]
+     */
+    public static function getPostContentWithShortcode($shortcode): array // TODO MULTI: does not update for all sites in the network.
+    {
+        global $wpdb;
+        /** @noinspection SqlResolve */
+        return $wpdb->get_results("SELECT post_content FROM $wpdb->posts WHERE post_content LIKE '%$shortcode%' AND post_status <> 'inherit'");
     }
 }

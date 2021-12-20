@@ -93,10 +93,16 @@ abstract class EventsCalendar implements api
                 );
             }
 
-            // TODO add setting for style url.  Possibly allow for a template.
-            if ($content !== '' && TouchPointWP::instance()->settings->ec_use_standardizing_style === 'on') {
-                $cssUrl = TouchPointWP::instance()->assets_url . 'template/ec-standardizing-style.css?v=' . TouchPointWP::VERSION;
-                $content = "<link rel=\"stylesheet\" href=\"$cssUrl\">" . $content;
+            if ($content !== '') {
+                $cssUrl = null;
+                if (TouchPointWP::instance()->settings->ec_use_standardizing_style === 'on') {
+                    $cssUrl = TouchPointWP::instance(
+                        )->assets_url . 'template/ec-standardizing-style.css?v=' . TouchPointWP::VERSION;
+                }
+                $cssUrl = apply_filters(TouchPointWP::HOOK_PREFIX . 'app_events_css_url', $cssUrl);
+                if (is_string($cssUrl)) {
+                    $content = "<link rel=\"stylesheet\" href=\"$cssUrl\">" . $content;
+                }
             }
 
             // Not needed for apps, but helpful for diagnostics

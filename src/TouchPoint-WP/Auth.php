@@ -238,7 +238,7 @@ class Auth extends WP_REST_Controller
     {
         if ($this->tpwp->settings->auth_change_profile_urls === 'on') {
             $userId   = get_current_user_id();
-            $peopleId = (int)(get_user_meta($userId, TouchPointWP::SETTINGS_PREFIX . 'peopleId', true));
+            $peopleId = (int)(get_user_meta($userId, Person::META_PEOPLEID, true));
             if ($peopleId > 0) { // make sure we have a PeopleId.  Users aren't necessarily TouchPoint users.
                 return $this->tpwp->host() . '/Person2/' . $peopleId;
             }
@@ -445,7 +445,7 @@ class Auth extends WP_REST_Controller
         if (isset($data->u->PeopleId)) {
             $q = new WP_User_Query(
                 [
-                    'meta_key'     => TouchPointWP::SETTINGS_PREFIX . 'peopleId',
+                    'meta_key'     => Person::META_PEOPLEID,
                     'meta_value'   => $data->u->PeopleId,
                     'meta_compare' => '='
                 ]
@@ -476,6 +476,9 @@ class Auth extends WP_REST_Controller
      * Generates a username for a new WordPress user based on TouchPoint data.
      *
      * @param object $pData
+     *
+     * @deprecated
+     * @see Person::generateUserName
      *
      * @return string  A viable, available username.
      */
@@ -524,7 +527,7 @@ class Auth extends WP_REST_Controller
                 'first_name' => $pData->FirstName,
                 'last_name'  => $pData->LastName,
 
-                TouchPointWP::SETTINGS_PREFIX . 'peopleId' => $pData->PeopleId
+                Person::META_PEOPLEID => $pData->PeopleId
             ]
         );
 

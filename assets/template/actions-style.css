@@ -1,0 +1,21 @@
+.tp-swal-container input[type=text],
+.tp-swal-container input[type=email],
+.tp-swal-container input[type=phone],
+.tp-swal-container textarea,
+.tp-swal-container select {
+    display: block;
+    width: 100%;
+}
+
+.tp-swal-container textarea {
+    resize: vertical;
+    min-height: 3em;
+}
+
+.tp-swal-container input, .tp-swal-container select {
+    text-align: center;
+}
+
+.tp-swal-container .no-wrap {
+    white-space: nowrap;
+}

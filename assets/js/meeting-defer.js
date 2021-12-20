@@ -22,7 +22,7 @@ class TP_Meeting {
         this.location = obj.location;
         this.capacity = obj.capacity;
 
-        this.inv = TP_Involvement.fromArray([{name: obj.invName, invId: obj.invId}])[0];
+        this.inv = TP_Involvement.fromObjArray([{name: obj.invName, invId: obj.invId}])[0];
 
         for (const ei in this.connectedElements) {
             if (!this.connectedElements.hasOwnProperty(ei)) continue;
@@ -123,7 +123,7 @@ class TP_Meeting {
             if (res.hasOwnProperty("error")) {
                 console.error(res.error);
             } else {
-                this.fromArray(res.success)
+                this.fromObjArray(res.success)
             }
         }
     }
@@ -132,7 +132,7 @@ class TP_Meeting {
         return this.name.substr(3); // refers to class name, and therefore is accessible.
     }
 
-    static fromArray(mtgArr) {
+    static fromObjArray(mtgArr) {
         let ret = [];
         for (const i in mtgArr) {
             if (!mtgArr.hasOwnProperty(i)) continue;
@@ -145,7 +145,7 @@ class TP_Meeting {
                 ret.push(new this(mtgArr[i]))
             }
         }
-        tpvm.trigger(this.className() + "_fromArray")
+        tpvm.trigger(this.className() + "_fromObjArray")
         return ret;
     };
 
@@ -164,7 +164,8 @@ class TP_Meeting {
                 Swal.fire({
                     icon: 'success',
                     title: `Response${s} Recorded`,
-                    timer: 3000
+                    timer: 3000,
+                    customClass: tpvm._utils.defaultSwalClasses()
                 });
             }
         } else {
@@ -173,7 +174,8 @@ class TP_Meeting {
                 Swal.fire({
                     icon: 'error',
                     title: `Something strange happened.`,
-                    timer: 3000
+                    timer: 3000,
+                    customClass: tpvm._utils.defaultSwalClasses()
                 });
             }
         }
@@ -205,6 +207,7 @@ class TP_Meeting {
 
             Swal.fire({
                 html: `<p id="swal-tp-text">Who is coming?</p><p class="small swal-tp-instruction">Indicate who is or is not coming.  This will overwrite any existing RSVP.  <br />To avoid overwriting an existing RSVP, leave that person blank.  <br />To protect privacy, we won't show existing RSVPs here.</p></i>` + TP_Person.peopleArrayToRadio(people, ['Yes', 'No']),
+                customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,
                 showDenyButton: true,

@@ -16,7 +16,8 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
     <header class="entry-header">
         <div class="entry-header-inner">
         <?php
-        the_title( sprintf( '<h2 class="entry-title default-max-width heading-size-1"><a href="%s">', esc_url( get_permalink() ) ), '</a></h2>' );
+        /** @noinspection HtmlUnknownTarget */
+        the_title(sprintf('<h2 class="entry-title default-max-width heading-size-1"><a href="%s">', esc_url(get_permalink() ) ), '</a></h2>' );
         ?>
         </div>
         <div class="post-meta-single post-meta-single-top">
@@ -57,10 +58,10 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
             </span><!-- .post-meta -->
         </div>
     </header><!-- .entry-header -->
-    <div class="thin entry-content">
+    <div class="entry-content">
         <?php echo wp_trim_words(get_the_excerpt(), 20, "..."); ?>
     </div>
-    <div class="thin actions involvement-actions <?php echo $postTypeClass; ?>-actions">
+    <div class="actions involvement-actions <?php echo $postTypeClass; ?>-actions">
         <?php echo $inv->getActionButtons(); ?>
     </div>
 </article>

@@ -207,7 +207,7 @@ class TouchPointWP
     /**
      * Spit out headers that prevent caching.  Useful for API calls.
      */
-    public static function doCacheHeaders(int $cacheLevel = null): void // TODO move to utils, maybe?
+    public static function doCacheHeaders(int $cacheLevel = null): void
     {
         if ($cacheLevel !== null) {
             self::setCaching($cacheLevel);
@@ -246,11 +246,11 @@ class TouchPointWP
     }
 
     /**
-     * @param bool      $continue   Whether or not to parse the request
+     * @param bool      $continue   Whether to parse the request
      * @param WP        $wp         Current WordPress environment instance
      * @param array|string $extraVars Passed query variables
      *
-     * @return bool Whether or not other request parsing functions should be allowed to function.
+     * @return bool Whether other request parsing functions should be allowed to function.
      *
      * @noinspection PhpMissingParamTypeInspection
      * @noinspection PhpUnusedParameterInspection WordPress API
@@ -283,7 +283,7 @@ class TouchPointWP
 
             // Involvement endpoint
             if ($reqUri['path'][1] === "inv" &&
-                get_option(self::SETTINGS_PREFIX . 'enable_involvements') === "on"
+                $this->settings->enable_involvements === "on"
             ) {
                 if (!Involvement::api($reqUri)) {
                     return $continue;
@@ -407,6 +407,9 @@ class TouchPointWP
     public function printDynamicFooterScripts(): void
     {
         echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
+        if (Person::useJsInstantiation()) {
+            echo Person::getJsInstantiationString();
+        }
         if ($this->involvements !== null) {
             echo Involvement::getJsInstantiationString();
         }
@@ -428,30 +431,54 @@ class TouchPointWP
         load_plugin_textdomain(self::TEXT_DOMAIN, false, dirname(plugin_basename($this->file)) . '/lang/');
     }
 
+    /**
+     * Compare the version numbers to determine if a migration is needed.
+     */
+    public function checkMigrations(): void
+    {
+        if ($this->settings->version !== self::VERSION) {
+            $this->settings->migrate();
+        }
+    }
+
+    /**
+     * Load the settings, connect the references, and check that there are no pending migrations.
+     *
+     * @param $file
+     *
+     * @return TouchPointWP
+     */
     public static function load($file): TouchPointWP
     {
         $instance = self::instance($file);
 
         if (is_null($instance->settings)) {
             $instance->settings = TouchPointWP_Settings::instance($instance);
+            $instance->checkMigrations();
         }
 
         // Load Auth tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_authentication') === "on") {
+        if ($instance->settings->enable_authentication === "on") {
             require_once 'Auth.php';
             $instance->auth = Auth::load($instance);
         }
 
         // Load RSVP tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_rsvp') === "on") {
+        if ($instance->settings->enable_rsvp === "on") {
             require_once 'Rsvp.php';
-            $instance->rsvp = Rsvp::load($instance);
+            $instance->rsvp = Rsvp::load();
         }
 
         // Load Involvements tool if enabled.
-        if (get_option(self::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($instance->settings->enable_involvements === "on") {
             require_once 'Involvement.php';
-            $instance->involvements = Involvement::load($instance);
+            $instance->involvements = Involvement::load();
+        }
+
+        // Load Person for People Indexes.
+        if ($instance->settings->enable_people_lists === "on") {
+            require_once 'Person.php';
+            $instance->involvements = Person::load();
         }
 
         // Load Events if enabled (by presence of Events Calendar plugin)
@@ -531,7 +558,13 @@ class TouchPointWP
     }
 
     private static array $enqueuedScripts = [];
-    public static function requireScript($name = "base"): void
+
+    /**
+     * Enqueue TouchPoint Scripts.  Also, always adds Base if it hasn't been added yet.
+     *
+     * @param ?string $name
+     */
+    public static function requireScript(string $name = null): void
     {
         if ( ! in_array("base", self::$enqueuedScripts)) {
             self::$enqueuedScripts[] = "base";
@@ -707,7 +740,7 @@ class TouchPointWP
     {
         // Resident Codes
         $resCodeTypesToApply = [];
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             $resCodeTypesToApply = Involvement_PostTypeSettings::getPostTypesWithGeoEnabled();
         }
         $resCodeTypesToApply[] = 'user';
@@ -721,7 +754,7 @@ class TouchPointWP
                 'labels'            => [
                     'name'          => $this->settings->rc_name_plural,
                     'singular_name' => $this->settings->rc_name_singular,
-                    'search_items'  => __('Search ' . $this->settings->rc_name_plural), // TODO change to sprintf
+                    'search_items'  => __('Search ' . $this->settings->rc_name_plural),
                     'all_items'     => __('All ' . $this->settings->rc_name_plural),
                     'edit_item'     => __('Edit ' . $this->settings->rc_name_singular),
                     'update_item'   => __('Update ' . $this->settings->rc_name_singular),
@@ -758,96 +791,96 @@ class TouchPointWP
 
         // Divisions & Programs
         $divisionTypesToApply = [];
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             $divisionTypesToApply = Involvement_PostTypeSettings::getPostTypes();
         }
-        $divisionTypesToApply[] = 'user';
         // TODO allow this taxonomy to be applied to other post types as an option.
-        register_taxonomy(
-            self::TAX_DIV,
-            $divisionTypesToApply,
-            [
-                'hierarchical'      => true,
-                'show_ui'           => true,
-                'description'       => sprintf(__('Classify things by %s.'), $this->settings->dv_name_singular),
-                'labels'            => [
-                    'name'          => $this->settings->dv_name_plural,
-                    'singular_name' => $this->settings->dv_name_singular,
-                    'search_items'  => __('Search ' . $this->settings->dv_name_plural), // TODO change to sprintf
-                    'all_items'     => __('All ' . $this->settings->dv_name_plural),
-                    'edit_item'     => __('Edit ' . $this->settings->dv_name_singular),
-                    'update_item'   => __('Update ' . $this->settings->dv_name_singular),
-                    'add_new_item'  => __('Add New ' . $this->settings->dv_name_singular),
-                    'new_item_name' => __('New ' . $this->settings->dv_name_singular . ' Name'),
-                    'menu_name'     => $this->settings->dv_name_plural,
-                ],
-                'public'            => true,
-                'show_in_rest'      => true,
-                'show_admin_column' => false, // TODO make an option?
+        if (count($divisionTypesToApply) > 0) {
+            register_taxonomy(
+                self::TAX_DIV,
+                $divisionTypesToApply,
+                [
+                    'hierarchical'      => true,
+                    'show_ui'           => true,
+                    'description'       => sprintf(__('Classify things by %s.'), $this->settings->dv_name_singular),
+                    'labels'            => [
+                        'name'          => $this->settings->dv_name_plural,
+                        'singular_name' => $this->settings->dv_name_singular,
+                        'search_items'  => __('Search ' . $this->settings->dv_name_plural),
+                        'all_items'     => __('All ' . $this->settings->dv_name_plural),
+                        'edit_item'     => __('Edit ' . $this->settings->dv_name_singular),
+                        'update_item'   => __('Update ' . $this->settings->dv_name_singular),
+                        'add_new_item'  => __('Add New ' . $this->settings->dv_name_singular),
+                        'new_item_name' => __('New ' . $this->settings->dv_name_singular . ' Name'),
+                        'menu_name'     => $this->settings->dv_name_plural,
+                    ],
+                    'public'            => true,
+                    'show_in_rest'      => true,
+                    'show_admin_column' => false, // TODO make an option?
 
-                // Control the slugs used for this taxonomy
-                'rewrite'           => [
-                    'slug'         => $this->settings->dv_slug,
-                    'with_front'   => false,
-                    'hierarchical' => true
-                ],
-            ]
-        );
-        $enabledDivisions = $this->settings->dv_divisions;
-        foreach ($this->getDivisions() as $d) {
-            if (in_array('div' . $d->id, $enabledDivisions)) {
-
-                // Program
-                $pTermInfo = term_exists($d->pName, self::TAX_DIV, 0);
-                if ( $pTermInfo === null ) {
-                    $pTermInfo = wp_insert_term(
-                        $d->pName,
-                        self::TAX_DIV,
-                        [
-                            'description' => $d->pName,
-                            'slug'        => sanitize_title($d->pName)
-                        ]
-                    );
-                    update_term_meta($pTermInfo['term_id'], self::SETTINGS_PREFIX . 'programId', $d->proId);
-                    self::queueFlushRewriteRules();
-                }
-
-                // Division
-                $dTermInfo = term_exists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
-                if ($dTermInfo === null) {
-                    $dTermInfo = wp_insert_term(
-                        $d->dName,
-                        self::TAX_DIV,
-                        [
-                            'description' => $d->dName,
-                            'parent'      => $pTermInfo['term_id'],
-                            'slug'        => sanitize_title($d->dName)
-                        ]
-                    );
-                    update_term_meta($dTermInfo['term_id'], self::SETTINGS_PREFIX . 'divId', $d->id);
-                    self::queueFlushRewriteRules();
-                }
-            } else {
-                // Remove terms that are disabled from importing.
-
-                // Delete disabled divisions.  Get program, so we delete the right division.
-                $pTermInfo = term_exists($d->pName, self::TAX_DIV, 0);
-                if ( $pTermInfo !== null ) {
-                    $dTermInfo = term_exists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
-                    if ($dTermInfo !== null) {
-                        wp_delete_term($dTermInfo['term_id'], self::TAX_DIV);
+                    // Control the slugs used for this taxonomy
+                    'rewrite'           => [
+                        'slug'         => $this->settings->dv_slug,
+                        'with_front'   => false,
+                        'hierarchical' => true
+                    ],
+                ]
+            );
+            $enabledDivisions = $this->settings->dv_divisions;
+            foreach ($this->getDivisions() as $d) {
+                if (in_array('div' . $d->id, $enabledDivisions)) {
+                    // Program
+                    $pTermInfo = term_exists($d->pName, self::TAX_DIV, 0);
+                    if ($pTermInfo === null) {
+                        $pTermInfo = wp_insert_term(
+                            $d->pName,
+                            self::TAX_DIV,
+                            [
+                                'description' => $d->pName,
+                                'slug'        => sanitize_title($d->pName)
+                            ]
+                        );
+                        update_term_meta($pTermInfo['term_id'], self::SETTINGS_PREFIX . 'programId', $d->proId);
                         self::queueFlushRewriteRules();
                     }
-                }
 
-                // Program
-                // TODO remove programs that no longer have a division selected for use as a term.
-                // TODO remove program & div terms that are no longer present in TouchPoint
+                    // Division
+                    $dTermInfo = term_exists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
+                    if ($dTermInfo === null) {
+                        $dTermInfo = wp_insert_term(
+                            $d->dName,
+                            self::TAX_DIV,
+                            [
+                                'description' => $d->dName,
+                                'parent'      => $pTermInfo['term_id'],
+                                'slug'        => sanitize_title($d->dName)
+                            ]
+                        );
+                        update_term_meta($dTermInfo['term_id'], self::SETTINGS_PREFIX . 'divId', $d->id);
+                        self::queueFlushRewriteRules();
+                    }
+                } else {
+                    // Remove terms that are disabled from importing.
+
+                    // Delete disabled divisions.  Get program, so we delete the right division.
+                    $pTermInfo = term_exists($d->pName, self::TAX_DIV, 0);
+                    if ($pTermInfo !== null) {
+                        $dTermInfo = term_exists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
+                        if ($dTermInfo !== null) {
+                            wp_delete_term($dTermInfo['term_id'], self::TAX_DIV);
+                            self::queueFlushRewriteRules();
+                        }
+                    }
+
+                    // Program
+                    // TODO remove programs that no longer have a division selected for use as a term.
+                    // TODO remove program & div terms that are no longer present in TouchPoint
+                }
             }
         }
 
         // Weekdays
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             register_taxonomy(
                 self::TAX_WEEKDAY,
                 Involvement_PostTypeSettings::getPostTypes(),
@@ -896,7 +929,7 @@ class TouchPointWP
 
 
         // Time of Day
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             register_taxonomy(
                 self::TAX_DAYTIME,
                 Involvement_PostTypeSettings::getPostTypes(),
@@ -970,7 +1003,7 @@ class TouchPointWP
 
         // Age Groups
         $ageGroupTypesToApply = [];
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             $ageGroupTypesToApply = Involvement_PostTypeSettings::getPostTypes();
         }
         $ageGroupTypesToApply[] = 'user';
@@ -1020,7 +1053,7 @@ class TouchPointWP
 
 
         // Involvement Marital Status
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {
+        if ($this->settings->enable_involvements === "on") {
             register_taxonomy(
                 self::TAX_INV_MARITAL,
                 Involvement_PostTypeSettings::getPostTypes(),
@@ -1182,7 +1215,7 @@ class TouchPointWP
 
         $this->createTables();
 
-        $this->migrate();
+        $this->settings->migrate();
     }
 
     /**
@@ -1228,15 +1261,6 @@ class TouchPointWP
             PRIMARY KEY  (id)
         )";
         dbDelta($sql);
-    }
-
-
-    /**
-     * Migrate settings from old version if applicable.
-     */
-    protected function migrate(): void
-    {
-        $this->settings->migrate();
     }
 
 
@@ -1332,14 +1356,6 @@ class TouchPointWP
         if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER || $host === '')
             return TouchPointWP_Settings::UNDEFINED_PLACEHOLDER;
         return "https://" . $host;
-    }
-
-    public function getApiCredentials(): object
-    {
-        return (object)[
-            'user' => $this->settings->api_user,
-            'pass' => $this->settings->api_pass
-        ];
     }
 
     /**
@@ -1700,6 +1716,21 @@ class TouchPointWP
     }
 
     /**
+     * Format the list of divisions into an array with form-name-friendly IDs as the key.
+     *
+     * @return string[]
+     */
+    public function getKeywordsAsKVArray(): array
+    {
+        $r = [];
+        foreach ($this->getKeywords() as $k) {
+            $r['key' . $k->id] = $k->name;
+        }
+
+        return $r;
+    }
+
+    /**
      * @return false|object Update the keywords if they're stale.
      */
     private function updateKeywords()
@@ -1724,9 +1755,11 @@ class TouchPointWP
             return false;
         }
 
+        usort($body->data->keywords, fn($a, $b) => strcmp($a->name, $b->name));
+
         $obj = (object)[
             '_updated' => date('c'),
-            'keywords'     => $body->data->keywords
+            'keywords' => $body->data->keywords
         ];
 
         $this->settings->set("meta_keywords", json_encode($obj));
@@ -1815,8 +1848,11 @@ class TouchPointWP
 
         $respDecoded = json_decode($r['body']);
 
-        if ($respDecoded->output !== '') {
+        if (property_exists($respDecoded, 'output') && $respDecoded->output !== '') {
             return new WP_Error(self::SHORTCODE_PREFIX . "api-remote", $respDecoded->output);
+        }
+        if (property_exists($respDecoded, 'message') && $respDecoded->message !== '') {
+            return new WP_Error(self::SHORTCODE_PREFIX . "api-remote", $respDecoded->message);
         }
 
         return $respDecoded->data;
@@ -1871,6 +1907,39 @@ class TouchPointWP
         if ( isset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'flushRewriteOnNextLoad']) || $force) {
             flush_rewrite_rules();
             unset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'flushRewriteOnNextLoad']);
+        }
+    }
+
+    /**
+     * This function enqueues the stylesheet for the default templates, to avoid registering the style on sites where
+     * custom templates exist.
+     */
+    public static function enqueuePartialsStyle()
+    {
+        wp_enqueue_style(
+            TouchPointWP::SHORTCODE_PREFIX . 'partials-template-style',
+            self::instance()->assets_url . 'template/partials-template-style.css?v=' . TouchPointWP::VERSION,
+            [],
+            TouchPointWP::VERSION
+        );
+    }
+
+    /**
+     * This function enqueues the stylesheet for actions (swal, basically).
+     *
+     * @param string $action This string identifies which action is being used.  This should be passed to the filter so
+     * the filter can make an informed decision about whether to exclude the stylesheet.
+     */
+    public static function enqueueActionsStyle(string $action): void
+    {
+        $includeActionsStyle = !!apply_filters(TouchPointWP::HOOK_PREFIX . "include_actions_style", true, $action);
+        if ($includeActionsStyle) {
+            wp_enqueue_style(
+                TouchPointWP::SHORTCODE_PREFIX . 'actions-style',
+                self::instance()->assets_url . 'template/actions-style.css?v=' . TouchPointWP::VERSION,
+                [],
+                TouchPointWP::VERSION
+            );
         }
     }
 }
