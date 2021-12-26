@@ -31,7 +31,7 @@ class Person extends WP_User implements api, JsonSerializable
     use jsInstantiation;
 
     public const SHORTCODE_PEOPLE_LIST = TouchPointWP::SHORTCODE_PREFIX . "People";
-    public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
+    public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "person_cron_hook";
     public const BACKUP_USER_PREFIX = "touchpoint-";
 
     public const META_PEOPLEID = TouchPointWP::SETTINGS_PREFIX . 'peopleId';

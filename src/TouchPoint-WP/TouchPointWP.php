@@ -72,6 +72,11 @@ class TouchPointWP
     public const TABLE_IP_GEO = self::TABLE_PREFIX . "ipGeo";
 
     /**
+     * Typical amount of time in hours for metadata to last (e.g. genders and resCodes).
+     */
+    public const CACHE_TTL = 8;
+
+    /**
      * Caching
      */
     public const CACHE_PUBLIC = 0;
@@ -1404,7 +1409,7 @@ class TouchPointWP
             $mtObj = json_decode($mtObj);
             if (!isset($mtObj->$divKey)) {
                 $needsUpdate = true;
-            } else if (strtotime($mtObj->$divKey->_updated) < time() - 3600 * 2 || ! is_array($mtObj->$divKey->memTypes)) {
+            } else if (strtotime($mtObj->$divKey->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($mtObj->$divKey->memTypes)) {
                 $needsUpdate = true;
             }
         }
@@ -1455,7 +1460,7 @@ class TouchPointWP
             $needsUpdate = true;
         } else {
             $divsObj = json_decode($divsObj);
-            if (strtotime($divsObj->_updated) < time() - 3600 * 2 || ! is_array($divsObj->divs)) {
+            if (strtotime($divsObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($divsObj->divs)) {
                 $needsUpdate = true;
             }
         }
@@ -1554,7 +1559,7 @@ class TouchPointWP
             $needsUpdate = true;
         } else {
             $rcObj = json_decode($rcObj);
-            if (strtotime($rcObj->_updated) < time() - 3600 * 2 || ! is_array($rcObj->resCodes)) {
+            if (strtotime($rcObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($rcObj->resCodes)) {
                 $needsUpdate = true;
             }
         }
@@ -1625,7 +1630,7 @@ class TouchPointWP
             $needsUpdate = true;
         } else {
             $gObj = json_decode($gObj);
-            if (strtotime($gObj->_updated) < time() - 3600 * 2 || ! is_array($gObj->genders)) {
+            if (strtotime($gObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($gObj->genders)) {
                 $needsUpdate = true;
             }
         }
@@ -1695,7 +1700,7 @@ class TouchPointWP
             $needsUpdate = true;
         } else {
             $kObj = json_decode($kObj);
-            if (strtotime($kObj->_updated) < time() - 3600 * 2 || ! is_array($kObj->keywords)) {
+            if (strtotime($kObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($kObj->keywords)) {
                 $needsUpdate = true;
             }
         }
