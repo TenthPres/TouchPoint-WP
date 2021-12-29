@@ -182,7 +182,7 @@ class Person extends WP_User implements api, JsonSerializable
         }
 
         // Custom meta through TouchPoint-WP
-        $v = parent::__get(self::META_CUSTOM_PREFIX . $key);
+        $v = parent::__get(TouchPointWP::SETTINGS_PREFIX . self::META_CUSTOM_PREFIX . $key);
         if ($v === '') {
             $v = null;
         }
