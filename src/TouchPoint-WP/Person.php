@@ -298,13 +298,10 @@ class Person extends WP_User implements api, JsonSerializable
             }
         }
 
-        // For now, lists are generated 100% from involvement lists.
+        // Sync involvement lists with server, if that's what's being attempted right now.
         if (self::$_indexingMode) {
             if ($iid === null) {
                 return "";
-            }
-            if (! isset(self::$_indexingQueries['inv'])) {
-                self::$_indexingQueries['inv'] = [];
             }
             if (! isset(self::$_indexingQueries['inv'][$iid])) {
                 /** @noinspection SpellCheckingInspection */
@@ -493,7 +490,21 @@ class Person extends WP_User implements api, JsonSerializable
      */
     protected static function updateFromTouchPoint(): void
     {
-        self::$_indexingQueries = [];
+        global $wpdb;
+
+        self::$_indexingQueries = [
+            'pid' => [],
+            'inv' => []
+        ];
+
+        $pidMeta = self::META_PEOPLEID;
+
+
+        // Existing Users
+        /** @noinspection SqlResolve */
+        $sql = "SELECT meta_value FROM $wpdb->usermeta WHERE meta_key = '{$pidMeta}'";
+        self::$_indexingQueries['pid'] = $wpdb->get_col($sql);
+
 
         // Update People Indexes
         if (TouchPointWP::instance()->settings->enable_people_lists) {

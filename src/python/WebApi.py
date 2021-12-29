@@ -25,24 +25,38 @@ def getPersonInfoForSync(PersonObj):
     p.LastName = PersonObj.LastName
     p.GoesBy = PersonObj.NickName if PersonObj.NickName is not None else PersonObj.FirstName
     p.DisplayName = " "
-    p.Emails = []
 
+    # Person's Picture
+    if PersonObj.Picture is None:
+        p.Picture = None
+    else:
+        p.Picture = {
+            'large': PersonObj.Picture.LargeUrl,
+            'medium': PersonObj.Picture.MediumUrl,
+            'small': PersonObj.Picture.SmallUrl,
+            'thumb': PersonObj.Picture.ThumbUrl,
+            'x': PersonObj.Picture.X,
+            'y': PersonObj.Picture.Y
+        }
+    
+    # Email addresses
+    p.Emails = []
+    if PersonObj.EmailAddress is not None:
+        p.Emails.append(PersonObj.EmailAddress)
+    if PersonObj.EmailAddress2 is not None:
+        p.Emails.append(PersonObj.EmailAddress2)
+
+    # Send to WebPublicPerson script
     model.Data.Person = PersonObj
     model.Data.Info = p
-
     model.CallScript('WebPublicPerson')
-
     p = model.Data.Info
     model.Data.Person = None
     model.Data.Info = None
 
+    # Standardizing returns from WebPublicPerson
     if p.Exclude is True:
         return None
-
-    if PersonObj.Picture is None:
-        p.Picture = None
-    else:
-        p.Picture = PersonObj.Picture.LargeUrl
 
     if p.DisplayName == " ": # default DisplayName
         p.DisplayName = (p.GoesBy + " " + p.LastName).strip()
@@ -229,6 +243,8 @@ elif (Data.a == "ident"):  # This is a POST request. TODO possibly limit to post
 
         pid = model.FindAddPeopleId(inData.firstName, inData.lastName, inData.dob, inData.email, inData.phone)
 
+        model.UpdateNamedField(pid, "ZipCode", inData.zip)
+
         sql = getPersonInfoSql('p2') + """
                     FROM People p1
                         JOIN Families f ON p1.FamilyId = f.FamilyId
@@ -393,15 +409,23 @@ elif (Data.a == "people_get"):  # This is a POST request. TODO possibly limit to
 
     rules = []
     invsMembershipsToImport = []
+    invsMemSubGroupsToImport = {}
     joiner = "OR"
 
-    # Build the query
+    # People Ids
+    for pid in inData['pid']:
+        rules.append("PeopleId = {}".format(pid))
+
+    # Involvements
     for iid in inData['inv']:
         if inData['inv'][iid]['memTypes'] == None:
             rules.append("IsMemberOf( Org={} ) = 1".format(iid))
 
         if not iid in invsMembershipsToImport:
             invsMembershipsToImport.append(iid)
+
+            # if inData['inv'][iid]['with_memTypes'] == True:
+            #    invsMemSubGroupsToImport[iid] = inData['inv'][iid]['memTypes']
 
     joiner = " " + joiner + " "
     rules = joiner.join(rules)
@@ -416,11 +440,16 @@ elif (Data.a == "people_get"):  # This is a POST request. TODO possibly limit to
         if pr.Exclude is True:  # Make sure person should not be excluded if PersonInfo didn't go right.
             continue
 
-		# TODO move to getPersonInfoForSync method or... something.
         invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
         invSql = invSql.format(pr.PeopleId, ', '.join(invsMembershipsToImport))
         pr.Inv = q.QuerySql(invSql)
+
         Data.people.append(pr)
+
+#         subgroupSql = """SELECT TOP 100 ommt.OrgId, ommt.PeopleId, ommt.MemberTagId, mt.Name TODO subgroups
+#                        FROM OrgMemMemTags ommt
+#                            JOIN MemberTags mt ON ommt.MemberTagId = mt.Id
+#                        WHERE ommt.OrgId = 61"""
 
     Data.rules = rules  # handy for debugging TODO remove, probably.
 
