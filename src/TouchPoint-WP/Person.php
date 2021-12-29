@@ -700,9 +700,11 @@ class Person extends WP_User implements api, JsonSerializable
      * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with the
      * `data-tp-person` attribute with the invId as the value.
      *
+     * @param mixed $context A variable that is passed to the tp_person_actions filter.  Set however you want, or not at all.
+     *
      * @return string
      */
-    public function getActionButtons(): string
+    public function getActionButtons($context = null): string
     {
         TouchPointWP::requireScript('swal2-defer');
         TouchPointWP::requireScript('base-defer');
@@ -712,7 +714,7 @@ class Person extends WP_User implements api, JsonSerializable
         TouchPointWP::enqueueActionsStyle('person-contact');
         $ret = "<button type=\"button\" data-tp-action=\"contact\">$text</button>  ";
 
-        return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this);
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context);
     }
 
     /**
