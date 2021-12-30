@@ -13,7 +13,7 @@ if (!empty($image)) {
 
 ?>
 
-<article id="person-<?php echo $person->peopleId; ?>" <?php post_class("person-list-item"); ?> data-tp-person="<?php echo $person->peopleId ?>"<?php echo $image ?>>
+<article id="person-<?php echo $person->peopleId; ?>" class="person-list-item" data-tp-person="<?php echo $person->peopleId ?>"<?php echo $image ?>>
     <header class="entry-header">
         <div class="entry-header-inner">
             <?php
