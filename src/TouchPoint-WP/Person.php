@@ -122,6 +122,17 @@ class Person extends WP_User implements api, JsonSerializable
      */
     public static function fromId($id): ?Person
     {
+        if (is_object($id)) {
+            $id = $id->ID;
+        }
+        if (is_array($id)) {
+            $id = $id['ID'];
+        }
+
+        if (empty($id)) {
+            return null;
+        }
+
         if (isset(self::$_instances[$id])) {
             return self::$_instances[$id];
         }
