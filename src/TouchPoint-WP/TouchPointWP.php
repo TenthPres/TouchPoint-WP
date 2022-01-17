@@ -1310,7 +1310,7 @@ class TouchPointWP
      */
     private function _log_version_number()
     {
-        update_option(self::TOKEN . '_version', self::VERSION, false);
+        update_site_option(self::TOKEN . '_version', self::VERSION);
     }
 
     public static function useTribeCalendarPro(): bool
