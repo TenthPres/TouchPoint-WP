@@ -434,6 +434,16 @@ class Person extends WP_User implements api, JsonSerializable
     }
 
     /**
+     * @param array $args
+     *
+     * @return string|null
+     */
+    public function getPictureUrl(array $args = []): ?string
+    {
+        return self::getPictureForPerson($this, $args);
+    }
+
+    /**
      * @param mixed $idEmailUserOrPerson
      * @param array $args
      *
@@ -442,16 +452,16 @@ class Person extends WP_User implements api, JsonSerializable
     public static function getPictureForPerson($idEmailUserOrPerson, $args = []): ?string
     {
         $p = null;
-        if ( ! is_object($idEmailUserOrPerson)) {
-            if (is_numeric($idEmailUserOrPerson)) {
-                $p = Person::fromId($idEmailUserOrPerson);
-            } elseif (is_object($idEmailUserOrPerson) && get_class($idEmailUserOrPerson) === self::class) {
-                $p = $idEmailUserOrPerson;
-            } elseif (is_object($idEmailUserOrPerson) && ! empty($id_or_email->user_id)) {
-                $p = Person::fromId($id_or_email->user_id);
-            } elseif (is_string($idEmailUserOrPerson)) {
-                $p = Person::from('email', $idEmailUserOrPerson);
-            }
+        if (is_numeric($idEmailUserOrPerson)) {
+            $p = Person::fromId($idEmailUserOrPerson);
+        } elseif (is_object($idEmailUserOrPerson) && get_class($idEmailUserOrPerson) === self::class) {
+            $p = $idEmailUserOrPerson;
+        } elseif (is_object($idEmailUserOrPerson) && ! empty($idEmailUserOrPerson->user_id)) {
+            $p = Person::fromId($idEmailUserOrPerson->user_id);
+        } elseif (is_object($idEmailUserOrPerson) && ! empty($idEmailUserOrPerson->ID)) {
+            $p = Person::fromId($idEmailUserOrPerson->ID);
+        } elseif (is_string($idEmailUserOrPerson)) {
+            $p = Person::from('email', $idEmailUserOrPerson);
         }
 
         if ($p === null) {
@@ -460,7 +470,7 @@ class Person extends WP_User implements api, JsonSerializable
 
         $pictureData = $p->picture;
 
-        if (empty($pictureData)) {
+        if (!is_object($pictureData)) {
             return null;
         }
 
