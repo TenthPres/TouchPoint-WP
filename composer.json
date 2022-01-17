@@ -21,7 +21,8 @@
   },
   "autoload": {
     "psr-4": {
-      "tp\\TouchPointWP\\": "src/TouchPoint-WP"
+      "tp\\TouchPointWP\\": "src/TouchPoint-WP",
+      "tp\\TouchPointWP\\Utilities\\": "src/TouchPoint-WP/Utilities"
     }
   },
   "require": {
