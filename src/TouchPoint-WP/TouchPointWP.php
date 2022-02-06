@@ -7,6 +7,8 @@ use WP_Error;
 use WP_Http;
 use WP_Term;
 
+use tp\TouchPointWP\Utilities\Cleanup;
+
 if ( ! defined('ABSPATH')) {
     exit;
 }
@@ -191,6 +193,8 @@ class TouchPointWP
         add_filter('script_loader_tag', [$this, 'filterByTag'], 10, 2);
 
         add_filter('terms_clauses', [$this, 'getTermsClauses'], 10, 3);
+
+        self::scheduleCleanup();
     }
 
     public function admin(): TouchPointWP_AdminAPI
@@ -200,6 +204,21 @@ class TouchPointWP
             $this->admin = new TouchPointWP_AdminAPI();
         }
         return $this->admin;
+    }
+
+
+    public static function scheduleCleanup(): void
+    {
+        // Setup cron for updating Small Groups daily.
+        add_action(Cleanup::CRON_HOOK, [Cleanup::class, 'cronCleanup']);
+        if ( ! wp_next_scheduled(Cleanup::CRON_HOOK)) {
+            // Runs at 3am EST (8am UTC)
+            wp_schedule_event(
+                date('U', strtotime('tomorrow') + 3600 * 8),
+                'daily',
+                Cleanup::CRON_HOOK
+            );
+        }
     }
 
 
@@ -302,13 +321,6 @@ class TouchPointWP
                 }
             }
 
-            // Involvement endpoints
-            if ($reqUri['path'][1] === "inv") {
-                if (!Involvement::api($reqUri)) {
-                    return $continue;
-                }
-            }
-
             // Meeting endpoints
             if ($reqUri['path'][1] === "mtg") {
                 if (!Meeting::api($reqUri)) {
@@ -320,6 +332,13 @@ class TouchPointWP
             if ($reqUri['path'][1] === "admin") {
                 self::admin(); // initialize the instance.
                 if (!TouchPointWP_AdminAPI::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
+            // Cleanup endpoints
+            if ($reqUri['path'][1] === "cleanup") {
+                if (!Cleanup::api($reqUri)) {
                     return $continue;
                 }
             }
