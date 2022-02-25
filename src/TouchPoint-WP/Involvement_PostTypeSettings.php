@@ -128,13 +128,13 @@ class Involvement_PostTypeSettings {
     }
 
     /**
-     * Gets the Involvement Post Type Settings object for a given post type.
+     * Gets the Involvement Post Type Settings object for a given inv type.
      *
      * @param string $postType
      *
      * @return Involvement_PostTypeSettings|null
      */
-    public static function getForPostType(string $postType): ?Involvement_PostTypeSettings
+    public static function getForInvType(string $postType): ?Involvement_PostTypeSettings
     {
         foreach (self::instance() as $type) {
             if ($type->postType === $postType || $type->__get('postType') === $postType) {

@@ -17,7 +17,7 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
         <div class="entry-header-inner">
         <?php
         /** @noinspection HtmlUnknownTarget */
-        the_title(sprintf('<h2 class="entry-title default-max-width heading-size-1"><a href="%s">', esc_url(get_permalink() ) ), '</a></h2>' );
+        the_title(sprintf('<h2 class="entry-title default-max-width heading-size-1"><a href="%s">', esc_url(get_permalink())), '</a></h2>');
         ?>
         </div>
         <div class="post-meta-single post-meta-single-top">

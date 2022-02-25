@@ -14,11 +14,31 @@ use tp\TouchPointWP\TouchPointWP;
 $postType = is_archive() ? get_queried_object()->name : false;
 $settings = Involvement::getSettingsForPostType($postType);
 
+if (have_posts()) {
+    $location = TouchPointWP::instance()->geolocate(false);
+
+    if ((get_class($location) !== WP_Error::class) && $location !== false) {
+        // we have a viable location. Use it for sorting by distance.
+        Involvement::setComparisonGeo($location);
+        TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
+    }
+}
+
 get_header($postType);
 
 $description = get_the_archive_description();
 
-if ( have_posts() ) {
+if (have_posts()) {
+    global $wp_the_query;
+
+    $wp_the_query->set('posts_per_page', -1);
+    $wp_the_query->set('nopaging', true);
+    $wp_the_query->set('orderby', 'title'); // will mostly be overwritten by geographic sort, if available.
+    $wp_the_query->set('order', 'ASC');
+
+    $wp_the_query->get_posts();
+    $wp_the_query->rewind_posts();
+
     TouchPointWP::enqueuePartialsStyle();
     ?>
     <header class="archive-header has-text-align-center header-footer-group">
@@ -35,24 +55,6 @@ if ( have_posts() ) {
     </header>
     <div class="involvement-list">
     <?php
-
-    global $wp_the_query;
-
-    $wp_the_query->set('posts_per_page', -1);
-    $wp_the_query->set('nopaging', true);
-    $wp_the_query->set('orderby', 'title'); // will mostly be overwritten by geographic sort, if available.
-    $wp_the_query->set('order', 'ASC');
-
-    $wp_the_query->get_posts();
-    $wp_the_query->rewind_posts();
-
-    $location = TouchPointWP::instance()->geolocate(false);
-
-    if ((get_class($location) !== WP_Error::class) && $location !== false) {
-        // we have a viable location. Use it for sorting by distance.
-        Involvement::setComparisonGeo($location);
-        TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
-    }
 
     global $posts;
     usort($posts, [Involvement::class, 'sortPosts']);

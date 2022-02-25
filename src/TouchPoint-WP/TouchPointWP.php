@@ -652,7 +652,7 @@ class TouchPointWP
     }
 
     /**
-     * @param mixed $ip To get info for a specific IP, pass it here.  Set to false to only use cached data, and not the IP API.
+     * @param mixed $ip To get info for a specific IP, pass it here.  Set false to only use cached data, and not the IP API.
      *
      * @return object|false An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, an object with
      * an 'error' parameter if something went wrong.
@@ -695,7 +695,7 @@ class TouchPointWP
 
         $d = json_decode($return);
         if (!is_object($d)) {
-            return (object)['error' => 'The geocoding system unexpectedly returned a non-object.'];
+            return (object)['error' => 'The geocoding system unexpectedly returned a non-object.', 'data' => $d];
         }
 
         if (property_exists($d, 'error')) {

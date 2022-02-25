@@ -181,7 +181,7 @@ class Involvement implements api
      *
      * @return Involvement_PostTypeSettings[]
      */
-    final protected static function &settings(): array
+    final protected static function &allTypeSettings(): array
     {
         return Involvement_PostTypeSettings::instance();
     }
@@ -192,7 +192,7 @@ class Involvement implements api
      */
     public static function init(): void
     {
-        foreach (self::settings() as $type) {
+        foreach (self::allTypeSettings() as $type) {
             /** @var $type Involvement_PostTypeSettings */
 
             register_post_type(
@@ -250,7 +250,7 @@ class Involvement implements api
     {
         $count = 0;
 
-        foreach (self::settings() as $type) {
+        foreach (self::allTypeSettings() as $type) {
             if (count($type->importDivs) < 1) {
                 // Don't update if there aren't any divisions selected yet.
                 continue;
@@ -354,7 +354,7 @@ class Involvement implements api
     public function getDivisionsStrings(?array $exclude = null): array
     {
         if ($exclude === null) {
-            $importDivs = Involvement_PostTypeSettings::getForPostType($this->invType)->importDivs;
+            $importDivs = $this->settings()->importDivs;
             if (count($importDivs) < 2) {
                 // Exclude the import divs if there's only one of them, and all invs have the same div
                 $exclude = $importDivs;
@@ -400,7 +400,7 @@ class Involvement implements api
         if ($postType === null) {
             return null;
         }
-        return Involvement_PostTypeSettings::getForPostType($postType);
+        return Involvement_PostTypeSettings::getForInvType($postType);
     }
 
     /**
@@ -411,7 +411,7 @@ class Involvement implements api
     public static function getPostTypes(): array
     {
         $r = [];
-        foreach (self::settings() as $pt) {
+        foreach (self::allTypeSettings() as $pt) {
             $r[] = $pt->postTypeWithPrefix();
         }
         return $r;
@@ -1654,6 +1654,16 @@ class Involvement implements api
     }
 
     /**
+     * Get the settings object that corresponds to the Involvement's Post Type
+     *
+     * @return Involvement_PostTypeSettings|null
+     */
+    protected function settings(): ?Involvement_PostTypeSettings
+    {
+        return self::getSettingsForPostType($this->invType);
+    }
+
+    /**
      * Get notable attributes, such as gender restrictions, as strings.
      *
      * @return string[]
@@ -1675,6 +1685,13 @@ class Involvement implements api
         $canJoin = $this->acceptingNewMembers();
         if ($canJoin !== true) {
             $ret[] = $canJoin;
+        }
+
+        if ($this->settings() && $this->settings()->useGeo) {
+            $dist = $this->getDistance();
+            if ($dist != false) {
+                $ret[] = $dist . " mi";
+            }
         }
 
         return $ret;

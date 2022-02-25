@@ -536,7 +536,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
         $this->settings['resident_codes'] = [
             'title'       => __('Resident Codes', TouchPointWP::TEXT_DOMAIN),
-            'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify and users and involvements that have locations.', TouchPointWP::TEXT_DOMAIN),
+            'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements that have locations.', TouchPointWP::TEXT_DOMAIN),
             'fields'      => [
                 [
                     'id'          => 'rc_name_plural',
