@@ -840,7 +840,7 @@ class TouchPointWP
                     ],
                     'public'            => true,
                     'show_in_rest'      => true,
-                    'show_admin_column' => false, // TODO make an option?
+                    'show_admin_column' => false,
 
                     // Control the slugs used for this taxonomy
                     'rewrite'           => [
@@ -1355,13 +1355,13 @@ class TouchPointWP
             }
         }
 
-        usort($lineage[0], fn($a, $b) => strcmp($a->name, $b->name));
+        usort($lineage[0], fn($a, $b) => strcasecmp($a->name, $b->name));
 
         $out = [];
         foreach ($lineage[0] as $t) {
             $out[] = $t;
             if (isset($lineage[$t->term_id])) {
-                usort($lineage[$t->term_id], fn($a, $b) => strcmp($a->name, $b->name));
+                usort($lineage[$t->term_id], fn($a, $b) => strcasecmp($a->name, $b->name));
 
                 foreach ($lineage[$t->term_id] as $t2) {
                     $out[] = $t2;
@@ -1755,6 +1755,85 @@ class TouchPointWP
     }
 
     /**
+     * Returns an array of objects that correspond to Person Extra Value Fields.  Each has a name and a type.
+     *
+     * @param array|null $matches Provide an array of items that should be matched. If provided, only matches are returned.
+     *
+     * @return array
+     */
+    public function getPersonEvFields(?array $matches = null): array
+    {
+        $pevObj = $this->settings->get('meta_personEvFields');
+
+        $needsUpdate = false;
+        if ($pevObj === false || $pevObj === null) {
+            $needsUpdate = true;
+        } else {
+            $pevObj = json_decode($pevObj);
+            if (strtotime($pevObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($pevObj->personEvFields)) {
+                $needsUpdate = true;
+            }
+        }
+
+        // Get update if needed.
+        if ($needsUpdate) {
+            $pevObj = $this->updatePersonEvFields();
+        }
+
+        // If update failed, show a notice on the admin interface.
+        if ($pevObj === false) {
+            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
+
+            return [];
+        }
+
+        if ($matches !== null) {
+            return array_filter(
+                $pevObj->personEvFields,
+                fn($f) => in_array('pev' . $f->hash, $matches) ||
+                          in_array($f->field . " | " . $f->type, $matches)
+            );
+        }
+
+        return $pevObj->personEvFields;
+    }
+
+    /**
+     * Format the list of Person Extra Value Fields into an array with form-name-friendly IDs as the key.
+     *
+     * @param string|null $type     To limit the list to a particular data type, provide the name of the datatype.
+     *                              Needs to match the type in TouchPoint.
+     * @param bool        $addNone  Set true to add a "none" option to the list.
+     *
+     * @return string[]
+     */
+    public function getPersonEvFieldsAsKVArray(?string $type = null, bool $addNone = false): array
+    {
+        $r = [];
+        if ($addNone) {
+            $r['none'] = '';
+        }
+        if ($type !== null) {
+            $type = strtolower(trim($type));
+        }
+        foreach ($this->getPersonEvFields() as $pev) {
+            if ($pev->field == '') { // Apparently blank EV Fields exist.
+                continue;
+            }
+            if ($type === null) { // not filtered by type
+                if ($pev->type === "") {
+                    $pev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
+                }
+                $r['pev' . $pev->hash] = $pev->field . " (" . $pev->type . ")";
+            } elseif ($type === strtolower($pev->type)) {
+                $r['pev' . $pev->hash] = $pev->field;
+            }
+        }
+
+        return $r;
+    }
+
+    /**
      * @return false|object Update the keywords if they're stale.
      */
     private function updateKeywords()
@@ -1779,7 +1858,7 @@ class TouchPointWP
             return false;
         }
 
-        usort($body->data->keywords, fn($a, $b) => strcmp($a->name, $b->name));
+        usort($body->data->keywords, fn($a, $b) => strcasecmp($a->name, $b->name));
 
         $obj = (object)[
             '_updated' => date('c'),
@@ -1787,6 +1866,43 @@ class TouchPointWP
         ];
 
         $this->settings->set("meta_keywords", json_encode($obj));
+
+        return $obj;
+    }
+
+    /**
+     * @return false|object Update the Person Extra Values if they're stale.
+     */
+    public function updatePersonEvFields()
+    {
+        try {
+            $return = $this->apiGet('PersonEvFields');
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
+
+        if ($return instanceof WP_Error) {
+            return false;
+        }
+
+        $body = json_decode($return['body']);
+
+        if (property_exists($body, "message")) {
+            return false;
+        }
+
+        if ( ! is_array($body->data->personEvFields)) {
+            return false;
+        }
+
+        usort($body->data->personEvFields, fn($a, $b) => strcasecmp($a->field, $b->field));
+
+        $obj = (object)[
+            '_updated' => date('c'),
+            'personEvFields' => $body->data->personEvFields
+        ];
+
+        $this->settings->set("meta_personEvFields", json_encode($obj));
 
         return $obj;
     }

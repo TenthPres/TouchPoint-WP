@@ -33,6 +33,9 @@ if ( ! defined('ABSPATH')) {
  * @property-read string google_maps_api_key Google Maps API Key for embedded maps and such
  *
  * @property-read array people_contact_keywords Keywords to use for the generic Contact person button.
+ * @property-read string people_ev_bio      Extra Value field that should be imported as a User bio.
+ * @property-read string people_ev_wpId     The name of the extra value field where the WordPress User ID will be stored.
+ * @property-read array people_ev_custom    Custom Extra values that are copied as user meta fields
  *
  * @property-read string auth_script_name   The name of the Python script within TouchPoint
  * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
@@ -343,6 +346,39 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'options'     => $includeDetail ? $this->parent->getKeywordsAsKVArray() : [],
                         'default'     => [],
                     ],
+                    [
+                        'id'          => 'people_ev_wpId',
+                        'label'       => __('Extra Value for WordPress User ID', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'The name of the extra value to use for the WordPress User ID.  If you are using multiple WordPress instances with one TouchPoint database, you will need these values to be unique between WordPress instances.  In most cases, the default is fine.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'WordPress User ID',
+                        'placeholder' => 'WordPress User ID'
+                    ],
+                    [
+                        'id'          => 'people_ev_bio',
+                        'label'       => __('Extra Value: Biography', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Import a Bio from a Person Extra Value field.  Can be an HTML or Text Extra Value.  This will overwrite any values set by WordPress.  Leave blank to not import.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeDetail ? $this->parent->getPersonEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'people_ev_custom',
+                        'label'       => __('Extra Values to Import', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Import People Extra Value fields as User Meta data.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'checkbox_multi',
+                        'options'     => $includeDetail ? $this->parent->getPersonEvFieldsAsKVArray() : [],
+                        'default'     => [],
+                    ],
                 ],
             ];
         }
@@ -448,7 +484,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ],
             ];
         }
-
 
         if (class_exists("tp\TouchPointWP\EventsCalendar") || $includeAll) {
             $this->settings['events_calendar'] = [
@@ -574,7 +609,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ]
             ],
         ];
-
 
         /*	$settings['general'] = [
                 'title'       => __( 'Standard', TouchPointWP::TEXT_DOMAIN ),

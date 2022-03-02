@@ -95,6 +95,14 @@ elif (Data.a == "Keywords"):
     Data.Title = "All Keywords"
     Data.keywords = q.QuerySql(kwSql, {})
 
+elif (Data.a == "PersonEvFields"):
+    pevSql = '''SELECT TOP 100 Field, [Type], count(*) as Count,
+                SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8) Hash
+                FROM PeopleExtra WHERE [Field] NOT LIKE '%_mv'
+                GROUP BY [Field], [Type] ORDER BY count(*) DESC'''
+    Data.Title = "Person Extra Value Fields"
+    Data.personEvFields = q.QuerySql(pevSql, {})
+
 elif (Data.a == "InvsForDivs"):
     regex = re.compile('[^0-9\,]')
     divs = regex.sub('', Data.divs)
@@ -234,7 +242,7 @@ elif (Data.a == "MemTypes"):
     Data.memTypes = model.SqlListDynamicData(memTypeSql)
 
 
-elif (Data.a == "ident"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "ident" && model.HttpMethod == "post"):
     Data.Title = 'Matching People'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -267,7 +275,7 @@ elif (Data.a == "ident"):  # This is a POST request. TODO possibly limit to post
 
         Data.people = model.SqlListDynamicData(sql)
 
-elif (Data.a == "inv_join"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "inv_join" && model.HttpMethod == "post"):
     Data.Title = 'Adding people to Involvement'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -304,7 +312,7 @@ They have also been added to your roster as prospective members.  Please move th
         model.CreateTaskNote(defaultSgTaskDelegatePid, addPeople[0].PeopleId, orgContactPid,
             None, False, text, None, None, keywords)
 
-elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "inv_contact" && model.HttpMethod == "post"):
     # TODO potentially merge with Join function.  Much of the code is duplicated.
     Data.Title = 'Contacting Involvement Leaders'
     inData = model.JsonDeserialize(Data.data).inputData
@@ -336,7 +344,19 @@ elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit t
     Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 
 
-elif (Data.a == "person_contact"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "person_wpIds" && model.HttpMethod == "post"):
+    Data.Title = 'Updating WordPress IDs.'
+    inData = model.JsonDeserialize(Data.data).inputData
+    Data.success = 0
+
+    ev = str(inData.evName)
+
+    for p in inData.people:
+        model.AddExtraValueInt(int(p.PeopleId), ev, int(p.WpId))
+        Data.success += 1
+
+
+elif (Data.a == "person_contact" && model.HttpMethod == "post"):
     # TODO potentially merge with Join function.  Much of the code is duplicated.
     Data.Title = 'Contacting Person'
     inData = model.JsonDeserialize(Data.data).inputData
@@ -360,7 +380,7 @@ elif (Data.a == "person_contact"):  # This is a POST request. TODO possibly limi
     Data.success.append({'pid': p.peopleId, 'to': t})
 
 
-elif (Data.a == "mtg"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "mtg" && model.HttpMethod == "post"):
     Data.Title = 'Getting Meeting Info'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -386,7 +406,7 @@ elif (Data.a == "mtg"):  # This is a POST request. TODO possibly limit to post?
         mtg.invName = mtg.invName.strip()
         Data.success.append(mtg)
 
-elif (Data.a == "mtg_rsvp"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "mtg_rsvp" && model.HttpMethod == "post"):
     Data.Title = 'Recording RSVPs'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -403,7 +423,7 @@ elif (Data.a == "mtg_rsvp"):  # This is a POST request. TODO possibly limit to p
             Data.success.append(pid)
 
 
-elif (Data.a == "people_get"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "people_get" && model.HttpMethod == "post"):
     Data.Title = 'Getting People Info Based on Submitted Query'
     inData = json.loads(Data.data)['inputData']
 
@@ -432,6 +452,16 @@ elif (Data.a == "people_get"):  # This is a POST request. TODO possibly limit to
 
     Data.people = []
 
+    # Prep SQL for People Extra Values
+    pevSql = ''
+    if isinstance(inData['meta'], dict) and inData['meta'].has_key('pev'):
+        pevSql = []
+        for pev in inData['meta']['pev']:
+            pevSql.append("([Field] = '{}' AND [Type] = '{}')".format(inData['meta']['pev'][pev]['field'], inData['meta']['pev'][pev]['type']))
+        pevSql = """SELECT Field, StrValue, DateValue, Data, IntValue, BitValue, [Type]
+            FROM PeopleExtra
+            WHERE PeopleId = {} AND (""" + " OR ".join(pevSql) + ")"
+
     for po in q.QueryList(rules):
         pr = getPersonInfoForSync(po)
 
@@ -443,6 +473,21 @@ elif (Data.a == "people_get"):  # This is a POST request. TODO possibly limit to
         invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
         invSql = invSql.format(pr.PeopleId, ', '.join(invsMembershipsToImport))
         pr.Inv = q.QuerySql(invSql)
+
+        # Make People Extra Values orderly
+        pr.PeopleEV = []
+        for pev in q.QuerySql(pevSql.format(pr.PeopleId)):
+            if pev.Type == 'Int':
+                pev.Data = pev.IntValue
+            elif pev.Type == 'Bit':
+                pev.Data = pev.BitValue
+            elif pev.Type == 'Date':
+                pev.Data = pev.DateValue
+            pr.PeopleEV.append({
+                'field': pev.Field,
+                'type': pev.Type,
+                'value': pev.Data
+            })
 
         Data.people.append(pr)
 
