@@ -22,6 +22,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string enable_involvements  Whether the Involvement module is included.
  * @property-read string enable_people_lists  Whether to allow public People Lists.
  * @property-read string enable_rsvp        Whether the RSVP module is included.
+ * @property-read string enable_global      Whether to import Global partners.
  *
  * @property-read string host               The domain for the TouchPoint instance
  * @property-read string host_deeplink      The domain for mobile deep linking to the Custom Mobile App
@@ -218,6 +219,16 @@ class TouchPointWP_Settings
                     'label'       => __('Enable Public People Lists', 'TouchPoint-WP'),
                     'description' => __(
                         'Import public people listings from TouchPoint (e.g. staff or elders)',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'checkbox',
+                    'default'     => '',
+                ],
+                [
+                    'id'          => 'enable_global',
+                    'label'       => __('Enable Global Partner Listings', 'TouchPoint-WP'),
+                    'description' => __(
+                        'Import ministry partners from TouchPoint to list publicly.',
                         TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'checkbox',
@@ -480,6 +491,59 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             return ob_get_clean();
                         },
                         'callback'    => fn($new) => Involvement_PostTypeSettings::validateNewSettings($new)
+                    ],
+                ],
+            ];
+        }
+
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on" || $includeAll) { // TODO MULTI
+            $this->settings['global'] = [
+                'title'       => __('Global Partners', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners will be grouped by family, and content is provided through Family Extra Values.', TouchPointWP::TEXT_DOMAIN),
+                'fields'      => [
+//                    [
+//                        'id'          => 'global_search',
+//                        'label'       => __('Saved Search', TouchPointWP::TEXT_DOMAIN),
+//                        'description' => __(
+//                            'Anyone who is included in this saved search will be included in the listing.',
+//                            TouchPointWP::TEXT_DOMAIN
+//                        ),
+//                        'type'        => 'select',
+//                        'options'     => $includeDetail ? $this->parent->getSavedSearchesAsKVArray('text', true) : [],
+//                        'default'     => '',
+//                    ],
+                    [
+                        'id'          => 'global_bio',
+                        'label'       => __('Extra Value: Biography', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Import a Bio from a Family Extra Value field.  Can be an HTML or Text Extra Value.  Leave blank to not import.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeDetail ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'global_summary',
+                        'label'       => __('Extra Value: Summary', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Optional. Import a short description from a Family Extra Value field.  Can be an HTML or Text Extra Value.  If not provided, the full bio will be truncated.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeDetail ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'family_ev_custom',
+                        'label'       => __('Extra Values to Import', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Import Family Extra Value fields as Meta data on the partner\'s post.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'checkbox_multi',
+                        'options'     => $includeDetail ? $this->parent->getFamilyEvFieldsAsKVArray() : [],
+                        'default'     => [],
                     ],
                 ],
             ];

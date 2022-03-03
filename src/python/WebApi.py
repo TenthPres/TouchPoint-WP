@@ -96,12 +96,20 @@ elif (Data.a == "Keywords"):
     Data.keywords = q.QuerySql(kwSql, {})
 
 elif (Data.a == "PersonEvFields"):
-    pevSql = '''SELECT TOP 100 Field, [Type], count(*) as Count,
+    pevSql = '''SELECT Field, [Type], count(*) as Count,
                 SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8) Hash
                 FROM PeopleExtra WHERE [Field] NOT LIKE '%_mv'
                 GROUP BY [Field], [Type] ORDER BY count(*) DESC'''
     Data.Title = "Person Extra Value Fields"
     Data.personEvFields = q.QuerySql(pevSql, {})
+
+elif (Data.a == "FamilyEvFields"):
+    fevSql = '''SELECT Field, [Type], count(*) as Count,
+                SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8) Hash
+                FROM FamilyExtra WHERE [Field] NOT LIKE '%_mv'
+                GROUP BY [Field], [Type] ORDER BY count(*) DESC'''
+    Data.Title = "Family Extra Value Fields"
+    Data.familyEvFields = q.QuerySql(fevSql, {})
 
 elif (Data.a == "InvsForDivs"):
     regex = re.compile('[^0-9\,]')
@@ -242,7 +250,7 @@ elif (Data.a == "MemTypes"):
     Data.memTypes = model.SqlListDynamicData(memTypeSql)
 
 
-elif (Data.a == "ident" && model.HttpMethod == "post"):
+elif (Data.a == "ident" and model.HttpMethod == "post"):
     Data.Title = 'Matching People'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -275,7 +283,7 @@ elif (Data.a == "ident" && model.HttpMethod == "post"):
 
         Data.people = model.SqlListDynamicData(sql)
 
-elif (Data.a == "inv_join" && model.HttpMethod == "post"):
+elif (Data.a == "inv_join" and model.HttpMethod == "post"):
     Data.Title = 'Adding people to Involvement'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -312,7 +320,7 @@ They have also been added to your roster as prospective members.  Please move th
         model.CreateTaskNote(defaultSgTaskDelegatePid, addPeople[0].PeopleId, orgContactPid,
             None, False, text, None, None, keywords)
 
-elif (Data.a == "inv_contact" && model.HttpMethod == "post"):
+elif (Data.a == "inv_contact" and model.HttpMethod == "post"):
     # TODO potentially merge with Join function.  Much of the code is duplicated.
     Data.Title = 'Contacting Involvement Leaders'
     inData = model.JsonDeserialize(Data.data).inputData
@@ -344,7 +352,7 @@ elif (Data.a == "inv_contact" && model.HttpMethod == "post"):
     Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 
 
-elif (Data.a == "person_wpIds" && model.HttpMethod == "post"):
+elif (Data.a == "person_wpIds" and model.HttpMethod == "post"):
     Data.Title = 'Updating WordPress IDs.'
     inData = model.JsonDeserialize(Data.data).inputData
     Data.success = 0
@@ -356,7 +364,7 @@ elif (Data.a == "person_wpIds" && model.HttpMethod == "post"):
         Data.success += 1
 
 
-elif (Data.a == "person_contact" && model.HttpMethod == "post"):
+elif (Data.a == "person_contact" and model.HttpMethod == "post"):
     # TODO potentially merge with Join function.  Much of the code is duplicated.
     Data.Title = 'Contacting Person'
     inData = model.JsonDeserialize(Data.data).inputData
@@ -380,7 +388,7 @@ elif (Data.a == "person_contact" && model.HttpMethod == "post"):
     Data.success.append({'pid': p.peopleId, 'to': t})
 
 
-elif (Data.a == "mtg" && model.HttpMethod == "post"):
+elif (Data.a == "mtg" and model.HttpMethod == "post"):
     Data.Title = 'Getting Meeting Info'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -406,7 +414,7 @@ elif (Data.a == "mtg" && model.HttpMethod == "post"):
         mtg.invName = mtg.invName.strip()
         Data.success.append(mtg)
 
-elif (Data.a == "mtg_rsvp" && model.HttpMethod == "post"):
+elif (Data.a == "mtg_rsvp" and model.HttpMethod == "post"):
     Data.Title = 'Recording RSVPs'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -423,7 +431,7 @@ elif (Data.a == "mtg_rsvp" && model.HttpMethod == "post"):
             Data.success.append(pid)
 
 
-elif (Data.a == "people_get" && model.HttpMethod == "post"):
+elif (Data.a == "people_get" and model.HttpMethod == "post"):
     Data.Title = 'Getting People Info Based on Submitted Query'
     inData = json.loads(Data.data)['inputData']
 

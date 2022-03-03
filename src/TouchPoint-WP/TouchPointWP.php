@@ -1811,7 +1811,7 @@ class TouchPointWP
     {
         $r = [];
         if ($addNone) {
-            $r['none'] = '';
+            $r[''] = '';
         }
         if ($type !== null) {
             $type = strtolower(trim($type));
@@ -1827,6 +1827,85 @@ class TouchPointWP
                 $r['pev' . $pev->hash] = $pev->field . " (" . $pev->type . ")";
             } elseif ($type === strtolower($pev->type)) {
                 $r['pev' . $pev->hash] = $pev->field;
+            }
+        }
+
+        return $r;
+    }
+
+    /**
+     * Returns an array of objects that correspond to Family Extra Value Fields.  Each has a name and a type.
+     *
+     * @param array|null $matches Provide an array of items that should be matched. If provided, only matches are returned.
+     *
+     * @return array
+     */
+    public function getFamilyEvFields(?array $matches = null): array
+    {
+        $fevObj = $this->settings->get('meta_familyEvFields');
+
+        $needsUpdate = false;
+        if ($fevObj === false || $fevObj === null) {
+            $needsUpdate = true;
+        } else {
+            $fevObj = json_decode($fevObj);
+            if (strtotime($fevObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($fevObj->familyEvFields)) {
+                $needsUpdate = true;
+            }
+        }
+
+        // Get update if needed.
+        if ($needsUpdate) {
+            $fevObj = $this->updateFamilyEvFields();
+        }
+
+        // If update failed, show a notice on the admin interface.
+        if ($fevObj === false) {
+            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
+
+            return [];
+        }
+
+        if ($matches !== null) {
+            return array_filter(
+                $fevObj->personEvFields,
+                fn($f) => in_array('fev' . $f->hash, $matches) ||
+                          in_array($f->field . " | " . $f->type, $matches)
+            );
+        }
+
+        return $fevObj->familyEvFields;
+    }
+
+    /**
+     * Format the list of Family Extra Value Fields into an array with form-name-friendly IDs as the key.
+     *
+     * @param string|null $type     To limit the list to a particular data type, provide the name of the datatype.
+     *                              Needs to match the type in TouchPoint.
+     * @param bool        $addNone  Set true to add a "none" option to the list.
+     *
+     * @return string[]
+     */
+    public function getFamilyEvFieldsAsKVArray(?string $type = null, bool $addNone = false): array
+    {
+        $r = [];
+        if ($addNone) {
+            $r[''] = '';
+        }
+        if ($type !== null) {
+            $type = strtolower(trim($type));
+        }
+        foreach ($this->getFamilyEvFields() as $fev) {
+            if ($fev->field == '') { // Apparently blank EV Fields exist.
+                continue;
+            }
+            if ($type === null) { // not filtered by type
+                if ($fev->type === "") {
+                    $fev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
+                }
+                $r['fev' . $fev->hash] = $fev->field . " (" . $fev->type . ")";
+            } elseif ($type === strtolower($fev->type)) {
+                $r['fev' . $fev->hash] = $fev->field;
             }
         }
 
@@ -1903,6 +1982,44 @@ class TouchPointWP
         ];
 
         $this->settings->set("meta_personEvFields", json_encode($obj));
+
+        return $obj;
+    }
+
+    /**
+     * @return false|object Update the Person Extra Values if they're stale.
+     */
+    public function updateFamilyEvFields()
+    {
+        try {
+            $return = $this->apiGet('FamilyEvFields');
+            var_dump($return);
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
+
+        if ($return instanceof WP_Error) {
+            return false;
+        }
+
+        $body = json_decode($return['body']);
+
+        if (property_exists($body, "message")) {
+            return false;
+        }
+
+        if ( ! is_array($body->data->familyEvFields)) {
+            return false;
+        }
+
+        usort($body->data->familyEvFields, fn($a, $b) => strcasecmp($a->field, $b->field));
+
+        $obj = (object)[
+            '_updated' => date('c'),
+            'familyEvFields' => $body->data->familyEvFields
+        ];
+
+        $this->settings->set("meta_familyEvFields", json_encode($obj));
 
         return $obj;
     }
