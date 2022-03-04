@@ -110,6 +110,35 @@ elif (Data.a == "FamilyEvFields"):
                 GROUP BY [Field], [Type] ORDER BY count(*) DESC'''
     Data.Title = "Family Extra Value Fields"
     Data.familyEvFields = q.QuerySql(fevSql, {})
+    
+elif (Data.a == "SavedSearches"):
+    Data.savedSearches = model.DynamicData()
+    
+    if Data.PeopleId == '':
+        Data.savedSearches.public = model.SqlListDynamicData("""
+            SELECT TOP 100 q.Name, q.QueryId FROM Query q JOIN Users u ON LOWER(q.Owner) = LOWER(u.Username)
+            WHERE q.IsPublic = 1 AND q.LastRun > DATEADD(DAY, -90, GETDATE()) AND q.Name <> 'Draft'
+            ORDER BY q.Name
+        """)
+    else:
+        Data.savedSearches.user = model.SqlListDynamicData("""
+            SELECT TOP 100 q.Name, q.QueryId FROM Query q JOIN Users u ON LOWER(q.Owner) = LOWER(u.Username)
+            WHERE (u.PeopleId = {0}) AND q.LastRun > DATEADD(DAY, -90, GETDATE()) AND q.Name <> 'Draft'
+            ORDER BY q.Name
+        """.format(Data.PeopleId))
+        Data.savedSearches.public = model.SqlListDynamicData("""
+            SELECT TOP 100 q.Name, q.QueryId FROM Query q JOIN Users u ON LOWER(q.Owner) = LOWER(u.Username)
+            WHERE (q.IsPublic = 1 AND u.PeopleId <> {0}) AND q.LastRun > DATEADD(DAY, -90, GETDATE()) AND q.Name <> 'Draft'
+            ORDER BY q.Name
+        """.format(Data.PeopleId))
+
+    Data.savedSearches.flags = model.SqlListDynamicData("""
+        SELECT TOP 100 q.Name, q.QueryId FROM Query q
+        WHERE q.Name LIKE 'F[0-9][0-9]:%'
+        ORDER BY q.Name
+    """)
+    
+    Data.Title = "Saved Searches"
 
 elif (Data.a == "InvsForDivs"):
     regex = re.compile('[^0-9\,]')

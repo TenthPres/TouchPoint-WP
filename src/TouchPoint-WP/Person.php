@@ -91,7 +91,7 @@ class Person extends WP_User implements api, JsonSerializable
      * @param string $name
      * @param string $site_id
      */
-    public function __construct($id = 0, $name = '', $site_id = '')
+    protected function __construct($id = 0, $name = '', $site_id = '')
     {
         parent::__construct($id, $name, $site_id);
 
@@ -119,6 +119,8 @@ class Person extends WP_User implements api, JsonSerializable
     }
 
     /**
+     * Get a person from a WordPress User ID
+     *
      * @param $id
      *
      * @return Person|null

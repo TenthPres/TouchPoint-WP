@@ -1456,12 +1456,7 @@ class TouchPointWP
      */
     public function getDivisionsAsKVArray(): array
     {
-        $r = [];
-        foreach ($this->getDivisions() as $d) {
-            $r['div' . $d->id] = $d->name;
-        }
-
-        return $r;
+        return self::flattenArrayToKV($this->getDivisions(), 'id', 'name', 'div');
     }
 
     /**
@@ -1484,7 +1479,7 @@ class TouchPointWP
             }
         }
 
-        // Get update if needed.  TODO move to cron.
+        // Get update if needed.
         if ($needsUpdate) {
             $divsObj = $this->updateDivisions();
         }
@@ -1746,12 +1741,7 @@ class TouchPointWP
      */
     public function getKeywordsAsKVArray(): array
     {
-        $r = [];
-        foreach ($this->getKeywords() as $k) {
-            $r['key' . $k->id] = $k->name;
-        }
-
-        return $r;
+        return self::flattenArrayToKV($this->getKeywords(), 'id', 'name', 'key');
     }
 
     /**
@@ -1912,6 +1902,107 @@ class TouchPointWP
         return $r;
     }
 
+
+    /**
+     * Get the person that corresponds to the current user, if the current user is authenticated, and the user is associated with a PeopleId.
+     *
+     * @return Person|null
+     */
+    public static function currentUserPerson(): ?Person
+    {
+        $wpUserId = get_current_user_id();
+        if ($wpUserId > 0) {
+            return Person::fromId($wpUserId);
+        }
+        return null;
+    }
+
+
+    /**
+     * Get a list of saved searches pertinent to the current user.  These are grouped by type: User's searches, Public, and Flags.
+     *
+     * @return string[][]
+     */
+    public function getSavedSearches(?int $peopleId = null, $includeValue = null): array
+    {
+        if (intval($peopleId) === 0) {
+            $peopleId = self::currentUserPerson()->peopleId;
+        }
+
+        $error = false;
+        $srcResult = [];
+        try {
+            $srcResult = $this->apiGet('SavedSearches', ['PeopleId' => $peopleId]);
+        } catch (TouchPointWP_Exception $e) {
+            $error = true;
+        }
+
+        if ($srcResult instanceof WP_Error) {
+            $error = true;
+        }
+
+        $body = json_decode($srcResult['body']);
+
+        if (property_exists($body, "message")) {
+            $error = true;
+        }
+
+        if ( ! is_object($body->data->savedSearches)) {
+            $error = true;
+        }
+
+        // If update failed, show a notice on the admin interface.
+        if ($error) {
+            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
+
+            return [];
+        }
+
+        $r = [];
+        foreach ((array)$body->data->savedSearches as $group => $sArr) {
+            $kv = self::flattenArrayToKV($sArr, 'QueryId', 'Name');
+            if ($includeValue != null && isset($kv[$includeValue])) { // required value is included
+                $includeValue = null;
+            }
+            switch ($group) {
+                case "user":
+                    $r[__("Your Searches", TouchPointWP::TEXT_DOMAIN)] = $kv;
+                    break;
+                case "public":
+                    $r[__("Public Searches", TouchPointWP::TEXT_DOMAIN)] = $kv;
+                    break;
+                case "flags":
+                    $r[__("Status Flags", TouchPointWP::TEXT_DOMAIN)] = $kv;
+                    break;
+            }
+        }
+        if ($includeValue != null) {
+            $r[__("Current Value", TouchPointWP::TEXT_DOMAIN)] = [
+                $includeValue => __("Current Value", TouchPointWP::TEXT_DOMAIN)
+            ];
+        }
+
+        return $r;
+    }
+
+    /**
+     * @param array  $array
+     * @param string $kField
+     * @param string $vField
+     * @param string $kPrefix
+     *
+     * @return array
+     */
+    public static function flattenArrayToKV(array $array, string $kField, string $vField, string $kPrefix = ''): array
+    {
+        $r = [];
+        foreach ($array as $e) {
+            $e = (array)$e;
+            $r[$kPrefix . $e[$kField]] = $e[$vField];
+        }
+        return $r;
+    }
+
     /**
      * @return false|object Update the keywords if they're stale.
      */
@@ -1993,7 +2084,6 @@ class TouchPointWP
     {
         try {
             $return = $this->apiGet('FamilyEvFields');
-            var_dump($return);
         } catch (TouchPointWP_Exception $e) {
             return false;
         }

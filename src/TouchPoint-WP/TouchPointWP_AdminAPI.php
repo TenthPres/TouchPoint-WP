@@ -185,6 +185,22 @@ class TouchPointWP_AdminAPI implements api {
                 $html .= '</select> ';
                 break;
 
+            case 'select_grouped':
+                $html .= '<select name="' . esc_attr( $option_name ) . '" id="' . esc_attr( $field['id'] ) . '">';
+                foreach ( $field['options'] as $grp => $opts ) {
+                    $html .= '<optgroup label="' . esc_attr($grp) . '">';
+                    foreach ( $opts as $k => $v ) {
+                        $selected = false;
+                        if ( $k === $data ) {
+                            $selected = true;
+                        }
+                        $html .= '<option ' . selected( $selected, true, false ) . ' value="' . esc_attr( $k ) . '">' . $v . '</option>';
+                    }
+                    $html .= '</optgroup>';
+                }
+                $html .= '</select> ';
+                break;
+
             case 'select_multi':
                 $html .= '<select name="' . esc_attr( $option_name ) . '[]" id="' . esc_attr( $field['id'] ) . '" multiple="multiple">';
                 foreach ( $field['options'] as $k => $v ) {

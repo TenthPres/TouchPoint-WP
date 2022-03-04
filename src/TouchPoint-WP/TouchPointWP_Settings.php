@@ -38,6 +38,11 @@ if ( ! defined('ABSPATH')) {
  * @property-read string people_ev_wpId     The name of the extra value field where the WordPress User ID will be stored.
  * @property-read array people_ev_custom    Custom Extra values that are copied as user meta fields
  *
+ * @property-read string global_search      The uid for the saved search to use for global partners
+ * @property-read string global_description A Family Extra Value to import as the body of a global partner's post.
+ * @property-read string global_summary     A Family Extra Value to import as the summary of a global partner.
+ * @property-read array global_fev_custom   Custom Family Extra values that are copied as post meta fields
+ *
  * @property-read string auth_script_name   The name of the Python script within TouchPoint
  * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
  * @property-read string auth_change_profile_urls Enabled to indicate the profiles should be located on TouchPoint
@@ -499,24 +504,24 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on" || $includeAll) { // TODO MULTI
             $this->settings['global'] = [
                 'title'       => __('Global Partners', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners will be grouped by family, and content is provided through Family Extra Values.', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners are grouped by family, and content is provided through Family Extra Values.  This works for both People and Business records.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
-//                    [
-//                        'id'          => 'global_search',
-//                        'label'       => __('Saved Search', TouchPointWP::TEXT_DOMAIN),
-//                        'description' => __(
-//                            'Anyone who is included in this saved search will be included in the listing.',
-//                            TouchPointWP::TEXT_DOMAIN
-//                        ),
-//                        'type'        => 'select',
-//                        'options'     => $includeDetail ? $this->parent->getSavedSearchesAsKVArray('text', true) : [],
-//                        'default'     => '',
-//                    ],
                     [
-                        'id'          => 'global_bio',
-                        'label'       => __('Extra Value: Biography', TouchPointWP::TEXT_DOMAIN),
+                        'id'          => 'global_search',
+                        'label'       => __('Saved Search', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
-                            'Import a Bio from a Family Extra Value field.  Can be an HTML or Text Extra Value.  Leave blank to not import.',
+                            'Anyone who is included in this saved search will be included in the listing.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select_grouped',
+                        'options'     => $includeDetail ? $this->parent->getSavedSearches(null, $this->global_search) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'global_description',
+                        'label'       => __('Extra Value: Description', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Import a description from a Family Extra Value field.  Can be an HTML or Text Extra Value.  This becomes the body of the Global Partner post.',
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'select',
@@ -535,7 +540,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'default'     => '',
                     ],
                     [
-                        'id'          => 'family_ev_custom',
+                        'id'          => 'global_fev_custom',
                         'label'       => __('Extra Values to Import', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'Import Family Extra Value fields as Meta data on the partner\'s post.',
