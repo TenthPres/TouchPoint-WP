@@ -437,7 +437,7 @@ class TouchPointWP
         if ($this->involvements !== null) {
             echo Involvement::getJsInstantiationString();
         }
-        echo "</script>";
+        echo "\n</script>";
     }
 
 

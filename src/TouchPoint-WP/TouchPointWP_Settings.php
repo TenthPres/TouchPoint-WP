@@ -151,7 +151,7 @@ class TouchPointWP_Settings
      */
     public function initSettings(): void
     {
-        $this->settings = $this->settingsFields(false, false);
+        $this->settings = $this->settingsFields(false);
     }
 
     /**
@@ -172,18 +172,19 @@ class TouchPointWP_Settings
     /**
      * Build settings fields
      *
-     * @param bool $includeAll Set to true to return all settings parameters, including those for disabled features.
-     * @param bool $includeDetail Set to true to get options from TouchPoint, potentially including the API call.
+     * @param bool|string $includeDetail Set to true to get options from TouchPoint, likely including the API calls. Set
+     *                      to the key of a specific page to only load options for that page.
      *
      * @return array Fields to be displayed on settings page
      */
-    private function settingsFields(bool $includeAll = false, ?bool $includeDetail = null): array
+    private function settingsFields($includeDetail = false): array
     {
-        if ($includeDetail !== false) {
-            $includeDetail = $this->hasValidApiSettings();
+        // Don't call API if we don't have API credentials
+        if (!$this->hasValidApiSettings()) {
+            $includeDetail = false;
         }
 
-        if (count($this->settings) > 0 && ($includeDetail === $this->settingsIncludeDetail || !$includeDetail)) {
+        if (count($this->settings) > 0 && !$includeDetail) {
             // Settings are already loaded, and they have adequate detail for the task at hand.
             return $this->settings;
         }
@@ -346,7 +347,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on" || $includeAll) { // TODO MULTI
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on") { // TODO MULTI
+            $includeThis = $includeDetail === true || $includeDetail === 'people';
             $this->settings['people'] = [
                 'title'       => __('People', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Manage how people are synchronized between TouchPoint and WordPress.', TouchPointWP::TEXT_DOMAIN),
@@ -359,7 +361,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getKeywordsAsKVArray() : [],
+                        'options'     => $includeThis ? $this->parent->getKeywordsAsKVArray() : [],
                         'default'     => [],
                     ],
                     [
@@ -381,7 +383,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'select',
-                        'options'     => $includeDetail ? $this->parent->getPersonEvFieldsAsKVArray('text', true) : [],
+                        'options'     => $includeThis ? $this->parent->getPersonEvFieldsAsKVArray('text', true) : [],
                         'default'     => '',
                     ],
                     [
@@ -392,14 +394,15 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getPersonEvFieldsAsKVArray() : [],
+                        'options'     => $includeThis ? $this->parent->getPersonEvFieldsAsKVArray() : [],
                         'default'     => [],
                     ],
                 ],
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on" || $includeAll) { // TODO MULTI
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on") { // TODO MULTI
+            $includeThis = $includeDetail === true || $includeDetail === 'authentication';
             $this->settings['authentication'] = [
                 'title'       => __('Authentication', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Allow users to log into WordPress using TouchPoint.', TouchPointWP::TEXT_DOMAIN),
@@ -476,7 +479,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on" || $includeAll) {  // TODO MULTI
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {  // TODO MULTI
+            $includeThis = $includeDetail === true || $includeDetail === 'involvements';
             $this->settings['involvements'] = [
                 'title'       => __('Involvements', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Import Involvements from TouchPoint to your website, for Small Groups, Classes, and more.  You do not need to import an involvement here to use the RSVP tool.', TouchPointWP::TEXT_DOMAIN),
@@ -487,7 +491,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'label'       => __('Involvement Posts', 'TouchPoint-WP'),
                         'default'     => '{}',
                         'hidden'      => true,
-                        'description' => function() {
+                        'description' => !$includeThis ? "" : function() {
                             TouchPointWP::requireScript("base");
                             TouchPointWP::requireScript("knockout-defer");
                             ob_start();
@@ -501,7 +505,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on" || $includeAll) { // TODO MULTI
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on") { // TODO MULTI
+            $includeThis = $includeDetail === true || $includeDetail === 'global';
             $this->settings['global'] = [
                 'title'       => __('Global Partners', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners are grouped by family, and content is provided through Family Extra Values.  This works for both People and Business records.', TouchPointWP::TEXT_DOMAIN),
@@ -514,7 +519,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'select_grouped',
-                        'options'     => $includeDetail ? $this->parent->getSavedSearches(null, $this->global_search) : [],
+                        'options'     => $includeThis ? $this->parent->getSavedSearches(null, $this->global_search) : [],
                         'default'     => '',
                     ],
                     [
@@ -525,7 +530,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'select',
-                        'options'     => $includeDetail ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
                         'default'     => '',
                     ],
                     [
@@ -536,7 +541,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'select',
-                        'options'     => $includeDetail ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
                         'default'     => '',
                     ],
                     [
@@ -547,14 +552,14 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getFamilyEvFieldsAsKVArray() : [],
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray() : [],
                         'default'     => [],
                     ],
                 ],
             ];
         }
 
-        if (class_exists("tp\TouchPointWP\EventsCalendar") || $includeAll) {
+        if (class_exists("tp\TouchPointWP\EventsCalendar")) {
             $this->settings['events_calendar'] = [
                 'title'       => __('Events Calendar', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Integrate with The Events Calendar from ModernTribe.', TouchPointWP::TEXT_DOMAIN),
@@ -585,6 +590,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
+        $includeThis = $includeDetail === true || $includeDetail === 'divisions';
         $this->settings['divisions'] = [
             'title'       => __('Divisions', TouchPointWP::TEXT_DOMAIN),
             'description' => __('Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', TouchPointWP::TEXT_DOMAIN),
@@ -631,7 +637,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'checkbox_multi',
-                    'options'     => $includeDetail ? $this->parent->getDivisionsAsKVArray() : [],
+                    'options'     => $includeThis ? $this->parent->getDivisionsAsKVArray() : [],
                     'default'     => [],
                     'callback'    => function($new) {sort($new); return $new;}
                 ],
@@ -1090,18 +1096,20 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     public function registerSettings(): void
     {
-        $this->settings = $this->settingsFields(false, is_admin() && !wp_doing_ajax());
+        $currentSection = false;
+        if (isset($_POST['tab']) && $_POST['tab']) {
+            $currentSection = $_POST['tab'];
+        } elseif (isset($_GET['tab']) && $_GET['tab']) {
+            $currentSection = $_GET['tab'];
+        }
+        var_dump($currentSection);
+
+        $this->settings = $this->settingsFields($currentSection);
         if (is_array($this->settings)) {
             // Check posted/selected tab.
-            $current_section = '';
-            if (isset($_POST['tab']) && $_POST['tab']) {
-                $current_section = $_POST['tab'];
-            } elseif (isset($_GET['tab']) && $_GET['tab']) {
-                $current_section = $_GET['tab'];
-            }
 
             foreach ($this->settings as $section => $data) {
-                if ($current_section && $current_section !== $section) {
+                if ($currentSection && $currentSection !== $section) {
                     continue;
                 }
 
@@ -1142,7 +1150,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     );
                 }
 
-                if ( ! $current_section) {
+                if ( ! $currentSection) {
                     break;
                 }
             }
@@ -1158,7 +1166,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     protected function getDefaultValueForSetting(string $id)
     {
-        foreach ($this->settingsFields(false, false) as $category) {
+        foreach ($this->settingsFields(false) as $category) {
             foreach ($category['fields'] as $field) {
                 if ($field['id'] === $id){
                     return $field['default'] ?? self::UNDEFINED_PLACEHOLDER;
