@@ -1102,7 +1102,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         } elseif (isset($_GET['tab']) && $_GET['tab']) {
             $currentSection = $_GET['tab'];
         }
-        var_dump($currentSection);
 
         $this->settings = $this->settingsFields($currentSection);
         if (is_array($this->settings)) {
