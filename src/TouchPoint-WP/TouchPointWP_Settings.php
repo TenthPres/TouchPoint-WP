@@ -38,10 +38,17 @@ if ( ! defined('ABSPATH')) {
  * @property-read string people_ev_wpId     The name of the extra value field where the WordPress User ID will be stored.
  * @property-read array people_ev_custom    Custom Extra values that are copied as user meta fields
  *
+ * @property-read string global_name_plural What global partners should be called, plural (e.g. "Missionaries" or "Ministry Partners")
+ * @property-read string global_name_singular What a global partner should be called, singular (e.g. "Missionary" or "Ministry Partner")
+ * @property-read string global_slug        Slug for global partners (e.g. "partners" for church.org/partners)
  * @property-read string global_search      The uid for the saved search to use for global partners
  * @property-read string global_description A Family Extra Value to import as the body of a global partner's post.
  * @property-read string global_summary     A Family Extra Value to import as the summary of a global partner.
+ * @property-read string global_geo_lat     A Family Extra Value to import as an overriding latitude.
+ * @property-read string global_geo_lng     A Family Extra Value to import as an overriding longitude.
  * @property-read array global_fev_custom   Custom Family Extra values that are copied as post meta fields
+ *
+ * @property-read int|false global_cron_last_run Timestamp of the last time the Partner syncing task ran.  (No setting UI.)
  *
  * @property-read string auth_script_name   The name of the Python script within TouchPoint
  * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
@@ -512,6 +519,40 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 'description' => __('Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners are grouped by family, and content is provided through Family Extra Values.  This works for both People and Business records.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
                     [
+                        'id'          => 'global_name_plural',
+                        'label'       => __('Global Partner Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'What you call Global Partners at your church',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Partners',
+                        'placeholder' => 'Partners'
+                    ],
+                    [
+                        'id'          => 'global_name_singular',
+                        'label'       => __('Global Partner Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'What you call a Global Partner at your church',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Partner',
+                        'placeholder' => 'Partner'
+                    ],
+                    [
+                        'id'          => 'global_slug',
+                        'label'       => __('Global Partner Slug', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'The root path for Global Partner posts',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'partners',
+                        'placeholder' => 'partners',
+                        'callback'    => fn($new) => $this->validation_slug($new, 'global_slug')
+                    ],
+                    [
                         'id'          => 'global_search',
                         'label'       => __('Saved Search', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
@@ -538,6 +579,28 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'label'       => __('Extra Value: Summary', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'Optional. Import a short description from a Family Extra Value field.  Can be an HTML or Text Extra Value.  If not provided, the full bio will be truncated.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'global_geo_lat',
+                        'label'       => __('Latitude Override', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Designate a text Family Extra Value that will contain a latitude that overrides any locations on the partner\'s profile for the partner map.  Both latitude and longitude must be provided for an override to take place.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'global_geo_lng',
+                        'label'       => __('Longitude Override', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Designate a text Family Extra Value that will contain a longitude that overrides any locations on the partner\'s profile for the partner map.  Both latitude and longitude must be provided for an override to take place.',
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'select',

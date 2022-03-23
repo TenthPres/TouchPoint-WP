@@ -70,7 +70,6 @@ class Involvement implements api
         $this->attributes = (object)[];
 
         if (gettype($object) === "object" && get_class($object) == WP_Post::class) {
-            /** @var $object WP_Post */
             // WP_Post Object
             $this->post = $object;
             $this->name = $object->post_title;
@@ -455,7 +454,7 @@ class Involvement implements api
 
             if (is_object($post)) {
                 try {
-                    $inv = Involvement::fromPost($post);
+                    $inv = self::fromPost($post);
                     $iid = $inv->invId;
                 } catch (TouchPointWP_Exception $e) {
                     $iid = null;
@@ -469,7 +468,7 @@ class Involvement implements api
         }
 
         try {
-            $inv = Involvement::fromInvId($iid);
+            $inv = self::fromInvId($iid);
         } catch(TouchPointWP_Exception $e) {
             return "<!-- Error: " . $e->getMessage() . " -->";
         }
@@ -1012,7 +1011,7 @@ class Involvement implements api
             $q = new WP_Query(
                 [
                     'post_type' => Involvement::getPostTypes(),
-                    'meta_key'   => TouchPointWP::SETTINGS_PREFIX . "invId",
+                    'meta_key'   => self::INVOLVEMENT_META_KEY,
                     'meta_value' => (string)$iid
                 ]
             );
@@ -1154,16 +1153,6 @@ class Involvement implements api
      */
     public static function registerScriptsAndStyles(): void
     {
-        wp_register_script(
-            TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
-            sprintf(
-                "https://maps.googleapis.com/maps/api/js?key=%s&v=3&libraries=geometry",
-                TouchPointWP::instance()->settings->google_maps_api_key
-            ),
-            [TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
-            null,
-            true
-        );
     }
 
     /**
@@ -1287,7 +1276,7 @@ class Involvement implements api
             $q = new WP_Query(
                 [
                     'post_type'  => $typeSets->postType,
-                    'meta_key'   => TouchPointWP::SETTINGS_PREFIX . "invId",
+                    'meta_key'   => self::INVOLVEMENT_META_KEY,
                     'meta_value' => $inv->involvementId
                 ]
             );
@@ -1300,7 +1289,7 @@ class Involvement implements api
                         'post_type'  => $typeSets->postType,
                         'post_name'  => $inv->name,
                         'meta_input' => [
-                            TouchPointWP::SETTINGS_PREFIX . "invId" => $inv->involvementId
+                            self::INVOLVEMENT_META_KEY => $inv->involvementId
                         ]
                     ]
                 );
@@ -1544,6 +1533,9 @@ class Involvement implements api
             // Handle leaders  TODO make leaders WP Users
             if (array_key_exists('leadMemTypes', $qOpts) && property_exists($inv, "leaders")) {
                 $nameString = Person::arrangeNamesForPeople($inv->leaders);
+                if ($verbose) {
+                    echo "<p>Leaders: $nameString</p>";
+                }
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders", $nameString);
             }
 

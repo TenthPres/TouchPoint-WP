@@ -142,6 +142,17 @@ class TouchPointWP
     protected ?bool $involvements = null;
 
     /**
+     * @var ?bool True after the Global feature is loaded.
+     */
+    protected ?bool $global = null;
+
+
+    /**
+     * @var ?bool True after the People feature is loaded.
+     */
+    protected ?bool $people = null;
+
+    /**
      * @var ?WP_Http Object for API requests.
      */
     private ?WP_Http $httpClient = null;
@@ -314,6 +325,15 @@ class TouchPointWP
                 }
             }
 
+            // Global Partner endpoint
+            if ($reqUri['path'][1] === "global" &&
+                $this->settings->enable_global === "on"
+            ) {
+                if (!Partner::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
             // Person endpoint
             if ($reqUri['path'][1] === "person") {
                 if (!Person::api($reqUri)) {
@@ -437,6 +457,9 @@ class TouchPointWP
         if ($this->involvements !== null) {
             echo Involvement::getJsInstantiationString();
         }
+        if ($this->global !== null) {
+            echo Partner::getJsInstantiationString();
+        }
         echo "\n</script>";
     }
 
@@ -499,10 +522,16 @@ class TouchPointWP
             $instance->involvements = Involvement::load();
         }
 
+        // Load Global Partners tool if enabled.
+        if ($instance->settings->enable_global === "on") {
+            require_once 'Partner.php';
+            $instance->global = Partner::load();
+        }
+
         // Load Person for People Indexes.
         if ($instance->settings->enable_people_lists === "on") {
             require_once 'Person.php';
-            $instance->involvements = Person::load();
+            $instance->people = Person::load();
         }
 
         // Load Events if enabled (by presence of Events Calendar plugin)
@@ -568,8 +597,23 @@ class TouchPointWP
             true
         );
 
+        wp_register_script(
+            TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
+            sprintf(
+                "https://maps.googleapis.com/maps/api/js?key=%s&v=3&libraries=geometry",
+                TouchPointWP::instance()->settings->google_maps_api_key
+            ),
+            [TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
+            null,
+            true
+        );
+
         if ( ! ! $this->involvements) {
             Involvement::registerScriptsAndStyles();
+        }
+
+        if ( ! ! $this->global) {
+            Partner::registerScriptsAndStyles();
         }
 
 //        if ( ! ! $this->auth) {
@@ -1262,6 +1306,8 @@ class TouchPointWP
         // TODO remove all posts
 
         wp_clear_scheduled_hook(Involvement::CRON_HOOK);
+        wp_clear_scheduled_hook(Partner::CRON_HOOK);
+        wp_clear_scheduled_hook(Person::CRON_HOOK);
 
         self::dropTables();
     }
@@ -1412,7 +1458,7 @@ class TouchPointWP
      *
      * @return array
      */
-    public function getMemberTypesForDivisions(array $divisions = []): array // TODO figure out why this is getting called on ALL admin pages.
+    public function getMemberTypesForDivisions(array $divisions = []): array
     {
         $divisions = implode(",", $divisions);
         $divisions = str_replace('div','', $divisions);
@@ -1778,10 +1824,12 @@ class TouchPointWP
         }
 
         if ($matches !== null) {
-            return array_filter(
+            return array_values(
+                array_filter(
                 $pevObj->personEvFields,
-                fn($f) => in_array('pev' . $f->hash, $matches) ||
+                fn($f) => in_array($f->hash, $matches) ||
                           in_array($f->field . " | " . $f->type, $matches)
+                )
             );
         }
 
@@ -1814,9 +1862,9 @@ class TouchPointWP
                 if ($pev->type === "") {
                     $pev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
                 }
-                $r['pev' . $pev->hash] = $pev->field . " (" . $pev->type . ")";
+                $r[$pev->hash] = $pev->field . " (" . $pev->type . ")";
             } elseif ($type === strtolower($pev->type)) {
-                $r['pev' . $pev->hash] = $pev->field;
+                $r[$pev->hash] = $pev->field;
             }
         }
 
@@ -1857,10 +1905,12 @@ class TouchPointWP
         }
 
         if ($matches !== null) {
-            return array_filter(
-                $fevObj->personEvFields,
-                fn($f) => in_array('fev' . $f->hash, $matches) ||
+            return array_values(
+                array_filter(
+                $fevObj->familyEvFields,
+                fn($f) => in_array($f->hash, $matches) ||
                           in_array($f->field . " | " . $f->type, $matches)
+                )
             );
         }
 
@@ -1893,9 +1943,9 @@ class TouchPointWP
                 if ($fev->type === "") {
                     $fev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
                 }
-                $r['fev' . $fev->hash] = $fev->field . " (" . $fev->type . ")";
+                $r[$fev->hash] = $fev->field . " (" . $fev->type . ")";
             } elseif ($type === strtolower($fev->type)) {
-                $r['fev' . $fev->hash] = $fev->field;
+                $r[$fev->hash] = $fev->field;
             }
         }
 
@@ -2121,7 +2171,7 @@ class TouchPointWP
      * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
      * Data is generally in json_decode($response['body'])->data
      *
-     * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
+     * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.  TODO make consistent with apiPost
      */
     public function apiGet(string $command, ?array $parameters = null)
     {
@@ -2157,11 +2207,12 @@ class TouchPointWP
     /**
      * @param string $command The thing to post
      * @param mixed  $data Data to post
+     * @param int    $timeout Amount of time in sec to wait before timing out.
      *
      * @return object|WP_Error An object that corresponds to the Data python object in TouchPoint, or a WP_Error
      * instance if something went wrong.
      */
-    public function apiPost(string $command, $data = null)
+    public function apiPost(string $command, $data = null, int $timeout = 5)
     {
         if (!$this->settings->hasValidApiSettings()) {
             return new WP_Error(self::SHORTCODE_PREFIX . "api-settings", "Invalid or incomplete API Settings.");
@@ -2185,7 +2236,8 @@ class TouchPointWP
                             $this->settings->api_user . ':' . $this->settings->api_pass
                         )
                 ],
-                'body' => ['data' => $data]
+                'body' => ['data' => $data],
+                'timeout' => $timeout
             ]
         );
 
@@ -2222,6 +2274,37 @@ class TouchPointWP
                 'method'  => 'GET'
             ]
         );
+    }
+
+    /**
+     * Submit a person query with a structured array with the parameters.
+     *
+     * @param array $q
+     * @param bool  $verbose
+     * @param int   $timeout
+     *
+     * @return false|object|WP_Error
+     */
+    public function doPersonQuery(array $q, bool $verbose = false, int $timeout = 5)
+    {
+        $data = TouchPointWP::instance()->apiPost('people_get', $q, $timeout);
+
+        if ($data instanceof WP_Error) {
+            if ($verbose) {
+                var_dump($data->get_error_messages());
+            }
+            return $data;
+        }
+
+        // Validate that the API returned something
+        if (!isset($data->people) || (!is_array($data->people) && !is_object($data->people))) {
+            // API error or something.  Update fails.
+            return false;
+        }
+
+        $data->people = (array)$data->people;
+
+        return $data;
     }
 
     /**
@@ -2288,5 +2371,24 @@ class TouchPointWP
                 TouchPointWP::VERSION
             );
         }
+    }
+
+    /**
+     * Create a basic parameter array for doPersonQuery
+     *
+     * @return array
+     *
+     * @see doPersonQuery
+     */
+    public static function newQueryObject(): array
+    {
+        return [
+            'pid' => [],
+            'inv' => [],
+            'src' => [],
+            'meta' => [],
+            'groupBy' => null,
+            'context' => null
+        ];
     }
 }

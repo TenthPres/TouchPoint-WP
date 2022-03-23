@@ -1,5 +1,6 @@
 const tpvm = {
     involvements: [],
+    partners: [],
     meetings: [],
     people: {},
     _actions: {}, // collection of actions that have been registered that can be linked via location.hash.

@@ -323,6 +323,7 @@ class Person extends WP_User implements api, JsonSerializable
             if (! isset(self::$_indexingQueries['inv'][$iid])) {
                 /** @noinspection SpellCheckingInspection */
                 self::$_indexingQueries['inv'][$iid] = [
+                    'invId' => $iid,
                     'memTypes' => null,
 //                    'subGroups' => null,
                     'with_subGroups' => false // populated below
@@ -519,16 +520,16 @@ class Person extends WP_User implements api, JsonSerializable
 
     /**
      * Updates the data for all People Lists in the site.
+     *
+     * @param bool $verbose Whether to print debugging info.
+     *
+     * @return false|int False on failure, or the number of partner posts that were updated or deleted.
      */
-    protected static function updateFromTouchPoint(): void
+    protected static function updateFromTouchPoint(bool $verbose = false)
     {
         global $wpdb;
 
-        self::$_indexingQueries = [
-            'pid' => [],
-            'inv' => [],
-            'meta' => []
-        ];
+        self::$_indexingQueries = TouchPointWP::newQueryObject();
 
         $pidMeta = self::META_PEOPLEID;
         $queryNeeded = false;
@@ -565,7 +566,7 @@ class Person extends WP_User implements api, JsonSerializable
         // Prevent sync from running if plugin hasn't been configured and there's nothing to sync yet.
         if (!$queryNeeded) {
             echo "Nothing to update";
-            return;
+            return 0;
         }
 
         // List needed Extra Value fields.
@@ -576,37 +577,33 @@ class Person extends WP_User implements api, JsonSerializable
             $pevFieldIds[] = TouchPointWP::instance()->settings->people_ev_bio;
         }
         self::$_indexingQueries['meta']['pev'] = TouchPointWP::instance()->getPersonEvFields($pevFieldIds);
+        self::$_indexingQueries['context'] = 'peopleLists';
 
         // Submit to API
-        $data = TouchPointWP::instance()->apiPost('people_get', self::$_indexingQueries);
+        $people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, 50);
 
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
-            exit;
-        }
-
-        // Validate that the API returned something
-        if (!isset($data->people) || !is_array($data->people)) {
-            // API error or something.  Update fails.
-            return;
+        if ($people instanceof WP_Error || $people == false) {
+            return false;
         }
 
         // Parse the API results
-        $people = $data->people ?? [];
-        $count = self::updatePeopleFromApiData($people);
+        $count = self::updatePeopleFromApiData($people->people);
 
         if ($count !== 0) {
             TouchPointWP::instance()->settings->set('person_cron_last_run', time());
             echo "Success";
         }
+
+        return $count;
     }
 
     /**
      * @param stdClass[] $people An array of objects from TouchPoint that each corresponds with a Person.
+     * @param bool       $verbose
      *
      * @return int  False on failure.  Otherwise, the number of updates.
      */
-    protected static function updatePeopleFromApiData(array $people): int
+    protected static function updatePeopleFromApiData(array $people, bool $verbose = false): int
     {
         $peopleUpdated = 0;
 
@@ -697,39 +694,27 @@ class Person extends WP_User implements api, JsonSerializable
 
             // Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
 
-            // People Extra Values
-            // Organize items
-            $new = [];
-            $siteTz = wp_timezone();
-            foreach ($pData->PeopleEV as $pev) {
-                switch ($pev->type) {
-                    case "Date":
-                        $new[$pev->field . " | " . $pev->type] = \DateTime::createFromFormat("Y-m-d\TH:i:s", $pev->value, $siteTz);
-                        break;
-                    default:
-                        $new[$pev->field . " | " . $pev->type] = $pev->value;
-                }
-
-            }
-            $pData->PeopleEV = $new;
-            unset($new, $pev);
+            // Apply EV Types
+            $pData->PeopleEV = ExtraValueHandler::jsonToDataTyped($pData->PeopleEV);
 
             // Apply Custom EVs
             $fields = TouchPointWP::instance()->getPersonEvFields(TouchPointWP::instance()->settings->people_ev_custom);
-            foreach ($fields as $f) {
-                if (isset($pData->PeopleEV[$f->field . " | " . $f->type])) {
-                    $person->setExtraValueWP($f->field, $pData->PeopleEV[$f->field . " | " . $f->type]);
+            var_dump($fields);
+            var_dump($pData->PeopleEV);
+            foreach ($fields as $fld) {
+                if (isset($pData->PeopleEV->{$fld->hash})) {
+                    $person->setExtraValueWP($fld->field, $pData->PeopleEV->{$fld->hash}->value);
                 } else {
-                    $person->removeExtraValueWP($f->field);
+                    $person->removeExtraValueWP($fld->field);
                 }
             }
-            unset($fields, $f);
+            unset($fields, $fld);
 
             // Apply Bio EV
             $bioField = TouchPointWP::instance()->settings->people_ev_bio;
             if ($bioField !== "") {
-                if (isset($pData->PeopleEV[$bioField . " | Text"])) {
-                    update_user_meta($person->ID, 'description', $pData->PeopleEV[$bioField . " | Text"]);
+                if (isset($pData->PeopleEV->$bioField)) {
+                    update_user_meta($person->ID, 'description', $pData->PeopleEV->$bioField);
                 } else {
                     update_user_meta($person->ID, 'description', '');
                 }
@@ -739,45 +724,47 @@ class Person extends WP_User implements api, JsonSerializable
             // Removal of no-longer valid EV Fields happens within Cleanup::cleanupPersonEVs
 
             // Involvements!
-            $currentInvs = $person->getInvolvementMemberships();
-            $inv_del = array_keys($currentInvs);
-            $inv_updates = [];
+            if (isset($pData->Inv)) {
+                $currentInvs = $person->getInvolvementMemberships();
+                $inv_del     = array_keys($currentInvs);
+                $inv_updates = [];
 
-            // Process diffs, as appropriate.
-            foreach ($pData->Inv as $i) {
-                if(($key = array_search($i->iid, $inv_del)) !== false){
-                    unset($inv_del[$key]);
-                }
+                // Process diffs, as appropriate.
+                foreach ($pData->Inv as $i) {
+                    if (($key = array_search($i->iid, $inv_del)) !== false) {
+                        unset($inv_del[$key]);
+                    }
 
-                if (!isset($currentInvs[$i->iid])) {
-                    $inv_updates[self::META_INV_MEMBER_PREFIX . $i->iid] = $i->memType;
-                    $inv_updates[self::META_INV_ATTEND_PREFIX . $i->iid] = $i->attType;
-                    $inv_updates[self::META_INV_DESC_PREFIX . $i->iid] = $i->descr;
-                    continue;
-                }
+                    if ( ! isset($currentInvs[$i->iid])) {
+                        $inv_updates[self::META_INV_MEMBER_PREFIX . $i->iid] = $i->memType;
+                        $inv_updates[self::META_INV_ATTEND_PREFIX . $i->iid] = $i->attType;
+                        $inv_updates[self::META_INV_DESC_PREFIX . $i->iid]   = $i->descr;
+                        continue;
+                    }
 
-                if ($currentInvs[$i->iid]->mt !== $i->memType) {
-                    $inv_updates[self::META_INV_MEMBER_PREFIX . $i->iid] = $i->memType;
-                }
-                if ($currentInvs[$i->iid]->at !== $i->attType) {
-                    $inv_updates[self::META_INV_ATTEND_PREFIX . $i->iid] = $i->attType;
-                }
-                if ($currentInvs[$i->iid]->description !== $i->descr) {
-                    if ($i->descr === null || trim($i->descr) === '') {
-                        delete_user_option($person->ID, self::META_INV_DESC_PREFIX . $i->iid, true);
-                    } else {
+                    if ($currentInvs[$i->iid]->mt !== $i->memType) {
+                        $inv_updates[self::META_INV_MEMBER_PREFIX . $i->iid] = $i->memType;
+                    }
+                    if ($currentInvs[$i->iid]->at !== $i->attType) {
+                        $inv_updates[self::META_INV_ATTEND_PREFIX . $i->iid] = $i->attType;
+                    }
+                    if ($currentInvs[$i->iid]->description !== $i->descr) {
                         $inv_updates[self::META_INV_DESC_PREFIX . $i->iid] = $i->descr;
                     }
                 }
-            }
 
-            foreach ($inv_updates as $k => $v) {
-                update_user_option($person->ID, $k, $v, true);
-            }
-            foreach ($inv_del as $iid) {
-                delete_user_option($person->ID, self::META_INV_MEMBER_PREFIX . $iid, true);
-                delete_user_option($person->ID, self::META_INV_ATTEND_PREFIX . $iid, true);
-                delete_user_option($person->ID, self::META_INV_DESC_PREFIX . $iid, true);
+                foreach ($inv_updates as $k => $v) {
+                    if ($v === null || trim($v) === '') { // don't waste space on blanks--especially descriptions.
+                        delete_user_option($person->ID, $k, true);
+                    } else {
+                        update_user_option($person->ID, $k, $v, true);
+                    }
+                }
+                foreach ($inv_del as $iid) {
+                    delete_user_option($person->ID, self::META_INV_MEMBER_PREFIX . $iid, true);
+                    delete_user_option($person->ID, self::META_INV_ATTEND_PREFIX . $iid, true);
+                    delete_user_option($person->ID, self::META_INV_DESC_PREFIX . $iid, true);
+                }
             }
 
             // Submit update.
@@ -969,11 +956,14 @@ class Person extends WP_User implements api, JsonSerializable
      *
      * @param array $people
      *
-     * @return string
+     * @return ?string  Returns a human-readable list of names, nicely formatted with commas and such.
      */
-    public static function arrangeNamesForPeople(array $people): string
+    public static function arrangeNamesForPeople(array $people): ?string
     {
         $people = self::groupByFamily($people);
+        if (count($people) === 0) {
+            return null;
+        }
 
         $familyNames = [];
         $comma = ', ';
@@ -1002,30 +992,42 @@ class Person extends WP_User implements api, JsonSerializable
         return $str;
     }
 
-    protected static function formatNamesForFamily(array $family): string
+    /**
+     * Input a "family" of Person-like objects and get a human-friendly string of their names.  Returns null if no
+     * suitable people are provided.
+     *
+     * This is only meant to be called within arrangeNamesForPeople
+     *
+     * @param array $family
+     *
+     * @return ?string Returns a human-readable list of names, nicely formatted with commas and such.
+     */
+    protected static function formatNamesForFamily(array $family): ?string
     {
         if (count($family) < 1)
-            return "";
+            return null;
 
-        $standingLastName = $family[0]->lastName;
+        $standingLastName = $family[0]->LastName;
         $string = "";
+
+        usort($family, fn($a, $b) => ($a->GenderId ?? 0) <=> ($b->GenderId ?? 0)); // TODO use something a little more intelligent (head first)
 
         $first = true;
         foreach ($family as $p) {
-            if ($standingLastName != $p->lastName) {
-                $string .= " " . $standingLastName; // TODO name privacy options
+            if ($standingLastName != $p->LastName) {
+                $string .= " " . $standingLastName;
 
-                $standingLastName = $p->lastName;
+                $standingLastName = $p->LastName;
             }
 
             if (!$first && count($family) > 1)
                 $string  .= " & ";
 
-            $string .= $p->goesBy;
+            $string .= $p->GoesBy;
 
             $first = false;
         }
-        $string .= " " . $standingLastName; // TODO name privacy options
+        $string .= " " . $standingLastName;
 
         $lastAmpPos = strrpos($string, " & ");
         return str_replace(" & ", ", ", substr($string, 0, $lastAmpPos)) . substr($string, $lastAmpPos);
@@ -1035,7 +1037,11 @@ class Person extends WP_User implements api, JsonSerializable
     {
         $families = [];
         foreach ($people as $p) {
-            $fid = intval($p->familyId);
+            if ($p === null) {
+                continue;
+            }
+
+            $fid = intval($p->FamilyId);
 
             if (!array_key_exists($fid, $families))
                 $families[$fid] = [];
@@ -1186,6 +1192,7 @@ class Person extends WP_User implements api, JsonSerializable
      */
     public function getExtraValue(string $name)
     {
+        $name = ExtraValueHandler::standardizeExtraValueName($name);
         return get_user_option(self::META_PEOPLE_EV_PREFIX . $name, $this->ID);
     }
 

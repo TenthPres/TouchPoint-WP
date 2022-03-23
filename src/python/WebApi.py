@@ -38,7 +38,7 @@ def getPersonInfoForSync(PersonObj):
             'x': PersonObj.Picture.X,
             'y': PersonObj.Picture.Y
         }
-    
+
     # Email addresses
     p.Emails = []
     if PersonObj.EmailAddress is not None:
@@ -64,6 +64,8 @@ def getPersonInfoForSync(PersonObj):
     p.Usernames = map(lambda u: u.Username, PersonObj.Users)
 
     p.PeopleId = PersonObj.PeopleId
+    p.FamilyId = PersonObj.FamilyId
+    p.GenderId = PersonObj.GenderId
     return p
 
 if (Data.a == "Divisions"):
@@ -97,7 +99,7 @@ elif (Data.a == "Keywords"):
 
 elif (Data.a == "PersonEvFields"):
     pevSql = '''SELECT Field, [Type], count(*) as Count,
-                SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8) Hash
+                CONCAT('pev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM PeopleExtra WHERE [Field] NOT LIKE '%_mv'
                 GROUP BY [Field], [Type] ORDER BY count(*) DESC'''
     Data.Title = "Person Extra Value Fields"
@@ -105,15 +107,15 @@ elif (Data.a == "PersonEvFields"):
 
 elif (Data.a == "FamilyEvFields"):
     fevSql = '''SELECT Field, [Type], count(*) as Count,
-                SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8) Hash
+                CONCAT('fev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM FamilyExtra WHERE [Field] NOT LIKE '%_mv'
                 GROUP BY [Field], [Type] ORDER BY count(*) DESC'''
     Data.Title = "Family Extra Value Fields"
     Data.familyEvFields = q.QuerySql(fevSql, {})
-    
+
 elif (Data.a == "SavedSearches"):
     Data.savedSearches = model.DynamicData()
-    
+
     if Data.PeopleId == '':
         Data.savedSearches.public = model.SqlListDynamicData("""
             SELECT TOP 100 q.Name, q.QueryId FROM Query q JOIN Users u ON LOWER(q.Owner) = LOWER(u.Username)
@@ -133,11 +135,11 @@ elif (Data.a == "SavedSearches"):
         """.format(Data.PeopleId))
 
     Data.savedSearches.flags = model.SqlListDynamicData("""
-        SELECT TOP 100 q.Name, q.QueryId FROM Query q
+        SELECT TOP 100 q.Name, SUBSTRING(q.Name, 0, 4) AS QueryId FROM Query q
         WHERE q.Name LIKE 'F[0-9][0-9]:%'
         ORDER BY q.Name
     """)
-    
+
     Data.Title = "Saved Searches"
 
 elif (Data.a == "InvsForDivs"):
@@ -228,7 +230,7 @@ elif (Data.a == "InvsForDivs"):
 
         if leadMemTypes != "":
             leaderSql = '''
-            SELECT om.PeopleId AS id, p.FamilyId as familyId, p.LastName as lastName, COALESCE(p.NickName, p.FirstName) as goesBy
+            SELECT om.PeopleId, p.FamilyId, p.LastName, COALESCE(p.NickName, p.FirstName) as GoesBy, p.GenderId
             FROM OrganizationMembers om JOIN People p ON om.PeopleId = p.PeopleId
             WHERE OrganizationId IN ({}) AND MemberTypeId IN ({})
             ORDER BY p.FamilyId'''.format(g.involvementId, leadMemTypes)
@@ -461,13 +463,14 @@ elif (Data.a == "mtg_rsvp" and model.HttpMethod == "post"):
 
 
 elif (Data.a == "people_get" and model.HttpMethod == "post"):
-    Data.Title = 'Getting People Info Based on Submitted Query'
+    Data.Title = 'People Query'
     inData = json.loads(Data.data)['inputData']
 
     rules = []
     invsMembershipsToImport = []
     invsMemSubGroupsToImport = {}
     joiner = "OR"
+    sort = str(inData['groupBy']) # hypothetically should help speed grouping
 
     # People Ids
     for pid in inData['pid']:
@@ -484,22 +487,48 @@ elif (Data.a == "people_get" and model.HttpMethod == "post"):
             # if inData['inv'][iid]['with_memTypes'] == True:
             #    invsMemSubGroupsToImport[iid] = inData['inv'][iid]['memTypes']
 
+    # Saved Searches (incl status flags)
+    for si in inData['src']:
+        if len(si) == 3 and si[0].upper() == "F" and si[1:3].isnumeric(): # status flag
+            rules.append("StatusFlag = '{}'".format(si))
+        elif re.match('[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}', si, re.I):
+            rules.append("SavedQuery(SavedQuery='{}') = 1".format(si))
+
     joiner = " " + joiner + " "
     rules = joiner.join(rules)
 
-    Data.people = []
+    if inData['groupBy'] is None:
+        outPeople = []
+    else:
+        outPeople = {}
 
     # Prep SQL for People Extra Values
     pevSql = ''
     if isinstance(inData['meta'], dict) and inData['meta'].has_key('pev'):
         pevSql = []
         for pev in inData['meta']['pev']:
-            pevSql.append("([Field] = '{}' AND [Type] = '{}')".format(inData['meta']['pev'][pev]['field'], inData['meta']['pev'][pev]['type']))
-        pevSql = """SELECT Field, StrValue, DateValue, Data, IntValue, BitValue, [Type]
+            pevSql.append("([Field] = '{}' AND [Type] = '{}')".format(pev['field'], pev['type']))
+        pevSql = """SELECT Field, StrValue, DateValue, Data, IntValue, BitValue, [Type],
+            CONCAT('pev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
             FROM PeopleExtra
             WHERE PeopleId = {} AND (""" + " OR ".join(pevSql) + ")"
 
-    for po in q.QueryList(rules):
+    fevSql = ''
+    if isinstance(inData['meta'], dict) and inData['meta'].has_key('fev') and inData['groupBy'] == "FamilyId":
+        fevSql = []
+        for fev in inData['meta']['fev']:
+            fevSql.append("([Field] = '{}' AND [Type] = '{}')".format(fev['field'], fev['type']))
+        if len(fevSql) > 0:
+            fevSql = """SELECT Field, StrValue, DateValue, Data, IntValue, BitValue, [Type],
+                CONCAT('fev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
+                FROM FamilyExtra
+                WHERE FamilyId = {} AND (""" + " OR ".join(fevSql) + ")"
+        else:
+            fevSql = ''
+
+    invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
+
+    for po in q.QueryList(rules, sort.lower()):
         pr = getPersonInfoForSync(po)
 
         if pr is None: # Make sure person should not be excluded
@@ -507,31 +536,59 @@ elif (Data.a == "people_get" and model.HttpMethod == "post"):
         if pr.Exclude is True:  # Make sure person should not be excluded if PersonInfo didn't go right.
             continue
 
-        invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
-        invSql = invSql.format(pr.PeopleId, ', '.join(invsMembershipsToImport))
-        pr.Inv = q.QuerySql(invSql)
+        if len(invsMembershipsToImport) > 0:
+            pr.Inv = q.QuerySql(invSql.format(pr.PeopleId, ', '.join(invsMembershipsToImport)))
 
         # Make People Extra Values orderly
-        pr.PeopleEV = []
-        for pev in q.QuerySql(pevSql.format(pr.PeopleId)):
-            if pev.Type == 'Int':
-                pev.Data = pev.IntValue
-            elif pev.Type == 'Bit':
-                pev.Data = pev.BitValue
-            elif pev.Type == 'Date':
-                pev.Data = pev.DateValue
-            pr.PeopleEV.append({
-                'field': pev.Field,
-                'type': pev.Type,
-                'value': pev.Data
-            })
+        if pevSql != '':
+            pr.PeopleEV = {}
+            for pev in q.QuerySql(pevSql.format(pr.PeopleId)):
+                if pev.Type == 'Int':
+                    pev.Data = pev.IntValue
+                elif pev.Type == 'Bit':
+                    pev.Data = pev.BitValue
+                elif pev.Type == 'Date':
+                    pev.Data = pev.DateValue
+                pr.PeopleEV[pev.Hash] = {
+                    'field': pev.Field,
+                    'type': pev.Type,
+                    'value': pev.Data
+                }
 
-        Data.people.append(pr)
+        if inData['groupBy'] is None:
+            outPeople.append(pr)
+        else:
+            grpId = getattr(po, inData['groupBy'])
+            if not outPeople.has_key(grpId):  # group key does not yet exist.
 
-#         subgroupSql = """SELECT TOP 100 ommt.OrgId, ommt.PeopleId, ommt.MemberTagId, mt.Name TODO subgroups
-#                        FROM OrgMemMemTags ommt
-#                            JOIN MemberTags mt ON ommt.MemberTagId = mt.Id
-#                        WHERE ommt.OrgId = 61"""
+                if fevSql != '':  # If grouped by family and we have Family EVs to return
+                    fevOut = {}
+                    for fev in q.QuerySql(fevSql.format(po.FamilyId)):
+                        if fev.Type == 'Int':
+                            fev.Data = fev.IntValue
+                        elif fev.Type == 'Bit':
+                            fev.Data = fev.BitValue
+                        elif fev.Type == 'Date':
+                            fev.Data = fev.DateValue
+                        fevOut[fev.Hash] = {
+                            'field': fev.Field,
+                            'type': fev.Type,
+                            'value': fev.Data
+                        }
+
+                    outPeople[grpId] = {
+                        inData['groupBy']: grpId,
+                        "People": [],
+                        "FamilyEV": fevOut
+                    }
+                else:
+                    outPeople[grpId] = {
+                        inData['groupBy']: grpId,
+                        "People": []
+                    }
+            outPeople[grpId]["People"].append(pr)
+
+    Data.people = outPeople
 
     Data.rules = rules  # handy for debugging TODO remove, probably.
 

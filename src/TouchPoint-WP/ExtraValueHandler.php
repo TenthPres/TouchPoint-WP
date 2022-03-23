@@ -4,6 +4,7 @@ namespace tp\TouchPointWP;
 
 class ExtraValueHandler
 {
+    /** @var object|extraValues $owner */
     protected object $owner; // Must have the extraValues trait.
 
     /**
@@ -20,6 +21,24 @@ class ExtraValueHandler
     public static function standardizeExtraValueName(string $name): string
     {
         return preg_replace("/[^A-Za-z0-9]/", '', $name);
+    }
+
+    /**
+     * Take an array or object of Extra Values and change the values to their proper datatypes.
+     *
+     * @param object $evs
+     *
+     * @return object
+     */
+    public static function jsonToDataTyped(object $evs): object
+    {
+        foreach ($evs as $ev) {
+            if ($ev->type == "Date") {
+                $siteTz = wp_timezone();
+                $ev->value = \DateTime::createFromFormat("Y-m-d\TH:i:s", $ev->value, $siteTz);
+            }
+        }
+        return $evs;
     }
 
     public function __get($what)
