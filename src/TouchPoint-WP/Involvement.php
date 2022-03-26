@@ -569,45 +569,31 @@ class Involvement implements api
         $params = shortcode_atts(
             [
                 'div' => null,
-                'type' => false
+                'type' => null
             ],
             $params,
             self::SHORTCODE_NEARBY
         );
 
-        // Check that Type parameter exists.
-        if ($params['type'] === false) {
-            _doing_it_wrong(
-                __FUNCTION__,
-                "A Post Type is required for the List Shortcode.",
-                TouchPointWP::VERSION
-            );
-
-            return "<!-- A Post Type is required for the List Shortcode. -->";
-        }
-
-        // Get the settings object
-        $settings = self::getSettingsForPostType($params['type']);
-
-        // Check that Type parameter is valid.
-        if ($settings === null) {
-            _doing_it_wrong(
-                __FUNCTION__,
-                "The Post Type provided for the List shortcode is not valid.",
-                TouchPointWP::VERSION
-            );
-
-            return "<!-- The Post Type provided for the List shortcode is not valid. -->";
-        }
-
-        // Do the query
+        // Prep the query
         $q = new WP_Query([
-            'post_type'      => $settings->postType,
             'posts_per_page' => -1,
             'nopaging'       => true,
             'orderby'        => 'title',
             'order'          => 'ASC',
         ]);
+
+        // Get the formalized post types
+        $types = [];
+        foreach (explode(',', $params['type']) as $t) {
+            $s = self::getSettingsForPostType($params['type']);
+            if ($s !== null) {
+                $types[] = $s->postType;
+            }
+        }
+        if (count($types) > 0) {
+            $q->set('post_type', $types);
+        }
 
         $taxQuery = ['relation' => 'AND'];
 
