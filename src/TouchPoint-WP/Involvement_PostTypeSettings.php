@@ -37,6 +37,8 @@ class Involvement_PostTypeSettings {
     protected array $joinKeywords;
     protected ?string $postType = null;
 
+    const POST_TYPE_PREFIX = "inv_";
+
     /**
      * @return Involvement_PostTypeSettings[]
      */
@@ -136,8 +138,15 @@ class Involvement_PostTypeSettings {
      */
     public static function getForInvType(string $postType): ?Involvement_PostTypeSettings
     {
+        $prefixLength = strlen(self::POST_TYPE_PREFIX);
         foreach (self::instance() as $type) {
-            if ($type->postType === $postType || $type->__get('postType') === $postType) {
+            if ($type->postType === $postType ||
+                $type->__get('postType') === $postType ||
+                (
+                    substr($type->postType, 0, $prefixLength) === self::POST_TYPE_PREFIX &&
+                    substr($type->postType, $prefixLength) === $postType
+                )
+            ) {
                 return $type;
             }
         }
@@ -209,14 +218,14 @@ class Involvement_PostTypeSettings {
                 (
                     $type->postType !== "smallgroup" &&
                     $type->postType !== "course" &&
-                    substr($type->postType, 0, 4) !== "inv_"
+                    substr($type->postType, 0, 4) !== self::POST_TYPE_PREFIX
                 )
             ) {
                 $slug = preg_replace('/\W+/', '', strtolower($type->slug));
                 try {
-                    $type->postType = "inv_" . $slug . ($first ? "" : "_" . bin2hex(random_bytes(1)));
+                    $type->postType = self::POST_TYPE_PREFIX . $slug . ($first ? "" : "_" . bin2hex(random_bytes(1)));
                 } catch (Exception $e) {
-                    $type->postType = "inv_" . $slug . ($first ? "" : "_" . bin2hex($count++));
+                    $type->postType = self::POST_TYPE_PREFIX . $slug . ($first ? "" : "_" . bin2hex($count++));
                 }
                 $first = false;
                 $type->postType = preg_replace('/\W+/', '_', $type->postType);

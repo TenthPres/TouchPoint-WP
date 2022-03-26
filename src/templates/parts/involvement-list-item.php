@@ -3,6 +3,8 @@
 use tp\TouchPointWP\Involvement;
 use tp\TouchPointWP\TouchPointWP;
 
+$post = get_post();
+
 /** @var $post WP_Post */
 
 $inv = Involvement::fromPost($post);
@@ -13,8 +15,8 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
 ?>
 
 <article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class("involvement-list-item"); ?> data-tp-involvement="<?php echo $inv->invId ?>">
-    <header class="entry-header">
-        <div class="entry-header-inner">
+    <header class="tp-header">
+        <div class="tp-header-inner">
         <?php
         /** @noinspection HtmlUnknownTarget */
         the_title(sprintf('<h2 class="entry-title default-max-width heading-size-1"><a href="%s">', esc_url(get_permalink())), '</a></h2>');
@@ -58,7 +60,7 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
             </span><!-- .post-meta -->
         </div>
     </header><!-- .entry-header -->
-    <div class="entry-content">
+    <div class="tp-content">
         <?php echo wp_trim_words(get_the_excerpt(), 20, "..."); ?>
     </div>
     <div class="actions involvement-actions <?php echo $postTypeClass; ?>-actions">

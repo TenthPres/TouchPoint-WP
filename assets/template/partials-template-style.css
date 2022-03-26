@@ -5,6 +5,12 @@
     /* align-items: stretch; */
 }
 
+/* compensates for some themes */
+.entry-content > .involvement-list {
+    max-width: none !important;
+    width: unset;
+}
+
 article.partner-list-item,
 article.involvement-list-item {
     flex: 1 1 350px;
@@ -135,6 +141,11 @@ div.involvement-list article.involvement-list-item h2.entry-title {
 div.involvement-map-container {
     width: 100%;
     padding-bottom: 40vh;
+    position: relative;
+}
+div.partner-map-container {
+    width: 100%;
+    padding-bottom: 60vh;
     position: relative;
 }
 

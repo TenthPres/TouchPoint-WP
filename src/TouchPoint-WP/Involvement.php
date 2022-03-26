@@ -29,6 +29,7 @@ class Involvement implements api
 
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "Inv-Map";
     public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "Inv-Filters";
+    public const SHORTCODE_LIST = TouchPointWP::SHORTCODE_PREFIX . "Inv-List";
     public const SHORTCODE_NEARBY = TouchPointWP::SHORTCODE_PREFIX . "Inv-Nearby";
     public const SHORTCODE_ACTIONS = TouchPointWP::SHORTCODE_PREFIX . "Inv-Actions";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
@@ -548,6 +549,119 @@ class Involvement implements api
     }
 
     /**
+     * Print a list of involvements that match the given criteria.
+     *
+     * @param array|string  $params
+     * @param string $content
+     *
+     * @return string
+     */
+    public static function listShortcode($params = [], string $content = ""): string
+    {
+        if ($params === '') {
+            $params = [];
+        }
+
+        // standardize parameters
+        $params = array_change_key_case($params, CASE_LOWER);
+
+        // set some defaults
+        $params = shortcode_atts(
+            [
+                'div' => null,
+                'type' => false
+            ],
+            $params,
+            self::SHORTCODE_NEARBY
+        );
+
+        // Check that Type parameter exists.
+        if ($params['type'] === false) {
+            _doing_it_wrong(
+                __FUNCTION__,
+                "A Post Type is required for the List Shortcode.",
+                TouchPointWP::VERSION
+            );
+
+            return "<!-- A Post Type is required for the List Shortcode. -->";
+        }
+
+        // Get the settings object
+        $settings = self::getSettingsForPostType($params['type']);
+
+        // Check that Type parameter is valid.
+        if ($settings === null) {
+            _doing_it_wrong(
+                __FUNCTION__,
+                "The Post Type provided for the List shortcode is not valid.",
+                TouchPointWP::VERSION
+            );
+
+            return "<!-- The Post Type provided for the List shortcode is not valid. -->";
+        }
+
+        // Do the query
+        $q = new WP_Query([
+            'post_type'      => $settings->postType,
+            'posts_per_page' => -1,
+            'nopaging'       => true,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ]);
+
+        $taxQuery = ['relation' => 'AND'];
+
+        // Filter by Division
+        if (isset($params['div'])) {
+            $divs = [];
+            foreach (explode(',', $params['div']) as $d) {
+                $tid = TouchPointWP::getDivisionTermIdByDivId($d);
+                if ( ! ! $tid) {
+                    $divs[] = $tid;
+                }
+            }
+            if (count($divs) > 0) {
+                $taxQuery[] = [
+                    'taxonomy' => TouchPointWP::TAX_DIV,
+                    'field' => 'ID',
+                    'terms' => $divs
+                ];
+            }
+        }
+
+        $q->set('tax_query', $taxQuery);
+
+        $q->get_posts();
+        $q->rewind_posts();
+
+        ob_start();
+
+        echo "<div class=\"involvement-list\">";
+        if ($q->have_posts()) {
+            while ($q->have_posts()) {
+                $q->the_post();
+                $loadedPart = get_template_part('list-item', 'involvement-list-item');
+                if ($loadedPart === false) {
+                    TouchPointWP::enqueuePartialsStyle();
+                    require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
+                }
+                wp_reset_postdata();
+            }
+
+        } else {
+            $loadedPart = get_template_part('list-none', 'involvement-list-none');
+            if ($loadedPart === false) {
+                require TouchPointWP::$dir . "/src/templates/parts/involvement-list-none.php";
+            }
+        }
+        echo "</div>";
+        $content = ob_get_clean();
+
+        // get any nesting
+        return apply_shortcodes($content);
+    }
+
+    /**
      * @param array|string  $params
      * @param string $content
      *
@@ -1044,6 +1158,10 @@ class Involvement implements api
 
         if ( ! shortcode_exists(self::SHORTCODE_FILTER)) {
             add_shortcode(self::SHORTCODE_FILTER, [self::class, "filterShortcode"]);
+        }
+
+        if ( ! shortcode_exists(self::SHORTCODE_LIST)) {
+            add_shortcode(self::SHORTCODE_LIST, [self::class, "listShortcode"]);
         }
 
         if ( ! shortcode_exists(self::SHORTCODE_NEARBY)) {
