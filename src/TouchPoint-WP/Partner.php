@@ -300,22 +300,10 @@ class Partner implements api
             $f->familyEV = ExtraValueHandler::jsonToDataTyped($f->familyEV);
 
             // Post Content
-            $newContent = '';
-            if ($descriptionEv !== "" && $f->familyEV->$descriptionEv !== null && $f->familyEV->$descriptionEv->value !== null) {
-                $newContent = $f->familyEV->$descriptionEv->value;
-                $newContent = strip_tags($newContent, ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li']);
-                $newContent = trim($newContent);
-            }
-            $post->post_content = $newContent;
+            $post->post_content = self::getFamEvAsContent($descriptionEv, $f, '');
 
             // Excerpt / Summary
-            $newContent = null;
-            if ($summaryEv !== "" && $f->familyEV->$summaryEv !== null && $f->familyEV->$summaryEv->value !== null) {
-                $newContent = $f->familyEV->$summaryEv->value;
-                $newContent = strip_tags($newContent, ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li']);
-                $newContent = trim($newContent);
-            }
-            $post->post_excerpt = $newContent;
+            $post->post_excerpt = self::getFamEvAsContent($summaryEv, $f, null);
 
             // Title
             if ($post->post_title != $title) // only update if there's a change.  Otherwise, urls increment.
@@ -820,6 +808,29 @@ class Partner implements api
             $theDate = "";
         }
         return $theDate;
+    }
+
+    /**
+     * Format an EV value for use as content.
+     *
+     * @param string $ev           The name of the extra value
+     * @param object $famObj       The family object from the API call
+     * @param ?string $newContent  Value to use if no content is provided in the EV.
+     *
+     * @return ?string
+     */
+    public static function getFamEvAsContent(string $ev, object $famObj, ?string $newContent = null): ?string
+    {
+        if ($ev !== "" && $famObj->familyEV->$ev !== null && $famObj->familyEV->$ev->value !== null) {
+            $newContent = $famObj->familyEV->$ev->value;
+            $newContent = strip_tags(
+                $newContent,
+                ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li']
+            );
+            $newContent = trim($newContent);
+        }
+
+        return $newContent;
     }
 
 
