@@ -699,8 +699,6 @@ class Person extends WP_User implements api, JsonSerializable
 
             // Apply Custom EVs
             $fields = TouchPointWP::instance()->getPersonEvFields(TouchPointWP::instance()->settings->people_ev_custom);
-            var_dump($fields);
-            var_dump($pData->PeopleEV);
             foreach ($fields as $fld) {
                 if (isset($pData->PeopleEV->{$fld->hash})) {
                     $person->setExtraValueWP($fld->field, $pData->PeopleEV->{$fld->hash}->value);

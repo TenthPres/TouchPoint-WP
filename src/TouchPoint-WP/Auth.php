@@ -377,7 +377,7 @@ class Auth extends WP_REST_Controller
                 $isFromLink = true;
 
             } else {
-                var_dump($data);
+//                var_dump($data);
                 self::apiError(
                     'no_session_token',
                     __('You don\'t appear to have a current session on our website.', 'TouchPoint-WP')

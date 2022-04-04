@@ -35,14 +35,14 @@ if (have_posts()) {
     <header class="archive-header has-text-align-center header-footer-group">
         <div class="archive-header-inner section-inner medium">
             <h1 class="archive-title page-title"><?php echo $tpwp->settings->global_name_plural ?></h1>
-            <div class="map involvement-map-container"><?php echo Partner::mapShortcode(); ?></div>
+            <div class="map partner-map-container"><?php echo Partner::mapShortcode(); ?></div>
             <?php echo Partner::filterShortcode(['type' => $postType]); ?>
             <?php if ($description) { ?>
                 <div class="archive-description"><?php echo wp_kses_post(wpautop($description)); ?></div>
             <?php } ?>
         </div>
     </header>
-    <div class="involvement-list">
+    <div class="partner-list">
     <?php
 
     while ($wp_the_query->have_posts()) {
