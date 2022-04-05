@@ -1819,7 +1819,7 @@ class Involvement implements api
                         $text = __('Create Account', TouchPointWP::TEXT_DOMAIN);
                         break;
                     case 6:  // Choose Volunteer Times (legacy)
-                    case 22: // Volunteer Scheduler
+                    case 22: // Scheduler
                         $text = __('Schedule', TouchPointWP::TEXT_DOMAIN);
                         break;
                     case 8:  // Online Giving (legacy)
