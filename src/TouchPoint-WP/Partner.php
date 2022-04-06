@@ -9,6 +9,7 @@ require_once 'api.iface.php';
 require_once "jsInstantiation.php";
 require_once "Utilities.php";
 
+use Exception;
 use JsonSerializable;
 use WP_Error;
 use WP_Post;
@@ -713,6 +714,48 @@ class Partner implements api, JsonSerializable
         return strcmp($a->post->post_title, $b->post->post_title);
     }
 
+    /**
+     * Used for sorting secure partners in JSON to decouple locations from entries.
+     *
+     * @var ?int
+     */
+    private ?int $rand = null;
+
+    /**
+     * Used for sorting secure partners in JSON to decouple locations from entries.
+     *
+     * @throws Exception
+     */
+    private function rand(): int
+    {
+        if ($this->rand === null) {
+            $this->rand = random_int(PHP_INT_MIN, PHP_INT_MAX);
+        }
+        return $this->rand;
+    }
+
+    /**
+     * Used for sorting secure partners in JSON to decouple locations from entries.
+     *
+     * @param Partner $a
+     * @param Partner $b
+     *
+     * @return int
+     * @throws Exception
+     */
+    protected static function sortQueueForSecure(Partner $a, Partner $b): int
+    {
+        $r = ($a->decoupleLocation <=> $b->decoupleLocation);
+        if ($r === 0) {
+            if ($a->decoupleLocation) {
+                return $a->rand() <=> $b->rand();
+            } else {
+                return self::sort($a, $b);
+            }
+        }
+        return $r;
+    }
+
 
     /**
      * Put Post objects that represent Partners in order of increasing distance.
@@ -892,6 +935,8 @@ class Partner implements api, JsonSerializable
             return "\t// No Partners to instantiate.\n";
         }
 
+        // Change order of queue to decouple location for secure partners.
+        usort($queue, [self::class, 'sortQueueForSecure']);
         $listStr = json_encode($queue);
 
         return "\ttpvm.addEventListener('Partner_class_loaded', function() {
