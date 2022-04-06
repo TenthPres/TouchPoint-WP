@@ -135,7 +135,7 @@ class TP_Mappable {
     constructor(obj) {
         this.geo = [obj.geo] ?? [];
 
-        this.name = obj.name;
+        this.name = obj.name.replace("&amp;", "&");
         this.post_id = obj.post_id;
 
         if (obj.post_id === undefined) {
