@@ -6,14 +6,13 @@ plugin is not developed or supported by TouchPoint.  While their support team is
 help you with this.
 
 ## Features
-### Small Group Finder
-- Publish a list and map of Small Groups, with dynamic filtering based on actual data, such as demographics and location.
+### Involvement Lists & Small Group Finder
+- Publish a list and map of involvements, with dynamic filtering based on actual data, such as demographics and location.
 - Suggest Small Groups physically nearby based on geolocation.
 - Allow website guests to easily contact leaders or join a group, without exposing leaders' contact info publicly.
 
-### Involvement Lists
-- Publish lists of classes or programs that correspond to Involvements, with dynamic filtering similar to Small Groups.
-- Allow website guests to easily contact leaders or join an involvement, without exposing leaders' contact info publicly. 
+[Small Groups Example.](https://www.tenth.org/smallgroups)
+[Classes Example.](https://www.tenth.org/abs)
 
 ### Crazy-Simple RSVP interface
 Let folks RSVP for an event for each member in their family in just a few clicks.
@@ -21,6 +20,12 @@ No login required, just an email address and zip code.
 
 ### People Lists
 Show your Staff members, Elders, or other collections of people, automatically kept in sync with TouchPoint.
+[Example.](https://www.tenth.org/about/staff)
+
+### Outreach Partners
+Automatically import partner bios and info can be imported from TouchPoint for display on your public website, with 
+appropriate care for their security.
+[Example.](https://www.tenth.org/outreach/partners)
 
 ### Events
 Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by
@@ -42,9 +47,6 @@ website.
     - Link TouchPoint Meetings with Calendar events (Requires Pro version of The Events Calendar)
 - Small Groups
     - Suggest demographically-targeted small groups.
-- Global Outreach
-    - Partner bios and info can be imported from TouchPoint for display on your public website, with appropriate care
-      for their security
 - Bios & Contact Info
     - Generate bio pages for officers or staff members from TouchPoint People records.
     
@@ -85,8 +87,6 @@ Several plugins have lended structure or code snippets to this plugin:
 - [Google Maps Javascript API](https://developers.google.com/maps/documentation/javascript/overview) 
   ([Proprietary](https://developers.google.com/terms))
 - [FontAwesome](https://fontawesome.com/) ([SIL OFL 1.1](http://scripts.sil.org/OFL))
-- [Reshot UI Icons](https://www.reshot.com/free-svg-icons/item/ui-icon-set-map-LD2HMXU3TV/) ([Reshot Free](https://www.reshot.com/license/))
-<!-- TODO either use Reshot or remove it from the list. -->
 
 ### License
 This plugin is released under the AGPL, which is "very strong copy-left".  Therefore, if you change this code and use it
