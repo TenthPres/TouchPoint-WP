@@ -42,6 +42,67 @@ function utilInit() {
             container: 'tp-swal-container'
         }
     }
+
+    tpvm._utils.arrayAdd = function (a, b) {
+        if (a.length !== b.length) {
+            console.error("Array lengths do not match.");
+            return;
+        }
+        for (const ai in a) {
+            a[ai] += b[ai];
+        }
+        return a;
+    }
+
+    tpvm._utils.averageColor = function (arr) {
+        let components = [0, 0, 0, 0],
+            useAlpha = false,
+            denominator = 0;
+        for (const ai in arr) {
+            arr[ai] = arr[ai].replace(';', '').trim();
+            if (typeof arr[ai] === "string" && arr[ai][0] === '#' && arr[ai].length === 4) { // #abc
+                components = tpvm._utils.arrayAdd(components, [
+                    parseInt(arr[ai][1] + arr[ai][1], 16),
+                    parseInt(arr[ai][2] + arr[ai][2], 16),
+                    parseInt(arr[ai][3] + arr[ai][3], 16),
+                    255]);
+                denominator++;
+            } else if (typeof arr[ai] === "string" && arr[ai][0] === '#' && arr[ai].length === 5) { // #abcd
+                components = tpvm._utils.arrayAdd(components, [
+                    parseInt(arr[ai][1] + arr[ai][1], 16),
+                    parseInt(arr[ai][2] + arr[ai][2], 16),
+                    parseInt(arr[ai][3] + arr[ai][3], 16),
+                    parseInt(arr[ai][4] + arr[ai][4], 16)]);
+                useAlpha = true;
+                denominator++;
+            } else if (typeof arr[ai] === "string" && arr[ai][0] === '#' && arr[ai].length === 7) { // #aabbcc
+                components = tpvm._utils.arrayAdd(components, [
+                    parseInt(arr[ai][1] + arr[ai][2], 16),
+                    parseInt(arr[ai][3] + arr[ai][4], 16),
+                    parseInt(arr[ai][5] + arr[ai][6], 16),
+                    255]);
+                denominator++;
+            } else if (typeof arr[ai] === "string" && arr[ai][0] === '#' && arr[ai].length === 9) { // #aabbccdd
+                components = tpvm._utils.arrayAdd(components, [
+                    parseInt(arr[ai][1] + arr[ai][2], 16),
+                    parseInt(arr[ai][3] + arr[ai][4], 16),
+                    parseInt(arr[ai][5] + arr[ai][6], 16),
+                    parseInt(arr[ai][7] + arr[ai][8], 16)]);
+                useAlpha = true;
+                denominator++;
+            } else {
+                console.error("Can't calculate the color for " + arr[ai]);
+            }
+        }
+        if (!useAlpha) {
+            components.pop();
+        }
+        for (const ci in components) {
+            components[ci] = Math.round(components[ci] / denominator).toString(16); // convert to hex
+            components[ci] = ("00" + components[ci]).slice(-2); // pad, just in case there's only one digit.
+        }
+        return "#" + components.join('');
+    }
 }
 utilInit();
 

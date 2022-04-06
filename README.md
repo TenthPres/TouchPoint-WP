@@ -79,11 +79,14 @@ Several plugins have lended structure or code snippets to this plugin:
 - [Plugin Template from hlashbrooke](https://github.com/hlashbrooke/WordPress-Plugin-Template) (GPLv2)
 - [AAD SSO from psignoret](https://github.com/psignoret/aad-sso-wordpress) (MIT)
 
-### Linked Libraries
+### Other Software Used Within this Software
 - [SweetAlert2](https://sweetalert2.github.io/) (MIT)
 - [Knockout JS](https://knockoutjs.com/) (MIT)
 - [Google Maps Javascript API](https://developers.google.com/maps/documentation/javascript/overview) 
   ([Proprietary](https://developers.google.com/terms))
+- [FontAwesome](https://fontawesome.com/) ([SIL OFL 1.1](http://scripts.sil.org/OFL))
+- [Reshot UI Icons](https://www.reshot.com/free-svg-icons/item/ui-icon-set-map-LD2HMXU3TV/) ([Reshot Free](https://www.reshot.com/license/))
+<!-- TODO either use Reshot or remove it from the list. -->
 
 ### License
 This plugin is released under the AGPL, which is "very strong copy-left".  Therefore, if you change this code and use it

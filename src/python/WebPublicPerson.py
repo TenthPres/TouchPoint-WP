@@ -9,6 +9,8 @@
 ##					- Exclude - bool - Default: False.  Setting this to True will prevent this person from being included
 ##					  in the public website completely.  This means no user account will be created for them on
 ##					  WordPress and they will be excluded from any People Lists.
+##					- DecoupleLocation - bool - Default: False.  For Partners only.  Setting this to true will unlink the
+##					  marker on the map from the partner.  Helpful for secure partners.
 ##					- GoesBy - string - Default: NickName if the Person has one, otherwise FirstName.
 ##					- LastName - string - Default: LastName
 ##					- DisplayName - string - Default: GoesBy + " " + LastName
@@ -26,6 +28,7 @@ if goSecurityLevel > 1:
 
 if goSecurityLevel > 2:
 	Data.Info.GoesBy = Data.Info.GoesBy[0] + "."
+	Data.Info.DecoupleLocation = True
 
 if goSecurityLevel > 3:
 	Data.Info.Exclude = True

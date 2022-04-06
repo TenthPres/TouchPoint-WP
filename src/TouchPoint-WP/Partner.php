@@ -9,6 +9,7 @@ require_once 'api.iface.php';
 require_once "jsInstantiation.php";
 require_once "Utilities.php";
 
+use JsonSerializable;
 use WP_Error;
 use WP_Post;
 use WP_Query;
@@ -19,7 +20,7 @@ use WP_Term;
  *
  * @package tp\TouchPointWP
  */
-class Partner implements api
+class Partner implements api, JsonSerializable
 {
     use jsInstantiation;
     use extraValues;
@@ -34,9 +35,12 @@ class Partner implements api
 
     private static bool $filterJsAdded = false;
     public ?object $geo = null;
+    public bool $decoupleLocation;
 
     public string $name;
     protected int $familyId;
+
+    protected static bool $_hasArchiveMap = false;
 
     public int $post_id;
     public string $post_excerpt;
@@ -152,6 +156,8 @@ class Partner implements api
             $this->geo->lat = round($this->geo->lat, 4);
             $this->geo->lng = round($this->geo->lng, 4);
         }
+
+        $this->decoupleLocation = !!get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_decouple", true);
 
         $this->registerConstruction();
     }
@@ -336,7 +342,17 @@ class Partner implements api
             }
             unset($fields, $fld);
 
-            // Positioning.  Ignores family addresses.
+            // Decouple location if appropriate.  (Keeps secure partners more secure.)
+            $decouple = false;
+            foreach ($f->people as $p) {
+                if (!!$p->DecoupleLocation) {
+                    $decouple = true;
+                    break;
+                }
+            }
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_decouple", $decouple);
+
+            // Positioning.  Ignores family addresses.  TODO use family addresses, if not decoupled
             if ($latEv !== "" && $lngEv !== "" &&
                 $f->familyEV->$latEv !== null && $f->familyEV->$latEv->value !== null &&
                 $f->familyEV->$lngEv !== null && $f->familyEV->$lngEv->value !== null) {
@@ -765,6 +781,7 @@ class Partner implements api
 
             if ($params['all']) {
                 self::requireAllObjectsInJs();
+                self::$_hasArchiveMap = true;
             }
 
             $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/partner-map-inline.js");
@@ -847,16 +864,24 @@ class Partner implements api
 
     /**
      * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with the
-     * `data-tp-involvement` attribute with the invId as the value.
+     * `data-tp-partner` attribute with the post_id as the value or 0 for secure partners.
+     *
+     * @param mixed $context A variable that is passed to the tp_partner_actions filter.  Set however you want, or not at all.
      *
      * @return string
      */
-    public function getActionButtons(): string
+    public function getActionButtons($context = null): string
     {
+        $ret = "";
 
-        // TODO at the least, add a hook.
+        // Show on map button.  (Only works if map is called before this is.)
+        if (self::$_hasArchiveMap && !$this->decoupleLocation) {
+            $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
+            TouchPointWP::enqueueActionsStyle('person-contact');
+            $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\">$text</button>  ";
+        }
 
-        return "";
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "partner_actions", $ret, $this, $context);
     }
 
     public static function getJsInstantiationString(): string
@@ -881,6 +906,18 @@ class Partner implements api
     public function getTouchPointId(): int
     {
         return $this->familyId;
+    }
+
+    /**
+     * Return the Post ID as needed by the JS classes.  Typically, this will be the post_id, but this can be overridden.
+     *
+     * @return int
+     */
+    public function jsId(): int{
+        if ($this->decoupleLocation) {
+            return 0;
+        }
+        return $this->post_id;
     }
 
     /**
@@ -927,5 +964,21 @@ class Partner implements api
     {
         $name = ExtraValueHandler::standardizeExtraValueName($name);
         return delete_post_meta($this->post_id, self::META_FEV_PREFIX . $name);
+    }
+
+    /**
+     * Serialize.  Mostly, manage the security requirements.
+     *
+     * @return object
+     */
+    public function jsonSerialize(): object
+    {
+        if ($this->decoupleLocation) {
+            return (object)[
+                'geo' => $this->geo,
+                'name' => __('Secure Partner')
+            ];
+        }
+        return $this;
     }
 }

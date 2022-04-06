@@ -25,6 +25,7 @@ def getPersonInfoForSync(PersonObj):
     p.LastName = PersonObj.LastName
     p.GoesBy = PersonObj.NickName if PersonObj.NickName is not None else PersonObj.FirstName
     p.DisplayName = " "
+    p.DecoupleLocation = False
 
     # Person's Picture
     if PersonObj.Picture is None:

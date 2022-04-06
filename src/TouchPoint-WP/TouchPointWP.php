@@ -607,6 +607,13 @@ class TouchPointWP
             null,
             true
         );
+//        wp_register_script(  TODO remove, probably
+//            TouchPointWP::SHORTCODE_PREFIX . "googleMaps-cluster",
+//            "https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js",
+//            [TouchPointWP::SHORTCODE_PREFIX . "googleMaps"],
+//            null,
+//            true
+//        );
 
         if ( ! ! $this->involvements) {
             Involvement::registerScriptsAndStyles();
