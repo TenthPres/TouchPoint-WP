@@ -489,7 +489,7 @@ class TouchPointWP
     }
 
     /**
-     * Load the settings, connect the references, and check that there are no pending migrations.
+     * Load the settings, connect the references, and check that there aren't pending migrations.
      *
      * @param $file
      *
@@ -607,13 +607,6 @@ class TouchPointWP
             null,
             true
         );
-//        wp_register_script(  TODO remove, probably
-//            TouchPointWP::SHORTCODE_PREFIX . "googleMaps-cluster",
-//            "https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js",
-//            [TouchPointWP::SHORTCODE_PREFIX . "googleMaps"],
-//            null,
-//            true
-//        );
 
         if ( ! ! $this->involvements) {
             Involvement::registerScriptsAndStyles();
@@ -1005,6 +998,7 @@ class TouchPointWP
 
         // Time of Day
         if ($this->settings->enable_involvements === "on") {
+            /** @noinspection SpellCheckingInspection */
             register_taxonomy(
                 self::TAX_DAYTIME,
                 Involvement_PostTypeSettings::getPostTypes(),
@@ -1684,7 +1678,7 @@ class TouchPointWP
 
 
     /**
-     * Returns an array of objects that correspond to genders.  Each Gender has a name and an id.
+     * Returns an array of objects that correspond to the genders.  Each Gender has a name and an id.
      *
      * @returns object[]
      */
