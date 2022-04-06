@@ -901,8 +901,15 @@ class Partner implements api, JsonSerializable
      */
     public function notableAttributes(): array
     {
+        $r = [];
+
+        // Not shown on map (only if there is a map, and the partner isn't on it because they lack geo.)
+        if (self::$_hasArchiveMap && $this->geo === null && !$this->decoupleLocation) {
+            $r[] = __("Not Shown on Map", TouchPointWP::TEXT_DOMAIN);
+        }
+
         // TODO add hook
-        return [];
+        return $r;
     }
 
     /**
@@ -918,7 +925,7 @@ class Partner implements api, JsonSerializable
         $ret = "";
 
         // Show on map button.  (Only works if map is called before this is.)
-        if (self::$_hasArchiveMap && !$this->decoupleLocation) {
+        if (self::$_hasArchiveMap && !$this->decoupleLocation && $this->geo !== null) {
             $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
             TouchPointWP::enqueueActionsStyle('person-contact');
             $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\">$text</button>  ";
