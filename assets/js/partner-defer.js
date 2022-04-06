@@ -375,47 +375,47 @@ class TP_Partner extends TP_Mappable {
         const filtOptions = document.querySelectorAll("[data-partner-filter]");
         for (const ei in filtOptions) {
             if (!filtOptions.hasOwnProperty(ei)) continue;
-            filtOptions[ei].addEventListener('change', this.applyFilters.bind(this, "Partner"))
+            filtOptions[ei].addEventListener('change', this.applyFilters.bind(this))
         }
     }
 
-    // static applyFilters(ev = null) {
-    //     if (ev !== null) {
-    //         let attr = ev.target.getAttribute("data-partner-filter"),
-    //             val = ev.target.value;
-    //         if (attr !== null) {
-    //             if (val === "") {
-    //                 delete this.currentFilters[attr];
-    //             } else {
-    //                 this.currentFilters[attr] = val;
-    //             }
-    //         }
-    //     }
-    //
-    //     groupLoop:
-    //         for (const ii in tpvm.partners) {
-    //             if (!tpvm.partners.hasOwnProperty(ii)) continue;
-    //             const group = tpvm.partners[ii];
-    //             for (const ai in this.currentFilters) {
-    //                 if (!this.currentFilters.hasOwnProperty(ai)) continue;
-    //
-    //                 if (!group.attributes.hasOwnProperty(ai) ||
-    //                     group.attributes[ai] === null ||
-    //                     (   !Array.isArray(group.attributes[ai]) &&
-    //                         group.attributes[ai].slug !== this.currentFilters[ai] &&
-    //                         group.attributes[ai] !== this.currentFilters[ai]
-    //                     ) || (
-    //                         Array.isArray(group.attributes[ai]) &&
-    //                         group.attributes[ai].find(a => a.slug === this.currentFilters[ai]) === undefined
-    //                     )
-    //                 ) {
-    //                     group.toggleVisibility(false)
-    //                     continue groupLoop;
-    //                 }
-    //             }
-    //             group.toggleVisibility(true)
-    //         }
-    // }
+    static applyFilters(ev = null) {
+        if (ev !== null) {
+            let attr = ev.target.getAttribute("data-partner-filter"),
+                val = ev.target.value;
+            if (attr !== null) {
+                if (val === "") {
+                    delete this.currentFilters[attr];
+                } else {
+                    this.currentFilters[attr] = val;
+                }
+            }
+        }
+
+        itemLoop:
+            for (const ii in tpvm.partners) {
+                if (!tpvm.partners.hasOwnProperty(ii)) continue;
+                const item = tpvm.partners[ii];
+                for (const ai in this.currentFilters) {
+                    if (!this.currentFilters.hasOwnProperty(ai)) continue;
+
+                    if (!item.attributes.hasOwnProperty(ai) ||
+                        item.attributes[ai] === null ||
+                        (   !Array.isArray(item.attributes[ai]) &&
+                            item.attributes[ai].slug !== this.currentFilters[ai] &&
+                            item.attributes[ai] !== this.currentFilters[ai]
+                        ) || (
+                            Array.isArray(item.attributes[ai]) &&
+                            item.attributes[ai].find(a => a.slug === this.currentFilters[ai]) === undefined
+                        )
+                    ) {
+                        item.toggleVisibility(false)
+                        continue itemLoop;
+                    }
+                }
+                item.toggleVisibility(true)
+            }
+    }
 
     get visibility() {
         return this._visible;

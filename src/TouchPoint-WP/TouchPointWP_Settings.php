@@ -47,6 +47,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string global_geo_lat     A Family Extra Value to import as an overriding latitude.
  * @property-read string global_geo_lng     A Family Extra Value to import as an overriding longitude.
  * @property-read array global_fev_custom   Custom Family Extra values that are copied as post meta fields
+ * @property-read string global_primary_tax A Family Extra Value that should be used as the primary taxonomy for partners
  *
  * @property-read int|false global_cron_last_run Timestamp of the last time the Partner syncing task ran.  (No setting UI.)
  *
@@ -618,11 +619,22 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray() : [],
                         'default'     => [],
                     ],
+                    [
+                        'id'          => 'global_primary_tax',
+                        'label'       => __('Primary Taxonomy', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Import a Family Extra Value as the primary means by which partners are organized.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('code', true) : [],
+                        'default'     => [],
+                    ],
                 ],
             ];
         }
 
-        if (class_exists("tp\TouchPointWP\EventsCalendar")) {
+        if (TouchPointWP::useTribeCalendar()) {
             $this->settings['events_calendar'] = [
                 'title'       => __('Events Calendar', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Integrate with The Events Calendar from ModernTribe.', TouchPointWP::TEXT_DOMAIN),

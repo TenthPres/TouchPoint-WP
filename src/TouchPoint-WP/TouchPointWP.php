@@ -44,6 +44,13 @@ class TouchPointWP
     public const API_ENDPOINT = "touchpoint-api";
     public const API_ENDPOINT_GENERATE_SCRIPTS = "generate-scripts";
     public const API_ENDPOINT_APP_EVENTS = "app-events";
+    public const API_ENDPOINT_INVOLVEMENT = "inv";
+    public const API_ENDPOINT_GLOBAL = "global";
+    public const API_ENDPOINT_PERSON = "person";
+    public const API_ENDPOINT_MEETING = "mtg";
+    public const API_ENDPOINT_ADMIN = "admin";
+    public const API_ENDPOINT_CLEANUP = "cleanup";
+    public const API_ENDPOINT_GEOLOCATE = "geolocate";
 
     /**
      * Prefix to use for all shortcodes.
@@ -66,6 +73,7 @@ class TouchPointWP
     public const TAX_DAYTIME = self::HOOK_PREFIX . "timeOfDay";
     public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
+    public const TAX_GP_CATEGORY = self::HOOK_PREFIX . "partner_category";
 
     /**
      * Table Names
@@ -295,8 +303,14 @@ class TouchPointWP
         if ($continue) {
             $reqUri = parse_url(trim($_SERVER['REQUEST_URI'], '/'));
 
+            // Remove trailing slash if it exists (and, it probably does)
+            if (substr($reqUri['path'], -1) === '/')
+                $reqUri['path'] = substr($reqUri['path'], 0, -1);
+
+            // Explode by slashes
             $reqUri['path'] = explode("/", $reqUri['path'] ?? "");
 
+            // Skip requests that categorically don't match
             if (count($reqUri['path']) < 2 || strtolower($reqUri['path'][0]) !== self::API_ENDPOINT) {
                 return $continue;
             }
@@ -307,7 +321,7 @@ class TouchPointWP
             unset($queryParams);
 
             // App Events Endpoint
-            if ($reqUri['path'][1] === "app-events" &&
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_APP_EVENTS &&
                 count($reqUri['path']) === 2 &&
                 TouchPointWP::useTribeCalendar()) {
 
@@ -317,7 +331,7 @@ class TouchPointWP
             }
 
             // Involvement endpoint
-            if ($reqUri['path'][1] === "inv" &&
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_INVOLVEMENT &&
                 $this->settings->enable_involvements === "on"
             ) {
                 if (!Involvement::api($reqUri)) {
@@ -326,7 +340,7 @@ class TouchPointWP
             }
 
             // Global Partner endpoint
-            if ($reqUri['path'][1] === "global" &&
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_GLOBAL &&
                 $this->settings->enable_global === "on"
             ) {
                 if (!Partner::api($reqUri)) {
@@ -335,21 +349,21 @@ class TouchPointWP
             }
 
             // Person endpoint
-            if ($reqUri['path'][1] === "person") {
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_PERSON) {
                 if (!Person::api($reqUri)) {
                     return $continue;
                 }
             }
 
             // Meeting endpoints
-            if ($reqUri['path'][1] === "mtg") {
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_MEETING) {
                 if (!Meeting::api($reqUri)) {
                     return $continue;
                 }
             }
 
             // Admin endpoints
-            if ($reqUri['path'][1] === "admin") {
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_ADMIN) {
                 self::admin(); // initialize the instance.
                 if (!TouchPointWP_AdminAPI::api($reqUri)) {
                     return $continue;
@@ -357,7 +371,7 @@ class TouchPointWP
             }
 
             // Cleanup endpoints
-            if ($reqUri['path'][1] === "cleanup") {
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_CLEANUP) {
                 if (!Cleanup::api($reqUri)) {
                     return $continue;
                 }
@@ -376,7 +390,7 @@ class TouchPointWP
             }
 
             // Geolocate via IP TODO rework to minimize extra requests
-            if ($reqUri['path'][1] === "geolocate" &&
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_GEOLOCATE &&
                 count($reqUri['path']) === 2) {
 
                 $this->ajaxGeolocate();
@@ -1165,6 +1179,48 @@ class TouchPointWP
                     );
                     self::queueFlushRewriteRules();
                 }
+            }
+        }
+
+        // Global Partner Category
+        if ($this->settings->enable_global === "on") {
+            $tax = $this->settings->global_primary_tax;
+            if ($tax === "" || $tax === null) {
+                unregister_taxonomy(self::TAX_GP_CATEGORY);
+            } else {
+                $tax = $this->getFamilyEvFields([$tax])[0];
+                $plural = $tax->field . "s"; // Sad, but works.  i18n someday.
+                register_taxonomy(
+                    self::TAX_GP_CATEGORY,
+                    Partner::POST_TYPE,
+                    [
+                        'hierarchical'      => false,
+                        'show_ui'           => false,
+                        'description'       => __('Classify Partners by category chosen in settings.'),
+                        'labels'            => [
+                            'name'          => $tax->field,
+                            'singular_name' => $plural,
+                            'search_items'  => sprintf(__('Search %s.'), $plural),
+                            'all_items'     => sprintf(__('All %s.'), $plural),
+                            'edit_item'     => sprintf(__('Edit %s.'), $tax->field),
+                            'update_item'   => sprintf(__('Update %s.'), $tax->field),
+                            'add_new_item'  => sprintf(__('Add New %s.'), $tax->field),
+                            'new_item_name' => sprintf(__('New %s.'), $tax->field),
+                            'menu_name'     => $plural
+                        ],
+                        'public'            => true,
+                        'show_in_rest'      => true,
+                        'show_admin_column' => true,
+
+                        // Control the slugs used for this taxonomy
+                        'rewrite'           => [
+                            'slug'         => self::TAX_GP_CATEGORY,
+                            'with_front'   => false,
+                            'hierarchical' => false
+                        ],
+                    ]
+                );
+                // Terms are inserted on sync.
             }
         }
     }

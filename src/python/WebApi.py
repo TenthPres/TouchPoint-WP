@@ -571,6 +571,8 @@ elif (Data.a == "people_get" and model.HttpMethod == "post"):
                             fev.Data = fev.BitValue
                         elif fev.Type == 'Date':
                             fev.Data = fev.DateValue
+                        elif fev.Type == 'Code':
+                            fev.Data = fev.StrValue
                         fevOut[fev.Hash] = {
                             'field': fev.Field,
                             'type': fev.Type,

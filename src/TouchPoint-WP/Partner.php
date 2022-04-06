@@ -38,6 +38,9 @@ class Partner implements api, JsonSerializable
     public ?object $geo = null;
     public bool $decoupleLocation;
 
+    protected array $category;
+    public ?string $color = null;
+
     public string $name;
     protected int $familyId;
 
@@ -106,7 +109,7 @@ class Partner implements api, JsonSerializable
         $terms = wp_get_post_terms(
             $this->post_id,
             [
-                // TODO set taxonomies
+                TouchPointWP::TAX_GP_CATEGORY
             ]
         );
 
@@ -132,6 +135,10 @@ class Partner implements api, JsonSerializable
             }
         }
 
+        // Primary category
+        $this->category = array_filter($terms, fn($t) => $t->taxonomy === TouchPointWP::TAX_GP_CATEGORY);
+
+        // Geo
         if (property_exists($object, 'geo_lat') &&
             $object->geo_lat !== null &&
             $object->geo_lat !== '') {
@@ -236,6 +243,11 @@ class Partner implements api, JsonSerializable
             $fevFields[] = $summaryEv;
         }
 
+        $categoryEv = TouchPointWP::instance()->settings->global_primary_tax;
+        if ($categoryEv !== "") {
+            $fevFields[] = $categoryEv;
+        }
+
         $latEv = TouchPointWP::instance()->settings->global_geo_lat;
         $lngEv = TouchPointWP::instance()->settings->global_geo_lng;
         if ($latEv !== "" && $lngEv !== "") {
@@ -311,6 +323,23 @@ class Partner implements api, JsonSerializable
 
             // Excerpt / Summary
             $post->post_excerpt = self::getFamEvAsContent($summaryEv, $f, null);
+
+            // Partner Category
+            $category = $f->familyEV->$categoryEv->value ?? null;
+            // Insert Term if new
+            if ( ! term_exists($category, TouchPointWP::TAX_GP_CATEGORY)) {
+                wp_insert_term(
+                    $category,
+                    TouchPointWP::TAX_GP_CATEGORY,
+                    [
+                        'description' => $category,
+                        'slug'        => sanitize_title($category)
+                    ]
+                );
+                TouchPointWP::queueFlushRewriteRules();
+            }
+            // Apply term to post
+            wp_set_post_terms($post->ID, $category, TouchPointWP::TAX_GP_CATEGORY, false);
 
             // Title
             if ($post->post_title != $title) // only update if there's a change.  Otherwise, urls increment.
@@ -545,7 +574,7 @@ class Partner implements api, JsonSerializable
         $params = shortcode_atts(
             [
                 'class'   => "TouchPoint-Partner filterBar",
-//                'filters' => strtolower(implode(",", $settings->filters)) // TODO
+                'filters' => strtolower(implode(",", ["partner_category"]))
             ],
             $params,
             static::SHORTCODE_FILTER
@@ -560,6 +589,19 @@ class Partner implements api, JsonSerializable
         $content = "<div class=\"$class\" id=\"$filterBarId\">";
 
         $any = __("Any", TouchPointWP::TEXT_DOMAIN);
+
+        // Partner Category
+        if (in_array('partner_category', $filters)) {
+            $tax = get_taxonomy(TouchPointWP::TAX_GP_CATEGORY);
+            $name = substr($tax->name, strlen(TouchPointWP::SETTINGS_PREFIX));
+            $content .= "<select class=\"$class-filter\" data-partner-filter=\"$name\">";
+            $content .= "<option disabled selected>{$tax->label}</option>";
+            $content .= "<option value=\"\">$any</option>";
+            foreach (get_terms(TouchPointWP::TAX_GP_CATEGORY) as $t) {
+                $content .= "<option value=\"$t->slug\">$t->name</option>";
+            }
+            $content .= "</select>";
+        }
 
         $content .= "</div>";
 
@@ -903,6 +945,10 @@ class Partner implements api, JsonSerializable
     {
         $r = [];
 
+        foreach ($this->category as $c) {
+            $r[] = $c->name;
+        }
+
         // Not shown on map (only if there is a map, and the partner isn't on it because they lack geo.)
         if (self::$_hasArchiveMap && $this->geo === null && !$this->decoupleLocation) {
             $r[] = __("Not Shown on Map", TouchPointWP::TEXT_DOMAIN);
@@ -1028,7 +1074,8 @@ class Partner implements api, JsonSerializable
         if ($this->decoupleLocation) {
             return (object)[
                 'geo' => $this->geo,
-                'name' => __('Secure Partner')
+                'name' => __('Secure Partner'),
+                'attributes' => $this->attributes
             ];
         }
         return $this;
