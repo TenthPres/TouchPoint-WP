@@ -5,7 +5,7 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-require_once 'api.iface.php';
+require_once 'api.php';
 require_once "jsInstantiation.php";
 require_once "Utilities.php";
 require_once "Involvement_PostTypeSettings.php";
@@ -280,7 +280,7 @@ class Involvement implements api
     public static function templateFilter(string $template): string
     {
         $postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
-        $templateFilesToOverwrite = ['archive.php', 'singular.php', 'single.php', 'index.php'];
+        $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
 
         if ( ! in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
             return $template;
@@ -503,7 +503,7 @@ class Involvement implements api
         }
 
         // Attempt to infer the type if it doesn't exist.
-        if (! isset($params['type']) || is_null($params['type'])) {
+        if (! isset($params['type'])) {
             $params['type'] = is_archive() ? get_queried_object()->name : false;
         }
 
@@ -676,7 +676,7 @@ class Involvement implements api
         );
 
         // Attempt to infer the type if it doesn't exist.
-        if (! isset($params['type']) || is_null($params['type'])) {
+        if (! isset($params['type'])) {
             $params['type'] = is_archive() ? get_queried_object()->name : false;
         }
 
@@ -783,7 +783,7 @@ class Involvement implements api
                                     TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
                                 ]);
             $dvList = TouchPointWP::orderHierarchicalTerms($dvList, true);
-            if (is_array($dvList) && count($dvList) > 1) {
+            if (count($dvList) > 1) {
                 $content .= "<select class=\"$class-filter\" data-involvement-filter=\"div\">";
                 $content .= "<option disabled selected>$dvName</option><option value=\"\">$any</option>";
                 $isFirst = true;

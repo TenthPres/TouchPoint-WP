@@ -63,7 +63,7 @@ class PersonQuery extends WP_User_Query
         if (! isset($this->results)) {
             try {
                 $this->get_results();
-            } catch (TouchPointWP_Exception $e) {
+            } catch (TouchPointWP_Exception $e) { // TODO why is the exception returned, and not thrown?
                 return null;
             }
         }

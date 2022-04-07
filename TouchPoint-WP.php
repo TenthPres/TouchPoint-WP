@@ -80,7 +80,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP.php";
     require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP_Settings.php";
 
-    require_once __DIR__ . "/src/TouchPoint-WP/api.iface.php";
+    require_once __DIR__ . "/src/TouchPoint-WP/api.php";
     require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Cleanup.php";
 
     require_once __DIR__ . "/src/TouchPoint-WP/Person.php";

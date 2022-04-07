@@ -6,7 +6,7 @@ namespace tp\TouchPointWP;
 $divs = json_encode($this->parent->getDivisions());
 $kws = json_encode($this->parent->getKeywords());
 /** @noinspection CommaExpressionJS */
-echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}, kws: {$kws} }</script>";
+echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws }</script>";
 ?>
 <style>
     .column-wrap {

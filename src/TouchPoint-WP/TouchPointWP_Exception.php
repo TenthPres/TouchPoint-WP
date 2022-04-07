@@ -2,6 +2,8 @@
 
 namespace tp\TouchPointWP;
 
+use Exception;
+
 /**
  * Settings class file.
  *
@@ -16,7 +18,7 @@ if ( ! defined('ABSPATH')) {
 /**
  * An Exception class.
  */
-class TouchPointWP_Exception extends \Exception
+class TouchPointWP_Exception extends Exception
 {
 
 }

@@ -67,7 +67,7 @@ trait jsInstantiation {
      *
      * @param bool $require  Whether all objects should be required.  Almost always should be left with the default.
      */
-    public static function requireAllObjectsInJs($require = true): void
+    public static function requireAllObjectsInJs(bool $require = true): void
     {
         self::$requireAllObjectsInJs = $require;
     }

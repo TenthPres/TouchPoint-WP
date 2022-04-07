@@ -159,7 +159,7 @@ class TouchPointWP_Settings
      */
     public function initSettings(): void
     {
-        $this->settings = $this->settingsFields(false);
+        $this->settings = $this->settingsFields();
     }
 
     /**
@@ -1015,7 +1015,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 'Settings',
                 TouchPointWP::TEXT_DOMAIN
             ) . '</a>';
-        array_push($links, $settings_link);
+        $links[]       = $settings_link;
 
         return $links;
     }
@@ -1240,7 +1240,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     protected function getDefaultValueForSetting(string $id)
     {
-        foreach ($this->settingsFields(false) as $category) {
+        foreach ($this->settingsFields() as $category) {
             foreach ($category['fields'] as $field) {
                 if ($field['id'] === $id){
                     return $field['default'] ?? self::UNDEFINED_PLACEHOLDER;

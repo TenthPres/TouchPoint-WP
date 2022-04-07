@@ -19,3 +19,7 @@
 .tp-swal-container .no-wrap {
     white-space: nowrap;
 }
+
+button[data-tp-action]:not([disabled]) {
+    cursor: pointer;
+}

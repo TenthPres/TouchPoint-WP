@@ -9,7 +9,7 @@ if ( ! defined('ABSPATH')) {
 
 use WP_Post;
 
-require_once 'api.iface.php';
+require_once 'api.php';
 
 abstract class EventsCalendar implements api
 {

@@ -7,7 +7,7 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-require_once 'api.iface.php';
+require_once 'api.php';
 require_once "jsInstantiation.php";
 require_once 'InvolvementMembership.php';
 require_once "Utilities/PersonQuery.php";

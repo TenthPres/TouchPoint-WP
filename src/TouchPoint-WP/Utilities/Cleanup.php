@@ -12,7 +12,7 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-require_once __DIR__ . '\..\api.iface.php';
+require_once __DIR__ . '\..\api.php';
 
 /**
  * Cleanup - Used for data cleanliness tasks.

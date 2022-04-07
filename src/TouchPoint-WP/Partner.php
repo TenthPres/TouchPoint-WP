@@ -5,7 +5,7 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-require_once 'api.iface.php';
+require_once 'api.php';
 require_once "jsInstantiation.php";
 require_once "Utilities.php";
 
@@ -436,7 +436,7 @@ class Partner implements api, JsonSerializable
     public static function templateFilter(string $template): string
     {
         $postTypesToFilter        = self::POST_TYPE;
-        $templateFilesToOverwrite = ['archive.php', 'singular.php', 'single.php', 'index.php'];
+        $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
 
         if ( ! in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
             return $template;
@@ -595,7 +595,7 @@ class Partner implements api, JsonSerializable
             $tax = get_taxonomy(TouchPointWP::TAX_GP_CATEGORY);
             $name = substr($tax->name, strlen(TouchPointWP::SETTINGS_PREFIX));
             $content .= "<select class=\"$class-filter\" data-partner-filter=\"$name\">";
-            $content .= "<option disabled selected>{$tax->label}</option>";
+            $content .= "<option disabled selected>$tax->label</option>";
             $content .= "<option value=\"\">$any</option>";
             foreach (get_terms(TouchPointWP::TAX_GP_CATEGORY) as $t) {
                 $content .= "<option value=\"$t->slug\">$t->name</option>";
@@ -921,8 +921,9 @@ class Partner implements api, JsonSerializable
      *
      * @return ?string
      */
-    public static function getFamEvAsContent(string $ev, object $famObj, ?string $newContent = null): ?string
+    public static function getFamEvAsContent(string $ev, object $famObj, ?string $default): ?string
     {
+        $newContent = $default;
         if ($ev !== "" && $famObj->familyEV->$ev !== null && $famObj->familyEV->$ev->value !== null) {
             $newContent = $famObj->familyEV->$ev->value;
             $newContent = strip_tags(

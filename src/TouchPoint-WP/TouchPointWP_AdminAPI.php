@@ -2,6 +2,8 @@
 
 namespace tp\TouchPointWP;
 
+use ZipArchive;
+
 /**
  * Admin API file.
  *
@@ -69,26 +71,19 @@ class TouchPointWP_AdminAPI implements api {
 
         // Get saved data.
         $data = '';
+        $option_name .= $field['id'];
+
         if ( $post ) {
-
             // Get saved field data.
-            $option_name .= $field['id'];
             $option       = get_post_meta( $post->ID, $field['id'], true );
-
-            // Get data to display in field.
-            if ( isset( $option ) ) {
-                $data = $option;
-            }
         } else {
-
             // Get saved option.
-            $option_name .= $field['id'];
             $option       = get_option($option_name); // TODO MULTI
+        }
 
-            // Get data to display in field.
-            if ( isset( $option ) ) {
-                $data = $option;
-            }
+        // Get data to display in field.
+        if ( isset( $option ) ) {
+            $data = $option;
         }
 
         // Show default data if no option saved and default is supplied.
@@ -130,7 +125,7 @@ class TouchPointWP_AdminAPI implements api {
                          '" name="' . esc_attr( $option_name ) .
                          (array_key_exists('placeholder', $field) ? '" placeholder="' . esc_attr( $field['placeholder'] ) : "") .
                          '" value="' . esc_attr( $data ) .
-                         '"' . $min . '' . $max . '/>' . "\n";
+                         '"' . $min . $max . '/>' . "\n";
                 break;
 
             case 'text_secret':
@@ -147,7 +142,7 @@ class TouchPointWP_AdminAPI implements api {
 
             case 'checkbox':
                 $checked = '';
-                if ( $data && 'on' === $data ) {
+                if ('on' === $data) {
                     $checked = 'checked="checked"';
                 }
                 $html .= '<input id="' . esc_attr( $field['id'] ) . '" type="' . esc_attr( $field['type'] ) . '" name="' . esc_attr( $option_name ) . '" ' . $checked . '/>' . "\n";
@@ -307,8 +302,8 @@ class TouchPointWP_AdminAPI implements api {
         }
 
         $outZipPath = tempnam(sys_get_temp_dir(), 'TouchPoint-WP-Scripts.zip');
-        $z = new \ZipArchive();
-        if (! $z->open($outZipPath, \ZipArchive::CREATE) ){
+        $z = new ZipArchive();
+        if (! $z->open($outZipPath, ZipArchive::CREATE) ){
             return new TouchPointWP_Exception("Could not create a zip file for the scripts");
         }
 
