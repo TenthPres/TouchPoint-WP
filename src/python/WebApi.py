@@ -515,7 +515,9 @@ elif (Data.a == "people_get" and model.HttpMethod == "post"):
             WHERE PeopleId = {} AND (""" + " OR ".join(pevSql) + ")"
 
     fevSql = ''
+    useFamGeo = False
     if isinstance(inData['meta'], dict) and inData['meta'].has_key('fev') and inData['groupBy'] == "FamilyId":
+        useFamGeo = isinstance(inData['meta'], dict) and inData['meta'].has_key('geo')
         fevSql = []
         for fev in inData['meta']['fev']:
             fevSql.append("([Field] = '{}' AND [Type] = '{}')".format(fev['field'], fev['type']))
@@ -528,6 +530,8 @@ elif (Data.a == "people_get" and model.HttpMethod == "post"):
             fevSql = ''
 
     invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
+
+    famGeoSql = """SELECT geo.Longitude, geo.Latitude FROM AddressInfo ai LEFT JOIN Geocodes geo ON ai.FullAddress = geo.Address WHERE ai.FamilyId = {}"""
 
     for po in q.QueryList(rules, sort.lower()):
         pr = getPersonInfoForSync(po)
@@ -589,6 +593,10 @@ elif (Data.a == "people_get" and model.HttpMethod == "post"):
                         inData['groupBy']: grpId,
                         "People": []
                     }
+
+                if useFamGeo:
+                    outPeople[grpId]['geo'] = q.QuerySqlTop1(famGeoSql.format(po.FamilyId))
+
             outPeople[grpId]["People"].append(pr)
 
     Data.people = outPeople

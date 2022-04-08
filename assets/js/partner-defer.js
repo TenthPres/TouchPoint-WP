@@ -112,9 +112,10 @@ class TP_Mappable {
 
     geo = {};
 
-    color = "#f00";
+    color = "#000";
 
     static items = [];
+    static itemsWithoutMarkers = [];
 
     _visible = true;
 
@@ -133,6 +134,11 @@ class TP_Mappable {
     markers = [];
 
     constructor(obj) {
+        if (obj.geo !== undefined && obj.geo !== null) {
+            obj.geo.lat = Math.round(obj.geo.lat * 1000) / 1000;
+            obj.geo.lng = Math.round(obj.geo.lng * 1000) / 1000;
+        }
+
         this.geo = [obj.geo] ?? [];
 
         this.name = obj.name.replace("&amp;", "&");
@@ -140,6 +146,10 @@ class TP_Mappable {
 
         if (obj.post_id === undefined) {
             this.post_id = 0;
+        }
+
+        if (obj.hasOwnProperty('color')) {
+            this.color = obj.color;
         }
 
         for (const ei in this.connectedElements) {
@@ -174,6 +184,7 @@ class TP_Mappable {
             if (!list.hasOwnProperty(ii)) continue;
 
             // skip items that aren't locatable.
+            let hasMarkers = false;
             for (const gi in list[ii].geo) {
                 if (list[ii].geo[gi] === null || list[ii].geo[gi].lat === null || list[ii].geo[gi].lng === null)
                     continue;
@@ -188,6 +199,7 @@ class TP_Mappable {
                         position: item.geo[gi],
                         color: item.color,
                         map: map,
+                        animation: google.maps.Animation.DROP,
                     });
                     mkr.geoStr = geoStr;
 
@@ -205,7 +217,12 @@ class TP_Mappable {
                     item.markers.push(mkr);
                 }
 
+                hasMarkers = true;
+
                 mkr.updateLabel();
+            }
+            if (!hasMarkers) {
+                this.itemsWithoutMarkers.push(this);
             }
         }
 
@@ -243,11 +260,15 @@ class TP_Mappable {
     }
 
     get visible() {
-        return this._visible && this.markers.some((m) => m.visible);
+        return this._visible && (this.markers.some((m) => m.visible) || this.markers.length === 0);
     }
 
     get inBounds() {
         return this.markers.some((m) => m.inBounds);
+    }
+
+    static get mapExcludesSomeMarkers() {
+        return this.markers.some((m) => !m.inBounds);
     }
 
     get useIcon() {
@@ -284,7 +305,7 @@ class TP_Mappable {
         for (const ei in elts) {
             if (!elts.hasOwnProperty(ei))
                 continue;
-            elts[ei].style.display = (this.visible && this.inBounds) ? "" : "none";
+            elts[ei].style.display = (this.visible && (this.inBounds || !TP_Mappable.mapExcludesSomeMarkers)) ? "" : "none";
         }
     }
 
@@ -469,41 +490,3 @@ class TP_Partner extends TP_Mappable {
 }
 TP_Partner.prototype.classShort = "gp";
 TP_Partner.init();
-
-function FromOld() { // TODO remove
-
-    resetMap = function(e) {
-        infowindow.close();
-        if (e) {
-            e.preventDefault();
-        }
-        map.fitBounds(bounds);
-        map.panToBounds(bounds);
-    }
-
-    applyFilters = function() {
-        bounds = new google.maps.LatLngBounds()
-
-        for (const mi in goMapMarkers) {
-            let selElt = document.getElementById('types-' + goMapMarkers[mi].partnerType);
-            if (selElt !== null) {
-                if (document.getElementById('types-' + goMapMarkers[mi].partnerType).checked) {
-                    goMapMarkers[mi].setVisible(true);
-                    //markerClusterer.addMarker(goMapMarkers[mi]);
-                    bounds.extend(goMapMarkers[mi].position);
-                } else {
-                    goMapMarkers[mi].setVisible(false);
-                    //markerClusterer.removeMarker(goMapMarkers[mi]);
-                }
-            }
-
-        }
-
-        // MC = markerClusterer;
-        // markerClusterer.repaint();
-
-    }
-    applyFilters();
-    resetMap();
-}
-// google.maps.event.addDomListener(window, 'load', initialize);

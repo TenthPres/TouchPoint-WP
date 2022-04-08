@@ -168,4 +168,68 @@ abstract class Utilities
         /** @noinspection SqlResolve */
         return $wpdb->get_results("SELECT post_content FROM $wpdb->posts WHERE post_content LIKE '%$shortcode%' AND post_status <> 'inherit'");
     }
+
+    protected static array $colorAssignments = [];
+
+    /**
+     * Arbitrarily pick a unique-ish color for a value.
+     *
+     * @param string $itemName  The name of the item.  e.g. PA
+     * @param string $setName   The name of the set to which the item belongs, within which there should be uniqueness. e.g. States
+     *
+     * @return string The color in hex, starting with '#'.
+     */
+    public static function getColorFor(string $itemName, string $setName): string
+    {
+        // TODO add hook for custom color algorithm.
+
+        // If the set is new...
+        if (!isset(self::$colorAssignments[$setName])) {
+            self::$colorAssignments[$setName] = [];
+        }
+
+        // Find position in set...
+        $idx = array_search($itemName, self::$colorAssignments[$setName], true);
+
+        // If not in set...
+        if ($idx === false) {
+            $idx = count(self::$colorAssignments[$setName]);
+            self::$colorAssignments[$setName][] = $itemName;
+        }
+
+        // Calc color! (This method generates 24 colors and then repeats. (8 hues * 3 lums)
+        $h = ($idx * 135) % 360;
+        $l = ((($idx >> 3) + 1) * 25) % 75 + 25;
+
+        return self::hslToHex($h, 70, $l);
+    }
+
+    /**
+     * Convert HSL color to RGB Color
+     *
+     * @param int $h Hue (0-365)
+     * @param int $s Saturation (0-100)
+     * @param int $l Luminosity (0-100)
+     *
+     * @return string
+     *
+     * @cite Adapted from https://stackoverflow.com/a/44134328/2339939
+     * @license CC BY-SA 4.0
+     */
+    public static function hslToHex(int $h, int $s, int $l): string
+    {
+        $l /= 100;
+        $a = $s * min($l, 1 - $l) / 100;
+
+        $f = function($n) use ($h, $l, $a) {
+            $k = ($n + $h / 30) % 12;
+            $color = $l - $a * max(min($k - 3, 9 - $k, 1), -1);
+            return round(255 * $color);
+        };
+
+        return "#" .
+            str_pad(dechex($f(0)), 2, 0, STR_PAD_LEFT) .
+            str_pad(dechex($f(8)), 2, 0, STR_PAD_LEFT) .
+            str_pad(dechex($f(4)), 2, 0, STR_PAD_LEFT);
+    }
 }

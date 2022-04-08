@@ -46,6 +46,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string global_summary     A Family Extra Value to import as the summary of a global partner.
  * @property-read string global_geo_lat     A Family Extra Value to import as an overriding latitude.
  * @property-read string global_geo_lng     A Family Extra Value to import as an overriding longitude.
+ * @property-read string global_location    A Family Extra Value to import as a location label.
  * @property-read array global_fev_custom   Custom Family Extra values that are copied as post meta fields
  * @property-read string global_primary_tax A Family Extra Value that should be used as the primary taxonomy for partners
  *
@@ -602,6 +603,17 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'label'       => __('Longitude Override', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
                             'Designate a text Family Extra Value that will contain a longitude that overrides any locations on the partner\'s profile for the partner map.  Both latitude and longitude must be provided for an override to take place.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'global_location',
+                        'label'       => __('Public Location', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Designate a text Family Extra Value that will contain the partner\'s location, as you want listed publicly.  For partners who have DecoupleLocation enabled, this field will be associated with the map point, not the list entry.',
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'select',

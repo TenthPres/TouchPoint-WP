@@ -20,6 +20,7 @@ article.involvement-list-item {
     padding: 0.8em;
     display: flex;
     flex-direction: column;
+    border-bottom: 2px solid transparent;
 }
 
 

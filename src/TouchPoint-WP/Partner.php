@@ -38,8 +38,9 @@ class Partner implements api, JsonSerializable
     public ?object $geo = null;
     public bool $decoupleLocation;
 
-    protected array $category;
-    public ?string $color = null;
+    protected ?string $location = "";
+    protected array $category = [];
+    public ?string $color = "#999999";
 
     public string $name;
     protected int $familyId;
@@ -135,8 +136,15 @@ class Partner implements api, JsonSerializable
             }
         }
 
+        // Location string
+        if (TouchPointWP::instance()->settings->global_location !== "") {
+            $this->location = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "location", true);
+        }
+
         // Primary category
-        $this->category = array_filter($terms, fn($t) => $t->taxonomy === TouchPointWP::TAX_GP_CATEGORY);
+        if (TouchPointWP::instance()->settings->global_primary_tax !== "") {
+            $this->category = array_filter($terms, fn($t) => $t->taxonomy === TouchPointWP::TAX_GP_CATEGORY);
+        }
 
         // Geo
         if (property_exists($object, 'geo_lat') &&
@@ -161,11 +169,17 @@ class Partner implements api, JsonSerializable
         if ($this->geo->lat === null || $this->geo->lng === null) {
             $this->geo = null;
         } else {
-            $this->geo->lat = round($this->geo->lat, 4);
-            $this->geo->lng = round($this->geo->lng, 4);
+            $this->geo->lat = round($this->geo->lat, 3); // Roughly .2 mi
+            $this->geo->lng = round($this->geo->lng, 3);
         }
 
         $this->decoupleLocation = !!get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_decouple", true);
+
+        // Color!
+        if (count($this->category) > 0) {
+            $c = $this->category[0];
+            $this->color = Utilities::getColorFor($c->slug, $c->taxonomy);
+        }
 
         $this->registerConstruction();
     }
@@ -243,6 +257,11 @@ class Partner implements api, JsonSerializable
             $fevFields[] = $summaryEv;
         }
 
+        $locationEv = TouchPointWP::instance()->settings->global_location;
+        if ($locationEv !== "") {
+            $fevFields[] = $locationEv;
+        }
+
         $categoryEv = TouchPointWP::instance()->settings->global_primary_tax;
         if ($categoryEv !== "") {
             $fevFields[] = $categoryEv;
@@ -257,6 +276,7 @@ class Partner implements api, JsonSerializable
 
         $q = TouchPointWP::newQueryObject();
         $q['meta']['fev'] = TouchPointWP::instance()->getFamilyEvFields($fevFields);
+        $q['meta']['geo'] = true;
         $q['src'] = [TouchPointWP::instance()->settings->global_search];
         $q['groupBy'] = 'FamilyId';
         $q['context'] = 'partner';
@@ -342,8 +362,7 @@ class Partner implements api, JsonSerializable
             wp_set_post_terms($post->ID, $category, TouchPointWP::TAX_GP_CATEGORY, false);
 
             // Title
-            if ($post->post_title != $title) // only update if there's a change.  Otherwise, urls increment.
-            {
+            if ($post->post_title != $title) { // only update if there's a change.  Otherwise, urls increment.
                 $post->post_title = $title;
             }
 
@@ -382,12 +401,22 @@ class Partner implements api, JsonSerializable
             }
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_decouple", $decouple);
 
-            // Positioning.  Ignores family addresses.  TODO use family addresses, if not decoupled
+            // Location EV
+            $location = self::getFamEvAsContent($locationEv, $f, null);
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "location", $location);
+            unset($location);
+
+            // Positioning.  Ignores family addresses.
             if ($latEv !== "" && $lngEv !== "" &&
                 $f->familyEV->$latEv !== null && $f->familyEV->$latEv->value !== null &&
                 $f->familyEV->$lngEv !== null && $f->familyEV->$lngEv->value !== null) {
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", Utilities::toFloatOrNull($f->familyEV->$latEv->value));
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", Utilities::toFloatOrNull($f->familyEV->$lngEv->value));
+            } elseif ($f->geo !== null && !$decouple &&
+                is_numeric($f->geo->latitude) && is_numeric($f->geo->longitude) &&
+                ! (floatval($f->geo->latitude) === 0.0 && floatval($f->geo->longitude) === 0.0)) {
+                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", floatval($f->geo->latitude));
+                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", floatval($f->geo->longitude));
             } else {
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat");
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng");
@@ -946,6 +975,12 @@ class Partner implements api, JsonSerializable
     {
         $r = [];
 
+        if ($this->decoupleLocation) {
+            $r[] = __('Secure Partner', TouchPointWP::TEXT_DOMAIN);
+        } else if ($this->location !== "" && $this->location !== null) {
+            $r[] = $this->location;
+        }
+
         foreach ($this->category as $c) {
             $r[] = $c->name;
         }
@@ -1075,8 +1110,9 @@ class Partner implements api, JsonSerializable
         if ($this->decoupleLocation) {
             return (object)[
                 'geo' => $this->geo,
-                'name' => __('Secure Partner'),
-                'attributes' => $this->attributes
+                'name' => __('Secure Partner', TouchPointWP::TEXT_DOMAIN),
+                'attributes' => $this->attributes,
+                'color' => $this->color
             ];
         }
         return $this;

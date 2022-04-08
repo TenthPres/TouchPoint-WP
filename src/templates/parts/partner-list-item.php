@@ -12,7 +12,7 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
 
 ?>
 
-<article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class("partner-list-item"); ?> data-tp-partner="<?php echo $gp->jsId() ?>">
+<article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class("partner-list-item"); ?> data-tp-partner="<?php echo $gp->jsId() ?>" style="border-bottom-color: <?php echo $gp->color ?>">
     <header class="entry-header">
         <div class="entry-header-inner">
         <?php
@@ -24,24 +24,24 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
             <span class="post-meta">
                 <?php
                 $metaStrings = [];
-                $metaKeys = [
-                    TouchPointWP::SETTINGS_PREFIX . "meetingSchedule",
-                    TouchPointWP::SETTINGS_PREFIX . "locationName",
-                ];
-                foreach ($metaKeys as $mk) {
-                    if ($post->$mk) {
-                        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk);
-                    }
-                }
-
-                $metaKeys = [
-                    TouchPointWP::SETTINGS_PREFIX . "leaders",
-                ];
-                foreach ($metaKeys as $mk) {
-                    if ($post->$mk) {
-                        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk);
-                    }
-                }
+//                $metaKeys = [
+//                    TouchPointWP::SETTINGS_PREFIX . "meetingSchedule",
+//                    TouchPointWP::SETTINGS_PREFIX . "locationName",
+//                ];
+//                foreach ($metaKeys as $mk) {
+//                    if ($post->$mk) {
+//                        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk);
+//                    }
+//                }
+//
+//                $metaKeys = [
+//                    TouchPointWP::SETTINGS_PREFIX . "leaders",
+//                ];
+//                foreach ($metaKeys as $mk) {
+//                    if ($post->$mk) {
+//                        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk);
+//                    }
+//                }
 
                 foreach ($gp->notableAttributes() as $a)
                 {
