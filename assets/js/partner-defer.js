@@ -86,22 +86,31 @@ class TP_MapMarker extends google.maps.Marker
      * Smoothly zoom in (or out) on the given map.  By default, zooms in to the max level allowed.
      *
      * @param {google.maps.Map} map The Google Maps map
+     * @param {google.maps.LatLng} position The position to move to center
      * @param {number, undefined} zoomTo Google Maps zoom level, or undefined for maxZoom.
      */
-    static async smoothZoom(map, zoomTo = undefined) {
+    static async smoothZoom(map, position = null, zoomTo = undefined) {
         if (zoomTo === undefined || zoomTo > map.maxZoom) {
             zoomTo = map.maxZoom;
         }
+
         if (map.getZoom() !== zoomTo) {
             let z = google.maps.event.addListener(map, 'zoom_changed', () => {
                 google.maps.event.removeListener(z);
-                this.smoothZoom(map, zoomTo);
+                setTimeout(() => this.smoothZoom(map, position, zoomTo), 150);
             });
             if (map.getZoom() < zoomTo) { // zoom in
-                setTimeout(() => map.setZoom(map.getZoom() + 1), 200);
+                map.setZoom(map.getZoom() + 1);
             } else { // zoom out
-                setTimeout(() => map.setZoom(map.getZoom() - 1), 200);
+                map.setZoom(map.getZoom() - 1);
             }
+            if (position !== null) {
+                let oldPos = map.getCenter(),
+                    newPos = new google.maps.LatLng((oldPos.lat() + position.lat() * 2) / 3, (oldPos.lng() + position.lng() * 2) / 3);
+                map.panTo(newPos);
+            }
+        } else {
+            map.panTo(position);
         }
     }
 }
@@ -246,10 +255,21 @@ class TP_Mappable {
 
     showOnMapAction() {
         if (this.markers.length === 1) {
-            let mp = this.markers[0].getMap();
-            TP_MapMarker.smoothZoom(mp);
-            mp.panTo(this.markers[0].getPosition());
+            let mp = this.markers[0].getMap(),
+                el = mp.getDiv(),
+                rect = el.getBoundingClientRect(),
+                viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight),
+                mpWithinView = !(rect.bottom < 0 || rect.top - viewHeight >= 0);
+            TP_MapMarker.smoothZoom(mp, this.markers[0].getPosition());
+            if (!mpWithinView) {
+                window.scroll({
+                    top: rect.top,
+                    left: rect.left,
+                    behavior: 'smooth'
+                })
+            }
         } else {
+            console.warn("Show on Map for Mappable items with multiple markers is not fully supported.")
             // Set visibility on all markers
             for (const mi in TP_Mappable.markers) {
                 for (const ii in TP_Mappable.markers[mi].items) {
