@@ -2,6 +2,7 @@
 
 namespace tp\TouchPointWP;
 
+use stdClass;
 use WP;
 use WP_Error;
 use WP_Http;
@@ -27,6 +28,8 @@ class TouchPointWP
      * Version number
      */
     public const VERSION = "0.0.5";
+
+    public const DEBUG = true;
 
     /**
      * The Token
@@ -712,18 +715,15 @@ class TouchPointWP
     }
 
     /**
-     * @param mixed $ip To get info for a specific IP, pass it here.  Set false to only use cached data, and not the IP API.
+     * @param mixed $useApi To get info for a specific IP, pass it here.  Set false to only use cached data, and not the IP API.
      *
-     * @return object|false An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, an object with
-     * an 'error' parameter if something went wrong.
+     * @return stdClass|false An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, false if not available.
      */
-    public function geolocate($ip = null): object
+    public function geolocate($useApi = null)
     {
-        $useApi = true;
-        if ($ip === false) {
-            $useApi = false;
-        }
+        $ip = null; // For future use as a parameter, potentially.
 
+        // Determine IP if one was not provided.
         if (!is_string($ip) || $ip === '') {
             /** @noinspection SpellCheckingInspection */
             $ipHeaderKeys = [
@@ -734,7 +734,6 @@ class TouchPointWP
                 'HTTP_FORWARDED',
                 'REMOTE_ADDR'
             ];
-            $ip = null;
             foreach ($ipHeaderKeys as $k) {
                 if ( ! empty($_SERVER[$k]) && filter_var($_SERVER[$k], FILTER_VALIDATE_IP)) {
                     $ip = $_SERVER[$k];
@@ -743,27 +742,35 @@ class TouchPointWP
             }
         }
 
+        // If no IP, we can't go any further.
         if ($ip === '' || $ip === null) {
-            return (object)['error' => 'No usable IP Address.'];
+            return false;
         }
 
-        $return = $this->getIpData($ip, $useApi);
+        try {
+            $return = $this->getIpData($ip, $useApi);
+        } catch (TouchPointWP_WPError|TouchPointWP_Exception $ex) {
+            return false;
+        }
 
-        if ($return instanceof WP_Error) {
-            return (object)['error' => implode(", ", $return->get_error_messages())];
+        if ($return === false || !is_string($return)) {
+            return false;
         }
 
         $d = json_decode($return);
         if (!is_object($d)) {
-            return (object)['error' => 'The geocoding system unexpectedly returned a non-object.', 'data' => $d];
+            new TouchPointWP_Exception("Geolocation Object is Invalid", 178004);
+            return false;
         }
 
         if (property_exists($d, 'error')) {
-            return (object)['error' => $d->reason];
+            new TouchPointWP_Exception("Geolocation Error: " . $d->reason ?? "", 178002);
+            return false;
         }
 
         if (!isset($d->latitude) || !isset($d->longitude) || !isset($d->city)) {
-            return (object)['error' => 'Geolocation data was not provided.'];
+            new TouchPointWP_Exception("Geolocation Data Not Provided", 178003);
+            return false;
         }
 
         if ($d->country === "US") {
@@ -778,10 +785,12 @@ class TouchPointWP
     /**
      * The underlying IP Data function, which handles caching.
      *
-     * @param string $ip    The IP address to lookup
-     * @param bool $useApi  If false, this won't query the API and will only used cached results.
+     * @param string $ip The IP address to lookup
+     * @param bool   $useApi If false, this won't query the API and will only used cached results.
      *
-     * @return string|false|WP_Error The JSON data.  False if not available, or WP_Error for HTTP errors and such.
+     * @return string|false The JSON data.  False if not available
+     * @throws TouchPointWP_WPError    For API Errors
+     * @throws TouchPointWP_Exception  For Errors reported by API
      */
     protected function getIpData(string $ip, bool $useApi = true)
     {
@@ -802,13 +811,13 @@ class TouchPointWP
             return false;
         }
 
-        $return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/");
-
-        if ($return instanceof WP_Error) {
-            return $return;
-        }
+        $return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/"); // Exceptions thrown here.
 
         $return = $return['body'];
+
+        if (property_exists($return, 'error')) {
+            throw new TouchPointWP_Exception("IP Geolocation Error: " . $return->error . " " . $return->reason ?? "", 178001);
+        }
 
         /** @noinspection SqlResolve */
         $q = $wpdb->prepare( "
@@ -1610,10 +1619,6 @@ class TouchPointWP
             return false;
         }
 
-        if ($return instanceof WP_Error) {
-            return false;
-        }
-
         $body = json_decode($return['body']);
 
         if (property_exists($body, "message")) {
@@ -1643,10 +1648,6 @@ class TouchPointWP
         try {
             $return = $this->apiGet('MemTypes', ['divs' => $divisions]);
         } catch (TouchPointWP_Exception $e) {
-            return false;
-        }
-
-        if ($return instanceof WP_Error) {
             return false;
         }
 
@@ -1707,10 +1708,6 @@ class TouchPointWP
         try {
             $return = $this->apiGet('ResCodes');
         } catch (TouchPointWP_Exception $e) {
-            return false;
-        }
-
-        if ($return instanceof WP_Error) {
             return false;
         }
 
@@ -1778,10 +1775,6 @@ class TouchPointWP
         try {
             $return = $this->apiGet('Genders');
         } catch (TouchPointWP_Exception $e) {
-            return false;
-        }
-
-        if ($return instanceof WP_Error) {
             return false;
         }
 
@@ -2046,10 +2039,6 @@ class TouchPointWP
             $error = true;
         }
 
-        if ($srcResult instanceof WP_Error) {
-            $error = true;
-        }
-
         $body = json_decode($srcResult['body']);
 
         if (property_exists($body, "message")) {
@@ -2123,10 +2112,6 @@ class TouchPointWP
             return false;
         }
 
-        if ($return instanceof WP_Error) {
-            return false;
-        }
-
         $body = json_decode($return['body']);
 
         if (property_exists($body, "message")) {
@@ -2157,10 +2142,6 @@ class TouchPointWP
         try {
             $return = $this->apiGet('PersonEvFields');
         } catch (TouchPointWP_Exception $e) {
-            return false;
-        }
-
-        if ($return instanceof WP_Error) {
             return false;
         }
 
@@ -2197,10 +2178,6 @@ class TouchPointWP
             return false;
         }
 
-        if ($return instanceof WP_Error) {
-            return false;
-        }
-
         $body = json_decode($return['body']);
 
         if (property_exists($body, "message")) {
@@ -2227,19 +2204,19 @@ class TouchPointWP
      * @param string $command The thing to get
      * @param ?array $parameters URL parameters to be added.
      *
-     * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
+     * @return array An array with headers, body, and other keys
      * Data is generally in json_decode($response['body'])->data
      *
-     * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.  TODO make consistent with apiPost
+     * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
      */
-    public function apiGet(string $command, ?array $parameters = null)
+    public function apiGet(string $command, ?array $parameters = null): array
     {
         if ( ! is_array($parameters)) {
             $parameters = (array)$parameters;
         }
 
         if (!$this->settings->hasValidApiSettings()) {
-            throw new TouchPointWP_Exception("Invalid or incomplete API Settings.");
+            throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", TouchPointWP::TEXT_DOMAIN), 170001);
         }
 
         $parameters['a'] = $command;
@@ -2247,10 +2224,10 @@ class TouchPointWP
         $host = $this->host();
 
         if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER)
-            return new WP_Error('invalid_api_endpoint',
-                                __('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'));
+            throw new TouchPointWP_Exception(__('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'), 170002);
 
-        return $this->getHttpClient()->request($host . "/PythonApi/" .
+
+        $r = $this->getHttpClient()->request($host . "/PythonApi/" .
             $this->settings->api_script_name . "?" . http_build_query($parameters),
             [
                 'method'  => 'GET',
@@ -2261,6 +2238,12 @@ class TouchPointWP
                 ]
             ]
         );
+
+        if ($r instanceof WP_Error) {
+            throw new TouchPointWP_WPError($r);
+        }
+
+        return $r;
     }
 
     /**
@@ -2268,20 +2251,19 @@ class TouchPointWP
      * @param mixed  $data Data to post
      * @param int    $timeout Amount of time in sec to wait before timing out.
      *
-     * @return object|WP_Error An object that corresponds to the Data python object in TouchPoint, or a WP_Error
-     * instance if something went wrong.
+     * @return stdClass|array An object that corresponds to the Data python object in TouchPoint.
+     * @throws TouchPointWP_Exception  If anything went wrong.
      */
     public function apiPost(string $command, $data = null, int $timeout = 5)
     {
         if (!$this->settings->hasValidApiSettings()) {
-            return new WP_Error(self::SHORTCODE_PREFIX . "api-settings", "Invalid or incomplete API Settings.");
+            throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", TouchPointWP::TEXT_DOMAIN), 170001);
         }
 
         $host = $this->host();
 
         if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER)
-            return new WP_Error('invalid_api_endpoint',
-                                __('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'));
+            throw new TouchPointWP_Exception(__('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'), 170002);
 
         $data = json_encode(['inputData' => $data]);
 
@@ -2301,16 +2283,24 @@ class TouchPointWP
         );
 
         if ($r instanceof WP_Error) {
-            return $r;
+            throw new TouchPointWP_WPError($r);
         }
 
         $respDecoded = json_decode($r['body']);
 
-        if (property_exists($respDecoded, 'output') && $respDecoded->output !== '') {
-            return new WP_Error(self::SHORTCODE_PREFIX . "api-remote", $respDecoded->output);
+        // Most likely the issue where a module import failed for no apparent reason.
+        if (strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
+            throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001);
         }
+
+        // Some other script error
+        if (property_exists($respDecoded, 'output') && $respDecoded->output !== '') {
+            throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179002);
+        }
+
+        // Error caught by error handling within Python script
         if (property_exists($respDecoded, 'message') && $respDecoded->message !== '') {
-            return new WP_Error(self::SHORTCODE_PREFIX . "api-remote", $respDecoded->message);
+            throw new TouchPointWP_Exception($respDecoded->message, 179003);
         }
 
         return $respDecoded->data;
@@ -2320,19 +2310,27 @@ class TouchPointWP
      * @param string $url The destination of the request.
      * @param ?array $parameters URL parameters to be added.
      *
-     * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
+     * @return array An array with headers, body, and other keys on failure.
+     * @throws TouchPointWP_WPError If there's an issue.
      */
-    public function extGet(string $url, ?array $parameters = null) {
+    public function extGet(string $url, ?array $parameters = null): array
+    {
         if ( ! is_array($parameters)) {
             $parameters = (array)$parameters;
         }
 
-        return $this->getHttpClient()->request(
+        $r = $this->getHttpClient()->request(
             $url . "?" . http_build_query($parameters),
             [
                 'method'  => 'GET'
             ]
         );
+
+        if ($r instanceof WP_Error) {
+            throw new TouchPointWP_WPError($r);
+        }
+
+        return $r;
     }
 
     /**
@@ -2342,23 +2340,21 @@ class TouchPointWP
      * @param bool  $verbose
      * @param int   $timeout
      *
-     * @return false|object|WP_Error
+     * @return stdClass  The people objects are contained within ->people.
+     * @throws TouchPointWP_Exception  Upon failure.
      */
-    public function doPersonQuery(array $q, bool $verbose = false, int $timeout = 5)
+    public function doPersonQuery(array $q, bool $verbose = false, int $timeout = 5): stdClass
     {
         $data = TouchPointWP::instance()->apiPost('people_get', $q, $timeout);
+        // An exception may already be thrown.
 
-        if ($data instanceof WP_Error) {
-            if ($verbose) {
-                var_dump($data->get_error_messages());
-            }
-            return $data;
+        if ($verbose) {
+            echo "Found " . count($data->people) . " people";
         }
 
         // Validate that the API returned something
         if (!isset($data->people) || (!is_array($data->people) && !is_object($data->people))) {
-            // API error or something.  Update fails.
-            return false;
+            throw new TouchPointWP_Exception(__("People Query Failed", self::TEXT_DOMAIN), 179004);
         }
 
         $data->people = (array)$data->people;

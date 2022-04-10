@@ -12,10 +12,10 @@ require_once "jsInstantiation.php";
 require_once 'InvolvementMembership.php';
 require_once "Utilities/PersonQuery.php";
 
+use Exception;
 use JsonSerializable;
 use stdClass;
 use tp\TouchPointWP\Utilities\PersonQuery;
-use WP_Error;
 use WP_User;
 
 /**
@@ -519,11 +519,25 @@ class Person extends WP_User implements api, JsonSerializable
     }
 
     /**
+     * Run the updating cron task.  Fail quietly to not disturb the visitor experience if using WP default cron handling.
+     *
+     * @return void
+     */
+    public static function updateCron(): void
+    {
+        try {
+            self::updateFromTouchPoint();
+        } catch (Exception $ex) {
+        }
+    }
+
+    /**
      * Updates the data for all People Lists in the site.
      *
      * @param bool $verbose Whether to print debugging info.
      *
      * @return false|int False on failure, or the number of partner posts that were updated or deleted.
+     * @throws TouchPointWP_Exception
      */
     protected static function updateFromTouchPoint(bool $verbose = false)
     {
@@ -565,7 +579,8 @@ class Person extends WP_User implements api, JsonSerializable
 
         // Prevent sync from running if plugin hasn't been configured and there's nothing to sync yet.
         if (!$queryNeeded) {
-            echo "Nothing to update";
+            if ($verbose)
+                echo "Nothing to update";
             return 0;
         }
 
@@ -582,12 +597,8 @@ class Person extends WP_User implements api, JsonSerializable
         // Submit to API
         $people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, 50);
 
-        if ($people instanceof WP_Error || $people == false) {
-            return false;
-        }
-
         // Parse the API results
-        $count = self::updatePeopleFromApiData($people->people);
+        $count = self::updatePeopleFromApiData($people->people, $verbose);
 
         if ($count !== 0) {
             TouchPointWP::instance()->settings->set('person_cron_last_run', time());
@@ -665,6 +676,11 @@ class Person extends WP_User implements api, JsonSerializable
                         $person = new Person($uid);
                     }
                 }
+            }
+
+            if ($verbose) {
+                var_dump($person);
+                echo "<hr />";
             }
 
             // User doesn't exist.
@@ -805,10 +821,13 @@ class Person extends WP_User implements api, JsonSerializable
      */
     protected static function updatePeopleWordPressIDs(array $changes)
     {
-        TouchPointWP::instance()->apiPost('person_wpIds', [
-            'people' => $changes,
-            'evName' => TouchPointWP::instance()->settings->people_ev_wpId
-        ]);
+        try {
+            TouchPointWP::instance()->apiPost('person_wpIds', [
+                'people' => $changes,
+                'evName' => TouchPointWP::instance()->settings->people_ev_wpId
+            ]);
+        } catch (Exception $ex) {
+        }
     }
 
     /**
@@ -1053,10 +1072,10 @@ class Person extends WP_User implements api, JsonSerializable
     {
         $inputData = TouchPointWP::postHeadersAndFiltering();
 
-        $data = TouchPointWP::instance()->apiPost('ident', json_decode($inputData));
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
+        try {
+            $data = TouchPointWP::instance()->apiPost('ident', json_decode($inputData));
+        } catch (Exception $ex) {
+            echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }
 
@@ -1100,7 +1119,11 @@ class Person extends WP_User implements api, JsonSerializable
 
             case "force-sync":
                 TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
-                self::updateFromTouchPoint();
+                try {
+                    echo self::updateFromTouchPoint(true);
+                } catch (Exception $ex) {
+                    echo "Update Failed: " . $ex->getMessage();
+                }
                 exit;
         }
 
@@ -1118,10 +1141,10 @@ class Person extends WP_User implements api, JsonSerializable
         $kw = TouchPointWP::instance()->settings->people_contact_keywords;
         $inputData->keywords = Utilities::idArrayToIntArray($kw);
 
-        $data = TouchPointWP::instance()->apiPost('person_contact', $inputData);
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
+        try {
+            $data = TouchPointWP::instance()->apiPost('person_contact', $inputData);
+        } catch (Exception $ex) {
+            echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }
 
@@ -1144,7 +1167,7 @@ class Person extends WP_User implements api, JsonSerializable
         add_action('init', [self::class, 'checkUpdates']);
 
         // Setup cron for updating People daily.
-        add_action(self::CRON_HOOK, [self::class, 'updateFromTouchPoint']);
+        add_action(self::CRON_HOOK, [self::class, 'updateCron']);
         if ( ! wp_next_scheduled(self::CRON_HOOK)) {
             // Runs at 6:30am EST (11:30am UTC), hypothetically after TouchPoint runs its Morning Batches.
             wp_schedule_event(
@@ -1167,7 +1190,10 @@ class Person extends WP_User implements api, JsonSerializable
     public static function checkUpdates(): void
     {
         if (TouchPointWP::instance()->settings->person_cron_last_run * 1 < time() - 86400 - 3600) {
-            self::updateFromTouchPoint();
+            try {
+                self::updateFromTouchPoint();
+            } catch (Exception $ex) {
+            }
         }
     }
 

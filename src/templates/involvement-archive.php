@@ -17,7 +17,7 @@ $settings = Involvement::getSettingsForPostType($postType);
 if (have_posts()) {
     $location = TouchPointWP::instance()->geolocate(false);
 
-    if ((get_class($location) !== WP_Error::class) && $location !== false) {
+    if ($location !== false) {
         // we have a viable location. Use it for sorting by distance.
         Involvement::setComparisonGeo($location);
         TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);

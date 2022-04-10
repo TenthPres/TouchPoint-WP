@@ -228,7 +228,23 @@ class Partner implements api, JsonSerializable
 
         // Run cron if it hasn't been run before or is overdue.
         if (TouchPointWP::instance()->settings->global_cron_last_run * 1 < time() - 86400 - 3600) {
+            try {
+                self::updateFromTouchPoint();
+            } catch (Exception $ex) {
+            }
+        }
+    }
+
+    /**
+     * Run the updating cron task.  Fail quietly to not disturb the visitor experience if using WP default cron handling.
+     *
+     * @return void
+     */
+    public static function updateCron(): void
+    {
+        try {
             self::updateFromTouchPoint();
+        } catch (Exception $ex) {
         }
     }
 
@@ -239,6 +255,7 @@ class Partner implements api, JsonSerializable
      * @param bool $verbose Whether to print debugging info.
      *
      * @return false|int False on failure, or the number of partner posts that were updated or deleted.
+     * @throws TouchPointWP_Exception
      */
     public static function updateFromTouchPoint(bool $verbose = false)
     {
@@ -284,10 +301,6 @@ class Partner implements api, JsonSerializable
         // Submit to API
         $familyData = TouchPointWP::instance()->doPersonQuery($q, $verbose, 50);
 
-        if ($familyData instanceof WP_Error || $familyData == false) {
-            return false;
-        }
-
         $postsToKeep = [];
         $count = 0;
 
@@ -329,7 +342,7 @@ class Partner implements api, JsonSerializable
             }
 
             if ($post instanceof WP_Error) {
-                error_log($post->get_error_message());
+                new TouchPointWP_WPError($post);
                 continue;
             }
 
@@ -674,7 +687,11 @@ class Partner implements api, JsonSerializable
         switch (strtolower($uri['path'][2])) {
             case "force-sync":
                 TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
-                echo self::updateFromTouchPoint(true);
+                try {
+                    echo self::updateFromTouchPoint(true);
+                } catch (Exception $ex) {
+                    echo "Update Failed: " . $ex->getMessage();
+                }
                 exit;
         }
 
@@ -758,7 +775,7 @@ class Partner implements api, JsonSerializable
         }
 
         // Setup cron for updating Partners daily.
-        add_action(self::CRON_HOOK, [self::class, 'updateFromTouchPoint']);
+        add_action(self::CRON_HOOK, [self::class, 'updateCron']);
         if ( ! wp_next_scheduled(self::CRON_HOOK)) {
             // Runs at 6am EST (11am UTC), hypothetically after TouchPoint runs its Morning Batches.
             wp_schedule_event(
@@ -838,9 +855,13 @@ class Partner implements api, JsonSerializable
      */
     public static function sortPosts(WP_Post $a, WP_Post $b): int
     {
-        $a = self::fromPost($a);
-        $b = self::fromPost($b);
-        return self::sort($a, $b);
+        try {
+            $a = self::fromPost($a);
+            $b = self::fromPost($b);
+            return self::sort($a, $b);
+        } catch (TouchPointWP_Exception $ex) {
+            return $a <=> $b;
+        }
     }
 
 
@@ -944,9 +965,9 @@ class Partner implements api, JsonSerializable
     /**
      * Format an EV value for use as content.
      *
-     * @param string $ev           The name of the extra value
-     * @param object $famObj       The family object from the API call
-     * @param ?string $newContent  Value to use if no content is provided in the EV.
+     * @param string $ev        The name of the extra value
+     * @param object $famObj    The family object from the API call
+     * @param ?string $default  Value to use if no content is provided in the EV.
      *
      * @return ?string
      */

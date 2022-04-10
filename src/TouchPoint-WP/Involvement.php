@@ -13,6 +13,7 @@ require_once "Involvement_PostTypeSettings.php";
 use DateInterval;
 use DateTimeImmutable;
 use Exception;
+use stdClass;
 use WP_Error;
 use WP_Post;
 use WP_Query;
@@ -994,11 +995,20 @@ class Involvement implements api
             $r = [];
         }
 
+        $errorMessage = null;
         foreach ($r as $g) {
-            $inv      = self::fromObj($g);
-            $g->name = $inv->name;
-            $g->invType = $settings->postTypeWithoutPrefix();
-            $g->path = get_permalink($inv->post_id);
+            try {
+                $inv        = self::fromObj($g);
+                $g->name    = $inv->name;
+                $g->invType = $settings->postTypeWithoutPrefix();
+                $g->path    = get_permalink($inv->post_id);
+            } catch (TouchPointWP_Exception $ex) {
+                $errorMessage = $ex->getMessage();
+            }
+        }
+
+        if ($errorMessage !== null) {
+            $r['error'] = $errorMessage;
         }
 
         echo json_encode($r);
@@ -1205,7 +1215,7 @@ class Involvement implements api
      */
     public static function setComparisonGeo(object $geo): void
     {
-        if (get_class($geo) !== WP_Error::class) {
+        if (get_class($geo) === stdClass::class) {
             self::$compareGeo = $geo;
         }
     }
@@ -1246,9 +1256,13 @@ class Involvement implements api
      */
     public static function sortPosts(WP_Post $a, WP_Post $b): int
     {
-        $a = self::fromPost($a);
-        $b = self::fromPost($b);
-        return self::sort($a, $b);
+        try {
+            $a = self::fromPost($a);
+            $b = self::fromPost($b);
+            return self::sort($a, $b);
+        } catch (TouchPointWP_Exception $ex) {
+            return $a <=> $b;
+        }
     }
 
 
@@ -1353,10 +1367,6 @@ class Involvement implements api
             return false;
         }
 
-        if ($response instanceof WP_Error) {
-            return false;
-        }
-
         $invData = json_decode($response['body'])->data->invs ?? []; // null coalesce for case where there is no data.
 
         $postsToKeep = [];
@@ -1401,7 +1411,7 @@ class Involvement implements api
             }
 
             if ($post instanceof WP_Error) {
-                error_log($post->get_error_message());
+                new TouchPointWP_WPError($post);
                 continue;
             }
 
@@ -1882,10 +1892,10 @@ class Involvement implements api
             $inputData->keywords = Utilities::idArrayToIntArray($settings->joinKeywords);
         }
 
-        $data = TouchPointWP::instance()->apiPost('inv_join', $inputData);
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
+        try {
+            $data = TouchPointWP::instance()->apiPost('inv_join', $inputData);
+        } catch (TouchPointWP_Exception $ex) {
+            echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }
 
@@ -1907,10 +1917,10 @@ class Involvement implements api
             $inputData->keywords = Utilities::idArrayToIntArray($settings->contactKeywords);
         }
 
-        $data = TouchPointWP::instance()->apiPost('inv_contact', $inputData);
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
+        try {
+            $data = TouchPointWP::instance()->apiPost('inv_contact', $inputData);
+        } catch (TouchPointWP_Exception $ex) {
+            echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }
 

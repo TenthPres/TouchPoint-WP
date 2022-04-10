@@ -8,9 +8,11 @@ use WP_User;
 use WP_User_Query;
 
 /**
- * RSVP class file.
+ * Auth class file.
  *
- * Class Rsvp
+ * TODO Rework error handling in favor of exceptions.
+ *
+ * Class Auth
  * @package tp\TouchPointWP
  */
 

@@ -400,7 +400,7 @@ class TP_Partner extends TP_Mappable {
         if (this.post_id === 0) {
             return {
                 text: "\uf023",
-                fontFamily: "FontAwesome",
+                fontFamily: "FontAwesome", // TODO add dependency
                 color: "#00000088",
                 fontSize: "90%"
             }

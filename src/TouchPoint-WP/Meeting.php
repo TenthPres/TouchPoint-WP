@@ -9,7 +9,7 @@ if ( ! defined('ABSPATH')) {
 
 require_once 'api.php';
 
-use WP_Error;
+use Exception;
 
 abstract class Meeting implements api
 {
@@ -54,6 +54,7 @@ abstract class Meeting implements api
      * @param $opts
      *
      * @return object
+     * @throws TouchPointWP_Exception
      */
     private static function getMeetingInfo($opts): object
     {
@@ -73,10 +74,10 @@ abstract class Meeting implements api
             exit;
         }
 
-        $data = self::getMeetingInfo($_GET);
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
+        try {
+            $data = self::getMeetingInfo($_GET);
+        } catch (TouchPointWP_Exception $ex) {
+            echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }
 
@@ -101,10 +102,10 @@ abstract class Meeting implements api
             exit;
         }
 
-        $data = TouchPointWP::instance()->apiPost('mtg_rsvp', json_decode($inputData));
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
+        try {
+            $data = TouchPointWP::instance()->apiPost('mtg_rsvp', json_decode($inputData));
+        } catch (Exception $ex) {
+            echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }
 
