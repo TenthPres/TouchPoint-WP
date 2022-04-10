@@ -2348,16 +2348,16 @@ class TouchPointWP
         $data = TouchPointWP::instance()->apiPost('people_get', $q, $timeout);
         // An exception may already be thrown.
 
-        if ($verbose) {
-            echo "Found " . count($data->people) . " people";
-        }
-
         // Validate that the API returned something
         if (!isset($data->people) || (!is_array($data->people) && !is_object($data->people))) {
             throw new TouchPointWP_Exception(__("People Query Failed", self::TEXT_DOMAIN), 179004);
         }
 
         $data->people = (array)$data->people;
+
+        if ($verbose) {
+            echo "Found " . count($data->people) . " people";
+        }
 
         return $data;
     }

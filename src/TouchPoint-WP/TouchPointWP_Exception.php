@@ -35,7 +35,7 @@ class TouchPointWP_Exception extends Exception
         if (TouchPointWP::DEBUG) {
             file_put_contents(
                 TouchPointWP::$dir . '/TouchPointWP_ErrorLog.txt',
-                time() . "\t" . TouchPointWP::VERSION . "\t" . $this->getFile() . "#" . $this->getLine() . "\t" . $this->getMessage() . "\n",
+                time() . "\t" . TouchPointWP::VERSION . "\t" . $this->getCode() . "\t" . $this->getFile() . "#" . $this->getLine() . "\t" . $this->getMessage() . "\n",
                 FILE_APPEND | LOCK_EX
             );
         }
