@@ -24,24 +24,6 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
             <span class="post-meta">
                 <?php
                 $metaStrings = [];
-//                $metaKeys = [
-//                    TouchPointWP::SETTINGS_PREFIX . "meetingSchedule",
-//                    TouchPointWP::SETTINGS_PREFIX . "locationName",
-//                ];
-//                foreach ($metaKeys as $mk) {
-//                    if ($post->$mk) {
-//                        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk);
-//                    }
-//                }
-//
-//                $metaKeys = [
-//                    TouchPointWP::SETTINGS_PREFIX . "leaders",
-//                ];
-//                foreach ($metaKeys as $mk) {
-//                    if ($post->$mk) {
-//                        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $post->$mk);
-//                    }
-//                }
 
                 foreach ($gp->notableAttributes() as $a)
                 {
