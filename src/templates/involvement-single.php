@@ -22,7 +22,7 @@ TouchPointWP::enqueuePartialsStyle();
     </div>
 </header>
 
-<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-involvement="<?php echo $inv->invId ?>">
+<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-involvement="<?php echo $inv->post_id ?>">
     <div class="post-inner involvement-inner">
         <div class="entry-content">
             <?php

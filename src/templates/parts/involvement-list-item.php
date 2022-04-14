@@ -14,7 +14,7 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
 
 ?>
 
-<article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class("involvement-list-item"); ?> data-tp-involvement="<?php echo $inv->invId ?>">
+<article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class("involvement-list-item"); ?> data-tp-involvement="<?php echo $inv->post_id ?>">
     <header class="tp-header">
         <div class="tp-header-inner">
         <?php

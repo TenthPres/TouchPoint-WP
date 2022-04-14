@@ -234,16 +234,371 @@ class TP_DataGeo {
 TP_DataGeo.prototype.classShort = "geo";
 TP_DataGeo.init();
 
-class TP_Involvement {
+class TP_MapMarker extends google.maps.Marker
+{
+    /**
+     *
+     * @type {TP_Mappable[]}
+     */
+    items = [];
+
+    color = "#000";
+
+    geoStr = "";
+
+    constructor(options) {
+        if (!options.hasOwnProperty('icon')) {
+            options.icon = {
+                path: "M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z", // from FontAwesome
+                fillColor: options.color ?? "#000",
+                fillOpacity: .85,
+                anchor: new google.maps.Point(172.268, 501.67),
+                strokeWeight: 1,
+                scale: 0.04,
+                labelOrigin: new google.maps.Point(190, 198)
+            }
+        }
+        super(options)
+        super.addListener("click", this.handleClick);
+    }
+
+    get visibleItems() {
+        return this.items.filter((i) => i._visible);
+    }
+
+    get visible() {
+        return this.visibleItems.length > 0
+    }
+
+    get inBounds() {
+        return this.getMap().getBounds().contains(this.getPosition());
+    }
+
+    get useIcon() {
+        let icon = this.visibleItems.find((i) => i.useIcon !== false)
+        if (icon === undefined) {
+            return false;
+        }
+        return icon.useIcon;
+    }
+
+    updateLabel() {
+        let icon = super.getIcon();
+
+        // Update icon color
+        this.color = tpvm._utils.averageColor(this.visibleItems.map((i) => i.color))
+        if (icon !== undefined && icon.hasOwnProperty("fillColor")) {
+            icon.fillColor = this.color;
+            super.setIcon(icon);
+        }
+
+        // Update visibility
+        super.setVisible(this.visibleItems.length > 0);
+
+        // Update title
+        super.setTitle(tpvm._utils.stringArrayToListString(this.visibleItems.map((i) => i.name)))
+
+        // Update label proper
+        let label = null;
+        if (this.visibleItems.length > 1) {
+            label = {
+                text: this.visibleItems.length.toString(),
+                color: "#000000",
+                fontSize: "100%"
+            }
+        } else if (this.useIcon !== false) { // icon for secure partners
+            label = this.useIcon;
+        }
+        super.setLabel(label);
+    }
+
+    handleClick() {
+        const mp = this.getMap();
+        TP_MapMarker.smoothZoom(mp, this.getPosition())
+    }
+
+    /**
+     * Smoothly zoom in (or out) on the given map.  By default, zooms in to the max level allowed.
+     *
+     * @param {google.maps.Map} map The Google Maps map
+     * @param {google.maps.LatLng} position The position to move to center
+     * @param {number, undefined} zoomTo Google Maps zoom level, or undefined for maxZoom.
+     */
+    static async smoothZoom(map, position = null, zoomTo = undefined) {
+        if (zoomTo === undefined || zoomTo > map.maxZoom) {
+            zoomTo = map.maxZoom;
+        }
+
+        if (map.getZoom() !== zoomTo) {
+            let z = google.maps.event.addListener(map, 'zoom_changed', () => {
+                google.maps.event.removeListener(z);
+                setTimeout(() => this.smoothZoom(map, position, zoomTo), 150);
+            });
+            if (map.getZoom() < zoomTo) { // zoom in
+                map.setZoom(map.getZoom() + 1);
+            } else { // zoom out
+                map.setZoom(map.getZoom() - 1);
+            }
+            if (position !== null) {
+                let oldPos = map.getCenter(),
+                    newPos = new google.maps.LatLng((oldPos.lat() + position.lat() * 2) / 3, (oldPos.lng() + position.lng() * 2) / 3);
+                map.panTo(newPos);
+            }
+        } else {
+            map.panTo(position);
+        }
+    }
+}
+
+class TP_Mappable {
     name = "";
-    invId = "";
+    post_id = 0;
+
+    geo = {};
+
+    color = "#000";
+
+    static items = [];
+    static itemsWithoutMarkers = [];
+
     _visible = true;
+
+    /**
+     * All markers on all maps.
+     *
+     * @type {TP_MapMarker[]}
+     */
+    static markers = [];
+
+    /**
+     * Markers for this specific object.
+     *
+     * @type {TP_MapMarker[]}
+     */
+    markers = [];
+
+    constructor(obj) {
+        if (obj.geo !== undefined && obj.geo !== null && obj.geo.lat !== null && obj.geo.lng !== null) {
+            obj.geo.lat = Math.round(obj.geo.lat * 1000) / 1000;
+            obj.geo.lng = Math.round(obj.geo.lng * 1000) / 1000;
+        }
+
+        this.geo = [obj.geo] ?? [];
+
+        this.name = obj.name.replace("&amp;", "&");
+        this.post_id = obj.post_id;
+
+        if (obj.post_id === undefined) {
+            this.post_id = 0;
+        }
+
+        if (obj.hasOwnProperty('color')) {
+            this.color = obj.color;
+        }
+
+        for (const ei in this.connectedElements) {
+            if (!this.connectedElements.hasOwnProperty(ei)) continue;
+
+            let mappable = this;
+            this.connectedElements[ei].addEventListener('mouseenter', function(e){e.stopPropagation(); mappable.toggleHighlighted(true);});
+            this.connectedElements[ei].addEventListener('mouseleave', function(e){e.stopPropagation(); mappable.toggleHighlighted(false);});
+
+            let actionBtns = this.connectedElements[ei].querySelectorAll('[data-tp-action]')
+            for (const ai in actionBtns) {
+                if (!actionBtns.hasOwnProperty(ai)) continue;
+                const action = actionBtns[ai].getAttribute('data-tp-action');
+                if (typeof mappable[action + "Action"] === "function") {
+                    tpvm._utils.registerAction(action, mappable, mappable.post_id)
+                    actionBtns[ai].addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        mappable[action + "Action"]();
+                    });
+                }
+            }
+        }
+
+        TP_Mappable.items.push(this);
+    }
+
+    static initMap(containerElt, mapOptions, list) {
+        google.maps.visualRefresh = true;
+        const map = new google.maps.Map(containerElt, mapOptions),
+            bounds = new google.maps.LatLngBounds();
+
+        for (const ii in list) {
+            if (!list.hasOwnProperty(ii)) continue;
+
+            // skip items that aren't locatable.
+            let hasMarkers = false;
+            for (const gi in list[ii].geo) {
+                if (list[ii].geo[gi] === null || list[ii].geo[gi].lat === null || list[ii].geo[gi].lng === null)
+                    continue;
+
+                const item = list[ii],
+                    geoStr = "" + item.geo[gi].lat + "," + item.geo[gi].lng;
+                let mkr = this.markers.find((m) => m.getMap() === map && m.geoStr === geoStr);
+
+                // If there isn't already a marker for the item on the right map, create one.
+                if (mkr === undefined) {
+                    mkr = new TP_MapMarker({
+                        position: item.geo[gi],
+                        color: item.color,
+                        map: map,
+                        animation: google.maps.Animation.DROP,
+                    });
+                    mkr.geoStr = geoStr;
+
+                    // Add to collection of all markers
+                    this.markers.push(mkr);
+                }
+
+                bounds.extend(mkr.getPosition());
+
+                // If the marker doesn't already have a reference to this item, add one.
+                if (!mkr.items.includes(item)) {
+                    mkr.items.push(item);
+                }
+
+                // If the item doesn't already have a reference to this marker, add one.
+                if (!item.markers.includes(mkr)) {
+                    item.markers.push(mkr);
+                }
+
+                hasMarkers = true;
+
+                mkr.updateLabel();
+            }
+            if (!hasMarkers) {
+                this.itemsWithoutMarkers.push(this);
+            }
+        }
+
+        map.fitBounds(bounds);
+
+        map.addListener('bounds_changed', this.handleZoom);
+    }
+
+    /**
+     * Currently, this will apply visibility to ALL mappable items, even if they're on a different map.
+     */
+    static handleZoom() {
+        for (const ii in TP_Mappable.items) {
+            TP_Mappable.items[ii].applyVisibilityToConnectedElements();
+        }
+    }
+
+    updateMarkerLabels() {
+        for (const mi in this.markers) {
+            this.markers[mi].updateLabel();
+        }
+    }
+
+    showOnMapAction() {
+        if (this.markers.length === 1) {
+            let mp = this.markers[0].getMap(),
+                el = mp.getDiv(),
+                rect = el.getBoundingClientRect(),
+                viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight),
+                mpWithinView = !(rect.bottom < 0 || rect.top - viewHeight >= 0);
+            TP_MapMarker.smoothZoom(mp, this.markers[0].getPosition());
+            if (!mpWithinView) {
+                window.scroll({
+                    top: rect.top,
+                    left: rect.left,
+                    behavior: 'smooth'
+                })
+            }
+        } else {
+            console.warn("Show on Map for Mappable items with multiple markers is not fully supported.")
+            // Set visibility on all markers
+            for (const mi in TP_Mappable.markers) {
+                for (const ii in TP_Mappable.markers[mi].items) {
+                    TP_Mappable.markers[mi].items[ii].toggleVisibility(TP_Mappable.markers[mi].items[ii] === this);
+                }
+            }
+        }
+    }
+
+    get visible() {
+        return this._visible && (this.markers.some((m) => m.visible) || this.markers.length === 0);
+    }
+
+    get inBounds() {
+        return this.markers.some((m) => m.inBounds);
+    }
+
+    static get mapExcludesSomeMarkers() {
+        return this.markers.some((m) => !m.inBounds);
+    }
+
+    get useIcon() {
+        return false;
+    }
+
+    get highlightable() {
+        return true;
+    }
+
+    toggleVisibility(vis = null) {
+        if (vis === null) {
+            this._visible = !this._visible
+        } else {
+            this._visible = !!vis;
+        }
+
+        this._visible = vis;
+        this.updateMarkerLabels();
+
+        this.applyVisibilityToConnectedElements();
+
+        return this._visible;
+    }
+
+    get connectedElements() {
+        const clsName = this.constructor.name.toLowerCase().replace("_", "-");
+        const sPath = '[data-' + clsName + '="' + this.post_id + '"]'
+        return document.querySelectorAll(sPath);
+    }
+
+    applyVisibilityToConnectedElements() {
+        let elts = this.connectedElements;
+        for (const ei in elts) {
+            if (!elts.hasOwnProperty(ei))
+                continue;
+            elts[ei].style.display = (this.visible && (this.inBounds || !TP_Mappable.mapExcludesSomeMarkers)) ? "" : "none";
+        }
+    }
+
+    toggleHighlighted(hl) {
+        this.highlighted = !!hl;
+
+        if (!this.highlightable)
+            this.highlighted = false;
+
+        if (this.highlighted) {
+            let item = this;
+            for (let mi in this.markers) {
+                const mk = item.markers[mi];
+                if (mk.getAnimation() !== google.maps.Animation.BOUNCE) {
+                    mk.setAnimation(google.maps.Animation.BOUNCE);
+                }
+            }
+        } else {
+            for (const mi in this.markers) {
+                let mk = this.markers[mi];
+                if (mk.getAnimation() !== null) {
+                    mk.setAnimation(null)
+                }
+            }
+        }
+    }
+}
+
+class TP_Involvement extends TP_Mappable {
+    invId = "";
     invType = "involvement"; // overwritten by constructor
 
     attributes = {};
-
-    mapMarker = null;
-    geo = {};
 
     static currentFilters = {};
 
@@ -252,34 +607,12 @@ class TP_Involvement {
     static mapMarkers = {};
 
     constructor(obj) {
-        this.name = obj.name;
+        super(obj);
+
         this.invId = obj.invId;
         this.invType = obj.invType;
 
         this.attributes = obj.attributes ?? null;
-
-        for (const ei in this.connectedElements) {
-            if (!this.connectedElements.hasOwnProperty(ei)) continue;
-
-            let inv = this;
-            this.connectedElements[ei].addEventListener('mouseenter', function(e){e.stopPropagation(); inv.toggleHighlighted(true);});
-            this.connectedElements[ei].addEventListener('mouseleave', function(e){e.stopPropagation(); inv.toggleHighlighted(false);});
-
-            let actionBtns = this.connectedElements[ei].querySelectorAll('[data-tp-action]')
-            for (const ai in actionBtns) {
-                if (!actionBtns.hasOwnProperty(ai)) continue;
-                const action = actionBtns[ai].getAttribute('data-tp-action');
-                if (TP_Involvement.actions.includes(action)) {
-                    tpvm._utils.registerAction(action, inv, inv.invId)
-                    actionBtns[ai].addEventListener('click', function (e) {
-                        e.stopPropagation();
-                        inv[action + "Action"]();
-                    });
-                }
-            }
-        }
-
-        this.geo = obj.geo ?? null;
 
         tpvm.involvements[this.invId] = this;
     }
@@ -348,70 +681,6 @@ class TP_Involvement {
                 }
                 group.toggleVisibility(true)
             }
-    }
-
-    get connectedElements() {
-        const sPath = '[data-tp-involvement="' + this.invId + '"]'
-        return document.querySelectorAll(sPath);
-    }
-
-    get visibility() {
-        return this._visible;
-    }
-
-    static setElementVisibility(elt, visibility)
-    {
-        elt.style.display = !!visibility ? "" : "none";
-    }
-
-    toggleHighlighted(hl)
-    {
-        this.highlighted = !!hl;
-
-        if (this.highlighted) {
-            if (this.mapMarker !== null &&
-                this.mapMarker.getAnimation() !== google.maps.Animation.BOUNCE &&
-                tpvm.involvements.length > 1) {
-                this.mapMarker.setAnimation(google.maps.Animation.BOUNCE)
-            }
-        } else {
-            if (this.mapMarker !== null &&
-                this.mapMarker.getAnimation() !== null) {
-                this.mapMarker.setAnimation(null)
-            }
-        }
-    }
-
-    toggleVisibility(vis = null) {
-        if (vis === null) {
-            this._visible = !this._visible
-        } else {
-            this._visible = !!vis;
-        }
-
-        for (const ei in this.connectedElements) {
-            if (!this.connectedElements.hasOwnProperty(ei)) continue;
-
-            TP_Involvement.setElementVisibility(this.connectedElements[ei], this._visible);
-        }
-
-        if (this.mapMarker === null)
-            return this._visible;
-
-        let shouldBeVisible = false;
-
-        for (const ii in this.mapMarker.involvements) {
-            if (!this.mapMarker.involvements.hasOwnProperty(ii)) continue;
-
-            if (this.mapMarker.involvements[ii].visibility) {
-                shouldBeVisible = true;
-
-                TP_Involvement.updateMarkerLabels(this.mapMarker);
-            }
-        }
-        this.mapMarker.setVisible(shouldBeVisible);
-
-        return this._visible;
     }
 
     static init() {
@@ -578,74 +847,45 @@ class TP_Involvement {
     }
 
     static initMap(mapDivId) {
-        const bounds = new google.maps.LatLngBounds();
-
         let mapOptions = {
-            zoom: 0,
             mapTypeId: google.maps.MapTypeId.ROADMAP,
-            center: {lat: 0, lng: 0},
-            bounds: bounds,
+            linksControl: false,
             maxZoom: 15,
+            minZoom: 2,
+            panControl: false,
+            addressControl: false,
+            enableCloseButton: false,
+            mapTypeControl: false,
+            zoomControl: false,
+            gestureHandling: 'greedy',
+            styles: [
+                {
+                    featureType: "poi", //points of interest
+                    stylers: [
+                        {visibility: 'off'}
+                    ]
+                },
+                {
+                    featureType: "road",
+                    stylers: [
+                        {visibility: 'on'}
+                    ]
+                },
+                {
+                    featureType: "transit",
+                    stylers: [
+                        {visibility: 'on'}
+                    ]
+                }
+            ],
+            zoom: 15,
+            center: {lat: 0, lng: 0}, // gets overwritten by bounds later.
             streetViewControl: false,
             fullscreenControl: false,
             disableDefaultUI: true
         };
-        const m = new google.maps.Map(document.getElementById(mapDivId), mapOptions);
 
-        for (const sgi in tpvm.involvements) {
-            if (!tpvm.involvements.hasOwnProperty(sgi)) continue;
-
-            // skip small groups that aren't locatable.
-            if (tpvm.involvements[sgi].geo === null || tpvm.involvements[sgi].geo.lat === null) continue;
-
-            let mkr,
-                geoStr = "" + tpvm.involvements[sgi].geo.lat + "," + tpvm.involvements[sgi].geo.lng;
-
-            if (TP_Involvement.mapMarkers.hasOwnProperty(geoStr)) {
-                mkr = TP_Involvement.mapMarkers[geoStr];
-            } else {
-                mkr = new google.maps.Marker({
-                    position: tpvm.involvements[sgi].geo,
-                    map: m,
-                });
-                mkr.involvements = [];
-                bounds.extend(tpvm.involvements[sgi].geo); // only needed for a new marker.
-
-                TP_Involvement.mapMarkers[geoStr] = mkr;
-            }
-            mkr.involvements.push(tpvm.involvements[sgi]);
-
-            tpvm.involvements[sgi].mapMarker = mkr;
-            TP_Involvement.updateMarkerLabels(mkr);
-        }
-
-        // Prevent zoom from being too close initially.
-        google.maps.event.addListener(m, 'zoom_changed', function() {
-            // noinspection JSUnusedLocalSymbols  Symbol is used by event handler.
-            let zoomChangeBoundsListener = google.maps.event.addListener(m, 'bounds_changed', function(event) {
-                if (this.getZoom() > 13 && this.initialZoom === true) {
-                    this.setZoom(13);
-                    this.initialZoom = false;
-                }
-                google.maps.event.removeListener(zoomChangeBoundsListener);
-            });
-        });
-        m.initialZoom = true;
-        m.fitBounds(bounds);
-    }
-
-    static updateMarkerLabels(mkr) {
-        if (mkr === null) {
-            return;
-        }
-        let names = []
-        for (const ii in mkr.involvements) {
-            let i = mkr.involvements[ii];
-            if (!!i._visible) {
-                names.push(i.name);
-            }
-        }
-        mkr.setTitle(tpvm._utils.stringArrayToListString(names))
+        super.initMap(document.getElementById(mapDivId), mapOptions, tpvm.involvements)
     }
 
     static initNearby(targetId, type, count) {

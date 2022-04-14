@@ -4,8 +4,10 @@ namespace tp\TouchPointWP\Utilities;
 
 use tp\TouchPointWP\api;
 use tp\TouchPointWP\ExtraValueHandler;
+use tp\TouchPointWP\Partner;
 use tp\TouchPointWP\Person;
 use tp\TouchPointWP\TouchPointWP;
+use tp\TouchPointWP\TouchPointWP_Exception;
 use tp\TouchPointWP\TouchPointWP_Settings;
 
 if ( ! defined('ABSPATH')) {
@@ -29,21 +31,35 @@ abstract class Cleanup implements api
      *
      * @see api()
      */
-    public static function cronCleanup(): void
+    public static function cronCleanup($verbose = false): void
     {
         try {
             self::cleanMemberTypes();
         } catch (\Exception $e) {
-            error_log("Cleanup encountered error: " . $e->getMessage());
+            if ($verbose) {
+                echo $e->getMessage();
+            }
         }
 
         try {
             self::cleanupPersonEVs();
         } catch (\Exception $e) {
-            error_log("Cleanup encountered error: " . $e->getMessage());
+            if ($verbose) {
+                echo $e->getMessage();
+            }
         }
 
-        echo "Success";
+        try {
+            self::cleanupFamilyEVs();
+        } catch (\Exception $e) {
+            if ($verbose) {
+                echo $e->getMessage();
+            }
+        }
+
+        if ($verbose) {
+            echo "Success";
+        }
     }
 
     /**
@@ -55,7 +71,7 @@ abstract class Cleanup implements api
      */
     public static function api(array $uri): bool
     {
-        self::cronCleanup();
+        self::cronCleanup(true);
         exit;
     }
 
@@ -92,9 +108,10 @@ abstract class Cleanup implements api
     /**
      * Clean up Person Extra Values that are no longer intended for import.
      *
-     * @return int|false Number of rows if successful (including 0), false on failure.
+     * @return int Number of rows if successful (including 0).
+     * @throws TouchPointWP_Exception
      */
-    protected static function cleanupPersonEVs()
+    protected static function cleanupPersonEVs(): int
     {
         global $wpdb;
         $conditions = ["uMeta.meta_key LIKE '" . Person::META_PEOPLE_EV_PREFIX . "%'"];
@@ -104,6 +121,34 @@ abstract class Cleanup implements api
         }
         $conditions = implode(" AND ", $conditions);
 
-        return $wpdb->query("DELETE FROM `$wpdb->usermeta` AS uMeta WHERE $conditions");
+        $try = $wpdb->query("DELETE FROM `$wpdb->usermeta` AS uMeta WHERE $conditions");
+        if ($try === false) {
+            throw new TouchPointWP_Exception("Error encountered in Cleanup: ". $wpdb->last_error, 170003);
+        }
+        return $try;
+    }
+
+
+    /**
+     * Clean up Family Extra Values from Posts that are no longer intended for import.
+     *
+     * @return int Number of rows if successful (including 0).
+     * @throws TouchPointWP_Exception
+     */
+    protected static function cleanupFamilyEVs(): int
+    {
+        global $wpdb;
+        $conditions = ["pMeta.meta_key LIKE '" . Person::META_PEOPLE_EV_PREFIX . "%'"];
+        foreach (TouchPointWP::instance()->getPersonEvFields(TouchPointWP::instance()->settings->global_fev_custom) as $field) {
+            $name = Partner::META_FEV_PREFIX . ExtraValueHandler::standardizeExtraValueName($field->field);
+            $conditions[] = "pMeta.meta_key <> '$name'";
+        }
+        $conditions = implode(" AND ", $conditions);
+
+        $try = $wpdb->query("DELETE FROM `$wpdb->postmeta` AS pMeta WHERE $conditions");
+        if ($try === false) {
+            throw new TouchPointWP_Exception("Error encountered in Cleanup: ". $wpdb->last_error, 170003);
+        }
+        return $try;
     }
 }

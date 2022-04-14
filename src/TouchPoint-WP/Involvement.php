@@ -35,11 +35,12 @@ class Involvement implements api
     public const SHORTCODE_ACTIONS = TouchPointWP::SHORTCODE_PREFIX . "Inv-Actions";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
     protected static bool $_hasUsedMap = false;
+    protected static bool $_hasArchiveMap = false;
     private static array $_instances = [];
     private static bool $_isLoaded = false;
 
     private static bool $filterJsAdded = false;
-    public object $geo;
+    public ?object $geo = null;
     static protected object $compareGeo;
 
     public string $name;
@@ -53,6 +54,8 @@ class Involvement implements api
     public int $post_id;
     public string $post_excerpt;
     protected WP_Post $post;
+
+    public ?string $color = "#999999";
 
     public const INVOLVEMENT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "invId";
 
@@ -172,6 +175,9 @@ class Involvement implements api
                     )
                 ];
             }
+
+            // Color!
+            $this->color = Utilities::getColorFor("default", "involvement"); // TODO for real
         }
 
         $this->registerConstruction();
@@ -482,7 +488,7 @@ class Involvement implements api
         $eltId = $params['id'];
         $class = $params['class'];
 
-        return "<div id=\"$eltId\" class=\"$class\" data-tp-involvement=\"$inv->invId\">{$inv->getActionButtons()}</div>";
+        return "<div id=\"$eltId\" class=\"$class\" data-tp-involvement=\"$inv->post_id\">{$inv->getActionButtons()}</div>";
     }
 
     /**
@@ -1310,6 +1316,7 @@ class Involvement implements api
 
             if ($params['all']) {
                 self::requireAllObjectsInJs();
+                self::$_hasArchiveMap = true;
             }
 
             $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/involvement-map-inline.js");
@@ -1419,13 +1426,14 @@ class Involvement implements api
 
             $post->post_content = strip_tags($inv->description, ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li']);
 
-            if ($post->post_title != $inv->name) // only update if there's a change.  Otherwise, urls increment.
-            {
+            // Title & Slug
+            if ($post->post_title != $inv->name) { // only update if there's a change.  Otherwise, urls increment.
                 $post->post_title = $inv->name;
+                $post->post_name = ''; // Slug will regenerate;
             }
 
+            // Status & Submit
             $post->post_status = 'publish';
-
             wp_update_post($post);
 
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "locationName", $inv->location);
@@ -1805,7 +1813,7 @@ class Involvement implements api
 
     /**
      * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with the
-     * `data-tp-involvement` attribute with the invId as the value.
+     * `data-tp-involvement` attribute with the post_id (NOT the Inv ID) as the value.
      *
      * @return string
      */
@@ -1818,6 +1826,7 @@ class Involvement implements api
         $text = __("Contact Leaders", TouchPointWP::TEXT_DOMAIN);
         $ret = "<button type=\"button\" data-tp-action=\"contact\">$text</button> ";
         TouchPointWP::enqueueActionsStyle('inv-contact');
+        $count = 1;
 
         if ($this->acceptingNewMembers() === true) {
             if ($this->useRegistrationForm()) {
@@ -1855,7 +1864,21 @@ class Involvement implements api
                 $ret  .= "<button type=\"button\" data-tp-action=\"join\">$text</button>  ";
                 TouchPointWP::enqueueActionsStyle('inv-join');
             }
+            $count++;
         }
+
+        // Show on map button.  (Only works if map is called before this is.)
+        if (self::$_hasArchiveMap && $this->geo !== null) {
+            $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
+            if ($count > 1) {
+                TouchPointWP::requireScript("FontAwesome");
+                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\"><i class=\"fa-solid fa-location-pin\"></i></button>  " . $ret;
+            } else {
+                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\">$text</button>  " . $ret;
+            }
+            $count++;
+        }
+
         return $ret;
     }
 

@@ -31,6 +31,7 @@ class Partner implements api, JsonSerializable
     public const SHORTCODE_ACTIONS = TouchPointWP::SHORTCODE_PREFIX . "Partner-Actions";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "global_cron_hook";
     protected static bool $_hasUsedMap = false;
+    protected static bool $_hasArchiveMap = false;
     private static array $_instances = [];
     private static bool $_isLoaded = false;
 
@@ -44,8 +45,6 @@ class Partner implements api, JsonSerializable
 
     public string $name;
     protected int $familyId;
-
-    protected static bool $_hasArchiveMap = false;
 
     public int $post_id;
     public string $post_excerpt;
@@ -134,16 +133,16 @@ class Partner implements api, JsonSerializable
                     $this->attributes->$ta[] = $to;
                 }
             }
+
+            // Primary category
+            if (TouchPointWP::instance()->settings->global_primary_tax !== "") {
+                $this->category = array_filter($terms, fn($t) => $t->taxonomy === TouchPointWP::TAX_GP_CATEGORY);
+            }
         }
 
         // Location string
         if (TouchPointWP::instance()->settings->global_location !== "") {
             $this->location = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "location", true);
-        }
-
-        // Primary category
-        if (TouchPointWP::instance()->settings->global_primary_tax !== "") {
-            $this->category = array_filter($terms, fn($t) => $t->taxonomy === TouchPointWP::TAX_GP_CATEGORY);
         }
 
         // Geo
@@ -374,9 +373,10 @@ class Partner implements api, JsonSerializable
             // Apply term to post
             wp_set_post_terms($post->ID, $category, TouchPointWP::TAX_GP_CATEGORY, false);
 
-            // Title
+            // Title & Slug
             if ($post->post_title != $title) { // only update if there's a change.  Otherwise, urls increment.
                 $post->post_title = $title;
+                $post->post_name = ''; // Slug will regenerate;
             }
 
             // Status & Submit
@@ -698,28 +698,6 @@ class Partner implements api, JsonSerializable
         return false;
     }
 
-
-//    /**
-//     * Create a Partner object from an object from a database query.
-//     *
-//     * @param object $obj A database object from which a Partner object should be created.
-//     *
-//     * @deprecated TODO remove if not used.
-//     *
-//     * @return Partner
-//     * @throws TouchPointWP_Exception
-//     */
-//    private static function fromObj(object $obj): Partner
-//    {
-//        $fid = intval($obj->familyId);
-//
-//        if ( ! isset(self::$_instances[$fid])) {
-//            self::$_instances[$fid] = new Partner($obj);
-//        }
-//
-//        return self::$_instances[$fid];
-//    }
-
     /**
      * Create a Partner object from a Family ID.  Only Partners that are already imported as Posts are
      * currently available.
@@ -1030,7 +1008,6 @@ class Partner implements api, JsonSerializable
         // Show on map button.  (Only works if map is called before this is.)
         if (self::$_hasArchiveMap && !$this->decoupleLocation && $this->geo !== null) {
             $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
-            TouchPointWP::enqueueActionsStyle('person-contact');
             $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\">$text</button>  ";
         }
 

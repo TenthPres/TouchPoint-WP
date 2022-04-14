@@ -602,7 +602,8 @@ class Person extends WP_User implements api, JsonSerializable
 
         if ($count !== 0) {
             TouchPointWP::instance()->settings->set('person_cron_last_run', time());
-            echo "Success";
+            if ($verbose)
+                echo "Success";
         }
 
         return $count;
