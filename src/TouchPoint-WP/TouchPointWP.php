@@ -661,6 +661,14 @@ class TouchPointWP
             true
         );
 
+        wp_register_script(
+            TouchPointWP::SHORTCODE_PREFIX . "fontAwesome",
+            "https://kit.fontawesome.com/2b5f44e07f.js",
+            [],
+            6, // When changing versions, some CSS references will need to be updated, too.
+            false
+        );
+
         if ( ! ! $this->involvements) {
             Involvement::registerScriptsAndStyles();
         }

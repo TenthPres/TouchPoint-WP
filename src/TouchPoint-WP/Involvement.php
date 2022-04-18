@@ -1871,7 +1871,7 @@ class Involvement implements api
         if (self::$_hasArchiveMap && $this->geo !== null) {
             $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
             if ($count > 1) {
-                TouchPointWP::requireScript("FontAwesome");
+                TouchPointWP::requireScript("fontAwesome");
                 $ret = "<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\"><i class=\"fa-solid fa-location-pin\"></i></button>  " . $ret;
             } else {
                 $ret = "<button type=\"button\" data-tp-action=\"showOnMap\">$text</button>  " . $ret;

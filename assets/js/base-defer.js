@@ -282,7 +282,7 @@ class TP_MapMarker extends google.maps.Marker
         return icon.useIcon;
     }
 
-    updateLabel() {
+    updateLabel(highlighted = false) {
         let icon = super.getIcon();
 
         // Update icon color
@@ -299,6 +299,14 @@ class TP_MapMarker extends google.maps.Marker
         super.setTitle(tpvm._utils.stringArrayToListString(this.visibleItems.map((i) => i.name)))
 
         // Update label proper
+        if (highlighted) {
+            super.setLabel(null); // Remove label if highlighted, because labels don't animate.
+        } else {
+            super.setLabel(this.getLabelContent());
+        }
+    }
+
+    getLabelContent() {
         let label = null;
         if (this.visibleItems.length > 1) {
             label = {
@@ -309,7 +317,7 @@ class TP_MapMarker extends google.maps.Marker
         } else if (this.useIcon !== false) { // icon for secure partners
             label = this.useIcon;
         }
-        super.setLabel(label);
+        return label;
     }
 
     handleClick() {
@@ -582,6 +590,7 @@ class TP_Mappable {
                 if (mk.getAnimation() !== google.maps.Animation.BOUNCE) {
                     mk.setAnimation(google.maps.Animation.BOUNCE);
                 }
+                mk.updateLabel(this.highlighted)
             }
         } else {
             for (const mi in this.markers) {
@@ -589,6 +598,7 @@ class TP_Mappable {
                 if (mk.getAnimation() !== null) {
                     mk.setAnimation(null)
                 }
+                mk.updateLabel(this.highlighted)
             }
         }
     }

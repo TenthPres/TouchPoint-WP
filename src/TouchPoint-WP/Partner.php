@@ -32,6 +32,7 @@ class Partner implements api, JsonSerializable
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "global_cron_hook";
     protected static bool $_hasUsedMap = false;
     protected static bool $_hasArchiveMap = false;
+    protected static bool $_hasDecoupledInstances = false;
     private static array $_instances = [];
     private static bool $_isLoaded = false;
 
@@ -173,6 +174,9 @@ class Partner implements api, JsonSerializable
         }
 
         $this->decoupleLocation = !!get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_decouple", true);
+        if ($this->decoupleLocation) {
+            self::$_hasDecoupledInstances = true;
+        }
 
         // Color!
         if (count($this->category) > 0) {
@@ -987,6 +991,7 @@ class Partner implements api, JsonSerializable
         // Not shown on map (only if there is a map, and the partner isn't on it because they lack geo.)
         if (self::$_hasArchiveMap && $this->geo === null && !$this->decoupleLocation) {
             $r[] = __("Not Shown on Map", TouchPointWP::TEXT_DOMAIN);
+            TouchPointWP::requireScript("fontAwesome");  // For map icons
         }
 
         // TODO add hook

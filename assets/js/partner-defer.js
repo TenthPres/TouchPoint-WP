@@ -44,10 +44,11 @@ class TP_Partner extends TP_Mappable {
     get useIcon() {
         if (this.post_id === 0) {
             return {
-                text: "\uf023",
-                fontFamily: "FontAwesome", // TODO add dependency
+                text: " ",
+                fontFamily: "\"Font Awesome 6 Free\"",
                 color: "#00000088",
-                fontSize: "90%"
+                fontSize: "90%",
+                className: "fa-solid fa-lock"
             }
         }
         return false;
