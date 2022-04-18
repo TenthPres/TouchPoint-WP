@@ -1590,16 +1590,13 @@ class TouchPointWP
         }
 
         if ($needsUpdate) {  // potentially move to cron
-            $mtObj->$divKey = $this->getMemberTypesForDivisions_fromApi($divisions);
-
-            $needsUpdate = ! $this->settings->set('meta_memberTypes', json_encode($mtObj));
-        }
-
-        // If update failed, show a notice on the admin interface.
-        if ($needsUpdate || ! $mtObj) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
-            return [];
+            $mts = $this->getMemberTypesForDivisions_fromApi($divisions);
+            if ($mts !== false) {
+                $mtObj->$divKey = $mts; // If the API update fails, don't overwrite existing value.  Existing is probably better than nothing.
+                $this->settings->set('meta_memberTypes', json_encode($mtObj));
+            } else {
+                return [];
+            }
         }
 
         return $mtObj->$divKey->memTypes;
@@ -1637,14 +1634,10 @@ class TouchPointWP
 
         // Get update if needed.
         if ($needsUpdate) {
-            $divsObj = $this->updateDivisions();
-        }
-
-        // If update failed, show a notice on the admin interface.
-        if ($divsObj === false) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
-            return [];
+            $update = $this->updateDivisions();
+            if ($update !== false) { // If it didn't work, we'll return the non-updated thing.
+                $divsObj = $update;
+            }
         }
 
         return $divsObj->divs;
@@ -1656,24 +1649,14 @@ class TouchPointWP
     private function updateDivisions()
     {
         try {
-            $return = $this->apiGet('Divisions');
+            $data = $this->apiGet('Divisions');
         } catch (TouchPointWP_Exception $e) {
-            return false;
-        }
-
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message")) {
-            return false;
-        }
-
-        if ( ! is_array($body->data->divs)) {
             return false;
         }
 
         $obj = (object)[
             '_updated' => date('c'),
-            'divs'     => $body->data->divs
+            'divs'     => $data->divs
         ];
 
         $this->settings->set("meta_divisions", json_encode($obj));
@@ -1693,16 +1676,9 @@ class TouchPointWP
             return false;
         }
 
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message") || ! is_array($body->data->memTypes)) {
-            // an error happened; fail quietly.
-            return false;
-        }
-
         return (object)[
             '_updated' => date('c'),
-            'memTypes'     => $body->data->memTypes
+            'memTypes'     => $return->memTypes
         ];
     }
 
@@ -1728,13 +1704,13 @@ class TouchPointWP
 
         // Get update if needed.
         if ($needsUpdate) {
-            $rcObj = $this->updateResCodes();
+            $update = $this->updateResCodes();
+            if ($update !== false) {
+                $rcObj = $update;
+            }
         }
 
-        // If update failed, show a notice on the admin interface.
         if ($rcObj === false) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
             return [];
         }
 
@@ -1748,24 +1724,18 @@ class TouchPointWP
     private function updateResCodes()
     {
         try {
-            $return = $this->apiGet('ResCodes');
+            $data = $this->apiGet('ResCodes');
         } catch (TouchPointWP_Exception $e) {
             return false;
         }
 
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message")) {
-            return false;
-        }
-
-        if ( ! is_array($body->data->resCodes)) {
+        if ( ! is_array($data->resCodes)) {
             return false;
         }
 
         $obj = (object)[
             '_updated' => date('c'),
-            'resCodes'     => $body->data->resCodes
+            'resCodes'     => $data->resCodes
         ];
 
         $this->settings->set("meta_resCodes", json_encode($obj));
@@ -1795,13 +1765,13 @@ class TouchPointWP
 
         // Get update if needed.
         if ($needsUpdate) {
-            $gObj = $this->updateGenders();
+            $update = $this->updateGenders();
+            if ($update !== false) {
+                $gObj = $update;
+            }
         }
 
-        // If update failed, show a notice on the admin interface.
         if ($gObj === false) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
             return [];
         }
 
@@ -1815,24 +1785,18 @@ class TouchPointWP
     private function updateGenders()
     {
         try {
-            $return = $this->apiGet('Genders');
+            $data = $this->apiGet('Genders');
         } catch (TouchPointWP_Exception $e) {
             return false;
         }
 
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message")) {
-            return false;
-        }
-
-        if ( ! is_array($body->data->genders)) {
+        if ( ! is_array($data->genders)) {
             return false;
         }
 
         $obj = (object)[
             '_updated' => date('c'),
-            'genders'     => $body->data->genders
+            'genders'     => $data->genders
         ];
 
         $this->settings->set("meta_genders", json_encode($obj));
@@ -1861,13 +1825,14 @@ class TouchPointWP
 
         // Get update if needed.
         if ($needsUpdate) {
-            $kObj = $this->updateKeywords();
+            $update = $this->updateKeywords();
+            if ($update !== false) {
+                $kObj = $update;
+            }
         }
 
         // If update failed, show a notice on the admin interface.
         if ($kObj === false) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
             return [];
         }
 
@@ -1907,13 +1872,13 @@ class TouchPointWP
 
         // Get update if needed.
         if ($needsUpdate) {
-            $pevObj = $this->updatePersonEvFields();
+            $update = $this->updatePersonEvFields();
+            if ($update !== false) {
+                $pevObj = $update;
+            }
         }
 
-        // If update failed, show a notice on the admin interface.
         if ($pevObj === false) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
             return [];
         }
 
@@ -1988,13 +1953,14 @@ class TouchPointWP
 
         // Get update if needed.
         if ($needsUpdate) {
-            $fevObj = $this->updateFamilyEvFields();
+            $update = $this->updateFamilyEvFields();
+            if ($update !== false) {
+                $fevObj = $update;
+            }
         }
 
         // If update failed, show a notice on the admin interface.
         if ($fevObj === false) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
             return [];
         }
 
@@ -2065,6 +2031,8 @@ class TouchPointWP
     /**
      * Get a list of saved searches pertinent to the current user.  These are grouped by type: User's searches, Public, and Flags.
      *
+     * Because these are user-specific and relatively volatile, they are NOT cached in WordPress.
+     *
      * @return string[][]
      */
     public function getSavedSearches(?int $peopleId = null, $includeValue = null): array
@@ -2073,33 +2041,14 @@ class TouchPointWP
             $peopleId = self::currentUserPerson()->peopleId;
         }
 
-        $error = false;
-        $srcResult = [];
         try {
-            $srcResult = $this->apiGet('SavedSearches', ['PeopleId' => $peopleId]);
+            $data = $this->apiGet('SavedSearches', ['PeopleId' => $peopleId]);
         } catch (TouchPointWP_Exception $e) {
-            $error = true;
-        }
-
-        $body = json_decode($srcResult['body']);
-
-        if (property_exists($body, "message")) {
-            $error = true;
-        }
-
-        if ( ! is_object($body->data->savedSearches)) {
-            $error = true;
-        }
-
-        // If update failed, show a notice on the admin interface.
-        if ($error) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
             return [];
         }
 
         $r = [];
-        foreach ((array)$body->data->savedSearches as $group => $sArr) {
+        foreach ((array)$data->savedSearches as $group => $sArr) {
             $kv = self::flattenArrayToKV($sArr, 'QueryId', 'Name');
             if ($includeValue != null && isset($kv[$includeValue])) { // required value is included
                 $includeValue = null;
@@ -2149,26 +2098,20 @@ class TouchPointWP
     private function updateKeywords()
     {
         try {
-            $return = $this->apiGet('Keywords');
+            $data = $this->apiGet('Keywords');
         } catch (TouchPointWP_Exception $e) {
             return false;
         }
 
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message")) {
+        if ( ! is_array($data->keywords)) {
             return false;
         }
 
-        if ( ! is_array($body->data->keywords)) {
-            return false;
-        }
-
-        usort($body->data->keywords, fn($a, $b) => strcasecmp($a->name, $b->name));
+        usort($data->keywords, fn($a, $b) => strcasecmp($a->name, $b->name));
 
         $obj = (object)[
             '_updated' => date('c'),
-            'keywords' => $body->data->keywords
+            'keywords' => $data->keywords
         ];
 
         $this->settings->set("meta_keywords", json_encode($obj));
@@ -2177,31 +2120,27 @@ class TouchPointWP
     }
 
     /**
-     * @return false|object Update the Person Extra Values if they're stale.
+     * Update the Person Extra Values if they're stale.
+     *
+     * @return false|object False on failure
      */
     public function updatePersonEvFields()
     {
         try {
-            $return = $this->apiGet('PersonEvFields');
+            $data = $this->apiGet('PersonEvFields');
         } catch (TouchPointWP_Exception $e) {
             return false;
         }
 
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message")) {
+        if ( ! is_array($data->personEvFields)) {
             return false;
         }
 
-        if ( ! is_array($body->data->personEvFields)) {
-            return false;
-        }
-
-        usort($body->data->personEvFields, fn($a, $b) => strcasecmp($a->field, $b->field));
+        usort($data->personEvFields, fn($a, $b) => strcasecmp($a->field, $b->field));
 
         $obj = (object)[
             '_updated' => date('c'),
-            'personEvFields' => $body->data->personEvFields
+            'personEvFields' => $data->personEvFields
         ];
 
         $this->settings->set("meta_personEvFields", json_encode($obj));
@@ -2210,31 +2149,27 @@ class TouchPointWP
     }
 
     /**
-     * @return false|object Update the Person Extra Values if they're stale.
+     * Update the Person Extra Values if they're stale.
+     *
+     * @return false|object False on failure.
      */
     public function updateFamilyEvFields()
     {
         try {
-            $return = $this->apiGet('FamilyEvFields');
+            $data = $this->apiGet('FamilyEvFields');
         } catch (TouchPointWP_Exception $e) {
             return false;
         }
 
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message")) {
+        if ( ! is_array($data->familyEvFields)) {
             return false;
         }
 
-        if ( ! is_array($body->data->familyEvFields)) {
-            return false;
-        }
-
-        usort($body->data->familyEvFields, fn($a, $b) => strcasecmp($a->field, $b->field));
+        usort($data->familyEvFields, fn($a, $b) => strcasecmp($a->field, $b->field));
 
         $obj = (object)[
             '_updated' => date('c'),
-            'familyEvFields' => $body->data->familyEvFields
+            'familyEvFields' => $data->familyEvFields
         ];
 
         $this->settings->set("meta_familyEvFields", json_encode($obj));
@@ -2246,12 +2181,12 @@ class TouchPointWP
      * @param string $command The thing to get
      * @param ?array $parameters URL parameters to be added.
      *
-     * @return array An array with headers, body, and other keys
+     * @return stdClass|array An array with headers, body, and other keys
      * Data is generally in json_decode($response['body'])->data
      *
      * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
      */
-    public function apiGet(string $command, ?array $parameters = null): array
+    public function apiGet(string $command, ?array $parameters = null)
     {
         if ( ! is_array($parameters)) {
             $parameters = (array)$parameters;
@@ -2281,11 +2216,7 @@ class TouchPointWP
             ]
         );
 
-        if ($r instanceof WP_Error) {
-            throw new TouchPointWP_WPError($r);
-        }
-
-        return $r;
+        return self::parseApiResponse($r);
     }
 
     /**
@@ -2304,8 +2235,11 @@ class TouchPointWP
 
         $host = $this->host();
 
-        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER)
-            throw new TouchPointWP_Exception(__('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'), 170002);
+        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER) {
+            throw new TouchPointWP_Exception(
+                __('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'), 170002
+            );
+        }
 
         $data = json_encode(['inputData' => $data]);
 
@@ -2324,11 +2258,23 @@ class TouchPointWP
             ]
         );
 
-        if ($r instanceof WP_Error) {
-            throw new TouchPointWP_WPError($r);
+        return self::parseApiResponse($r);
+    }
+
+    /**
+     * @param $response
+     *
+     * @return stdClass|array
+     * @throws TouchPointWP_Exception
+     * @throws TouchPointWP_WPError
+     */
+    private static function parseApiResponse($response)
+    {
+        if ($response instanceof WP_Error) {
+            throw new TouchPointWP_WPError($response);
         }
 
-        $respDecoded = json_decode($r['body']);
+        $respDecoded = json_decode($response['body']);
 
         // Most likely the issue where a module import failed for no apparent reason.
         if (strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {

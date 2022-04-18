@@ -335,12 +335,10 @@ class TouchPointWP_AdminAPI implements api {
     /**
      * Display an error when there's something wrong with the TouchPoint connection.
      */
-    public static function Error_TouchPoint_API()
+    public static function showError($message)
     {
         $class = 'notice notice-error';
-        $message = __('Unable to connect to TouchPoint API.  Please check the TouchPoint-WP Basic Settings.', TouchPointWP::TEXT_DOMAIN);
-
-        printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr( $class ), esc_html( $message ) );
+        printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr($class), esc_html($message));
     }
 
 }

@@ -1403,7 +1403,7 @@ class Involvement implements api
             return false;
         }
 
-        $invData = json_decode($response['body'])->data->invs ?? []; // null coalesce for case where there is no data.
+        $invData = $response->invs ?? []; // null coalesce for case where there is no data.
 
         $postsToKeep = [];
 
