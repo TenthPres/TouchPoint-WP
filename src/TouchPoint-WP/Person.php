@@ -519,6 +519,23 @@ class Person extends WP_User implements api, JsonSerializable
     }
 
     /**
+     * Controls the list of Contact Methods visible on the wp-admin/user-edit view.  Allows admins to add/edit TouchPoint People IDs.
+     * Array is keyed on the Meta name.
+     *
+     * @param $methods string[] Methods available before this filter.
+     *
+     * @return string[] Methods available after this filter.
+     */
+    public static function userContactMethods(array $methods): array
+    {
+        if (current_user_can("administrator")) {
+            $methods[self::META_PEOPLEID] = __("TouchPoint People ID", TouchPointWP::TEXT_DOMAIN);
+        }
+
+        return $methods;
+    }
+
+    /**
      * Run the updating cron task.  Fail quietly to not disturb the visitor experience if using WP default cron handling.
      *
      * @return void
@@ -827,7 +844,7 @@ class Person extends WP_User implements api, JsonSerializable
                 'people' => $changes,
                 'evName' => TouchPointWP::instance()->settings->people_ev_wpId
             ]);
-        } catch (Exception $ex) {
+        } catch (Exception $ex) { // If it fails this time, it'll probably get fixed next time
         }
     }
 
@@ -1181,6 +1198,9 @@ class Person extends WP_User implements api, JsonSerializable
         // Add filter for TouchPoint pictures to be used as avatars.  Priority is high so this can be easily overridden by
         // another plugin if desired.
         add_filter('get_avatar_url', [self::class, 'pictureFilter'], 10, 3);
+
+        // Add filter to allow admins to set a TouchPoint PeopleId
+        add_filter('user_contactmethods', [self::class, 'userContactMethods'], 10);
 
         return true;
     }

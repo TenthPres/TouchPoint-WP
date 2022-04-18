@@ -194,6 +194,8 @@ class TouchPointWP
 
         add_action('wp_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
 
+        add_action('admin_print_styles', [$this, 'adminPrintStyleOverrides'], 1000);
+
         // Load admin JS & CSS.
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_scripts'], 10, 1 ); // TODO restore?
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_styles'], 10, 1 ); // TODO restore?
@@ -467,6 +469,11 @@ class TouchPointWP
         return true;
     }
 
+    /**
+     * Print Dynamic Instantiation scripts.
+     *
+     * @return void
+     */
     public function printDynamicFooterScripts(): void
     {
         echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
@@ -482,6 +489,33 @@ class TouchPointWP
         echo "\n</script>";
     }
 
+    /**
+     * Force some styling overrides into admin views.
+     *
+     * @return void
+     */
+    public function adminPrintStyleOverrides(): void
+    {
+        if (is_admin()) {
+            $screen = get_current_screen();
+
+            echo "<style>";
+
+            // Hide Bio field if it's likely to be loaded from TouchPoint
+            if ($screen->base === "user-edit" && $this->settings->people_ev_bio !== '') { // We're on the user-edit page.
+                global $user_id;
+                if ($user_id !== null) {
+                    $peopleId = get_user_meta($user_id, Person::META_PEOPLEID, true);
+                    if ($peopleId !== null && $peopleId !== '') {
+                        // There is a PeopleId, which means Bio can be imported. Therefore, hide the bio.
+                        echo "table.form-table tr.user-description-wrap {display: none;}";
+                    }
+                }
+            }
+
+            echo "</style>";
+        }
+    }
 
     /**
      * Load plugin textdomain
