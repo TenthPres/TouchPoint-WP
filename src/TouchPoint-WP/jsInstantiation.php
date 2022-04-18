@@ -42,13 +42,15 @@ trait jsInstantiation {
     /**
      * Add to a queue for instantiation.
      *
-     * @return void
+     * @return bool True if added to queue, false if already in queue.
      */
-    protected function enqueueForJsInstantiation(): void
+    protected function enqueueForJsInstantiation(): bool
     {
         if (!isset(static::$queueForJsInstantiation[$this->getTouchPointId()])) {
             static::$queueForJsInstantiation[$this->getTouchPointId()] = $this;
+            return true;
         }
+        return false;
     }
 
     /**

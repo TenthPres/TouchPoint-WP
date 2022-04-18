@@ -23,7 +23,9 @@ use WP_Term;
  */
 class Partner implements api, JsonSerializable
 {
-    use jsInstantiation;
+    use jsInstantiation {
+        jsInstantiation::enqueueForJsInstantiation as protected enqueueForJsInstantiationTrait;
+    }
     use extraValues;
 
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "Partner-Map";
@@ -33,6 +35,7 @@ class Partner implements api, JsonSerializable
     protected static bool $_hasUsedMap = false;
     protected static bool $_hasArchiveMap = false;
     protected static bool $_hasDecoupledInstances = false;
+    protected static int $_decoupledAndEnqueuedCount = 0;
     private static array $_instances = [];
     private static bool $_isLoaded = false;
 
@@ -999,6 +1002,20 @@ class Partner implements api, JsonSerializable
     }
 
     /**
+     * Add to a queue for instantiation.
+     *
+     * @return bool True if added to queue, false if already in queue.
+     */
+    protected function enqueueForJsInstantiation(): bool
+    {
+        $newlyEnqueued = $this->enqueueForJsInstantiationTrait();
+        if ($this->decoupleLocation && $newlyEnqueued) {
+            self::$_decoupledAndEnqueuedCount++;
+        }
+        return $newlyEnqueued;
+    }
+
+    /**
      * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with the
      * `data-tp-partner` attribute with the post_id as the value or 0 for secure partners.
      *
@@ -1008,6 +1025,8 @@ class Partner implements api, JsonSerializable
      */
     public function getActionButtons($context = null): string
     {
+        $this->enqueueForJsInstantiation();
+
         $ret = "";
 
         // Show on map button.  (Only works if map is called before this is.)
@@ -1111,12 +1130,21 @@ class Partner implements api, JsonSerializable
     public function jsonSerialize(): object
     {
         if ($this->decoupleLocation) {
-            return (object)[
-                'geo' => $this->geo,
-                'name' => __('Secure Partner', TouchPointWP::TEXT_DOMAIN),
-                'attributes' => $this->attributes,
-                'color' => $this->color
-            ];
+            if (self::$_decoupledAndEnqueuedCount < 2) { // If there's only one partner (e.g. single page), don't provide a location.
+                return (object)[
+                    'geo'        => null,
+                    'name'       => __('Secure Partner', TouchPointWP::TEXT_DOMAIN),
+                    'attributes' => $this->attributes,
+                    'color'      => $this->color
+                ];
+            } else {
+                return (object)[
+                    'geo'        => $this->geo,
+                    'name'       => __('Secure Partner', TouchPointWP::TEXT_DOMAIN),
+                    'attributes' => $this->attributes,
+                    'color'      => $this->color
+                ];
+            }
         }
         return $this;
     }

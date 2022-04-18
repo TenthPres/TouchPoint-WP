@@ -139,12 +139,7 @@ div.involvement-list article.involvement-list-item h2.entry-title {
     font-size: 20px;
 }
 
-div.involvement-map-container {
-    width: 100%;
-    padding-bottom: 40vh;
-    position: relative;
-}
-div.partner-map-container {
+div.TouchPointWP-map-container {
     width: 100%;
     padding-bottom: 60vh;
     position: relative;
@@ -164,20 +159,20 @@ div.swal2-content table.tp-checkbox-list {
     margin: 0 auto;
 }
 
-article .section-inner.involvement-detail {
+article .section-inner.TouchPointWP-detail {
     display: flex;
 }
 
-article .involvement-detail-cell {
+article .TouchPointWP-detail-cell {
     flex: 1 1 0;
 }
 
-article .involvement-detail-cell.involvement-map-container {
+article .TouchPointWP-detail-cell.TouchPointWP-map-container {
     flex: 2 2 0;
     padding-bottom: 30%;
 }
 
-article .involvement-detail-cell .involvement-detail-cell-section {
+article .TouchPointWP-detail-cell .TouchPointWP-detail-cell-section {
     text-align:center;
     margin-bottom: 2em;
 }

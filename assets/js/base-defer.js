@@ -491,7 +491,9 @@ class TP_Mappable {
      */
     static handleZoom() {
         for (const ii in TP_Mappable.items) {
-            TP_Mappable.items[ii].applyVisibilityToConnectedElements();
+            if (TP_Mappable.items.length > 1) { // Don't hide details on Single pages
+                TP_Mappable.items[ii].applyVisibilityToConnectedElements();
+            }
         }
     }
 
@@ -502,6 +504,7 @@ class TP_Mappable {
     }
 
     showOnMapAction() {
+        // One marker (probably typical)
         if (this.markers.length === 1) {
             let mp = this.markers[0].getMap(),
                 el = mp.getDiv(),
@@ -516,13 +519,21 @@ class TP_Mappable {
                     behavior: 'smooth'
                 })
             }
-        } else {
-            console.warn("Show on Map for Mappable items with multiple markers is not fully supported.")
-            // Set visibility on all markers
-            for (const mi in TP_Mappable.markers) {
-                for (const ii in TP_Mappable.markers[mi].items) {
-                    TP_Mappable.markers[mi].items[ii].toggleVisibility(TP_Mappable.markers[mi].items[ii] === this);
-                }
+            return;
+        }
+
+        // No Markers
+        if (this.markers.length === 0) {
+            console.warn("\"Show on Map\" was called on a Mappable item that doesn't have markers.")
+            return;
+        }
+
+        // More than one marker
+        console.warn("\"Show on Map\" for Mappable items with multiple markers is not fully supported.")
+        // Hide all non-matching markers.  There isn't really a way to get them back, but that's why this isn't fully supported.
+        for (const mi in TP_Mappable.markers) {
+            for (const ii in TP_Mappable.markers[mi].items) {
+                TP_Mappable.markers[mi].items[ii].toggleVisibility(TP_Mappable.markers[mi].items[ii] === this);
             }
         }
     }
@@ -587,8 +598,10 @@ class TP_Mappable {
             let item = this;
             for (let mi in this.markers) {
                 const mk = item.markers[mi];
-                if (mk.getAnimation() !== google.maps.Animation.BOUNCE) {
-                    mk.setAnimation(google.maps.Animation.BOUNCE);
+                if (TP_Mappable.items.length > 1) {
+                    if (mk.getAnimation() !== google.maps.Animation.BOUNCE) {
+                        mk.setAnimation(google.maps.Animation.BOUNCE);
+                    }
                 }
                 mk.updateLabel(this.highlighted)
             }

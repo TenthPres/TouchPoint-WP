@@ -31,9 +31,9 @@ TouchPointWP::enqueuePartialsStyle();
         </div><!-- .entry-content -->
     </div><!-- .post-inner -->
 
-    <div class="section-inner involvement-detail">
-        <div class="involvement-detail-cell">
-            <div class="involvement-detail-cell-section involvement-logistics" >
+    <div class="section-inner TouchPointWP-detail">
+        <div class="TouchPointWP-detail-cell">
+            <div class="TouchPointWP-detail-cell-section involvement-logistics" >
                 <?php
                 $metaKeys    = [
                     TouchPointWP::SETTINGS_PREFIX . "meetingSchedule",
@@ -53,12 +53,12 @@ TouchPointWP::enqueuePartialsStyle();
                 echo implode("<br />", $metaStrings);
                 ?>
             </div>
-            <div class="involvement-detail-cell-section involvement-actions">
+            <div class="TouchPointWP-detail-cell-section involvement-actions">
                 <?php echo $inv->getActionButtons() ?>
             </div>
         </div>
         <?php if ($settings->useGeo) { ?>
-        <div class="involvement-detail-cell involvement-map-container">
+        <div class="TouchPointWP-detail-cell TouchPointWP-map-container">
             <?php echo Involvement::mapShortcode() ?>
         </div>
         <?php } ?>

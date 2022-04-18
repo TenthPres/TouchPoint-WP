@@ -45,7 +45,7 @@ if (have_posts()) {
         <div class="archive-header-inner section-inner medium">
             <h1 class="archive-title page-title"><?php echo $settings->namePlural; ?></h1>
             <?php if ($settings->useGeo) { ?>
-            <div class="map involvement-map-container"><?php echo Involvement::mapShortcode(); ?></div>
+            <div class="map TouchPointWP-map-container"><?php echo Involvement::mapShortcode(); ?></div>
             <?php } ?>
             <?php echo Involvement::filterShortcode(['type' => $postType]); ?>
             <?php if ($description) { ?>

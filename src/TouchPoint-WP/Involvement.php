@@ -175,6 +175,9 @@ class Involvement implements api
                     )
                 ];
             }
+            if ($this->geo === null || $this->geo->lat === null || $this->geo->lng === null) {
+                $this->geo = null;
+            }
 
             // Color!
             $this->color = Utilities::getColorFor("default", "involvement"); // TODO for real
