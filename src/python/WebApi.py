@@ -3,7 +3,7 @@
 import re
 import json
 
-VERSION = "0.0.5"
+VERSION = "0.0.6"
 
 PersonEvNames = {
     'geoLat': 'geoLat',
