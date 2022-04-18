@@ -102,6 +102,7 @@ class TP_Partner extends TP_Mappable {
                 }
                 item.toggleVisibility(true)
             }
+        TP_Mappable.updateFilterWarnings();
     }
 
     get visibility() {

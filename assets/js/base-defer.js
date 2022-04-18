@@ -366,6 +366,9 @@ class TP_Mappable {
 
     color = "#000";
 
+    /**
+     * @type {TP_Mappable[]}
+     */
     static items = [];
     static itemsWithoutMarkers = [];
 
@@ -484,16 +487,59 @@ class TP_Mappable {
         map.fitBounds(bounds);
 
         map.addListener('bounds_changed', this.handleZoom);
+
+        // Add Map Reset links
+        let elts = document.getElementsByClassName("TouchPointWP-map-resetLink");
+        for (const ei in elts) {
+            if (! elts.hasOwnProperty(ei)) continue;
+            elts[ei].addEventListener("click", (e) => {
+                e.preventDefault();
+                map.fitBounds(bounds);
+            });
+        }
+    }
+
+    /**
+     *
+     * @param {google.maps.Map} map
+     */
+    static resetMap(map) {
+        console.log("reset " + map.getMapTypeId())
     }
 
     /**
      * Currently, this will apply visibility to ALL mappable items, even if they're on a different map.
      */
     static handleZoom() {
-        for (const ii in TP_Mappable.items) {
-            if (TP_Mappable.items.length > 1) { // Don't hide details on Single pages
+        if (TP_Mappable.items.length > 1) { // Don't hide details on Single pages
+            for (const ii in TP_Mappable.items) {
                 TP_Mappable.items[ii].applyVisibilityToConnectedElements();
             }
+            TP_Mappable.updateFilterWarnings();
+        }
+    }
+
+    static updateFilterWarnings() {
+        let elts = document.getElementsByClassName("TouchPointWP-map-warning-visibleOnly"),
+            includesBoth = TP_Mappable.mapIncludesVisibleItemsWhichAreBothInAndOutOfBounds;
+        for (const ei in elts) {
+            if (!elts.hasOwnProperty(ei))
+                continue;
+            elts[ei].style.display = (TP_Mappable.mapExcludesSomeVisibleMarkers && !includesBoth) ? "" : "none";
+        }
+
+        elts = document.getElementsByClassName("TouchPointWP-map-warning-visibleAndInvisible");
+        for (const ei in elts) {
+            if (!elts.hasOwnProperty(ei))
+                continue;
+            elts[ei].style.display = includesBoth ? "" : "none";
+        }
+
+        elts = document.getElementsByClassName("TouchPointWP-map-warning-zoomOrReset");
+        for (const ei in elts) {
+            if (!elts.hasOwnProperty(ei))
+                continue;
+            elts[ei].style.display = TP_Mappable.mapExcludesSomeVisibleMarkers ? "" : "none";
         }
     }
 
@@ -546,8 +592,12 @@ class TP_Mappable {
         return this.markers.some((m) => m.inBounds);
     }
 
-    static get mapExcludesSomeMarkers() {
-        return this.markers.some((m) => !m.inBounds);
+    static get mapExcludesSomeVisibleMarkers() {
+        return this.markers.some((m) => m.visible && !m.inBounds);
+    }
+
+    static get mapIncludesVisibleItemsWhichAreBothInAndOutOfBounds() {
+        return this.items.some((i) => i.visible && i.markers.some((mk) => mk.inBounds) && i.markers.some((mk) => !mk.inBounds))
     }
 
     get useIcon() {
@@ -584,7 +634,7 @@ class TP_Mappable {
         for (const ei in elts) {
             if (!elts.hasOwnProperty(ei))
                 continue;
-            elts[ei].style.display = (this.visible && (this.inBounds || !TP_Mappable.mapExcludesSomeMarkers)) ? "" : "none";
+            elts[ei].style.display = (this.visible && (this.inBounds || !TP_Mappable.mapExcludesSomeVisibleMarkers)) ? "" : "none";
         }
     }
 
@@ -704,6 +754,7 @@ class TP_Involvement extends TP_Mappable {
                 }
                 group.toggleVisibility(true)
             }
+        TP_Mappable.updateFilterWarnings();
     }
 
     static init() {

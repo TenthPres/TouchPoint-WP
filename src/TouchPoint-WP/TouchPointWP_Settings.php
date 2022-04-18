@@ -39,7 +39,9 @@ if ( ! defined('ABSPATH')) {
  * @property-read array people_ev_custom    Custom Extra values that are copied as user meta fields
  *
  * @property-read string global_name_plural What global partners should be called, plural (e.g. "Missionaries" or "Ministry Partners")
+ * @property-read string global_name_plural_decoupled What global partners should be called when they're Secure, plural (e.g. "Secure Partners")
  * @property-read string global_name_singular What a global partner should be called, singular (e.g. "Missionary" or "Ministry Partner")
+ * @property-read string global_name_singular_decoupled What a secure global partner should be called, singular (e.g. "Secure Partner")
  * @property-read string global_slug        Slug for global partners (e.g. "partners" for church.org/partners)
  * @property-read string global_search      The uid for the saved search to use for global partners
  * @property-read string global_description A Family Extra Value to import as the body of a global partner's post.
@@ -541,6 +543,28 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'type'        => 'text',
                         'default'     => 'Partner',
                         'placeholder' => 'Partner'
+                    ],
+                    [
+                        'id'          => 'global_name_plural_decoupled',
+                        'label'       => __('Global Partner Name for Secure Places (Plural)', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'What you call Secure Global Partners at your church',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Secure Partners',
+                        'placeholder' => 'Secure Partners'
+                    ],
+                    [
+                        'id'          => 'global_name_singular_decoupled',
+                        'label'       => __('Global Partner Name for Secure Places (Singular)', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'What you call a Secure Global Partner at your church',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Secure Partner',
+                        'placeholder' => 'Secure Partner'
                     ],
                     [
                         'id'          => 'global_slug',

@@ -177,6 +177,9 @@ class Involvement implements api
             }
             if ($this->geo === null || $this->geo->lat === null || $this->geo->lng === null) {
                 $this->geo = null;
+            } else {
+                $this->geo->lat = round($this->geo->lat, 3); // Roughly .2 mi
+                $this->geo->lng = round($this->geo->lng, 3);
             }
 
             // Color!
@@ -743,8 +746,9 @@ class Involvement implements api
         // set some defaults
         $params = shortcode_atts(
             [
-                'class'   => "TouchPoint-Involvement filterBar",
-                'filters' => strtolower(implode(",", $settings->filters))
+                'class'              => "TouchPoint-Involvement filterBar",
+                'filters'            => strtolower(implode(",", $settings->filters)),
+                'includeMapWarnings' => true
             ],
             $params,
             static::SHORTCODE_FILTER
@@ -925,6 +929,28 @@ class Involvement implements api
                 }
                 $content .= "</select>";
             }
+        }
+
+        if ($params['includeMapWarnings']) {
+            $content .= "<p class=\"TouchPointWP-map-warnings\">";
+            $content .= sprintf(
+                "<span class=\"TouchPointWP-map-warning-visibleOnly\" style=\"display:none;\">%s  </span>",
+                sprintf( // i18n: %s is for the user-provided "Involvement" term
+                    __("The %s listed are only those shown on the map.", TouchPointWP::TEXT_DOMAIN),
+                    $settings->namePlural
+                )
+            );
+            $content .= sprintf(
+                "<span class=\"TouchPointWP-map-warning-zoomOrReset\" style=\"display:none;\">%s  </span>",
+                sprintf( // i18n: %s is the link to reset the map
+                    __("Zoom out or %s to see more.", TouchPointWP::TEXT_DOMAIN),
+                    sprintf( // i18n: %s is the link to reset the map
+                        "<a href=\"#\" class=\"TouchPointWP-map-resetLink\">%s</a>",
+                        __("reset the map", TouchPointWP::TEXT_DOMAIN)
+                    )
+                )
+            );
+            $content .= "</p>";
         }
 
         $content .= "</div>";

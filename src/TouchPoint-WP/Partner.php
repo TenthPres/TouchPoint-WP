@@ -169,7 +169,7 @@ class Partner implements api, JsonSerializable
                 )
             ];
         }
-        if ($this->geo->lat === null || $this->geo->lng === null) {
+        if ($this->geo === null || $this->geo->lat === null || $this->geo->lng === null) {
             $this->geo = null;
         } else {
             $this->geo->lat = round($this->geo->lat, 3); // Roughly .2 mi
@@ -207,7 +207,7 @@ class Partner implements api, JsonSerializable
                 'hierarchical' => false,
                 'show_ui'      => false,
                 'show_in_nav_menus' => true,
-                'show_in_rest' => true,
+                'show_in_rest' => false, // For the benefit of secure partners
                 'supports'     => [
                     'title',
                     'custom-fields'
@@ -622,8 +622,9 @@ class Partner implements api, JsonSerializable
         // set some defaults
         $params = shortcode_atts(
             [
-                'class'   => "TouchPoint-Partner filterBar",
-                'filters' => strtolower(implode(",", ["partner_category"]))
+                'class'              => "TouchPoint-Partner filterBar",
+                'filters'            => strtolower(implode(",", ["partner_category"])),
+                'includeMapWarnings' => self::$_hasArchiveMap
             ],
             $params,
             static::SHORTCODE_FILTER
@@ -650,6 +651,36 @@ class Partner implements api, JsonSerializable
                 $content .= "<option value=\"$t->slug\">$t->name</option>";
             }
             $content .= "</select>";
+        }
+
+        if ($params['includeMapWarnings']) {
+            $content .= "<p class=\"TouchPointWP-map-warnings\">";
+            $content .= sprintf(
+                "<span class=\"TouchPointWP-map-warning-visibleOnly\" style=\"display:none;\">%s  </span>",
+                sprintf( // i18n: %s is for the user-provided "Global Partner" term
+                    __("The %s listed are only those shown on the map.", TouchPointWP::TEXT_DOMAIN),
+                    TouchPointWP::instance()->settings->global_name_plural
+                )
+            );
+            $content .= sprintf(
+                "<span class=\"TouchPointWP-map-warning-visibleAndInvisible\" style=\"display:none;\">%s  </span>",
+                sprintf( // i18n: %s is for the user-provided "Global Partner" and "Secure Partner" terms.
+                    __("The %s listed are only those shown on the map, as well as all %s.", TouchPointWP::TEXT_DOMAIN),
+                    TouchPointWP::instance()->settings->global_name_plural,
+                    TouchPointWP::instance()->settings->global_name_plural_decoupled
+                )
+            );
+            $content .= sprintf(
+                "<span class=\"TouchPointWP-map-warning-zoomOrReset\" style=\"display:none;\">%s  </span>",
+                sprintf( // i18n: %s is the link to reset the map
+                    __("Zoom out or %s to see more.", TouchPointWP::TEXT_DOMAIN),
+                    sprintf( // i18n: %s is the link to reset the map
+                        "<a href=\"#\" class=\"TouchPointWP-map-resetLink\">%s</a>",
+                        __("reset the map", TouchPointWP::TEXT_DOMAIN)
+                    )
+                )
+            );
+            $content .= "</p>";
         }
 
         $content .= "</div>";
@@ -982,7 +1013,7 @@ class Partner implements api, JsonSerializable
         $r = [];
 
         if ($this->decoupleLocation) {
-            $r[] = __('Secure Partner', TouchPointWP::TEXT_DOMAIN);
+            $r[] = TouchPointWP::instance()->settings->global_name_singular_decoupled;
         } else if ($this->location !== "" && $this->location !== null) {
             $r[] = $this->location;
         }
@@ -1133,14 +1164,14 @@ class Partner implements api, JsonSerializable
             if (self::$_decoupledAndEnqueuedCount < 2) { // If there's only one partner (e.g. single page), don't provide a location.
                 return (object)[
                     'geo'        => null,
-                    'name'       => __('Secure Partner', TouchPointWP::TEXT_DOMAIN),
+                    'name'       => TouchPointWP::instance()->settings->global_name_singular_decoupled,
                     'attributes' => $this->attributes,
                     'color'      => $this->color
                 ];
             } else {
                 return (object)[
                     'geo'        => $this->geo,
-                    'name'       => __('Secure Partner', TouchPointWP::TEXT_DOMAIN),
+                    'name'       => TouchPointWP::instance()->settings->global_name_singular_decoupled,
                     'attributes' => $this->attributes,
                     'color'      => $this->color
                 ];
