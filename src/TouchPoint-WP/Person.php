@@ -730,7 +730,7 @@ class Person extends WP_User implements api, JsonSerializable
             // Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
 
             // Apply EV Types
-            $pData->PeopleEV = ExtraValueHandler::jsonToDataTyped($pData->PeopleEV);
+            $pData->PeopleEV = ExtraValueHandler::jsonToDataTyped($pData->PeopleEV ?? (object)[]);
 
             // Apply Custom EVs
             $fields = TouchPointWP::instance()->getPersonEvFields(TouchPointWP::instance()->settings->people_ev_custom);
