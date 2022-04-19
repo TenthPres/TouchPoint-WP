@@ -234,7 +234,7 @@ class TP_DataGeo {
 TP_DataGeo.prototype.classShort = "geo";
 TP_DataGeo.init();
 
-class TP_MapMarker extends google.maps.Marker
+class TP_MapMarker
 {
     /**
      *
@@ -245,6 +245,11 @@ class TP_MapMarker extends google.maps.Marker
     color = "#000";
 
     geoStr = "";
+
+    /**
+     * @type {google.maps.Marker}
+     */
+    gMkr = null;
 
     constructor(options) {
         if (!options.hasOwnProperty('icon')) {
@@ -258,8 +263,9 @@ class TP_MapMarker extends google.maps.Marker
                 labelOrigin: new google.maps.Point(190, 198)
             }
         }
-        super(options)
-        super.addListener("click", this.handleClick);
+        this.gMkr = new google.maps.Marker(options);
+        let that = this;
+        this.gMkr.addListener("click", () => that.handleClick());
     }
 
     get visibleItems() {
@@ -271,7 +277,7 @@ class TP_MapMarker extends google.maps.Marker
     }
 
     get inBounds() {
-        return this.getMap().getBounds().contains(this.getPosition());
+        return this.gMkr.getMap().getBounds().contains(this.gMkr.getPosition());
     }
 
     get useIcon() {
@@ -283,26 +289,30 @@ class TP_MapMarker extends google.maps.Marker
     }
 
     updateLabel(highlighted = false) {
-        let icon = super.getIcon();
+        if (this.gMkr === null) {
+            return;
+        }
+
+        let icon = this.gMkr.getIcon();
 
         // Update icon color
         this.color = tpvm._utils.averageColor(this.visibleItems.map((i) => i.color))
         if (icon !== undefined && icon.hasOwnProperty("fillColor")) {
             icon.fillColor = this.color;
-            super.setIcon(icon);
+            this.gMkr.setIcon(icon);
         }
 
         // Update visibility
-        super.setVisible(this.visibleItems.length > 0);
+        this.gMkr.setVisible(this.visibleItems.length > 0);
 
         // Update title
-        super.setTitle(tpvm._utils.stringArrayToListString(this.visibleItems.map((i) => i.name)))
+        this.gMkr.setTitle(tpvm._utils.stringArrayToListString(this.visibleItems.map((i) => i.name)))
 
         // Update label proper
         if (highlighted) {
-            super.setLabel(null); // Remove label if highlighted, because labels don't animate.
+            this.gMkr.setLabel(null); // Remove label if highlighted, because labels don't animate.
         } else {
-            super.setLabel(this.getLabelContent());
+            this.gMkr.setLabel(this.getLabelContent());
         }
     }
 
@@ -320,12 +330,17 @@ class TP_MapMarker extends google.maps.Marker
         return label;
     }
 
+    // noinspection JSUnusedGlobalSymbols  Used dynamically from markers.
     handleClick() {
-        const mp = this.getMap();
-        TP_MapMarker.smoothZoom(mp, this.getPosition())
+        if (this.gMkr === null) {
+            return;
+        }
+
+        const mp = this.gMkr.getMap();
+        TP_MapMarker.smoothZoom(mp, this.gMkr.getPosition()).then(() => 1)
 
         if (typeof ga === "function") {
-            ga('send', 'event', this.items[0].itemTypeName, 'mapMarker click', super.getTitle());
+            ga('send', 'event', this.items[0].itemTypeName, 'mapMarker click', this.gMkr.getTitle());
         }
     }
 
@@ -451,7 +466,7 @@ class TP_Mappable {
 
                 const item = list[ii],
                     geoStr = "" + item.geo[gi].lat + "," + item.geo[gi].lng;
-                let mkr = this.markers.find((m) => m.getMap() === map && m.geoStr === geoStr);
+                let mkr = this.markers.find((m) => m.gMkr.getMap() === map && m.geoStr === geoStr);
 
                 // If there isn't already a marker for the item on the right map, create one.
                 if (mkr === undefined) {
@@ -467,7 +482,7 @@ class TP_Mappable {
                     this.markers.push(mkr);
                 }
 
-                bounds.extend(mkr.getPosition());
+                bounds.extend(mkr.gMkr.getPosition());
 
                 // If the marker doesn't already have a reference to this item, add one.
                 if (!mkr.items.includes(item)) {
@@ -503,6 +518,7 @@ class TP_Mappable {
         }
     }
 
+    // noinspection JSUnusedGlobalSymbols  Used dynamically from warning text.
     /**
      *
      * @param {google.maps.Map} map
@@ -561,12 +577,12 @@ class TP_Mappable {
 
         // One marker (probably typical)
         if (this.markers.length === 1) {
-            let mp = this.markers[0].getMap(),
+            let mp = this.markers[0].gMkr.getMap(),
                 el = mp.getDiv(),
                 rect = el.getBoundingClientRect(),
                 viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight),
                 mpWithinView = !(rect.bottom < 0 || rect.top - viewHeight >= 0);
-            TP_MapMarker.smoothZoom(mp, this.markers[0].getPosition());
+            TP_MapMarker.smoothZoom(mp, this.markers[0].gMkr.getPosition()).then(() => 1);
             if (!mpWithinView) {
                 window.scroll({
                     top: rect.top,
@@ -662,8 +678,8 @@ class TP_Mappable {
             for (let mi in this.markers) {
                 const mk = item.markers[mi];
                 if (TP_Mappable.items.length > 1) {
-                    if (mk.getAnimation() !== google.maps.Animation.BOUNCE) {
-                        mk.setAnimation(google.maps.Animation.BOUNCE);
+                    if (mk.gMkr.getAnimation() !== google.maps.Animation.BOUNCE) {
+                        mk.gMkr.setAnimation(google.maps.Animation.BOUNCE);
                     }
                 }
                 mk.updateLabel(this.highlighted)
@@ -671,8 +687,8 @@ class TP_Mappable {
         } else {
             for (const mi in this.markers) {
                 let mk = this.markers[mi];
-                if (mk.getAnimation() !== null) {
-                    mk.setAnimation(null)
+                if (mk.gMkr.getAnimation() !== null) {
+                    mk.gMkr.setAnimation(null)
                 }
                 mk.updateLabel(this.highlighted)
             }
@@ -689,8 +705,6 @@ class TP_Involvement extends TP_Mappable {
     static currentFilters = {};
 
     static actions = ['join', 'contact'];
-
-    static mapMarkers = {};
 
     constructor(obj) {
         super(obj);
@@ -723,6 +737,7 @@ class TP_Involvement extends TP_Mappable {
         return ret;
     };
 
+    // noinspection JSUnusedGlobalSymbols  Called by inline.
     static initFilters() {
         const filtOptions = document.querySelectorAll("[data-involvement-filter]");
         for (const ei in filtOptions) {
