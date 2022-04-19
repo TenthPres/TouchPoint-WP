@@ -23,6 +23,11 @@ article.involvement-list-item {
     border-bottom: 2px solid transparent;
 }
 
+article.partner-list-item h2 a,
+article.involvement-list-item h2 a {
+    text-decoration: none;
+}
+
 
 .person-list {
     text-align: center;
