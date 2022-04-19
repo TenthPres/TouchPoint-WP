@@ -225,7 +225,9 @@ class TouchPointWP
     public function admin(): TouchPointWP_AdminAPI
     {
         if ($this->admin === null) {
-            require_once 'TouchPointWP_AdminAPI.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'TouchPointWP_AdminAPI.php';
+            }
             $this->admin = new TouchPointWP_AdminAPI();
         }
         return $this->admin;
@@ -558,38 +560,50 @@ class TouchPointWP
 
         // Load Auth tool if enabled.
         if ($instance->settings->enable_authentication === "on") {
-            require_once 'Auth.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'Auth.php';
+            }
             $instance->auth = Auth::load($instance);
         }
 
         // Load RSVP tool if enabled.
         if ($instance->settings->enable_rsvp === "on") {
-            require_once 'Rsvp.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'Rsvp.php';
+            }
             $instance->rsvp = Rsvp::load();
         }
 
         // Load Involvements tool if enabled.
         if ($instance->settings->enable_involvements === "on") {
-            require_once 'Involvement.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'Involvement.php';
+            }
             $instance->involvements = Involvement::load();
         }
 
         // Load Global Partners tool if enabled.
         if ($instance->settings->enable_global === "on") {
-            require_once 'Partner.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'Partner.php';
+            }
             $instance->global = Partner::load();
         }
 
         // Load Person for People Indexes.
         if ($instance->settings->enable_people_lists === "on") {
-            require_once 'Person.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'Person.php';
+            }
             $instance->people = Person::load();
         }
 
         // Load Events if enabled (by presence of Events Calendar plugin)
         if (self::useTribeCalendar()
             && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
-            require_once 'EventsCalendar.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'EventsCalendar.php';
+            }
         }
 
         add_action('init', [self::class, 'init']);

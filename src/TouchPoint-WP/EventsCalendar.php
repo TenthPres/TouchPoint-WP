@@ -11,7 +11,9 @@ if ( ! defined('ABSPATH')) {
 
 use WP_Post;
 
-require_once 'api.php';
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'api.php';
+}
 
 /**
  * Event Calendar for the Mobile App

@@ -10,7 +10,9 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-require_once 'Meeting.php';
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'Meeting.php';
+}
 
 /**
  * The RSVP framework class.

@@ -8,10 +8,13 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-require_once 'api.php';
-require_once "jsInstantiation.php";
-require_once 'InvolvementMembership.php';
-require_once "Utilities/PersonQuery.php";
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'api.php';
+    require_once 'extraValues.php';
+    require_once "jsInstantiation.php";
+    require_once 'InvolvementMembership.php';
+    require_once "Utilities/PersonQuery.php";
+}
 
 use Exception;
 use JsonSerializable;

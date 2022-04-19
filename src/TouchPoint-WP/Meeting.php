@@ -8,7 +8,9 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-require_once 'api.php';
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'api.php';
+}
 
 use Exception;
 

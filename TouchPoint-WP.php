@@ -71,9 +71,10 @@ if ( ! function_exists('getallheaders')) {
     }
 }
 
+define("TOUCHPOINT_COMPOSER_ENABLED", file_exists(__DIR__ . '/vendor/autoload.php'));
 
 /*** Load everything **/
-if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+if (TOUCHPOINT_COMPOSER_ENABLED) {
     require_once __DIR__ . '/vendor/autoload.php';
 } else {
     require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP_Exception.php";

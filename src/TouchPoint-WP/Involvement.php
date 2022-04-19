@@ -8,10 +8,12 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-require_once 'api.php';
-require_once "jsInstantiation.php";
-require_once "Utilities.php";
-require_once "Involvement_PostTypeSettings.php";
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'api.php';
+    require_once "jsInstantiation.php";
+    require_once "Utilities.php";
+    require_once "Involvement_PostTypeSettings.php";
+}
 
 use DateInterval;
 use DateTimeImmutable;

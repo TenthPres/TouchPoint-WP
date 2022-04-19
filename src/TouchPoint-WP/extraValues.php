@@ -8,6 +8,10 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'ExtraValueHandler.php';
+}
+
 /**
  * Enables a class with Extra Values
  */

@@ -8,9 +8,11 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-require_once 'api.php';
-require_once "jsInstantiation.php";
-require_once "Utilities.php";
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'api.php';
+    require_once "jsInstantiation.php";
+    require_once "Utilities.php";
+}
 
 use Exception;
 use JsonSerializable;
