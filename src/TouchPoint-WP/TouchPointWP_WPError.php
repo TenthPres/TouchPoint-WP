@@ -1,15 +1,12 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 use WP_Error;
 
-/**
- * Exception class to collect and throw WP_Error objects
- *
- * Class TouchPointWP_Exception
- * @package tp\TouchPointWP
- */
+
 
 if ( ! defined('ABSPATH')) {
     exit;

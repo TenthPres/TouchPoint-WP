@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP\Utilities;
 
 use tp\TouchPointWP\api;
@@ -17,9 +19,7 @@ if ( ! defined('ABSPATH')) {
 require_once __DIR__ . '\..\api.php';
 
 /**
- * Cleanup - Used for data cleanliness tasks.
- *
- * @package tp\TouchPointWP
+ * Cleanup Used for data cleanliness tasks.
  */
 abstract class Cleanup implements api
 {

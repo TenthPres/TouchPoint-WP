@@ -39,6 +39,6 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
         <?php echo wp_trim_words(get_the_excerpt(), 20, "..."); ?>
     </div>
     <div class="actions partner-actions <?php echo $postTypeClass; ?>-actions">
-        <?php echo $gp->getActionButtons(); ?>
+        <?php echo $gp->getActionButtons('list-item'); ?>
     </div>
 </article>

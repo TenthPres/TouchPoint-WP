@@ -171,7 +171,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 
 </div>
 
-<button type="submit" class="button" data-bind="click: addInvType"><?php _e("Add Involvement Type", TouchPointWP::TEXT_DOMAIN); ?></button>
+<button type="submit" class="button" data-bind="click: addInvType"><?php _e("Add Involvement Post Type", TouchPointWP::TEXT_DOMAIN); ?></button>
 
 </form>
 <script type="text/javascript">

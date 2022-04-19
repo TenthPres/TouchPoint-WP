@@ -1,16 +1,11 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 use Exception;
 use Throwable;
-
-/**
- * Settings class file.
- *
- * Class TouchPointWP_Exception
- * @package tp\TouchPointWP
- */
 
 if ( ! defined('ABSPATH')) {
     exit;

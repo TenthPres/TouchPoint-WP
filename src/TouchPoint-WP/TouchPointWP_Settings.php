@@ -1,20 +1,15 @@
 <?php
-
-namespace tp\TouchPointWP;
-
 /**
- * Settings class file.
- *
- * Class TouchPointWP_Settings
- * @package tp\TouchPointWP
+ * @package TouchPointWP
  */
+namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
     exit;
 }
 
 /**
- * Settings class.
+ * The Settings class - most settings are available through the default getter.
  *
  * @property-read string version            The plugin version.  Used for tracking updates.
  *
@@ -499,7 +494,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     [
                         'id'          => 'inv_json', // involvement settings json (stored as a json string)
                         'type'        => 'textarea',
-                        'label'       => __('Involvement Posts', 'TouchPoint-WP'),
+                        'label'       => __('Involvement Post Types', 'TouchPoint-WP'),
                         'default'     => '{}',
                         'hidden'      => true,
                         'description' => !$includeThis ? "" : function() {
@@ -921,7 +916,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ),
             ); */
 
-        $this->settings = apply_filters($this->parent::TOKEN . '_Settings_fields', $this->settings);
+        $this->settings = apply_filters($this->parent::TOKEN . '_settings_fields', $this->settings);
 
         return $this->settings;
     }

@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 
 namespace tp\TouchPointWP;
 
@@ -11,6 +13,9 @@ use WP_Post;
 
 require_once 'api.php';
 
+/**
+ * Event Calendar for the Mobile App
+ */
 abstract class EventsCalendar implements api
 {
     /**

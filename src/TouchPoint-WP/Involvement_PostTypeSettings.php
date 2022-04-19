@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 use Exception;
@@ -8,7 +11,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 /**
- * Involvement_PostTypeSettings.  This is instantiated as an array of these objects.
+ * Contains the settings for a single Involvement Post Type.  This is instantiated as an array of these objects.
  *
  * @property-read string $nameSingular
  * @property-read string $namePlural

@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
@@ -6,9 +9,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 /**
- * Class InvolvementMembership - Connect a Person to an Involvement
- *
- * @package tp\TouchPointWP
+ * Connect a Person to an Involvement
  */
 class InvolvementMembership
 {

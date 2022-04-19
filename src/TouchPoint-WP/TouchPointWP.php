@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 use stdClass;
@@ -17,9 +19,6 @@ if ( ! defined('ABSPATH')) {
 
 /**
  * Main plugin class.
- *
- * Class TouchPointWP
- * @package tp\TouchPointWP
  */
 class TouchPointWP
 {
@@ -695,6 +694,10 @@ class TouchPointWP
      */
     public static function requireScript(string $name = null): void
     {
+        if (!apply_filters(TouchPointWP::HOOK_PREFIX . "include_script_" . strtolower($name), true)){
+            return;
+        }
+
         if ( ! in_array("base", self::$enqueuedScripts)) {
             self::$enqueuedScripts[] = "base";
             if (is_admin()) {

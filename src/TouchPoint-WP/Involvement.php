@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
@@ -20,9 +23,7 @@ use WP_Query;
 use WP_Term;
 
 /**
- * Class Involvement - Fundamental object meant to correspond to an Involvement in TouchPoint
- *
- * @package tp\TouchPointWP
+ * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
 class Involvement implements api
 {
@@ -494,7 +495,7 @@ class Involvement implements api
         $eltId = $params['id'];
         $class = $params['class'];
 
-        return "<div id=\"$eltId\" class=\"$class\" data-tp-involvement=\"$inv->post_id\">{$inv->getActionButtons()}</div>";
+        return "<div id=\"$eltId\" class=\"$class\" data-tp-involvement=\"$inv->post_id\">{$inv->getActionButtons('actions-shortcode')}</div>";
     }
 
     /**
@@ -1844,9 +1845,11 @@ class Involvement implements api
      * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with the
      * `data-tp-involvement` attribute with the post_id (NOT the Inv ID) as the value.
      *
+     * @param ?string $context A reference to where the action buttons are meant to be used.
+     *
      * @return string
      */
-    public function getActionButtons(): string
+    public function getActionButtons(string $context = null): string
     {
         TouchPointWP::requireScript('swal2-defer');
         TouchPointWP::requireScript('base-defer');
@@ -1908,7 +1911,7 @@ class Involvement implements api
             $count++;
         }
 
-        return $ret;
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "involvement_actions", $ret, $this, $context);
     }
 
     public static function getJsInstantiationString(): string

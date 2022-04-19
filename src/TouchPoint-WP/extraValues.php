@@ -1,17 +1,15 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-
 /**
  * Enables a class with Extra Values
- *
- * Interface jsInstantiation
- * @package tp\TouchPointWP
  */
 trait extraValues {
 
@@ -35,7 +33,7 @@ trait extraValues {
      *
      * @param string $name The name of the extra value to get.
      *
-     * @return mixed.  The value of the extra value.  Returns null if it doesn't exist.
+     * @return mixed  The value of the extra value.  Returns null if it doesn't exist.
      */
     public abstract function getExtraValue(string $name);
 

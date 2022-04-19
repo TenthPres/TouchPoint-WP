@@ -1,7 +1,12 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
+/**
+ * Manages the handling of Extra Values
+ */
 class ExtraValueHandler
 {
     /** @var object|extraValues $owner */
@@ -12,7 +17,7 @@ class ExtraValueHandler
      */
     public function __construct(object $owner)
     {
-        if (!in_array("", class_uses($owner, false))) {
+        if (!in_array(extraValues::class, class_uses($owner, false))) {
             throw new TouchPointWP_Exception("An object of type " . get_class($owner) . " does not support Extra Values.");
         }
         $this->owner = $owner;

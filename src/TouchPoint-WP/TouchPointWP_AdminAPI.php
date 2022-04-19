@@ -1,14 +1,10 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 use ZipArchive;
-
-/**
- * Admin API file.
- *
- * @package tp\TouchPointWP
- */
 
 if ( ! defined('ABSPATH')) {
     exit;

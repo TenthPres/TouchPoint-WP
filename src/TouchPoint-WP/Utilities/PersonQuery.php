@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP\Utilities;
 
 use tp\TouchPointWP\Person;
@@ -11,9 +13,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 /**
- * PersonQuery - Wrap the UserQuery object such that the returned object is a Person instead of a User.
- *
- * @package tp\TouchPointWP
+ * Wrap the UserQuery object such that the returned object is a Person instead of a User.
  */
 class PersonQuery extends WP_User_Query
 {

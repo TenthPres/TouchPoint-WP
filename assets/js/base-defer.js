@@ -323,6 +323,10 @@ class TP_MapMarker extends google.maps.Marker
     handleClick() {
         const mp = this.getMap();
         TP_MapMarker.smoothZoom(mp, this.getPosition())
+
+        if (typeof ga === "function") {
+            ga('send', 'event', this.items[0].itemTypeName, 'mapMarker click', super.getTitle());
+        }
     }
 
     /**
@@ -549,7 +553,12 @@ class TP_Mappable {
         }
     }
 
+    // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
     showOnMapAction() {
+        if (typeof ga === "function") {
+            ga('send', 'event', this.itemTypeName, 'showOnMap btn click', this.name);
+        }
+
         // One marker (probably typical)
         if (this.markers.length === 1) {
             let mp = this.markers[0].getMap(),
@@ -582,6 +591,10 @@ class TP_Mappable {
                 TP_Mappable.markers[mi].items[ii].toggleVisibility(TP_Mappable.markers[mi].items[ii] === this);
             }
         }
+    }
+
+    get itemTypeName() {
+        return this.constructor.name;
     }
 
     get visible() {
@@ -874,6 +887,11 @@ class TP_Involvement extends TP_Mappable {
         }
     }
 
+    get itemTypeName() {
+        return this.invType;
+    }
+
+    // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
     contactAction() {
         let inv = this,
             title = `<span class="no-wrap">Contact the leaders</span> of <span class="no-wrap">${inv.name}</span>`;
@@ -1123,6 +1141,7 @@ class TP_Person {
         }
     }
 
+    // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
     contactAction() {
         let psn = this,
             title = `Contact ${psn.displayName}`;

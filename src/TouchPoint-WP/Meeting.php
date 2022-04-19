@@ -1,6 +1,7 @@
 <?php
-
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
@@ -11,6 +12,9 @@ require_once 'api.php';
 
 use Exception;
 
+/**
+ * Handle meeting content, particularly RSVPs.
+ */
 abstract class Meeting implements api
 {
     /**

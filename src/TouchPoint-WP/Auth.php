@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 use WP_Error;
@@ -7,21 +9,13 @@ use WP_REST_Controller;
 use WP_User;
 use WP_User_Query;
 
-/**
- * Auth class file.
- *
- * TODO Rework error handling in favor of exceptions.
- *
- * Class Auth
- * @package tp\TouchPointWP
- */
-
 if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
 /**
  * The Auth-handling class.
+ * TODO Rework error handling in favor of exceptions.
  */
 class Auth extends WP_REST_Controller
 {

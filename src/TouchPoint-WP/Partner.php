@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
@@ -17,9 +20,7 @@ use WP_Query;
 use WP_Term;
 
 /**
- * Class Partner - Fundamental object meant to correspond to an outreach partner unit
- *
- * @package tp\TouchPointWP
+ * An Outreach partner, corresponding to a family in TouchPoint
  */
 class Partner implements api, JsonSerializable
 {
@@ -571,7 +572,7 @@ class Partner implements api, JsonSerializable
         $eltId = $params['id'];
         $class = $params['class'];
 
-        return "<div id=\"$eltId\" class=\"$class\" data-tp-f=\"$prt->familyId\">{$prt->getActionButtons()}</div>";
+        return "<div id=\"$eltId\" class=\"$class\" data-tp-f=\"$prt->familyId\">{$prt->getActionButtons('actions-shortcode')}</div>";
     }
 
     /**
@@ -1050,11 +1051,11 @@ class Partner implements api, JsonSerializable
      * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with the
      * `data-tp-partner` attribute with the post_id as the value or 0 for secure partners.
      *
-     * @param mixed $context A variable that is passed to the tp_partner_actions filter.  Set however you want, or not at all.
+     * @param ?string $context A reference to where the action buttons are meant to be used.
      *
      * @return string
      */
-    public function getActionButtons($context = null): string
+    public function getActionButtons(string $context = null): string
     {
         $this->enqueueForJsInstantiation();
 
@@ -1112,12 +1113,16 @@ class Partner implements api, JsonSerializable
      *
      * @param string $name The name of the extra value to get.
      *
-     * @return mixed.  The value of the extra value.  Returns null if it doesn't exist.
+     * @return mixed  The value of the extra value.  Returns null if it doesn't exist.
      */
     public function getExtraValue(string $name)
     {
         $name = ExtraValueHandler::standardizeExtraValueName($name);
-        return get_post_meta($this->post_id, self::META_FEV_PREFIX . $name);
+        $meta = get_post_meta($this->post_id, self::META_FEV_PREFIX . $name, true);
+        if ($meta === "") {
+            return null;
+        }
+        return $meta;
     }
 
     /**

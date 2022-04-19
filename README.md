@@ -5,6 +5,8 @@ Developed by [Tenth Presbyterian Church](https://tenth.org) for their website an
 plugin is not developed or supported by TouchPoint.  While their support team is stellar, they probably won't be able to
 help you with this.
 
+[See the Wiki for Installation instructions and other documentation.](https://github.com/TenthPres/TouchPoint-WP/wiki)
+
 ## Features
 ### Involvement Lists & Small Group Finder
 - Publish a list and map of involvements, with dynamic filtering based on actual data, such as demographics and location.

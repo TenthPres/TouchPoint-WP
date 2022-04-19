@@ -1,6 +1,7 @@
 <?php
-
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
@@ -19,12 +20,9 @@ use tp\TouchPointWP\Utilities\PersonQuery;
 use WP_User;
 
 /**
- * Class Person - Fundamental object meant to correspond to a Person in TouchPoint
- *
- * @package tp\TouchPointWP
+ * This Person Object connects a WordPress User with a TouchPoint Person.
  *
  * @property ?object $picture An object with the picture URLs and other metadata
- *
  */
 class Person extends WP_User implements api, JsonSerializable
 {
@@ -852,11 +850,11 @@ class Person extends WP_User implements api, JsonSerializable
      * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with the
      * `data-tp-person` attribute with the invId as the value.
      *
-     * @param mixed $context A variable that is passed to the tp_person_actions filter.  Set however you want, or not at all.
+     * @param ?string $context A reference to where the action buttons are meant to be used.
      *
      * @return string
      */
-    public function getActionButtons($context = null): string
+    public function getActionButtons(string $context = null): string
     {
         TouchPointWP::requireScript('swal2-defer');
         TouchPointWP::requireScript('base-defer');
@@ -1233,7 +1231,7 @@ class Person extends WP_User implements api, JsonSerializable
      *
      * @param string $name The name of the extra value to get.
      *
-     * @return mixed.  The value of the extra value.  Returns null if it doesn't exist.
+     * @return mixed  The value of the extra value.  Returns null if it doesn't exist.
      */
     public function getExtraValue(string $name)
     {

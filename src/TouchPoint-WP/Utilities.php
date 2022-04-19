@@ -1,9 +1,14 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 use DateTimeInterface;
 
+/**
+ * A few tools for managing things.
+ */
 abstract class Utilities
 {
     /**

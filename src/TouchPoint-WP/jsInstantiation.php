@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
@@ -8,10 +10,7 @@ if ( ! defined('ABSPATH')) {
 
 
 /**
- * JS Instantiation Interface.  Used to indicate objects that should be provided to JS for client-side instantiation
- *
- * Interface jsInstantiation
- * @package tp\TouchPointWP
+ * Used for client-side instantiation
  */
 trait jsInstantiation {
 
