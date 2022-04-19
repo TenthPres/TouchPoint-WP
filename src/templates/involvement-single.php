@@ -57,7 +57,7 @@ TouchPointWP::enqueuePartialsStyle();
                 <?php echo $inv->getActionButtons('single-template') ?>
             </div>
         </div>
-        <?php if ($settings->useGeo) { ?>
+        <?php if ($settings->useGeo && $inv->geo !== null) { ?>
         <div class="TouchPointWP-detail-cell TouchPointWP-map-container">
             <?php echo Involvement::mapShortcode() ?>
         </div>
