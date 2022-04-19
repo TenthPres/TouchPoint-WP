@@ -774,11 +774,11 @@ class TouchPointWP
     }
 
     /**
-     * @param mixed $useApi Set false to only use cached data, and not the IP API.
+     * @param bool $useApi Set false to only use cached data, and not the IP API.
      *
      * @return stdClass|false An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, false if not available.
      */
-    public function geolocate($useApi = null)
+    public function geolocate(bool $useApi = true)
     {
         $ip = null; // For future use as a parameter, potentially.
 
