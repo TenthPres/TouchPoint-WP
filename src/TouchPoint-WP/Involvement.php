@@ -1037,7 +1037,7 @@ class Involvement implements api
         foreach ($r as $g) {
             try {
                 $inv        = self::fromObj($g);
-                $g->name    = $inv->name;
+                $g->name    = html_entity_decode($inv->name);
                 $g->invType = $settings->postTypeWithoutPrefix();
                 $g->path    = get_permalink($inv->post_id);
             } catch (TouchPointWP_Exception $ex) {
