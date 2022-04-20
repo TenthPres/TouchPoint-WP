@@ -1,12 +1,10 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
-/**
- * Admin API file.
- *
- * @package tp\TouchPointWP
- */
+use ZipArchive;
 
 if ( ! defined('ABSPATH')) {
     exit;
@@ -69,26 +67,19 @@ class TouchPointWP_AdminAPI implements api {
 
         // Get saved data.
         $data = '';
+        $option_name .= $field['id'];
+
         if ( $post ) {
-
             // Get saved field data.
-            $option_name .= $field['id'];
             $option       = get_post_meta( $post->ID, $field['id'], true );
-
-            // Get data to display in field.
-            if ( isset( $option ) ) {
-                $data = $option;
-            }
         } else {
-
             // Get saved option.
-            $option_name .= $field['id'];
             $option       = get_option($option_name); // TODO MULTI
+        }
 
-            // Get data to display in field.
-            if ( isset( $option ) ) {
-                $data = $option;
-            }
+        // Get data to display in field.
+        if ( isset( $option ) ) {
+            $data = $option;
         }
 
         // Show default data if no option saved and default is supplied.
@@ -130,7 +121,7 @@ class TouchPointWP_AdminAPI implements api {
                          '" name="' . esc_attr( $option_name ) .
                          (array_key_exists('placeholder', $field) ? '" placeholder="' . esc_attr( $field['placeholder'] ) : "") .
                          '" value="' . esc_attr( $data ) .
-                         '"' . $min . '' . $max . '/>' . "\n";
+                         '"' . $min . $max . '/>' . "\n";
                 break;
 
             case 'text_secret':
@@ -147,7 +138,7 @@ class TouchPointWP_AdminAPI implements api {
 
             case 'checkbox':
                 $checked = '';
-                if ( $data && 'on' === $data ) {
+                if ('on' === $data) {
                     $checked = 'checked="checked"';
                 }
                 $html .= '<input id="' . esc_attr( $field['id'] ) . '" type="' . esc_attr( $field['type'] ) . '" name="' . esc_attr( $option_name ) . '" ' . $checked . '/>' . "\n";
@@ -181,6 +172,22 @@ class TouchPointWP_AdminAPI implements api {
                         $selected = true;
                     }
                     $html .= '<option ' . selected( $selected, true, false ) . ' value="' . esc_attr( $k ) . '">' . $v . '</option>';
+                }
+                $html .= '</select> ';
+                break;
+
+            case 'select_grouped':
+                $html .= '<select name="' . esc_attr( $option_name ) . '" id="' . esc_attr( $field['id'] ) . '">';
+                foreach ( $field['options'] as $grp => $opts ) {
+                    $html .= '<optgroup label="' . esc_attr($grp) . '">';
+                    foreach ( $opts as $k => $v ) {
+                        $selected = false;
+                        if ( $k === $data ) {
+                            $selected = true;
+                        }
+                        $html .= '<option ' . selected( $selected, true, false ) . ' value="' . esc_attr( $k ) . '">' . $v . '</option>';
+                    }
+                    $html .= '</optgroup>';
                 }
                 $html .= '</select> ';
                 break;
@@ -291,8 +298,8 @@ class TouchPointWP_AdminAPI implements api {
         }
 
         $outZipPath = tempnam(sys_get_temp_dir(), 'TouchPoint-WP-Scripts.zip');
-        $z = new \ZipArchive();
-        if (! $z->open($outZipPath, \ZipArchive::CREATE) ){
+        $z = new ZipArchive();
+        if (! $z->open($outZipPath, ZipArchive::CREATE) ){
             return new TouchPointWP_Exception("Could not create a zip file for the scripts");
         }
 
@@ -324,12 +331,10 @@ class TouchPointWP_AdminAPI implements api {
     /**
      * Display an error when there's something wrong with the TouchPoint connection.
      */
-    public static function Error_TouchPoint_API()
+    public static function showError($message)
     {
         $class = 'notice notice-error';
-        $message = __('Unable to connect to TouchPoint API.  Please check the TouchPoint-WP Basic Settings.', TouchPointWP::TEXT_DOMAIN);
-
-        printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr( $class ), esc_html( $message ) );
+        printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr($class), esc_html($message));
     }
 
 }

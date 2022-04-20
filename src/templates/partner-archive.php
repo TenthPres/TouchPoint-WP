@@ -1,28 +1,17 @@
 <?php
 /**
- * The default template for listing involvements. This template will only be used if no more specific template is found
+ * The default template for listing global partners. This template will only be used if no more specific template is found
  * in the Theme.
  *
  * @link https://developer.wordpress.org/themes/basics/template-hierarchy/
  *
- * Template Name: TouchPoint Involvement List
+ * Template Name: TouchPoint Partner List
  */
 
-use tp\TouchPointWP\Involvement;
+use tp\TouchPointWP\Partner;
 use tp\TouchPointWP\TouchPointWP;
 
 $postType = is_archive() ? get_queried_object()->name : false;
-$settings = Involvement::getSettingsForPostType($postType);
-
-if (have_posts()) {
-    $location = TouchPointWP::instance()->geolocate(false);
-
-    if ($location !== false) {
-        // we have a viable location. Use it for sorting by distance.
-        Involvement::setComparisonGeo($location);
-        TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
-    }
-}
 
 get_header($postType);
 
@@ -31,9 +20,11 @@ $description = get_the_archive_description();
 if (have_posts()) {
     global $wp_the_query;
 
+    $tpwp = TouchPointWP::instance();
+
     $wp_the_query->set('posts_per_page', -1);
     $wp_the_query->set('nopaging', true);
-    $wp_the_query->set('orderby', 'title'); // will mostly be overwritten by geographic sort, if available.
+    $wp_the_query->set('orderby', 'title');
     $wp_the_query->set('order', 'ASC');
 
     $wp_the_query->get_posts();
@@ -43,27 +34,22 @@ if (have_posts()) {
     ?>
     <header class="archive-header has-text-align-center header-footer-group">
         <div class="archive-header-inner section-inner medium">
-            <h1 class="archive-title page-title"><?php echo $settings->namePlural; ?></h1>
-            <?php if ($settings->useGeo) { ?>
-            <div class="map TouchPointWP-map-container"><?php echo Involvement::mapShortcode(); ?></div>
-            <?php } ?>
-            <?php echo Involvement::filterShortcode(['type' => $postType]); ?>
+            <h1 class="archive-title page-title"><?php echo $tpwp->settings->global_name_plural ?></h1>
+            <div class="map TouchPointWP-map-container"><?php echo Partner::mapShortcode(); ?></div>
+            <?php echo Partner::filterShortcode(['type' => $postType]); ?>
             <?php if ($description) { ?>
                 <div class="archive-description"><?php echo wp_kses_post(wpautop($description)); ?></div>
             <?php } ?>
         </div>
     </header>
-    <div class="involvement-list">
+    <div class="partner-list">
     <?php
-
-    global $posts;
-    usort($posts, [Involvement::class, 'sortPosts']);
 
     while ($wp_the_query->have_posts()) {
         $wp_the_query->the_post();
-        $loadedPart = get_template_part('list-item', 'involvement-list-item');
+        $loadedPart = get_template_part('list-item', 'partner-list-item');
         if ($loadedPart === false) {
-            require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
+            require TouchPointWP::$dir . "/src/templates/parts/partner-list-item.php";
         }
     }
     ?>

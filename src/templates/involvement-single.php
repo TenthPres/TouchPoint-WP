@@ -22,7 +22,7 @@ TouchPointWP::enqueuePartialsStyle();
     </div>
 </header>
 
-<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-involvement="<?php echo $inv->invId ?>">
+<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-involvement="<?php echo $inv->post_id ?>">
     <div class="post-inner involvement-inner">
         <div class="entry-content">
             <?php
@@ -31,9 +31,9 @@ TouchPointWP::enqueuePartialsStyle();
         </div><!-- .entry-content -->
     </div><!-- .post-inner -->
 
-    <div class="section-inner involvement-detail">
-        <div class="involvement-detail-cell">
-            <div class="involvement-detail-cell-section involvement-logistics" >
+    <div class="section-inner TouchPointWP-detail">
+        <div class="TouchPointWP-detail-cell">
+            <div class="TouchPointWP-detail-cell-section involvement-logistics" >
                 <?php
                 $metaKeys    = [
                     TouchPointWP::SETTINGS_PREFIX . "meetingSchedule",
@@ -53,12 +53,12 @@ TouchPointWP::enqueuePartialsStyle();
                 echo implode("<br />", $metaStrings);
                 ?>
             </div>
-            <div class="involvement-detail-cell-section involvement-actions">
-                <?php echo $inv->getActionButtons() ?>
+            <div class="TouchPointWP-detail-cell-section involvement-actions">
+                <?php echo $inv->getActionButtons('single-template') ?>
             </div>
         </div>
-        <?php if ($settings->useGeo) { ?>
-        <div class="involvement-detail-cell involvement-map-container">
+        <?php if ($settings->useGeo && $inv->geo !== null) { ?>
+        <div class="TouchPointWP-detail-cell TouchPointWP-map-container">
             <?php echo Involvement::mapShortcode() ?>
         </div>
         <?php } ?>

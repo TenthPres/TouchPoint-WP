@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
@@ -8,10 +10,7 @@ if ( ! defined('ABSPATH')) {
 
 
 /**
- * JS Instantiation Interface.  Used to indicate objects that should be provided to JS for client-side instantiation
- *
- * Interface jsInstantiation
- * @package tp\TouchPointWP
+ * Used for client-side instantiation
  */
 trait jsInstantiation {
 
@@ -42,13 +41,15 @@ trait jsInstantiation {
     /**
      * Add to a queue for instantiation.
      *
-     * @return void
+     * @return bool True if added to queue, false if already in queue.
      */
-    protected function enqueueForJsInstantiation(): void
+    protected function enqueueForJsInstantiation(): bool
     {
         if (!isset(static::$queueForJsInstantiation[$this->getTouchPointId()])) {
             static::$queueForJsInstantiation[$this->getTouchPointId()] = $this;
+            return true;
         }
+        return false;
     }
 
     /**
@@ -67,7 +68,7 @@ trait jsInstantiation {
      *
      * @param bool $require  Whether all objects should be required.  Almost always should be left with the default.
      */
-    public static function requireAllObjectsInJs($require = true): void
+    public static function requireAllObjectsInJs(bool $require = true): void
     {
         self::$requireAllObjectsInJs = $require;
     }

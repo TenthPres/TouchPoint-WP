@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 
 namespace tp\TouchPointWP;
 
@@ -9,8 +11,13 @@ if ( ! defined('ABSPATH')) {
 
 use WP_Post;
 
-require_once 'api.iface.php';
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'api.php';
+}
 
+/**
+ * Event Calendar for the Mobile App
+ */
 abstract class EventsCalendar implements api
 {
     /**

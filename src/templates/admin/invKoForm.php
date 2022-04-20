@@ -6,7 +6,7 @@ namespace tp\TouchPointWP;
 $divs = json_encode($this->parent->getDivisions());
 $kws = json_encode($this->parent->getKeywords());
 /** @noinspection CommaExpressionJS */
-echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}, kws: {$kws} }</script>";
+echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws }</script>";
 ?>
 <style>
     .column-wrap {
@@ -171,7 +171,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: {$divs}, kws: {$
 
 </div>
 
-<button type="submit" class="button" data-bind="click: addInvType"><?php _e("Add Involvement Type", TouchPointWP::TEXT_DOMAIN); ?></button>
+<button type="submit" class="button" data-bind="click: addInvType"><?php _e("Add Involvement Post Type", TouchPointWP::TEXT_DOMAIN); ?></button>
 
 </form>
 <script type="text/javascript">

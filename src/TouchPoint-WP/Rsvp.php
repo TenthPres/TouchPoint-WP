@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 // TODO sort out what goes here, and what goes in Meetings.
@@ -8,15 +10,9 @@ if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-require_once 'Meeting.php';
-
-/**
- * RSVP class file.
- *
- * Class Rsvp
- * @package tp\TouchPointWP
- */
-
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'Meeting.php';
+}
 
 /**
  * The RSVP framework class.

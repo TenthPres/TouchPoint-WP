@@ -1,7 +1,10 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
+use stdClass;
 use WP;
 use WP_Error;
 use WP_Http;
@@ -16,9 +19,6 @@ if ( ! defined('ABSPATH')) {
 
 /**
  * Main plugin class.
- *
- * Class TouchPointWP
- * @package tp\TouchPointWP
  */
 class TouchPointWP
 {
@@ -26,7 +26,9 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.5";
+    public const VERSION = "0.0.6";
+
+    public const DEBUG = false;
 
     /**
      * The Token
@@ -44,6 +46,15 @@ class TouchPointWP
     public const API_ENDPOINT = "touchpoint-api";
     public const API_ENDPOINT_GENERATE_SCRIPTS = "generate-scripts";
     public const API_ENDPOINT_APP_EVENTS = "app-events";
+    public const API_ENDPOINT_INVOLVEMENT = "inv";
+    public const API_ENDPOINT_GLOBAL = "global";
+    public const API_ENDPOINT_PERSON = "person";
+    public const API_ENDPOINT_MEETING = "mtg";
+    public const API_ENDPOINT_ADMIN = "admin";
+    public const API_ENDPOINT_CLEANUP = "cleanup";
+    public const API_ENDPOINT_GEOLOCATE = "geolocate";
+
+    public const TEMPLATES_TO_OVERWRITE = ['archive.php', 'singular.php', 'single.php', 'index.php', 'template-canvas.php'];
 
     /**
      * Prefix to use for all shortcodes.
@@ -66,6 +77,7 @@ class TouchPointWP
     public const TAX_DAYTIME = self::HOOK_PREFIX . "timeOfDay";
     public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
+    public const TAX_GP_CATEGORY = self::HOOK_PREFIX . "partner_category";
 
     /**
      * Table Names
@@ -142,6 +154,17 @@ class TouchPointWP
     protected ?bool $involvements = null;
 
     /**
+     * @var ?bool True after the Global feature is loaded.
+     */
+    protected ?bool $global = null;
+
+
+    /**
+     * @var ?bool True after the People feature is loaded.
+     */
+    protected ?bool $people = null;
+
+    /**
      * @var ?WP_Http Object for API requests.
      */
     private ?WP_Http $httpClient = null;
@@ -169,6 +192,8 @@ class TouchPointWP
         add_action('init', [$this, 'registerScriptsAndStyles'], 0);
 
         add_action('wp_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
+
+        add_action('admin_print_styles', [$this, 'adminPrintStyleOverrides'], 1000);
 
         // Load admin JS & CSS.
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_scripts'], 10, 1 ); // TODO restore?
@@ -200,7 +225,9 @@ class TouchPointWP
     public function admin(): TouchPointWP_AdminAPI
     {
         if ($this->admin === null) {
-            require_once 'TouchPointWP_AdminAPI.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'TouchPointWP_AdminAPI.php';
+            }
             $this->admin = new TouchPointWP_AdminAPI();
         }
         return $this->admin;
@@ -284,8 +311,14 @@ class TouchPointWP
         if ($continue) {
             $reqUri = parse_url(trim($_SERVER['REQUEST_URI'], '/'));
 
+            // Remove trailing slash if it exists (and, it probably does)
+            if (substr($reqUri['path'], -1) === '/')
+                $reqUri['path'] = substr($reqUri['path'], 0, -1);
+
+            // Explode by slashes
             $reqUri['path'] = explode("/", $reqUri['path'] ?? "");
 
+            // Skip requests that categorically don't match
             if (count($reqUri['path']) < 2 || strtolower($reqUri['path'][0]) !== self::API_ENDPOINT) {
                 return $continue;
             }
@@ -296,7 +329,7 @@ class TouchPointWP
             unset($queryParams);
 
             // App Events Endpoint
-            if ($reqUri['path'][1] === "app-events" &&
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_APP_EVENTS &&
                 count($reqUri['path']) === 2 &&
                 TouchPointWP::useTribeCalendar()) {
 
@@ -306,7 +339,7 @@ class TouchPointWP
             }
 
             // Involvement endpoint
-            if ($reqUri['path'][1] === "inv" &&
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_INVOLVEMENT &&
                 $this->settings->enable_involvements === "on"
             ) {
                 if (!Involvement::api($reqUri)) {
@@ -314,22 +347,31 @@ class TouchPointWP
                 }
             }
 
+            // Global Partner endpoint
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_GLOBAL &&
+                $this->settings->enable_global === "on"
+            ) {
+                if (!Partner::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
             // Person endpoint
-            if ($reqUri['path'][1] === "person") {
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_PERSON) {
                 if (!Person::api($reqUri)) {
                     return $continue;
                 }
             }
 
             // Meeting endpoints
-            if ($reqUri['path'][1] === "mtg") {
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_MEETING) {
                 if (!Meeting::api($reqUri)) {
                     return $continue;
                 }
             }
 
             // Admin endpoints
-            if ($reqUri['path'][1] === "admin") {
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_ADMIN) {
                 self::admin(); // initialize the instance.
                 if (!TouchPointWP_AdminAPI::api($reqUri)) {
                     return $continue;
@@ -337,7 +379,7 @@ class TouchPointWP
             }
 
             // Cleanup endpoints
-            if ($reqUri['path'][1] === "cleanup") {
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_CLEANUP) {
                 if (!Cleanup::api($reqUri)) {
                     return $continue;
                 }
@@ -356,7 +398,7 @@ class TouchPointWP
             }
 
             // Geolocate via IP TODO rework to minimize extra requests
-            if ($reqUri['path'][1] === "geolocate" &&
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_GEOLOCATE &&
                 count($reqUri['path']) === 2) {
 
                 $this->ajaxGeolocate();
@@ -428,6 +470,11 @@ class TouchPointWP
         return true;
     }
 
+    /**
+     * Print Dynamic Instantiation scripts.
+     *
+     * @return void
+     */
     public function printDynamicFooterScripts(): void
     {
         echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
@@ -437,9 +484,39 @@ class TouchPointWP
         if ($this->involvements !== null) {
             echo Involvement::getJsInstantiationString();
         }
-        echo "</script>";
+        if ($this->global !== null) {
+            echo Partner::getJsInstantiationString();
+        }
+        echo "\n</script>";
     }
 
+    /**
+     * Force some styling overrides into admin views.
+     *
+     * @return void
+     */
+    public function adminPrintStyleOverrides(): void
+    {
+        if (is_admin()) {
+            $screen = get_current_screen();
+
+            echo "<style>";
+
+            // Hide Bio field if it's likely to be loaded from TouchPoint
+            if ($screen->base === "user-edit" && $this->settings->people_ev_bio !== '') { // We're on the user-edit page.
+                global $user_id;
+                if ($user_id !== null) {
+                    $peopleId = get_user_meta($user_id, Person::META_PEOPLEID, true);
+                    if ($peopleId !== null && $peopleId !== '') {
+                        // There is a PeopleId, which means Bio can be imported. Therefore, hide the bio.
+                        echo "table.form-table tr.user-description-wrap {display: none;}";
+                    }
+                }
+            }
+
+            echo "</style>";
+        }
+    }
 
     /**
      * Load plugin textdomain
@@ -466,7 +543,7 @@ class TouchPointWP
     }
 
     /**
-     * Load the settings, connect the references, and check that there are no pending migrations.
+     * Load the settings, connect the references, and check that there aren't pending migrations.
      *
      * @param $file
      *
@@ -483,32 +560,50 @@ class TouchPointWP
 
         // Load Auth tool if enabled.
         if ($instance->settings->enable_authentication === "on") {
-            require_once 'Auth.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'Auth.php';
+            }
             $instance->auth = Auth::load($instance);
         }
 
         // Load RSVP tool if enabled.
         if ($instance->settings->enable_rsvp === "on") {
-            require_once 'Rsvp.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'Rsvp.php';
+            }
             $instance->rsvp = Rsvp::load();
         }
 
         // Load Involvements tool if enabled.
         if ($instance->settings->enable_involvements === "on") {
-            require_once 'Involvement.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'Involvement.php';
+            }
             $instance->involvements = Involvement::load();
+        }
+
+        // Load Global Partners tool if enabled.
+        if ($instance->settings->enable_global === "on") {
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'Partner.php';
+            }
+            $instance->global = Partner::load();
         }
 
         // Load Person for People Indexes.
         if ($instance->settings->enable_people_lists === "on") {
-            require_once 'Person.php';
-            $instance->involvements = Person::load();
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'Person.php';
+            }
+            $instance->people = Person::load();
         }
 
         // Load Events if enabled (by presence of Events Calendar plugin)
         if (self::useTribeCalendar()
             && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
-            require_once 'EventsCalendar.php';
+            if (!TOUCHPOINT_COMPOSER_ENABLED) {
+                require_once 'EventsCalendar.php';
+            }
         }
 
         add_action('init', [self::class, 'init']);
@@ -568,8 +663,31 @@ class TouchPointWP
             true
         );
 
+        wp_register_script(
+            TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
+            sprintf(
+                "https://maps.googleapis.com/maps/api/js?key=%s&v=3&libraries=geometry",
+                TouchPointWP::instance()->settings->google_maps_api_key
+            ),
+            [TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
+            null,
+            true
+        );
+
+        wp_register_script(
+            TouchPointWP::SHORTCODE_PREFIX . "fontAwesome",
+            "https://kit.fontawesome.com/2b5f44e07f.js",
+            [],
+            6, // When changing versions, some CSS references will need to be updated, too.
+            false
+        );
+
         if ( ! ! $this->involvements) {
             Involvement::registerScriptsAndStyles();
+        }
+
+        if ( ! ! $this->global) {
+            Partner::registerScriptsAndStyles();
         }
 
 //        if ( ! ! $this->auth) {
@@ -590,6 +708,10 @@ class TouchPointWP
      */
     public static function requireScript(string $name = null): void
     {
+        if (!apply_filters(TouchPointWP::HOOK_PREFIX . "include_script_" . strtolower($name), true)){
+            return;
+        }
+
         if ( ! in_array("base", self::$enqueuedScripts)) {
             self::$enqueuedScripts[] = "base";
             if (is_admin()) {
@@ -652,18 +774,15 @@ class TouchPointWP
     }
 
     /**
-     * @param mixed $ip To get info for a specific IP, pass it here.  Set false to only use cached data, and not the IP API.
+     * @param bool $useApi Set false to only use cached data, and not the IP API.
      *
-     * @return object|false An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, an object with
-     * an 'error' parameter if something went wrong.
+     * @return stdClass|false An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, false if not available.
      */
-    public function geolocate($ip = null): object
+    public function geolocate(bool $useApi = true)
     {
-        $useApi = true;
-        if ($ip === false) {
-            $useApi = false;
-        }
+        $ip = null; // For future use as a parameter, potentially.
 
+        // Determine IP if one was not provided.
         if (!is_string($ip) || $ip === '') {
             /** @noinspection SpellCheckingInspection */
             $ipHeaderKeys = [
@@ -674,7 +793,6 @@ class TouchPointWP
                 'HTTP_FORWARDED',
                 'REMOTE_ADDR'
             ];
-            $ip = null;
             foreach ($ipHeaderKeys as $k) {
                 if ( ! empty($_SERVER[$k]) && filter_var($_SERVER[$k], FILTER_VALIDATE_IP)) {
                     $ip = $_SERVER[$k];
@@ -683,27 +801,35 @@ class TouchPointWP
             }
         }
 
+        // If no IP, we can't go any further.
         if ($ip === '' || $ip === null) {
-            return (object)['error' => 'No usable IP Address.'];
+            return false;
         }
 
-        $return = $this->getIpData($ip, $useApi);
+        try {
+            $return = $this->getIpData($ip, $useApi);
+        } catch (TouchPointWP_WPError|TouchPointWP_Exception $ex) {
+            return false;
+        }
 
-        if ($return instanceof WP_Error) {
-            return (object)['error' => implode(", ", $return->get_error_messages())];
+        if ($return === false || !is_string($return)) {
+            return false;
         }
 
         $d = json_decode($return);
         if (!is_object($d)) {
-            return (object)['error' => 'The geocoding system unexpectedly returned a non-object.', 'data' => $d];
+            new TouchPointWP_Exception("Geolocation Object is Invalid", 178004);
+            return false;
         }
 
         if (property_exists($d, 'error')) {
-            return (object)['error' => $d->reason];
+            new TouchPointWP_Exception("Geolocation Error: " . $d->reason ?? "", 178002);
+            return false;
         }
 
         if (!isset($d->latitude) || !isset($d->longitude) || !isset($d->city)) {
-            return (object)['error' => 'Geolocation data was not provided.'];
+            new TouchPointWP_Exception("Geolocation Data Not Provided", 178003);
+            return false;
         }
 
         if ($d->country === "US") {
@@ -718,10 +844,12 @@ class TouchPointWP
     /**
      * The underlying IP Data function, which handles caching.
      *
-     * @param string $ip    The IP address to lookup
-     * @param bool $useApi  If false, this won't query the API and will only used cached results.
+     * @param string $ip The IP address to lookup
+     * @param bool   $useApi If false, this won't query the API and will only used cached results.
      *
-     * @return string|false|WP_Error The JSON data.  False if not available, or WP_Error for HTTP errors and such.
+     * @return string|false The JSON data.  False if not available
+     * @throws TouchPointWP_WPError    For API Errors
+     * @throws TouchPointWP_Exception  For Errors reported by API
      */
     protected function getIpData(string $ip, bool $useApi = true)
     {
@@ -742,13 +870,13 @@ class TouchPointWP
             return false;
         }
 
-        $return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/");
-
-        if ($return instanceof WP_Error) {
-            return $return;
-        }
+        $return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/"); // Exceptions thrown here.
 
         $return = $return['body'];
+
+        if (property_exists($return, 'error')) {
+            throw new TouchPointWP_Exception("IP Geolocation Error: " . $return->error . " " . $return->reason ?? "", 178001);
+        }
 
         /** @noinspection SqlResolve */
         $q = $wpdb->prepare( "
@@ -840,7 +968,7 @@ class TouchPointWP
                     ],
                     'public'            => true,
                     'show_in_rest'      => true,
-                    'show_admin_column' => false, // TODO make an option?
+                    'show_admin_column' => false,
 
                     // Control the slugs used for this taxonomy
                     'rewrite'           => [
@@ -954,6 +1082,7 @@ class TouchPointWP
 
         // Time of Day
         if ($this->settings->enable_involvements === "on") {
+            /** @noinspection SpellCheckingInspection */
             register_taxonomy(
                 self::TAX_DAYTIME,
                 Involvement_PostTypeSettings::getPostTypes(),
@@ -1122,6 +1251,48 @@ class TouchPointWP
                 }
             }
         }
+
+        // Global Partner Category
+        if ($this->settings->enable_global === "on") {
+            $tax = $this->settings->global_primary_tax;
+            if ($tax === "" || $tax === null) {
+                unregister_taxonomy(self::TAX_GP_CATEGORY);
+            } else {
+                $tax = $this->getFamilyEvFields([$tax])[0];
+                $plural = $tax->field . "s"; // Sad, but works.  i18n someday.
+                register_taxonomy(
+                    self::TAX_GP_CATEGORY,
+                    Partner::POST_TYPE,
+                    [
+                        'hierarchical'      => false,
+                        'show_ui'           => false,
+                        'description'       => __('Classify Partners by category chosen in settings.'),
+                        'labels'            => [
+                            'name'          => $tax->field,
+                            'singular_name' => $plural,
+                            'search_items'  => sprintf(__('Search %s.'), $plural),
+                            'all_items'     => sprintf(__('All %s.'), $plural),
+                            'edit_item'     => sprintf(__('Edit %s.'), $tax->field),
+                            'update_item'   => sprintf(__('Update %s.'), $tax->field),
+                            'add_new_item'  => sprintf(__('Add New %s.'), $tax->field),
+                            'new_item_name' => sprintf(__('New %s.'), $tax->field),
+                            'menu_name'     => $plural
+                        ],
+                        'public'            => true,
+                        'show_in_rest'      => true,
+                        'show_admin_column' => true,
+
+                        // Control the slugs used for this taxonomy
+                        'rewrite'           => [
+                            'slug'         => self::TAX_GP_CATEGORY,
+                            'with_front'   => false,
+                            'hierarchical' => false
+                        ],
+                    ]
+                );
+                // Terms are inserted on sync.
+            }
+        }
     }
 
     private static array $divisionTerms = [];
@@ -1262,6 +1433,8 @@ class TouchPointWP
         // TODO remove all posts
 
         wp_clear_scheduled_hook(Involvement::CRON_HOOK);
+        wp_clear_scheduled_hook(Partner::CRON_HOOK);
+        wp_clear_scheduled_hook(Person::CRON_HOOK);
 
         self::dropTables();
     }
@@ -1355,13 +1528,13 @@ class TouchPointWP
             }
         }
 
-        usort($lineage[0], fn($a, $b) => strcmp($a->name, $b->name));
+        usort($lineage[0], fn($a, $b) => strcasecmp($a->name, $b->name));
 
         $out = [];
         foreach ($lineage[0] as $t) {
             $out[] = $t;
             if (isset($lineage[$t->term_id])) {
-                usort($lineage[$t->term_id], fn($a, $b) => strcmp($a->name, $b->name));
+                usort($lineage[$t->term_id], fn($a, $b) => strcasecmp($a->name, $b->name));
 
                 foreach ($lineage[$t->term_id] as $t2) {
                     $out[] = $t2;
@@ -1412,7 +1585,7 @@ class TouchPointWP
      *
      * @return array
      */
-    public function getMemberTypesForDivisions(array $divisions = []): array // TODO figure out why this is getting called on ALL admin pages.
+    public function getMemberTypesForDivisions(array $divisions = []): array
     {
         $divisions = implode(",", $divisions);
         $divisions = str_replace('div','', $divisions);
@@ -1434,16 +1607,13 @@ class TouchPointWP
         }
 
         if ($needsUpdate) {  // potentially move to cron
-            $mtObj->$divKey = $this->getMemberTypesForDivisions_fromApi($divisions);
-
-            $needsUpdate = ! $this->settings->set('meta_memberTypes', json_encode($mtObj));
-        }
-
-        // If update failed, show a notice on the admin interface.
-        if ($needsUpdate || ! $mtObj) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
-            return [];
+            $mts = $this->getMemberTypesForDivisions_fromApi($divisions);
+            if ($mts !== false) {
+                $mtObj->$divKey = $mts; // If the API update fails, don't overwrite existing value.  Existing is probably better than nothing.
+                $this->settings->set('meta_memberTypes', json_encode($mtObj));
+            } else {
+                return [];
+            }
         }
 
         return $mtObj->$divKey->memTypes;
@@ -1456,12 +1626,7 @@ class TouchPointWP
      */
     public function getDivisionsAsKVArray(): array
     {
-        $r = [];
-        foreach ($this->getDivisions() as $d) {
-            $r['div' . $d->id] = $d->name;
-        }
-
-        return $r;
+        return self::flattenArrayToKV($this->getDivisions(), 'id', 'name', 'div');
     }
 
     /**
@@ -1484,16 +1649,12 @@ class TouchPointWP
             }
         }
 
-        // Get update if needed.  TODO move to cron.
+        // Get update if needed.
         if ($needsUpdate) {
-            $divsObj = $this->updateDivisions();
-        }
-
-        // If update failed, show a notice on the admin interface.
-        if ($divsObj === false) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
-            return [];
+            $update = $this->updateDivisions();
+            if ($update !== false) { // If it didn't work, we'll return the non-updated thing.
+                $divsObj = $update;
+            }
         }
 
         return $divsObj->divs;
@@ -1505,28 +1666,14 @@ class TouchPointWP
     private function updateDivisions()
     {
         try {
-            $return = $this->apiGet('Divisions');
+            $data = $this->apiGet('Divisions');
         } catch (TouchPointWP_Exception $e) {
-            return false;
-        }
-
-        if ($return instanceof WP_Error) {
-            return false;
-        }
-
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message")) {
-            return false;
-        }
-
-        if ( ! is_array($body->data->divs)) {
             return false;
         }
 
         $obj = (object)[
             '_updated' => date('c'),
-            'divs'     => $body->data->divs
+            'divs'     => $data->divs
         ];
 
         $this->settings->set("meta_divisions", json_encode($obj));
@@ -1546,20 +1693,9 @@ class TouchPointWP
             return false;
         }
 
-        if ($return instanceof WP_Error) {
-            return false;
-        }
-
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message") || ! is_array($body->data->memTypes)) {
-            // an error happened; fail quietly.
-            return false;
-        }
-
         return (object)[
             '_updated' => date('c'),
-            'memTypes'     => $body->data->memTypes
+            'memTypes'     => $return->memTypes
         ];
     }
 
@@ -1585,13 +1721,13 @@ class TouchPointWP
 
         // Get update if needed.
         if ($needsUpdate) {
-            $rcObj = $this->updateResCodes();
+            $update = $this->updateResCodes();
+            if ($update !== false) {
+                $rcObj = $update;
+            }
         }
 
-        // If update failed, show a notice on the admin interface.
         if ($rcObj === false) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
             return [];
         }
 
@@ -1605,28 +1741,18 @@ class TouchPointWP
     private function updateResCodes()
     {
         try {
-            $return = $this->apiGet('ResCodes');
+            $data = $this->apiGet('ResCodes');
         } catch (TouchPointWP_Exception $e) {
             return false;
         }
 
-        if ($return instanceof WP_Error) {
-            return false;
-        }
-
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message")) {
-            return false;
-        }
-
-        if ( ! is_array($body->data->resCodes)) {
+        if ( ! is_array($data->resCodes)) {
             return false;
         }
 
         $obj = (object)[
             '_updated' => date('c'),
-            'resCodes'     => $body->data->resCodes
+            'resCodes'     => $data->resCodes
         ];
 
         $this->settings->set("meta_resCodes", json_encode($obj));
@@ -1636,7 +1762,7 @@ class TouchPointWP
 
 
     /**
-     * Returns an array of objects that correspond to genders.  Each Gender has a name and an id.
+     * Returns an array of objects that correspond to the genders.  Each Gender has a name and an id.
      *
      * @returns object[]
      */
@@ -1656,13 +1782,13 @@ class TouchPointWP
 
         // Get update if needed.
         if ($needsUpdate) {
-            $gObj = $this->updateGenders();
+            $update = $this->updateGenders();
+            if ($update !== false) {
+                $gObj = $update;
+            }
         }
 
-        // If update failed, show a notice on the admin interface.
         if ($gObj === false) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
             return [];
         }
 
@@ -1676,28 +1802,18 @@ class TouchPointWP
     private function updateGenders()
     {
         try {
-            $return = $this->apiGet('Genders');
+            $data = $this->apiGet('Genders');
         } catch (TouchPointWP_Exception $e) {
             return false;
         }
 
-        if ($return instanceof WP_Error) {
-            return false;
-        }
-
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message")) {
-            return false;
-        }
-
-        if ( ! is_array($body->data->genders)) {
+        if ( ! is_array($data->genders)) {
             return false;
         }
 
         $obj = (object)[
             '_updated' => date('c'),
-            'genders'     => $body->data->genders
+            'genders'     => $data->genders
         ];
 
         $this->settings->set("meta_genders", json_encode($obj));
@@ -1726,13 +1842,14 @@ class TouchPointWP
 
         // Get update if needed.
         if ($needsUpdate) {
-            $kObj = $this->updateKeywords();
+            $update = $this->updateKeywords();
+            if ($update !== false) {
+                $kObj = $update;
+            }
         }
 
         // If update failed, show a notice on the admin interface.
         if ($kObj === false) {
-            add_action('admin_notices', [$this->admin(), 'Error_TouchPoint_API']);
-
             return [];
         }
 
@@ -1746,11 +1863,249 @@ class TouchPointWP
      */
     public function getKeywordsAsKVArray(): array
     {
-        $r = [];
-        foreach ($this->getKeywords() as $k) {
-            $r['key' . $k->id] = $k->name;
+        return self::flattenArrayToKV($this->getKeywords(), 'id', 'name', 'key');
+    }
+
+    /**
+     * Returns an array of objects that correspond to Person Extra Value Fields.  Each has a name and a type.
+     *
+     * @param array|null $matches Provide an array of items that should be matched. If provided, only matches are returned.
+     *
+     * @return array
+     */
+    public function getPersonEvFields(?array $matches = null): array
+    {
+        $pevObj = $this->settings->get('meta_personEvFields');
+
+        $needsUpdate = false;
+        if ($pevObj === false || $pevObj === null) {
+            $needsUpdate = true;
+        } else {
+            $pevObj = json_decode($pevObj);
+            if (strtotime($pevObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($pevObj->personEvFields)) {
+                $needsUpdate = true;
+            }
         }
 
+        // Get update if needed.
+        if ($needsUpdate) {
+            $update = $this->updatePersonEvFields();
+            if ($update !== false) {
+                $pevObj = $update;
+            }
+        }
+
+        if ($pevObj === false) {
+            return [];
+        }
+
+        if ($matches !== null) {
+            return array_values(
+                array_filter(
+                $pevObj->personEvFields,
+                fn($f) => in_array($f->hash, $matches) ||
+                          in_array($f->field . " | " . $f->type, $matches)
+                )
+            );
+        }
+
+        return $pevObj->personEvFields;
+    }
+
+    /**
+     * Format the list of Person Extra Value Fields into an array with form-name-friendly IDs as the key.
+     *
+     * @param string|null $type     To limit the list to a particular data type, provide the name of the datatype.
+     *                              Needs to match the type in TouchPoint.
+     * @param bool        $addNone  Set true to add a "none" option to the list.
+     *
+     * @return string[]
+     */
+    public function getPersonEvFieldsAsKVArray(?string $type = null, bool $addNone = false): array
+    {
+        $r = [];
+        if ($addNone) {
+            $r[''] = '';
+        }
+        if ($type !== null) {
+            $type = strtolower(trim($type));
+        }
+        foreach ($this->getPersonEvFields() as $pev) {
+            if ($pev->field == '') { // Apparently blank EV Fields exist.
+                continue;
+            }
+            if ($type === null) { // not filtered by type
+                if ($pev->type === "") {
+                    $pev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
+                }
+                $r[$pev->hash] = $pev->field . " (" . $pev->type . ")";
+            } elseif ($type === strtolower($pev->type)) {
+                $r[$pev->hash] = $pev->field;
+            }
+        }
+
+        return $r;
+    }
+
+    /**
+     * Returns an array of objects that correspond to Family Extra Value Fields.  Each has a name and a type.
+     *
+     * @param array|null $matches Provide an array of items that should be matched. If provided, only matches are returned.
+     *
+     * @return array
+     */
+    public function getFamilyEvFields(?array $matches = null): array
+    {
+        $fevObj = $this->settings->get('meta_familyEvFields');
+
+        $needsUpdate = false;
+        if ($fevObj === false || $fevObj === null) {
+            $needsUpdate = true;
+        } else {
+            $fevObj = json_decode($fevObj);
+            if (strtotime($fevObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($fevObj->familyEvFields)) {
+                $needsUpdate = true;
+            }
+        }
+
+        // Get update if needed.
+        if ($needsUpdate) {
+            $update = $this->updateFamilyEvFields();
+            if ($update !== false) {
+                $fevObj = $update;
+            }
+        }
+
+        // If update failed, show a notice on the admin interface.
+        if ($fevObj === false) {
+            return [];
+        }
+
+        if ($matches !== null) {
+            return array_values(
+                array_filter(
+                $fevObj->familyEvFields,
+                fn($f) => in_array($f->hash, $matches) ||
+                          in_array($f->field . " | " . $f->type, $matches)
+                )
+            );
+        }
+
+        return $fevObj->familyEvFields;
+    }
+
+    /**
+     * Format the list of Family Extra Value Fields into an array with form-name-friendly IDs as the key.
+     *
+     * @param string|null $type     To limit the list to a particular data type, provide the name of the datatype.
+     *                              Needs to match the type in TouchPoint.
+     * @param bool        $addNone  Set true to add a "none" option to the list.
+     *
+     * @return string[]
+     */
+    public function getFamilyEvFieldsAsKVArray(?string $type = null, bool $addNone = false): array
+    {
+        $r = [];
+        if ($addNone) {
+            $r[''] = '';
+        }
+        if ($type !== null) {
+            $type = strtolower(trim($type));
+        }
+        foreach ($this->getFamilyEvFields() as $fev) {
+            if ($fev->field == '') { // Apparently blank EV Fields exist.
+                continue;
+            }
+            if ($type === null) { // not filtered by type
+                if ($fev->type === "") {
+                    $fev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
+                }
+                $r[$fev->hash] = $fev->field . " (" . $fev->type . ")";
+            } elseif ($type === strtolower($fev->type)) {
+                $r[$fev->hash] = $fev->field;
+            }
+        }
+
+        return $r;
+    }
+
+
+    /**
+     * Get the person that corresponds to the current user, if the current user is authenticated, and the user is associated with a PeopleId.
+     *
+     * @return Person|null
+     */
+    public static function currentUserPerson(): ?Person
+    {
+        $wpUserId = get_current_user_id();
+        if ($wpUserId > 0) {
+            return Person::fromId($wpUserId);
+        }
+        return null;
+    }
+
+
+    /**
+     * Get a list of saved searches pertinent to the current user.  These are grouped by type: User's searches, Public, and Flags.
+     *
+     * Because these are user-specific and relatively volatile, they are NOT cached in WordPress.
+     *
+     * @return string[][]
+     */
+    public function getSavedSearches(?int $peopleId = null, $includeValue = null): array
+    {
+        if (intval($peopleId) === 0) {
+            $peopleId = self::currentUserPerson()->peopleId;
+        }
+
+        try {
+            $data = $this->apiGet('SavedSearches', ['PeopleId' => $peopleId]);
+        } catch (TouchPointWP_Exception $e) {
+            return [];
+        }
+
+        $r = [];
+        foreach ((array)$data->savedSearches as $group => $sArr) {
+            $kv = self::flattenArrayToKV($sArr, 'QueryId', 'Name');
+            if ($includeValue != null && isset($kv[$includeValue])) { // required value is included
+                $includeValue = null;
+            }
+            switch ($group) {
+                case "user":
+                    $r[__("Your Searches", TouchPointWP::TEXT_DOMAIN)] = $kv;
+                    break;
+                case "public":
+                    $r[__("Public Searches", TouchPointWP::TEXT_DOMAIN)] = $kv;
+                    break;
+                case "flags":
+                    $r[__("Status Flags", TouchPointWP::TEXT_DOMAIN)] = $kv;
+                    break;
+            }
+        }
+        if ($includeValue != null) {
+            $r[__("Current Value", TouchPointWP::TEXT_DOMAIN)] = [
+                $includeValue => __("Current Value", TouchPointWP::TEXT_DOMAIN)
+            ];
+        }
+
+        return $r;
+    }
+
+    /**
+     * @param array  $array
+     * @param string $kField
+     * @param string $vField
+     * @param string $kPrefix
+     *
+     * @return array
+     */
+    public static function flattenArrayToKV(array $array, string $kField, string $vField, string $kPrefix = ''): array
+    {
+        $r = [];
+        foreach ($array as $e) {
+            $e = (array)$e;
+            $r[$kPrefix . $e[$kField]] = $e[$vField];
+        }
         return $r;
     }
 
@@ -1760,30 +2115,20 @@ class TouchPointWP
     private function updateKeywords()
     {
         try {
-            $return = $this->apiGet('Keywords');
+            $data = $this->apiGet('Keywords');
         } catch (TouchPointWP_Exception $e) {
             return false;
         }
 
-        if ($return instanceof WP_Error) {
+        if ( ! is_array($data->keywords)) {
             return false;
         }
 
-        $body = json_decode($return['body']);
-
-        if (property_exists($body, "message")) {
-            return false;
-        }
-
-        if ( ! is_array($body->data->keywords)) {
-            return false;
-        }
-
-        usort($body->data->keywords, fn($a, $b) => strcmp($a->name, $b->name));
+        usort($data->keywords, fn($a, $b) => strcasecmp($a->name, $b->name));
 
         $obj = (object)[
             '_updated' => date('c'),
-            'keywords' => $body->data->keywords
+            'keywords' => $data->keywords
         ];
 
         $this->settings->set("meta_keywords", json_encode($obj));
@@ -1792,10 +2137,68 @@ class TouchPointWP
     }
 
     /**
+     * Update the Person Extra Values if they're stale.
+     *
+     * @return false|object False on failure
+     */
+    public function updatePersonEvFields()
+    {
+        try {
+            $data = $this->apiGet('PersonEvFields');
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
+
+        if ( ! is_array($data->personEvFields)) {
+            return false;
+        }
+
+        usort($data->personEvFields, fn($a, $b) => strcasecmp($a->field, $b->field));
+
+        $obj = (object)[
+            '_updated' => date('c'),
+            'personEvFields' => $data->personEvFields
+        ];
+
+        $this->settings->set("meta_personEvFields", json_encode($obj));
+
+        return $obj;
+    }
+
+    /**
+     * Update the Person Extra Values if they're stale.
+     *
+     * @return false|object False on failure.
+     */
+    public function updateFamilyEvFields()
+    {
+        try {
+            $data = $this->apiGet('FamilyEvFields');
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
+
+        if ( ! is_array($data->familyEvFields)) {
+            return false;
+        }
+
+        usort($data->familyEvFields, fn($a, $b) => strcasecmp($a->field, $b->field));
+
+        $obj = (object)[
+            '_updated' => date('c'),
+            'familyEvFields' => $data->familyEvFields
+        ];
+
+        $this->settings->set("meta_familyEvFields", json_encode($obj));
+
+        return $obj;
+    }
+
+    /**
      * @param string $command The thing to get
      * @param ?array $parameters URL parameters to be added.
      *
-     * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
+     * @return stdClass|array An array with headers, body, and other keys
      * Data is generally in json_decode($response['body'])->data
      *
      * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
@@ -1807,7 +2210,7 @@ class TouchPointWP
         }
 
         if (!$this->settings->hasValidApiSettings()) {
-            throw new TouchPointWP_Exception("Invalid or incomplete API Settings.");
+            throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", TouchPointWP::TEXT_DOMAIN), 170001);
         }
 
         $parameters['a'] = $command;
@@ -1815,10 +2218,10 @@ class TouchPointWP
         $host = $this->host();
 
         if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER)
-            return new WP_Error('invalid_api_endpoint',
-                                __('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'));
+            throw new TouchPointWP_Exception(__('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'), 170002);
 
-        return $this->getHttpClient()->request($host . "/PythonApi/" .
+
+        $r = $this->getHttpClient()->request($host . "/PythonApi/" .
             $this->settings->api_script_name . "?" . http_build_query($parameters),
             [
                 'method'  => 'GET',
@@ -1829,26 +2232,31 @@ class TouchPointWP
                 ]
             ]
         );
+
+        return self::parseApiResponse($r);
     }
 
     /**
      * @param string $command The thing to post
      * @param mixed  $data Data to post
+     * @param int    $timeout Amount of time in sec to wait before timing out.
      *
-     * @return object|WP_Error An object that corresponds to the Data python object in TouchPoint, or a WP_Error
-     * instance if something went wrong.
+     * @return stdClass|array An object that corresponds to the Data python object in TouchPoint.
+     * @throws TouchPointWP_Exception  If anything went wrong.
      */
-    public function apiPost(string $command, $data = null)
+    public function apiPost(string $command, $data = null, int $timeout = 5)
     {
         if (!$this->settings->hasValidApiSettings()) {
-            return new WP_Error(self::SHORTCODE_PREFIX . "api-settings", "Invalid or incomplete API Settings.");
+            throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", TouchPointWP::TEXT_DOMAIN), 170001);
         }
 
         $host = $this->host();
 
-        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER)
-            return new WP_Error('invalid_api_endpoint',
-                                __('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'));
+        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER) {
+            throw new TouchPointWP_Exception(
+                __('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'), 170002
+            );
+        }
 
         $data = json_encode(['inputData' => $data]);
 
@@ -1862,21 +2270,42 @@ class TouchPointWP
                             $this->settings->api_user . ':' . $this->settings->api_pass
                         )
                 ],
-                'body' => ['data' => $data]
+                'body' => ['data' => $data],
+                'timeout' => $timeout
             ]
         );
 
-        if ($r instanceof WP_Error) {
-            return $r;
+        return self::parseApiResponse($r);
+    }
+
+    /**
+     * @param $response
+     *
+     * @return stdClass|array
+     * @throws TouchPointWP_Exception
+     * @throws TouchPointWP_WPError
+     */
+    private static function parseApiResponse($response)
+    {
+        if ($response instanceof WP_Error) {
+            throw new TouchPointWP_WPError($response);
         }
 
-        $respDecoded = json_decode($r['body']);
+        $respDecoded = json_decode($response['body']);
 
+        // Most likely the issue where a module import failed for no apparent reason.
+        if (strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
+            throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001);
+        }
+
+        // Some other script error
         if (property_exists($respDecoded, 'output') && $respDecoded->output !== '') {
-            return new WP_Error(self::SHORTCODE_PREFIX . "api-remote", $respDecoded->output);
+            throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179002);
         }
+
+        // Error caught by error handling within Python script
         if (property_exists($respDecoded, 'message') && $respDecoded->message !== '') {
-            return new WP_Error(self::SHORTCODE_PREFIX . "api-remote", $respDecoded->message);
+            throw new TouchPointWP_Exception($respDecoded->message, 179003);
         }
 
         return $respDecoded->data;
@@ -1886,19 +2315,56 @@ class TouchPointWP
      * @param string $url The destination of the request.
      * @param ?array $parameters URL parameters to be added.
      *
-     * @return array|WP_Error An array with headers, body, and other keys, or WP_Error on failure.
+     * @return array An array with headers, body, and other keys on failure.
+     * @throws TouchPointWP_WPError If there's an issue.
      */
-    public function extGet(string $url, ?array $parameters = null) {
+    public function extGet(string $url, ?array $parameters = null): array
+    {
         if ( ! is_array($parameters)) {
             $parameters = (array)$parameters;
         }
 
-        return $this->getHttpClient()->request(
+        $r = $this->getHttpClient()->request(
             $url . "?" . http_build_query($parameters),
             [
                 'method'  => 'GET'
             ]
         );
+
+        if ($r instanceof WP_Error) {
+            throw new TouchPointWP_WPError($r);
+        }
+
+        return $r;
+    }
+
+    /**
+     * Submit a person query with a structured array with the parameters.
+     *
+     * @param array $q
+     * @param bool  $verbose
+     * @param int   $timeout
+     *
+     * @return stdClass  The people objects are contained within ->people.
+     * @throws TouchPointWP_Exception  Upon failure.
+     */
+    public function doPersonQuery(array $q, bool $verbose = false, int $timeout = 5): stdClass
+    {
+        $data = TouchPointWP::instance()->apiPost('people_get', $q, $timeout);
+        // An exception may already be thrown.
+
+        // Validate that the API returned something
+        if (!isset($data->people) || (!is_array($data->people) && !is_object($data->people))) {
+            throw new TouchPointWP_Exception(__("People Query Failed", self::TEXT_DOMAIN), 179004);
+        }
+
+        $data->people = (array)$data->people;
+
+        if ($verbose) {
+            echo "Found " . count($data->people) . " people groups";
+        }
+
+        return $data;
     }
 
     /**
@@ -1965,5 +2431,24 @@ class TouchPointWP
                 TouchPointWP::VERSION
             );
         }
+    }
+
+    /**
+     * Create a basic parameter array for doPersonQuery
+     *
+     * @return array
+     *
+     * @see doPersonQuery
+     */
+    public static function newQueryObject(): array
+    {
+        return [
+            'pid' => [],
+            'inv' => [],
+            'src' => [],
+            'meta' => [],
+            'groupBy' => null,
+            'context' => null
+        ];
     }
 }

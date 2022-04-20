@@ -3,7 +3,7 @@
 import re
 import json
 
-VERSION = "0.0.5"
+VERSION = "0.0.6"
 
 PersonEvNames = {
     'geoLat': 'geoLat',
@@ -25,6 +25,7 @@ def getPersonInfoForSync(PersonObj):
     p.LastName = PersonObj.LastName
     p.GoesBy = PersonObj.NickName if PersonObj.NickName is not None else PersonObj.FirstName
     p.DisplayName = " "
+    p.DecoupleLocation = False
 
     # Person's Picture
     if PersonObj.Picture is None:
@@ -38,7 +39,7 @@ def getPersonInfoForSync(PersonObj):
             'x': PersonObj.Picture.X,
             'y': PersonObj.Picture.Y
         }
-    
+
     # Email addresses
     p.Emails = []
     if PersonObj.EmailAddress is not None:
@@ -64,6 +65,8 @@ def getPersonInfoForSync(PersonObj):
     p.Usernames = map(lambda u: u.Username, PersonObj.Users)
 
     p.PeopleId = PersonObj.PeopleId
+    p.FamilyId = PersonObj.FamilyId
+    p.GenderId = PersonObj.GenderId
     return p
 
 if (Data.a == "Divisions"):
@@ -94,6 +97,51 @@ elif (Data.a == "Keywords"):
     kwSql = '''SELECT KeywordId as Id, Code, Description as Name FROM Keyword ORDER BY Code'''
     Data.Title = "All Keywords"
     Data.keywords = q.QuerySql(kwSql, {})
+
+elif (Data.a == "PersonEvFields"):
+    pevSql = '''SELECT Field, [Type], count(*) as Count,
+                CONCAT('pev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
+                FROM PeopleExtra WHERE [Field] NOT LIKE '%_mv'
+                GROUP BY [Field], [Type] ORDER BY count(*) DESC'''
+    Data.Title = "Person Extra Value Fields"
+    Data.personEvFields = q.QuerySql(pevSql, {})
+
+elif (Data.a == "FamilyEvFields"):
+    fevSql = '''SELECT Field, [Type], count(*) as Count,
+                CONCAT('fev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
+                FROM FamilyExtra WHERE [Field] NOT LIKE '%_mv'
+                GROUP BY [Field], [Type] ORDER BY count(*) DESC'''
+    Data.Title = "Family Extra Value Fields"
+    Data.familyEvFields = q.QuerySql(fevSql, {})
+
+elif (Data.a == "SavedSearches"):
+    Data.savedSearches = model.DynamicData()
+
+    if Data.PeopleId == '':
+        Data.savedSearches.public = model.SqlListDynamicData("""
+            SELECT TOP 100 q.Name, q.QueryId FROM Query q JOIN Users u ON LOWER(q.Owner) = LOWER(u.Username)
+            WHERE q.IsPublic = 1 AND q.LastRun > DATEADD(DAY, -90, GETDATE()) AND q.Name <> 'Draft'
+            ORDER BY q.Name
+        """)
+    else:
+        Data.savedSearches.user = model.SqlListDynamicData("""
+            SELECT TOP 100 q.Name, q.QueryId FROM Query q JOIN Users u ON LOWER(q.Owner) = LOWER(u.Username)
+            WHERE (u.PeopleId = {0}) AND q.LastRun > DATEADD(DAY, -90, GETDATE()) AND q.Name <> 'Draft'
+            ORDER BY q.Name
+        """.format(Data.PeopleId))
+        Data.savedSearches.public = model.SqlListDynamicData("""
+            SELECT TOP 100 q.Name, q.QueryId FROM Query q JOIN Users u ON LOWER(q.Owner) = LOWER(u.Username)
+            WHERE (q.IsPublic = 1 AND u.PeopleId <> {0}) AND q.LastRun > DATEADD(DAY, -90, GETDATE()) AND q.Name <> 'Draft'
+            ORDER BY q.Name
+        """.format(Data.PeopleId))
+
+    Data.savedSearches.flags = model.SqlListDynamicData("""
+        SELECT TOP 100 q.Name, SUBSTRING(q.Name, 0, 4) AS QueryId FROM Query q
+        WHERE q.Name LIKE 'F[0-9][0-9]:%'
+        ORDER BY q.Name
+    """)
+
+    Data.Title = "Saved Searches"
 
 elif (Data.a == "InvsForDivs"):
     regex = re.compile('[^0-9\,]')
@@ -183,7 +231,7 @@ elif (Data.a == "InvsForDivs"):
 
         if leadMemTypes != "":
             leaderSql = '''
-            SELECT om.PeopleId AS id, p.FamilyId as familyId, p.LastName as lastName, COALESCE(p.NickName, p.FirstName) as goesBy
+            SELECT om.PeopleId, p.FamilyId, p.LastName, COALESCE(p.NickName, p.FirstName) as GoesBy, p.GenderId
             FROM OrganizationMembers om JOIN People p ON om.PeopleId = p.PeopleId
             WHERE OrganizationId IN ({}) AND MemberTypeId IN ({})
             ORDER BY p.FamilyId'''.format(g.involvementId, leadMemTypes)
@@ -234,7 +282,7 @@ elif (Data.a == "MemTypes"):
     Data.memTypes = model.SqlListDynamicData(memTypeSql)
 
 
-elif (Data.a == "ident"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "ident" and model.HttpMethod == "post"):
     Data.Title = 'Matching People'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -267,7 +315,7 @@ elif (Data.a == "ident"):  # This is a POST request. TODO possibly limit to post
 
         Data.people = model.SqlListDynamicData(sql)
 
-elif (Data.a == "inv_join"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "inv_join" and model.HttpMethod == "post"):
     Data.Title = 'Adding people to Involvement'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -304,7 +352,7 @@ They have also been added to your roster as prospective members.  Please move th
         model.CreateTaskNote(defaultSgTaskDelegatePid, addPeople[0].PeopleId, orgContactPid,
             None, False, text, None, None, keywords)
 
-elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "inv_contact" and model.HttpMethod == "post"):
     # TODO potentially merge with Join function.  Much of the code is duplicated.
     Data.Title = 'Contacting Involvement Leaders'
     inData = model.JsonDeserialize(Data.data).inputData
@@ -336,7 +384,19 @@ elif (Data.a == "inv_contact"):  # This is a POST request. TODO possibly limit t
     Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 
 
-elif (Data.a == "person_contact"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "person_wpIds" and model.HttpMethod == "post"):
+    Data.Title = 'Updating WordPress IDs.'
+    inData = model.JsonDeserialize(Data.data).inputData
+    Data.success = 0
+
+    ev = str(inData.evName)
+
+    for p in inData.people:
+        model.AddExtraValueInt(int(p.PeopleId), ev, int(p.WpId))
+        Data.success += 1
+
+
+elif (Data.a == "person_contact" and model.HttpMethod == "post"):
     # TODO potentially merge with Join function.  Much of the code is duplicated.
     Data.Title = 'Contacting Person'
     inData = model.JsonDeserialize(Data.data).inputData
@@ -360,7 +420,7 @@ elif (Data.a == "person_contact"):  # This is a POST request. TODO possibly limi
     Data.success.append({'pid': p.peopleId, 'to': t})
 
 
-elif (Data.a == "mtg"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "mtg" and model.HttpMethod == "post"):
     Data.Title = 'Getting Meeting Info'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -386,7 +446,7 @@ elif (Data.a == "mtg"):  # This is a POST request. TODO possibly limit to post?
         mtg.invName = mtg.invName.strip()
         Data.success.append(mtg)
 
-elif (Data.a == "mtg_rsvp"):  # This is a POST request. TODO possibly limit to post?
+elif (Data.a == "mtg_rsvp" and model.HttpMethod == "post"):
     Data.Title = 'Recording RSVPs'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -403,14 +463,15 @@ elif (Data.a == "mtg_rsvp"):  # This is a POST request. TODO possibly limit to p
             Data.success.append(pid)
 
 
-elif (Data.a == "people_get"):  # This is a POST request. TODO possibly limit to post?
-    Data.Title = 'Getting People Info Based on Submitted Query'
+elif (Data.a == "people_get" and model.HttpMethod == "post"):
+    Data.Title = 'People Query'
     inData = json.loads(Data.data)['inputData']
 
     rules = []
     invsMembershipsToImport = []
     invsMemSubGroupsToImport = {}
     joiner = "OR"
+    sort = str(inData['groupBy']) # hypothetically should help speed grouping
 
     # People Ids
     for pid in inData['pid']:
@@ -427,12 +488,52 @@ elif (Data.a == "people_get"):  # This is a POST request. TODO possibly limit to
             # if inData['inv'][iid]['with_memTypes'] == True:
             #    invsMemSubGroupsToImport[iid] = inData['inv'][iid]['memTypes']
 
+    # Saved Searches (incl status flags)
+    for si in inData['src']:
+        if len(si) == 3 and si[0].upper() == "F" and si[1:3].isnumeric(): # status flag
+            rules.append("StatusFlag = '{}'".format(si))
+        elif re.match('[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}', si, re.I):
+            rules.append("SavedQuery(SavedQuery='{}') = 1".format(si))
+
     joiner = " " + joiner + " "
     rules = joiner.join(rules)
 
-    Data.people = []
+    if inData['groupBy'] is None:
+        outPeople = []
+    else:
+        outPeople = {}
 
-    for po in q.QueryList(rules):
+    # Prep SQL for People Extra Values
+    pevSql = ''
+    if isinstance(inData['meta'], dict) and inData['meta'].has_key('pev'):
+        pevSql = []
+        for pev in inData['meta']['pev']:
+            pevSql.append("([Field] = '{}' AND [Type] = '{}')".format(pev['field'], pev['type']))
+        pevSql = """SELECT Field, StrValue, DateValue, Data, IntValue, BitValue, [Type],
+            CONCAT('pev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
+            FROM PeopleExtra
+            WHERE PeopleId = {} AND (""" + " OR ".join(pevSql) + ")"
+
+    fevSql = ''
+    useFamGeo = False
+    if isinstance(inData['meta'], dict) and inData['meta'].has_key('fev') and inData['groupBy'] == "FamilyId":
+        useFamGeo = isinstance(inData['meta'], dict) and inData['meta'].has_key('geo')
+        fevSql = []
+        for fev in inData['meta']['fev']:
+            fevSql.append("([Field] = '{}' AND [Type] = '{}')".format(fev['field'], fev['type']))
+        if len(fevSql) > 0:
+            fevSql = """SELECT Field, StrValue, DateValue, Data, IntValue, BitValue, [Type],
+                CONCAT('fev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
+                FROM FamilyExtra
+                WHERE FamilyId = {} AND (""" + " OR ".join(fevSql) + ")"
+        else:
+            fevSql = ''
+
+    invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
+
+    famGeoSql = """SELECT geo.Longitude, geo.Latitude FROM AddressInfo ai LEFT JOIN Geocodes geo ON ai.FullAddress = geo.Address WHERE ai.FamilyId = {}"""
+
+    for po in q.QueryList(rules, sort.lower()):
         pr = getPersonInfoForSync(po)
 
         if pr is None: # Make sure person should not be excluded
@@ -440,16 +541,65 @@ elif (Data.a == "people_get"):  # This is a POST request. TODO possibly limit to
         if pr.Exclude is True:  # Make sure person should not be excluded if PersonInfo didn't go right.
             continue
 
-        invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
-        invSql = invSql.format(pr.PeopleId, ', '.join(invsMembershipsToImport))
-        pr.Inv = q.QuerySql(invSql)
+        if len(invsMembershipsToImport) > 0:
+            pr.Inv = q.QuerySql(invSql.format(pr.PeopleId, ', '.join(invsMembershipsToImport)))
 
-        Data.people.append(pr)
+        # Make People Extra Values orderly
+        if pevSql != '':
+            pr.PeopleEV = {}
+            for pev in q.QuerySql(pevSql.format(pr.PeopleId)):
+                if pev.Type == 'Int':
+                    pev.Data = pev.IntValue
+                elif pev.Type == 'Bit':
+                    pev.Data = pev.BitValue
+                elif pev.Type == 'Date':
+                    pev.Data = pev.DateValue
+                pr.PeopleEV[pev.Hash] = {
+                    'field': pev.Field,
+                    'type': pev.Type,
+                    'value': pev.Data
+                }
 
-#         subgroupSql = """SELECT TOP 100 ommt.OrgId, ommt.PeopleId, ommt.MemberTagId, mt.Name TODO subgroups
-#                        FROM OrgMemMemTags ommt
-#                            JOIN MemberTags mt ON ommt.MemberTagId = mt.Id
-#                        WHERE ommt.OrgId = 61"""
+        if inData['groupBy'] is None:
+            outPeople.append(pr)
+        else:
+            grpId = getattr(po, inData['groupBy'])
+            if not outPeople.has_key(grpId):  # group key does not yet exist.
+
+                if fevSql != '':  # If grouped by family and we have Family EVs to return
+                    fevOut = {}
+                    for fev in q.QuerySql(fevSql.format(po.FamilyId)):
+                        if fev.Type == 'Int':
+                            fev.Data = fev.IntValue
+                        elif fev.Type == 'Bit':
+                            fev.Data = fev.BitValue
+                        elif fev.Type == 'Date':
+                            fev.Data = fev.DateValue
+                        elif fev.Type == 'Code':
+                            fev.Data = fev.StrValue
+                        fevOut[fev.Hash] = {
+                            'field': fev.Field,
+                            'type': fev.Type,
+                            'value': fev.Data
+                        }
+
+                    outPeople[grpId] = {
+                        inData['groupBy']: grpId,
+                        "People": [],
+                        "FamilyEV": fevOut
+                    }
+                else:
+                    outPeople[grpId] = {
+                        inData['groupBy']: grpId,
+                        "People": []
+                    }
+
+                if useFamGeo:
+                    outPeople[grpId]['geo'] = q.QuerySqlTop1(famGeoSql.format(po.FamilyId))
+
+            outPeople[grpId]["People"].append(pr)
+
+    Data.people = outPeople
 
     Data.rules = rules  # handy for debugging TODO remove, probably.
 

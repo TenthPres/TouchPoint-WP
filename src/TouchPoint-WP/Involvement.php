@@ -1,27 +1,31 @@
 <?php
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-require_once 'api.iface.php';
-require_once "jsInstantiation.php";
-require_once "Utilities.php";
-require_once "Involvement_PostTypeSettings.php";
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'api.php';
+    require_once "jsInstantiation.php";
+    require_once "Utilities.php";
+    require_once "Involvement_PostTypeSettings.php";
+}
 
 use DateInterval;
 use DateTimeImmutable;
 use Exception;
+use stdClass;
 use WP_Error;
 use WP_Post;
 use WP_Query;
 use WP_Term;
 
 /**
- * Class Involvement - Fundamental object meant to correspond to an Involvement in TouchPoint
- *
- * @package tp\TouchPointWP
+ * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
 class Involvement implements api
 {
@@ -29,15 +33,17 @@ class Involvement implements api
 
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "Inv-Map";
     public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "Inv-Filters";
+    public const SHORTCODE_LIST = TouchPointWP::SHORTCODE_PREFIX . "Inv-List";
     public const SHORTCODE_NEARBY = TouchPointWP::SHORTCODE_PREFIX . "Inv-Nearby";
     public const SHORTCODE_ACTIONS = TouchPointWP::SHORTCODE_PREFIX . "Inv-Actions";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
     protected static bool $_hasUsedMap = false;
+    protected static bool $_hasArchiveMap = false;
     private static array $_instances = [];
     private static bool $_isLoaded = false;
 
     private static bool $filterJsAdded = false;
-    public object $geo;
+    public ?object $geo = null;
     static protected object $compareGeo;
 
     public string $name;
@@ -51,6 +57,8 @@ class Involvement implements api
     public int $post_id;
     public string $post_excerpt;
     protected WP_Post $post;
+
+    public ?string $color = "#999999";
 
     public const INVOLVEMENT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "invId";
 
@@ -70,7 +78,6 @@ class Involvement implements api
         $this->attributes = (object)[];
 
         if (gettype($object) === "object" && get_class($object) == WP_Post::class) {
-            /** @var $object WP_Post */
             // WP_Post Object
             $this->post = $object;
             $this->name = $object->post_title;
@@ -171,6 +178,15 @@ class Involvement implements api
                     )
                 ];
             }
+            if ($this->geo === null || $this->geo->lat === null || $this->geo->lng === null) {
+                $this->geo = null;
+            } else {
+                $this->geo->lat = round($this->geo->lat, 3); // Roughly .2 mi
+                $this->geo->lng = round($this->geo->lng, 3);
+            }
+
+            // Color!
+            $this->color = Utilities::getColorFor("default", "involvement"); // TODO for real
         }
 
         $this->registerConstruction();
@@ -280,7 +296,7 @@ class Involvement implements api
     public static function templateFilter(string $template): string
     {
         $postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
-        $templateFilesToOverwrite = ['archive.php', 'singular.php', 'single.php', 'index.php'];
+        $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
 
         if ( ! in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
             return $template;
@@ -455,7 +471,7 @@ class Involvement implements api
 
             if (is_object($post)) {
                 try {
-                    $inv = Involvement::fromPost($post);
+                    $inv = self::fromPost($post);
                     $iid = $inv->invId;
                 } catch (TouchPointWP_Exception $e) {
                     $iid = null;
@@ -469,7 +485,7 @@ class Involvement implements api
         }
 
         try {
-            $inv = Involvement::fromInvId($iid);
+            $inv = self::fromInvId($iid);
         } catch(TouchPointWP_Exception $e) {
             return "<!-- Error: " . $e->getMessage() . " -->";
         }
@@ -481,7 +497,7 @@ class Involvement implements api
         $eltId = $params['id'];
         $class = $params['class'];
 
-        return "<div id=\"$eltId\" class=\"$class\" data-tp-involvement=\"$inv->invId\">{$inv->getActionButtons()}</div>";
+        return "<div id=\"$eltId\" class=\"$class\" data-tp-involvement=\"$inv->post_id\">{$inv->getActionButtons('actions-shortcode')}</div>";
     }
 
     /**
@@ -503,7 +519,7 @@ class Involvement implements api
         }
 
         // Attempt to infer the type if it doesn't exist.
-        if (! isset($params['type']) || is_null($params['type'])) {
+        if (! isset($params['type'])) {
             $params['type'] = is_archive() ? get_queried_object()->name : false;
         }
 
@@ -549,6 +565,105 @@ class Involvement implements api
     }
 
     /**
+     * Print a list of involvements that match the given criteria.
+     *
+     * @param array|string  $params
+     * @param string $content
+     *
+     * @return string
+     */
+    public static function listShortcode($params = [], string $content = ""): string
+    {
+        if ($params === '') {
+            $params = [];
+        }
+
+        // standardize parameters
+        $params = array_change_key_case($params, CASE_LOWER);
+
+        // set some defaults
+        $params = shortcode_atts(
+            [
+                'div' => null,
+                'type' => null
+            ],
+            $params,
+            self::SHORTCODE_NEARBY
+        );
+
+        // Prep the query
+        $q = new WP_Query([
+            'posts_per_page' => -1,
+            'nopaging'       => true,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ]);
+
+        // Get the formalized post types
+        $types = [];
+        foreach (explode(',', $params['type']) as $t) {
+            $s = self::getSettingsForPostType($params['type']);
+            if ($s !== null) {
+                $types[] = $s->postType;
+            }
+        }
+        if (count($types) > 0) {
+            $q->set('post_type', $types);
+        }
+
+        $taxQuery = ['relation' => 'AND'];
+
+        // Filter by Division
+        if (isset($params['div'])) {
+            $divs = [];
+            foreach (explode(',', $params['div']) as $d) {
+                $tid = TouchPointWP::getDivisionTermIdByDivId($d);
+                if ( ! ! $tid) {
+                    $divs[] = $tid;
+                }
+            }
+            if (count($divs) > 0) {
+                $taxQuery[] = [
+                    'taxonomy' => TouchPointWP::TAX_DIV,
+                    'field' => 'ID',
+                    'terms' => $divs
+                ];
+            }
+        }
+
+        $q->set('tax_query', $taxQuery);
+
+        $q->get_posts();
+        $q->rewind_posts();
+
+        ob_start();
+
+        echo "<div class=\"involvement-list\">";
+        if ($q->have_posts()) {
+            while ($q->have_posts()) {
+                $q->the_post();
+                $loadedPart = get_template_part('list-item', 'involvement-list-item');
+                if ($loadedPart === false) {
+                    TouchPointWP::enqueuePartialsStyle();
+                    require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
+                }
+                wp_reset_postdata();
+            }
+
+        } else {
+            $loadedPart = get_template_part('list-none', 'involvement-list-none');
+            if ($loadedPart === false) {
+                require TouchPointWP::$dir . "/src/templates/parts/involvement-list-none.php";
+            }
+        }
+        echo "</div>";
+        $content = ob_get_clean();
+
+        // get any nesting
+        return apply_shortcodes($content);
+    }
+
+    /**
      * @param array|string  $params
      * @param string $content
      *
@@ -577,7 +692,7 @@ class Involvement implements api
         );
 
         // Attempt to infer the type if it doesn't exist.
-        if (! isset($params['type']) || is_null($params['type'])) {
+        if (! isset($params['type'])) {
             $params['type'] = is_archive() ? get_queried_object()->name : false;
         }
 
@@ -634,8 +749,9 @@ class Involvement implements api
         // set some defaults
         $params = shortcode_atts(
             [
-                'class'   => "TouchPoint-Involvement filterBar",
-                'filters' => strtolower(implode(",", $settings->filters))
+                'class'              => "TouchPoint-Involvement filterBar",
+                'filters'            => strtolower(implode(",", $settings->filters)),
+                'includeMapWarnings' => true
             ],
             $params,
             static::SHORTCODE_FILTER
@@ -684,7 +800,7 @@ class Involvement implements api
                                     TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
                                 ]);
             $dvList = TouchPointWP::orderHierarchicalTerms($dvList, true);
-            if (is_array($dvList) && count($dvList) > 1) {
+            if (count($dvList) > 1) {
                 $content .= "<select class=\"$class-filter\" data-involvement-filter=\"div\">";
                 $content .= "<option disabled selected>$dvName</option><option value=\"\">$any</option>";
                 $isFirst = true;
@@ -818,6 +934,28 @@ class Involvement implements api
             }
         }
 
+        if ($params['includeMapWarnings']) {
+            $content .= "<p class=\"TouchPointWP-map-warnings\">";
+            $content .= sprintf(
+                "<span class=\"TouchPointWP-map-warning-visibleOnly\" style=\"display:none;\">%s  </span>",
+                sprintf( // i18n: %s is for the user-provided "Involvement" term
+                    __("The %s listed are only those shown on the map.", TouchPointWP::TEXT_DOMAIN),
+                    $settings->namePlural
+                )
+            );
+            $content .= sprintf(
+                "<span class=\"TouchPointWP-map-warning-zoomOrReset\" style=\"display:none;\">%s  </span>",
+                sprintf( // i18n: %s is the link to reset the map
+                    __("Zoom out or %s to see more.", TouchPointWP::TEXT_DOMAIN),
+                    sprintf( // i18n: %s is the link to reset the map
+                        "<a href=\"#\" class=\"TouchPointWP-map-resetLink\">%s</a>",
+                        __("reset the map", TouchPointWP::TEXT_DOMAIN)
+                    )
+                )
+            );
+            $content .= "</p>";
+        }
+
         $content .= "</div>";
 
         return $content;
@@ -895,11 +1033,20 @@ class Involvement implements api
             $r = [];
         }
 
+        $errorMessage = null;
         foreach ($r as $g) {
-            $inv      = self::fromObj($g);
-            $g->name = $inv->name;
-            $g->invType = $settings->postTypeWithoutPrefix();
-            $g->path = get_permalink($inv->post_id);
+            try {
+                $inv        = self::fromObj($g);
+                $g->name    = $inv->name;
+                $g->invType = $settings->postTypeWithoutPrefix();
+                $g->path    = get_permalink($inv->post_id);
+            } catch (TouchPointWP_Exception $ex) {
+                $errorMessage = $ex->getMessage();
+            }
+        }
+
+        if ($errorMessage !== null) {
+            $r['error'] = $errorMessage;
         }
 
         echo json_encode($r);
@@ -1012,7 +1159,7 @@ class Involvement implements api
             $q = new WP_Query(
                 [
                     'post_type' => Involvement::getPostTypes(),
-                    'meta_key'   => TouchPointWP::SETTINGS_PREFIX . "invId",
+                    'meta_key'   => self::INVOLVEMENT_META_KEY,
                     'meta_value' => (string)$iid
                 ]
             );
@@ -1045,6 +1192,10 @@ class Involvement implements api
 
         if ( ! shortcode_exists(self::SHORTCODE_FILTER)) {
             add_shortcode(self::SHORTCODE_FILTER, [self::class, "filterShortcode"]);
+        }
+
+        if ( ! shortcode_exists(self::SHORTCODE_LIST)) {
+            add_shortcode(self::SHORTCODE_LIST, [self::class, "listShortcode"]);
         }
 
         if ( ! shortcode_exists(self::SHORTCODE_NEARBY)) {
@@ -1102,7 +1253,7 @@ class Involvement implements api
      */
     public static function setComparisonGeo(object $geo): void
     {
-        if (get_class($geo) !== WP_Error::class) {
+        if (get_class($geo) === stdClass::class) {
             self::$compareGeo = $geo;
         }
     }
@@ -1143,9 +1294,13 @@ class Involvement implements api
      */
     public static function sortPosts(WP_Post $a, WP_Post $b): int
     {
-        $a = self::fromPost($a);
-        $b = self::fromPost($b);
-        return self::sort($a, $b);
+        try {
+            $a = self::fromPost($a);
+            $b = self::fromPost($b);
+            return self::sort($a, $b);
+        } catch (TouchPointWP_Exception $ex) {
+            return $a <=> $b;
+        }
     }
 
 
@@ -1154,16 +1309,6 @@ class Involvement implements api
      */
     public static function registerScriptsAndStyles(): void
     {
-        wp_register_script(
-            TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
-            sprintf(
-                "https://maps.googleapis.com/maps/api/js?key=%s&v=3&libraries=geometry",
-                TouchPointWP::instance()->settings->google_maps_api_key
-            ),
-            [TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
-            null,
-            true
-        );
     }
 
     /**
@@ -1203,6 +1348,7 @@ class Involvement implements api
 
             if ($params['all']) {
                 self::requireAllObjectsInJs();
+                self::$_hasArchiveMap = true;
             }
 
             $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/involvement-map-inline.js");
@@ -1260,11 +1406,7 @@ class Involvement implements api
             return false;
         }
 
-        if ($response instanceof WP_Error) {
-            return false;
-        }
-
-        $invData = json_decode($response['body'])->data->invs ?? []; // null coalesce for case where there is no data.
+        $invData = $response->invs ?? []; // null coalesce for case where there is no data.
 
         $postsToKeep = [];
 
@@ -1287,7 +1429,7 @@ class Involvement implements api
             $q = new WP_Query(
                 [
                     'post_type'  => $typeSets->postType,
-                    'meta_key'   => TouchPointWP::SETTINGS_PREFIX . "invId",
+                    'meta_key'   => self::INVOLVEMENT_META_KEY,
                     'meta_value' => $inv->involvementId
                 ]
             );
@@ -1300,7 +1442,7 @@ class Involvement implements api
                         'post_type'  => $typeSets->postType,
                         'post_name'  => $inv->name,
                         'meta_input' => [
-                            TouchPointWP::SETTINGS_PREFIX . "invId" => $inv->involvementId
+                            self::INVOLVEMENT_META_KEY => $inv->involvementId
                         ]
                     ]
                 );
@@ -1308,7 +1450,7 @@ class Involvement implements api
             }
 
             if ($post instanceof WP_Error) {
-                error_log($post->get_error_message());
+                new TouchPointWP_WPError($post);
                 continue;
             }
 
@@ -1316,13 +1458,14 @@ class Involvement implements api
 
             $post->post_content = strip_tags($inv->description, ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li']);
 
-            if ($post->post_title != $inv->name) // only update if there's a change.  Otherwise, urls increment.
-            {
+            // Title & Slug
+            if ($post->post_title != $inv->name) { // only update if there's a change.  Otherwise, urls increment.
                 $post->post_title = $inv->name;
+                $post->post_name = ''; // Slug will regenerate;
             }
 
+            // Status & Submit
             $post->post_status = 'publish';
-
             wp_update_post($post);
 
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "locationName", $inv->location);
@@ -1544,6 +1687,9 @@ class Involvement implements api
             // Handle leaders  TODO make leaders WP Users
             if (array_key_exists('leadMemTypes', $qOpts) && property_exists($inv, "leaders")) {
                 $nameString = Person::arrangeNamesForPeople($inv->leaders);
+                if ($verbose) {
+                    echo "<p>Leaders: $nameString</p>";
+                }
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders", $nameString);
             }
 
@@ -1699,11 +1845,13 @@ class Involvement implements api
 
     /**
      * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with the
-     * `data-tp-involvement` attribute with the invId as the value.
+     * `data-tp-involvement` attribute with the post_id (NOT the Inv ID) as the value.
+     *
+     * @param ?string $context A reference to where the action buttons are meant to be used.
      *
      * @return string
      */
-    public function getActionButtons(): string
+    public function getActionButtons(string $context = null): string
     {
         TouchPointWP::requireScript('swal2-defer');
         TouchPointWP::requireScript('base-defer');
@@ -1712,6 +1860,7 @@ class Involvement implements api
         $text = __("Contact Leaders", TouchPointWP::TEXT_DOMAIN);
         $ret = "<button type=\"button\" data-tp-action=\"contact\">$text</button> ";
         TouchPointWP::enqueueActionsStyle('inv-contact');
+        $count = 1;
 
         if ($this->acceptingNewMembers() === true) {
             if ($this->useRegistrationForm()) {
@@ -1723,7 +1872,7 @@ class Involvement implements api
                         $text = __('Create Account', TouchPointWP::TEXT_DOMAIN);
                         break;
                     case 6:  // Choose Volunteer Times (legacy)
-                    case 22: // Volunteer Scheduler
+                    case 22: // Scheduler
                         $text = __('Schedule', TouchPointWP::TEXT_DOMAIN);
                         break;
                     case 8:  // Online Giving (legacy)
@@ -1749,8 +1898,22 @@ class Involvement implements api
                 $ret  .= "<button type=\"button\" data-tp-action=\"join\">$text</button>  ";
                 TouchPointWP::enqueueActionsStyle('inv-join');
             }
+            $count++;
         }
-        return $ret;
+
+        // Show on map button.  (Only works if map is called before this is.)
+        if (self::$_hasArchiveMap && $this->geo !== null) {
+            $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
+            if ($count > 1) {
+                TouchPointWP::requireScript("fontAwesome");
+                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\"><i class=\"fa-solid fa-location-pin\"></i></button>  " . $ret;
+            } else {
+                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\">$text</button>  " . $ret;
+            }
+            $count++;
+        }
+
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "involvement_actions", $ret, $this, $context);
     }
 
     public static function getJsInstantiationString(): string
@@ -1786,10 +1949,10 @@ class Involvement implements api
             $inputData->keywords = Utilities::idArrayToIntArray($settings->joinKeywords);
         }
 
-        $data = TouchPointWP::instance()->apiPost('inv_join', $inputData);
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
+        try {
+            $data = TouchPointWP::instance()->apiPost('inv_join', $inputData);
+        } catch (TouchPointWP_Exception $ex) {
+            echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }
 
@@ -1811,10 +1974,10 @@ class Involvement implements api
             $inputData->keywords = Utilities::idArrayToIntArray($settings->contactKeywords);
         }
 
-        $data = TouchPointWP::instance()->apiPost('inv_contact', $inputData);
-
-        if ($data instanceof WP_Error) {
-            echo json_encode(['error' => $data->get_error_message()]);
+        try {
+            $data = TouchPointWP::instance()->apiPost('inv_contact', $inputData);
+        } catch (TouchPointWP_Exception $ex) {
+            echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }
 

@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 use WP_Error;
@@ -7,19 +9,13 @@ use WP_REST_Controller;
 use WP_User;
 use WP_User_Query;
 
-/**
- * RSVP class file.
- *
- * Class Rsvp
- * @package tp\TouchPointWP
- */
-
 if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
 /**
  * The Auth-handling class.
+ * TODO Rework error handling in favor of exceptions.
  */
 class Auth extends WP_REST_Controller
 {
@@ -377,7 +373,7 @@ class Auth extends WP_REST_Controller
                 $isFromLink = true;
 
             } else {
-                var_dump($data);
+//                var_dump($data);
                 self::apiError(
                     'no_session_token',
                     __('You don\'t appear to have a current session on our website.', 'TouchPoint-WP')

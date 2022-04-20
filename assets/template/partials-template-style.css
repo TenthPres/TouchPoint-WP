@@ -1,9 +1,17 @@
-.involvement-list {
+.involvement-list,
+.partner-list {
     display: flex;
     flex-wrap: wrap;
     /* align-items: stretch; */
 }
 
+/* compensates for some themes */
+.entry-content > .involvement-list {
+    max-width: none !important;
+    width: unset;
+}
+
+article.partner-list-item,
 article.involvement-list-item {
     flex: 1 1 350px;
     box-shadow: 10px 10px 20px #00000033;
@@ -12,6 +20,12 @@ article.involvement-list-item {
     padding: 0.8em;
     display: flex;
     flex-direction: column;
+    border-bottom: 2px solid transparent;
+}
+
+article.partner-list-item h2 a,
+article.involvement-list-item h2 a {
+    text-decoration: none;
 }
 
 
@@ -50,17 +64,21 @@ article.involvement-list-item {
     opacity: 1;
 }
 
+.partner-list-item .partner-actions,
 .involvement-list-item .involvement-actions {
     padding-top: .5em;
     text-align: right;
 }
 
+.partner-list-item .partner-actions button,
+.partner-list-item .partner-actions a.button,
 .involvement-list-item .involvement-actions button,
 .involvement-list-item .involvement-actions a.button {
     position:relative;
     z-index:10;
 }
 
+.partner-list-item div.post-meta-single,
 .involvement-list-item div.post-meta-single {
     font-size: 0.8em;
     opacity: 0.7;
@@ -74,10 +92,12 @@ article.involvement-list-item {
     text-align: center;
 }
 
+.partner-list-item div.entry-content,
 .involvement-list-item div.entry-content {
     flex: 1 1 auto;
 }
 
+div.partner-list article.partner-list-item h2.entry-title,
 div.involvement-list article.involvement-list-item h2.entry-title {
     padding: 0 0 0 0;
 }
@@ -98,6 +118,7 @@ div.involvement-list article.involvement-list-item h2.entry-title {
     opacity: 0;
 }
 
+.partner-list-item h2 a:after,
 .involvement-list-item h2 a:after {
     content: ' ';
     width: 100%;
@@ -123,9 +144,9 @@ div.involvement-list article.involvement-list-item h2.entry-title {
     font-size: 20px;
 }
 
-div.involvement-map-container {
+div.TouchPointWP-map-container {
     width: 100%;
-    padding-bottom: 40vh;
+    padding-bottom: 60vh;
     position: relative;
 }
 
@@ -143,20 +164,20 @@ div.swal2-content table.tp-checkbox-list {
     margin: 0 auto;
 }
 
-article .section-inner.involvement-detail {
+article .section-inner.TouchPointWP-detail {
     display: flex;
 }
 
-article .involvement-detail-cell {
+article .TouchPointWP-detail-cell {
     flex: 1 1 0;
 }
 
-article .involvement-detail-cell.involvement-map-container {
+article .TouchPointWP-detail-cell.TouchPointWP-map-container {
     flex: 2 2 0;
     padding-bottom: 30%;
 }
 
-article .involvement-detail-cell .involvement-detail-cell-section {
+article .TouchPointWP-detail-cell .TouchPointWP-detail-cell-section {
     text-align:center;
     margin-bottom: 2em;
 }

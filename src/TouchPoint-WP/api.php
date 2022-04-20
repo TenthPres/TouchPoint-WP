@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
@@ -8,10 +10,7 @@ if ( ! defined('ABSPATH')) {
 
 
 /**
- * Api Interface
- *
- * Interface api
- * @package tp\TouchPointWP
+ * API Interface
  */
 interface api {
 

@@ -1,20 +1,15 @@
 <?php
-
-namespace tp\TouchPointWP;
-
 /**
- * Settings class file.
- *
- * Class TouchPointWP_Settings
- * @package tp\TouchPointWP
+ * @package TouchPointWP
  */
+namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
     exit;
 }
 
 /**
- * Settings class.
+ * The Settings class - most settings are available through the default getter.
  *
  * @property-read string version            The plugin version.  Used for tracking updates.
  *
@@ -22,6 +17,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string enable_involvements  Whether the Involvement module is included.
  * @property-read string enable_people_lists  Whether to allow public People Lists.
  * @property-read string enable_rsvp        Whether the RSVP module is included.
+ * @property-read string enable_global      Whether to import Global partners.
  *
  * @property-read string host               The domain for the TouchPoint instance
  * @property-read string host_deeplink      The domain for mobile deep linking to the Custom Mobile App
@@ -33,6 +29,25 @@ if ( ! defined('ABSPATH')) {
  * @property-read string google_maps_api_key Google Maps API Key for embedded maps and such
  *
  * @property-read array people_contact_keywords Keywords to use for the generic Contact person button.
+ * @property-read string people_ev_bio      Extra Value field that should be imported as a User bio.
+ * @property-read string people_ev_wpId     The name of the extra value field where the WordPress User ID will be stored.
+ * @property-read array people_ev_custom    Custom Extra values that are copied as user meta fields
+ *
+ * @property-read string global_name_plural What global partners should be called, plural (e.g. "Missionaries" or "Ministry Partners")
+ * @property-read string global_name_plural_decoupled What global partners should be called when they're Secure, plural (e.g. "Secure Partners")
+ * @property-read string global_name_singular What a global partner should be called, singular (e.g. "Missionary" or "Ministry Partner")
+ * @property-read string global_name_singular_decoupled What a secure global partner should be called, singular (e.g. "Secure Partner")
+ * @property-read string global_slug        Slug for global partners (e.g. "partners" for church.org/partners)
+ * @property-read string global_search      The uid for the saved search to use for global partners
+ * @property-read string global_description A Family Extra Value to import as the body of a global partner's post.
+ * @property-read string global_summary     A Family Extra Value to import as the summary of a global partner.
+ * @property-read string global_geo_lat     A Family Extra Value to import as an overriding latitude.
+ * @property-read string global_geo_lng     A Family Extra Value to import as an overriding longitude.
+ * @property-read string global_location    A Family Extra Value to import as a location label.
+ * @property-read array global_fev_custom   Custom Family Extra values that are copied as post meta fields
+ * @property-read string global_primary_tax A Family Extra Value that should be used as the primary taxonomy for partners
+ *
+ * @property-read int|false global_cron_last_run Timestamp of the last time the Partner syncing task ran.  (No setting UI.)
  *
  * @property-read string auth_script_name   The name of the Python script within TouchPoint
  * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
@@ -142,7 +157,7 @@ class TouchPointWP_Settings
      */
     public function initSettings(): void
     {
-        $this->settings = $this->settingsFields(false, false);
+        $this->settings = $this->settingsFields();
     }
 
     /**
@@ -163,18 +178,19 @@ class TouchPointWP_Settings
     /**
      * Build settings fields
      *
-     * @param bool $includeAll Set to true to return all settings parameters, including those for disabled features.
-     * @param bool $includeDetail Set to true to get options from TouchPoint, potentially including the API call.
+     * @param bool|string $includeDetail Set to true to get options from TouchPoint, likely including the API calls. Set
+     *                      to the key of a specific page to only load options for that page.
      *
      * @return array Fields to be displayed on settings page
      */
-    private function settingsFields(bool $includeAll = false, ?bool $includeDetail = null): array
+    private function settingsFields($includeDetail = false): array
     {
-        if ($includeDetail !== false) {
-            $includeDetail = $this->hasValidApiSettings();
+        // Don't call API if we don't have API credentials
+        if (!$this->hasValidApiSettings()) {
+            $includeDetail = false;
         }
 
-        if (count($this->settings) > 0 && ($includeDetail === $this->settingsIncludeDetail || !$includeDetail)) {
+        if (count($this->settings) > 0 && !$includeDetail) {
             // Settings are already loaded, and they have adequate detail for the task at hand.
             return $this->settings;
         }
@@ -215,6 +231,16 @@ class TouchPointWP_Settings
                     'label'       => __('Enable Public People Lists', 'TouchPoint-WP'),
                     'description' => __(
                         'Import public people listings from TouchPoint (e.g. staff or elders)',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'checkbox',
+                    'default'     => '',
+                ],
+                [
+                    'id'          => 'enable_global',
+                    'label'       => __('Enable Global Partner Listings', 'TouchPoint-WP'),
+                    'description' => __(
+                        'Import ministry partners from TouchPoint to list publicly.',
                         TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'checkbox',
@@ -327,7 +353,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on" || $includeAll) { // TODO MULTI
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on") { // TODO MULTI
+            $includeThis = $includeDetail === true || $includeDetail === 'people';
             $this->settings['people'] = [
                 'title'       => __('People', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Manage how people are synchronized between TouchPoint and WordPress.', TouchPointWP::TEXT_DOMAIN),
@@ -340,14 +367,48 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
-                        'options'     => $includeDetail ? $this->parent->getKeywordsAsKVArray() : [],
+                        'options'     => $includeThis ? $this->parent->getKeywordsAsKVArray() : [],
+                        'default'     => [],
+                    ],
+                    [
+                        'id'          => 'people_ev_wpId',
+                        'label'       => __('Extra Value for WordPress User ID', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'The name of the extra value to use for the WordPress User ID.  If you are using multiple WordPress instances with one TouchPoint database, you will need these values to be unique between WordPress instances.  In most cases, the default is fine.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'WordPress User ID',
+                        'placeholder' => 'WordPress User ID'
+                    ],
+                    [
+                        'id'          => 'people_ev_bio',
+                        'label'       => __('Extra Value: Biography', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Import a Bio from a Person Extra Value field.  Can be an HTML or Text Extra Value.  This will overwrite any values set by WordPress.  Leave blank to not import.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeThis ? $this->parent->getPersonEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'people_ev_custom',
+                        'label'       => __('Extra Values to Import', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Import People Extra Value fields as User Meta data.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'checkbox_multi',
+                        'options'     => $includeThis ? $this->parent->getPersonEvFieldsAsKVArray() : [],
                         'default'     => [],
                     ],
                 ],
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on" || $includeAll) { // TODO MULTI
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on") { // TODO MULTI
+            $includeThis = $includeDetail === true || $includeDetail === 'authentication';
             $this->settings['authentication'] = [
                 'title'       => __('Authentication', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Allow users to log into WordPress using TouchPoint.', TouchPointWP::TEXT_DOMAIN),
@@ -424,7 +485,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on" || $includeAll) {  // TODO MULTI
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {  // TODO MULTI
+            $includeThis = $includeDetail === true || $includeDetail === 'involvements';
             $this->settings['involvements'] = [
                 'title'       => __('Involvements', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Import Involvements from TouchPoint to your website, for Small Groups, Classes, and more.  You do not need to import an involvement here to use the RSVP tool.', TouchPointWP::TEXT_DOMAIN),
@@ -432,10 +494,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     [
                         'id'          => 'inv_json', // involvement settings json (stored as a json string)
                         'type'        => 'textarea',
-                        'label'       => __('Involvement Posts', 'TouchPoint-WP'),
+                        'label'       => __('Involvement Post Types', 'TouchPoint-WP'),
                         'default'     => '{}',
                         'hidden'      => true,
-                        'description' => function() {
+                        'description' => !$includeThis ? "" : function() {
                             TouchPointWP::requireScript("base");
                             TouchPointWP::requireScript("knockout-defer");
                             ob_start();
@@ -449,8 +511,161 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on") { // TODO MULTI
+            $includeThis = $includeDetail === true || $includeDetail === 'global';
+            $this->settings['global'] = [
+                'title'       => __('Global Partners', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners are grouped by family, and content is provided through Family Extra Values.  This works for both People and Business records.', TouchPointWP::TEXT_DOMAIN),
+                'fields'      => [
+                    [
+                        'id'          => 'global_name_plural',
+                        'label'       => __('Global Partner Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'What you call Global Partners at your church',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Partners',
+                        'placeholder' => 'Partners'
+                    ],
+                    [
+                        'id'          => 'global_name_singular',
+                        'label'       => __('Global Partner Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'What you call a Global Partner at your church',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Partner',
+                        'placeholder' => 'Partner'
+                    ],
+                    [
+                        'id'          => 'global_name_plural_decoupled',
+                        'label'       => __('Global Partner Name for Secure Places (Plural)', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'What you call Secure Global Partners at your church',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Secure Partners',
+                        'placeholder' => 'Secure Partners'
+                    ],
+                    [
+                        'id'          => 'global_name_singular_decoupled',
+                        'label'       => __('Global Partner Name for Secure Places (Singular)', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'What you call a Secure Global Partner at your church',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Secure Partner',
+                        'placeholder' => 'Secure Partner'
+                    ],
+                    [
+                        'id'          => 'global_slug',
+                        'label'       => __('Global Partner Slug', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'The root path for Global Partner posts',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'partners',
+                        'placeholder' => 'partners',
+                        'callback'    => fn($new) => $this->validation_slug($new, 'global_slug')
+                    ],
+                    [
+                        'id'          => 'global_search',
+                        'label'       => __('Saved Search', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Anyone who is included in this saved search will be included in the listing.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select_grouped',
+                        'options'     => $includeThis ? $this->parent->getSavedSearches(null, $this->global_search) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'global_description',
+                        'label'       => __('Extra Value: Description', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Import a description from a Family Extra Value field.  Can be an HTML or Text Extra Value.  This becomes the body of the Global Partner post.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'global_summary',
+                        'label'       => __('Extra Value: Summary', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Optional. Import a short description from a Family Extra Value field.  Can be an HTML or Text Extra Value.  If not provided, the full bio will be truncated.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'global_geo_lat',
+                        'label'       => __('Latitude Override', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Designate a text Family Extra Value that will contain a latitude that overrides any locations on the partner\'s profile for the partner map.  Both latitude and longitude must be provided for an override to take place.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'global_geo_lng',
+                        'label'       => __('Longitude Override', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Designate a text Family Extra Value that will contain a longitude that overrides any locations on the partner\'s profile for the partner map.  Both latitude and longitude must be provided for an override to take place.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'global_location',
+                        'label'       => __('Public Location', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Designate a text Family Extra Value that will contain the partner\'s location, as you want listed publicly.  For partners who have DecoupleLocation enabled, this field will be associated with the map point, not the list entry.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
+                        'default'     => '',
+                    ],
+                    [
+                        'id'          => 'global_fev_custom',
+                        'label'       => __('Extra Values to Import', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Import Family Extra Value fields as Meta data on the partner\'s post.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'checkbox_multi',
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray() : [],
+                        'default'     => [],
+                    ],
+                    [
+                        'id'          => 'global_primary_tax',
+                        'label'       => __('Primary Taxonomy', TouchPointWP::TEXT_DOMAIN),
+                        'description' => __(
+                            'Import a Family Extra Value as the primary means by which partners are organized.',
+                            TouchPointWP::TEXT_DOMAIN
+                        ),
+                        'type'        => 'select',
+                        'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('code', true) : [],
+                        'default'     => [],
+                    ],
+                ],
+            ];
+        }
 
-        if (class_exists("tp\TouchPointWP\EventsCalendar") || $includeAll) {
+        if (TouchPointWP::useTribeCalendar()) {
             $this->settings['events_calendar'] = [
                 'title'       => __('Events Calendar', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Integrate with The Events Calendar from ModernTribe.', TouchPointWP::TEXT_DOMAIN),
@@ -481,6 +696,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
+        $includeThis = $includeDetail === true || $includeDetail === 'divisions';
         $this->settings['divisions'] = [
             'title'       => __('Divisions', TouchPointWP::TEXT_DOMAIN),
             'description' => __('Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', TouchPointWP::TEXT_DOMAIN),
@@ -527,7 +743,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'checkbox_multi',
-                    'options'     => $includeDetail ? $this->parent->getDivisionsAsKVArray() : [],
+                    'options'     => $includeThis ? $this->parent->getDivisionsAsKVArray() : [],
                     'default'     => [],
                     'callback'    => function($new) {sort($new); return $new;}
                 ],
@@ -574,7 +790,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ]
             ],
         ];
-
 
         /*	$settings['general'] = [
                 'title'       => __( 'Standard', TouchPointWP::TEXT_DOMAIN ),
@@ -701,7 +916,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ),
             ); */
 
-        $this->settings = apply_filters($this->parent::TOKEN . '_Settings_fields', $this->settings);
+        $this->settings = apply_filters($this->parent::TOKEN . '_settings_fields', $this->settings);
 
         return $this->settings;
     }
@@ -831,7 +1046,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 'Settings',
                 TouchPointWP::TEXT_DOMAIN
             ) . '</a>';
-        array_push($links, $settings_link);
+        $links[]       = $settings_link;
 
         return $links;
     }
@@ -987,18 +1202,19 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     public function registerSettings(): void
     {
-        $this->settings = $this->settingsFields(false, is_admin() && !wp_doing_ajax());
+        $currentSection = false;
+        if (isset($_POST['tab']) && $_POST['tab']) {
+            $currentSection = $_POST['tab'];
+        } elseif (isset($_GET['tab']) && $_GET['tab']) {
+            $currentSection = $_GET['tab'];
+        }
+
+        $this->settings = $this->settingsFields($currentSection);
         if (is_array($this->settings)) {
             // Check posted/selected tab.
-            $current_section = '';
-            if (isset($_POST['tab']) && $_POST['tab']) {
-                $current_section = $_POST['tab'];
-            } elseif (isset($_GET['tab']) && $_GET['tab']) {
-                $current_section = $_GET['tab'];
-            }
 
             foreach ($this->settings as $section => $data) {
-                if ($current_section && $current_section !== $section) {
+                if ($currentSection && $currentSection !== $section) {
                     continue;
                 }
 
@@ -1039,7 +1255,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     );
                 }
 
-                if ( ! $current_section) {
+                if ( ! $currentSection) {
                     break;
                 }
             }
@@ -1055,7 +1271,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     protected function getDefaultValueForSetting(string $id)
     {
-        foreach ($this->settingsFields(false, false) as $category) {
+        foreach ($this->settingsFields() as $category) {
             foreach ($category['fields'] as $field) {
                 if ($field['id'] === $id){
                     return $field['default'] ?? self::UNDEFINED_PLACEHOLDER;
