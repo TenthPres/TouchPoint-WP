@@ -2197,13 +2197,14 @@ class TouchPointWP
     /**
      * @param string $command The thing to get
      * @param ?array $parameters URL parameters to be added.
+     * @param int    $timeout Amount of time in sec to wait before timing out.
      *
      * @return stdClass|array An array with headers, body, and other keys
      * Data is generally in json_decode($response['body'])->data
      *
      * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
      */
-    public function apiGet(string $command, ?array $parameters = null)
+    public function apiGet(string $command, ?array $parameters = null, int $timeout = 5)
     {
         if ( ! is_array($parameters)) {
             $parameters = (array)$parameters;
@@ -2229,7 +2230,8 @@ class TouchPointWP
                     'Authorization' => 'Basic ' . base64_encode(
                             $this->settings->api_user . ':' . $this->settings->api_pass
                         )
-                ]
+                ],
+                'timeout' => $timeout
             ]
         );
 

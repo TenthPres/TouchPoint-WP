@@ -1400,7 +1400,8 @@ class Involvement implements api
         try {
             $response = TouchPointWP::instance()->apiGet(
                 "InvsForDivs",
-                array_merge($qOpts, ['divs' => $divs])
+                array_merge($qOpts, ['divs' => $divs]),
+                30
             );
         } catch (TouchPointWP_Exception $e) {
             return false;
@@ -1693,21 +1694,22 @@ class Involvement implements api
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders", $nameString);
             }
 
-            // Handle locations for involvement types that have hosts
-            if (array_key_exists('hostMemTypes', $qOpts)) {
+            // Handle locations for involvement types that are geo-enabled
+            if ($typeSets->useGeo) {
 
-                // Handle locations TODO handle cases other than hosted at home  (Also applies to ResCode)
-                if (property_exists($inv, "hostGeo") && $inv->hostGeo !== null) {
-                    update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", $inv->hostGeo->lat);
-                    update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", $inv->hostGeo->lng);
+                // Handle locations
+                if (property_exists($inv, "lat") && $inv->lat !== null &&
+                    property_exists($inv, "lng") && $inv->lng !== null) {
+                    update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", $inv->lat);
+                    update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", $inv->lng);
                 } else {
                     delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat");
                     delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng");
                 }
 
                 // Handle Resident Code
-                if (property_exists($inv, "hostGeo") && $inv->hostGeo !== null && $inv->hostGeo->resCodeName !== null) {
-                    wp_set_post_terms($post->ID, [$inv->hostGeo->resCodeName], TouchPointWP::TAX_RESCODE, false);
+                if (property_exists($inv, "resCodeName") && $inv->resCodeName !== null) {
+                    wp_set_post_terms($post->ID, [$inv->resCodeName], TouchPointWP::TAX_RESCODE, false);
                 } else {
                     wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
                 }

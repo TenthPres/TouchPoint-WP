@@ -5,11 +5,6 @@ import json
 
 VERSION = "0.0.6"
 
-PersonEvNames = {
-    'geoLat': 'geoLat',
-    'geoLng': 'geoLng',
-    'geoHsh': 'geoHsh'
-}
 sgContactEvName = "Contact"
 defaultSgTaskDelegatePid = 16371
 
@@ -153,60 +148,79 @@ elif (Data.a == "InvsForDivs"):
     hostMemTypes = Data.hostMemTypes or ""
     hostMemTypes = regex.sub('', hostMemTypes)
 
-    invSql = '''SELECT o.organizationId as involvementId,
-    o.leaderMemberTypeId,
-    o.location,
-    o.organizationName as name,
-    o.memberCount,
-    o.classFilled as groupFull,
-    o.genderId,
-    o.description,
-    o.registrationClosed as closed,
-    o.notWeekly,
-    o.registrationTypeId as regTypeId,
-    o.orgPickList,
-    o.mainLeaderId,
-    o.RegSettingXml.exist('/Settings/AskItems') AS hasRegQuestions,
-    FORMAT(o.RegStart, 'yyyy-MM-ddTHH:mm:ss') as regStart,
-    FORMAT(o.RegEnd, 'yyyy-MM-ddTHH:mm:ss') as regEnd,
-    FORMAT(o.FirstMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as firstMeeting,
-    FORMAT(o.LastMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as lastMeeting,
-    (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
-        LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0)) as marital_denom,
-    (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
-        LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId IN (20)) as marital_married,
-    (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
-        LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0, 20)) as marital_single,
-    (SELECT STRING_AGG(ag, ',') WITHIN GROUP (ORDER BY ag ASC) FROM
-        (SELECT DISTINCT (CASE
-             WHEN pi.Age > 69 THEN '70+'
-             ELSE CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's'
-             END) as ag FROM OrganizationMembers omi
-                 LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.OrganizationId
-                 WHERE pi.Age > 19
-        ) ag_agg
-    ) as age_groups,
-    (SELECT STRING_AGG(sdt, ' | ') WITHIN GROUP (ORDER BY sdt ASC) FROM
-        (SELECT CONCAT(FORMAT(NextMeetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|S') as sdt FROM OrgSchedule os
-            WHERE os.OrganizationId = o.OrganizationId
-        UNION
-        SELECT CONCAT(FORMAT(meetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|M') as sdt FROM Meetings as m
-            WHERE m.meetingDate > getdate() AND m.OrganizationId = o.OrganizationId
-        ) s_agg
-    ) as occurrences,
-    (SELECT STRING_AGG(divId, ',') WITHIN GROUP (ORDER BY divId ASC) FROM
-        (SELECT divId FROM DivOrg do
-            WHERE do.OrgId = o.OrganizationId
-            ) d_agg
-    ) as divs
-    FROM Organizations o
-    WHERE o.OrganizationId = (
-        SELECT MIN(OrgId)
-        FROM DivOrg
-        WHERE OrgId = o.OrganizationId
-        AND DivId IN ({})
-    )
-    AND o.organizationStatusId = 30'''.format(divs)
+    if hostMemTypes == "":
+        hostMemTypes = "NULL"
+
+    invSql = '''SELECT
+        o.organizationId as involvementId,
+        o.leaderMemberTypeId,
+        o.location,
+        o.organizationName as name,
+        o.memberCount,
+        o.classFilled as groupFull,
+        o.genderId,
+        o.description,
+        o.registrationClosed as closed,
+        o.notWeekly,
+        o.registrationTypeId as regTypeId,
+        o.orgPickList,
+        o.mainLeaderId,
+        o.RegSettingXml.exist('/Settings/AskItems') AS hasRegQuestions,
+        FORMAT(o.RegStart, 'yyyy-MM-ddTHH:mm:ss') as regStart,
+        FORMAT(o.RegEnd, 'yyyy-MM-ddTHH:mm:ss') as regEnd,
+        FORMAT(o.FirstMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as firstMeeting,
+        FORMAT(o.LastMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as lastMeeting,
+        (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
+            LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0)) as marital_denom,
+        (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
+            LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId IN (20)) as marital_married,
+        (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
+            LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0, 20)) as marital_single,
+        (SELECT STRING_AGG(ag, ',') WITHIN GROUP (ORDER BY ag ASC) FROM
+            (SELECT DISTINCT (CASE
+                 WHEN pi.Age > 69 THEN '70+'
+                 ELSE CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's'
+                 END) as ag FROM OrganizationMembers omi
+                     LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.OrganizationId
+                     WHERE pi.Age > 19
+            ) ag_agg
+        ) as age_groups,
+        (SELECT STRING_AGG(sdt, ' | ') WITHIN GROUP (ORDER BY sdt ASC) FROM
+            (SELECT CONCAT(FORMAT(NextMeetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|S') as sdt FROM OrgSchedule os
+                WHERE os.OrganizationId = o.OrganizationId
+            UNION
+            SELECT CONCAT(FORMAT(meetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|M') as sdt FROM Meetings as m
+                WHERE m.meetingDate > getdate() AND m.OrganizationId = o.OrganizationId
+            ) s_agg
+        ) as occurrences,
+        (SELECT STRING_AGG(divId, ',') WITHIN GROUP (ORDER BY divId ASC) FROM
+            (SELECT divId FROM DivOrg do
+                WHERE do.OrgId = o.OrganizationId
+                ) d_agg
+        ) as divs,
+        COALESCE(oai.Latitude, paih.Latitude, faih.Latitude) lat,
+        COALESCE(oai.Longitude, paih.Longitude, faih.Longitude) lng,
+        COALESCE(orc.Description, prch.Description, frch.Description) resCodeName
+        FROM Organizations o
+            JOIN Setting s ON s.Id = 'ExtraValueHost'
+            LEFT JOIN OrganizationExtra aoe ON o.OrganizationId = aoe.OrganizationId AND s.Setting = aoe.Field
+            LEFT JOIN AddressInfo oai ON aoe.Data = oai.FullAddress -- TODO change to ON o.OrganizationId = oai.OrganizationId and remove aoe and setting above when bvcms/bvcms#1964 is merged.
+            LEFT JOIN Zips z ON CAST(SUBSTRING(SUBSTRING(aoe.Data, 8, 1000), PATINDEX('%[0-9][0-9][0-9][0-9][0-9]%', SUBSTRING(aoe.Data, 8, 1000)), 5) as INT) = z.ZipCode
+            LEFT JOIN lookup.ResidentCode orc ON z.MetroMarginalCode = orc.id
+            LEFT JOIN People ph ON (SELECT TOP 1 omh.PeopleId FROM OrganizationMembers omh WHERE o.OrganizationId = omh.OrganizationId AND omh.MemberTypeId IN ({})) = ph.PeopleId
+            LEFT JOIN Families fh ON ph.FamilyId = fh.FamilyId
+            LEFT JOIN AddressInfo paih ON ph.PeopleId = paih.PeopleId
+            LEFT JOIN AddressInfo faih ON fh.FamilyId = faih.FamilyId
+            LEFT JOIN lookup.ResidentCode prch ON ph.ResCodeId = prch.Id
+            LEFT JOIN lookup.ResidentCode frch ON fh.ResCodeId = frch.Id
+        WHERE o.OrganizationId = (
+            SELECT MIN(OrgId)
+            FROM DivOrg
+            WHERE OrgId = o.OrganizationId
+            AND DivId IN ({})
+        )
+        AND o.organizationStatusId = 30
+        ORDER BY o.OrganizationId ASC'''.format(hostMemTypes, divs)
 
     groups = model.SqlListDynamicData(invSql)
 
@@ -237,26 +251,6 @@ elif (Data.a == "InvsForDivs"):
             ORDER BY p.FamilyId'''.format(g.involvementId, leadMemTypes)
 
             g.leaders = model.SqlListDynamicData(leaderSql)
-
-        if hostMemTypes != "":
-            hostSql = '''
-            SELECT TOP 1 peLat.Data as lat, peLng.Data as lng, peHsh.Data as hsh, COALESCE(prc.Description, frc.Description) as resCodeName
-            FROM OrganizationMembers om
-                JOIN People p ON om.PeopleId = p.PeopleId
-                JOIN PeopleExtra as peLat ON peLat.PeopleId = p.PeopleId and peLat.Field = '{}'
-                JOIN PeopleExtra as peLng ON peLng.PeopleId = p.PeopleId and peLng.Field = '{}'
-                JOIN PeopleExtra as peHsh ON peHsh.PeopleId = p.PeopleId and peHsh.Field = '{}'
-                LEFT JOIN lookup.ResidentCode prc ON p.ResCodeId = prc.Id
-                JOIN Families f on p.FamilyId = f.FamilyId
-                LEFT JOIN lookup.ResidentCode frc ON f.ResCodeId = frc.Id
-            WHERE OrganizationId IN ({}) AND MemberTypeId IN ({})'''.format(
-            PersonEvNames['geoLat'],
-            PersonEvNames['geoLng'],
-            PersonEvNames['geoHsh'],
-            g.involvementId,
-            hostMemTypes)
-
-            g.hostGeo = model.SqlTop1DynamicData(hostSql) # TODO: merge into main query?
 
     Data.invs = groups
 
