@@ -1113,7 +1113,7 @@ class TP_Person {
     }
 
     /**
-     * Take an array of person-like objects and make a list of checkboxes out of them.  These are NOT TP_People objects. TODO they should be.
+     * Take an array of person-like objects and make a list of radio buttons out of them.  These are NOT TP_People objects. TODO they should be.
      *
      * @param array TP_Person[]
      * @param options string[]

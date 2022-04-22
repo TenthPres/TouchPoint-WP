@@ -183,7 +183,7 @@ class TouchPointWP_Settings
      *
      * @return array Fields to be displayed on settings page
      */
-    private function settingsFields($includeDetail = false): array
+    private function settingsFields($includeDetail = false, $includeDisabledFeatures = false): array
     {
         // Don't call API if we don't have API credentials
         if (!$this->hasValidApiSettings()) {
@@ -331,8 +331,8 @@ class TouchPointWP_Settings
         ];
 
         // Add Script generation section if necessary settings are established.
-        if ($this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
-            && $this->hasValidApiSettings()) {
+        if ($includeDisabledFeatures || ($this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
+            && $this->hasValidApiSettings())) {
             /** @noinspection HtmlUnknownTarget */
             $this->settings['basic']['fields'][] = [
                 'id'          => 'generate-scripts',
@@ -353,7 +353,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on") { // TODO MULTI
+        if ($includeDisabledFeatures || get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on") { // TODO MULTI
             $includeThis = $includeDetail === true || $includeDetail === 'people';
             $this->settings['people'] = [
                 'title'       => __('People', TouchPointWP::TEXT_DOMAIN),
@@ -407,7 +407,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on") { // TODO MULTI
+        if ($includeDisabledFeatures || get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on") { // TODO MULTI
             $includeThis = $includeDetail === true || $includeDetail === 'authentication';
             $this->settings['authentication'] = [
                 'title'       => __('Authentication', TouchPointWP::TEXT_DOMAIN),
@@ -485,7 +485,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {  // TODO MULTI
+        if ($includeDisabledFeatures || get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {  // TODO MULTI
             $includeThis = $includeDetail === true || $includeDetail === 'involvements';
             $this->settings['involvements'] = [
                 'title'       => __('Involvements', TouchPointWP::TEXT_DOMAIN),
@@ -511,7 +511,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on") { // TODO MULTI
+        if ($includeDisabledFeatures || get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on") { // TODO MULTI
             $includeThis = $includeDetail === true || $includeDetail === 'global';
             $this->settings['global'] = [
                 'title'       => __('Global Partners', TouchPointWP::TEXT_DOMAIN),
@@ -665,7 +665,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if (TouchPointWP::useTribeCalendar()) {
+        if ($includeDisabledFeatures || TouchPointWP::useTribeCalendar()) {
             $this->settings['events_calendar'] = [
                 'title'       => __('Events Calendar', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Integrate with The Events Calendar from ModernTribe.', TouchPointWP::TEXT_DOMAIN),
@@ -1271,10 +1271,13 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     protected function getDefaultValueForSetting(string $id)
     {
-        foreach ($this->settingsFields() as $category) {
+        foreach ($this->settingsFields(false, true) as $category) {
             foreach ($category['fields'] as $field) {
-                if ($field['id'] === $id){
-                    return $field['default'] ?? self::UNDEFINED_PLACEHOLDER;
+                if ($field['id'] === $id) {
+                    if (array_key_exists('default', $field)) {
+                        return $field['default'];
+                    }
+                    return self::UNDEFINED_PLACEHOLDER;
                 }
             }
         }

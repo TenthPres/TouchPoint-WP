@@ -211,6 +211,8 @@ class Involvement implements api
         foreach (self::allTypeSettings() as $type) {
             /** @var $type Involvement_PostTypeSettings */
 
+            set_time_limit(120);
+
             register_post_type(
                 $type->postType,
                 [
@@ -297,6 +299,10 @@ class Involvement implements api
     {
         $postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
         $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
+
+        if (count($postTypesToFilter) == 0) {
+            return $template;
+        }
 
         if ( ! in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
             return $template;
