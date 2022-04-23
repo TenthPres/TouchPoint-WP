@@ -211,8 +211,6 @@ class Involvement implements api
         foreach (self::allTypeSettings() as $type) {
             /** @var $type Involvement_PostTypeSettings */
 
-            set_time_limit(120);
-
             register_post_type(
                 $type->postType,
                 [
