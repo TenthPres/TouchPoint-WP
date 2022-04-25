@@ -16,6 +16,10 @@ class TP_Partner extends TP_Mappable {
         tpvm.partners[this.post_id] = this;
     }
 
+    get shortClass() {
+        return "gp";
+    }
+
     // noinspection JSUnusedGlobalSymbols  Used via dynamic instantiation.
     static fromObjArray(pArr) {
         let ret = [];
@@ -156,5 +160,4 @@ class TP_Partner extends TP_Mappable {
     }
 
 }
-TP_Partner.prototype.classShort = "gp";
 TP_Partner.init();

@@ -27,15 +27,52 @@ function utilInit() {
         return str;
     }
 
-    tpvm._utils.registerAction = function(action, object, id) {
-        let itemUId = object.classShort + id;
-        if (!tpvm._actions.hasOwnProperty(action)) {
-            tpvm._actions[action] = {};
-        }
+    tpvm._utils.registerAction = function(action, object) {
         if (typeof object[action + "Action"] === "function") {
-            tpvm._actions[action][itemUId] = object[action + "Action"];
+            let sc = object.shortClass;
+            if (typeof sc !== "string") {
+                console.warn(`Action '${action}' cannot be registered because the short class name is missing.`)
+                return;
+            }
+            let actionLC = action.toLowerCase();
+            if (!tpvm._actions.hasOwnProperty(action)) {
+                tpvm._actions[actionLC] = () => object[action + "Action"]();
+            } else if (typeof tpvm._actions[actionLC] === "string") {
+                tpvm._actions[actionLC] = 2; // there are at least two items with this.
+            }
         }
     }
+
+    tpvm._utils.applyHashForAction = function(action, object) {
+        action = action.toLowerCase();
+        if (typeof tpvm._actions[action] === "string" && typeof object[action + "Action"] === "function") {
+            window.location.hash = "tp-" + action;
+        } else if (typeof tpvm._actions[action] === "number" && typeof object[action + "Action"] === "function") {
+            window.location.hash = "tp-" + action + "-" + object.shortClass + object.id;
+        }
+    }
+
+    tpvm._utils.clearHash = function() {
+        window.location.hash = "";
+    }
+
+    tpvm._utils.handleHash = function() {
+        if (window.location.hash.substring(1, 4) !== "tp-") {
+            return;
+        }
+
+        let [action, identifier] = window.location.hash.toLowerCase().substring(4).split('-', 2);
+
+        // if (identifier === undefined) {
+            let obj = tpvm._actions[action]
+            console.log(obj); // TODO finish this.
+            obj();
+        // }
+
+        console.log(action, identifier);
+
+    }
+    tpvm.addEventListener("load", tpvm._utils.handleHash);
 
     tpvm._utils.defaultSwalClasses = function() {
         return {
@@ -113,6 +150,10 @@ class TP_DataGeo {
         "type": null,
         "human": "Loading..." // i18n
     };
+
+    get shortClass() {
+        return "geo";
+    }
 
     static init() {
         tpvm.trigger('dataGeo_class_loaded');
@@ -231,7 +272,6 @@ class TP_DataGeo {
         }
     }
 }
-TP_DataGeo.prototype.classShort = "geo";
 TP_DataGeo.init();
 
 class TP_MapMarker
@@ -438,7 +478,7 @@ class TP_Mappable {
                 if (!actionBtns.hasOwnProperty(ai)) continue;
                 const action = actionBtns[ai].getAttribute('data-tp-action');
                 if (typeof mappable[action + "Action"] === "function") {
-                    tpvm._utils.registerAction(action, mappable, mappable.post_id)
+                    tpvm._utils.registerAction(action, mappable)
                     actionBtns[ai].addEventListener('click', function (e) {
                         e.stopPropagation();
                         mappable[action + "Action"]();
@@ -448,6 +488,19 @@ class TP_Mappable {
         }
 
         TP_Mappable.items.push(this);
+    }
+
+    /**
+     * Returns the ID used for instances in tpvm.  Must be implemented by extenders if not the post_id.
+     *
+     * @return {int}
+     */
+    get id() {
+        return this.post_id;
+    }
+
+    get shortClass() {
+        return "mpbl";
     }
 
     static initMap(containerElt, mapOptions, list) {
@@ -574,6 +627,8 @@ class TP_Mappable {
         if (typeof ga === "function") {
             ga('send', 'event', this.itemTypeName, 'showOnMap btn click', this.name);
         }
+
+        tpvm._utils.applyHashForAction("showOnMap", this);
 
         // One marker (probably typical)
         if (this.markers.length === 1) {
@@ -715,6 +770,14 @@ class TP_Involvement extends TP_Mappable {
         this.attributes = obj.attributes ?? null;
 
         tpvm.involvements[this.invId] = this;
+    }
+
+    get id() {
+        return parseInt(this.invId);
+    }
+
+    get shortClass() {
+        return "i";
     }
 
     // noinspection JSUnusedGlobalSymbols  Used via dynamic instantiation.
@@ -860,9 +923,11 @@ class TP_Involvement extends TP_Mappable {
             ga('send', 'event', inv.invType, 'join btn click', inv.name);
         }
 
+        tpvm._utils.applyHashForAction("join", this);
+
         TP_Person.DoInformalAuth(title).then(
-            (res) => joinUi(inv, res),
-            () => console.log("Informal auth failed, probably user cancellation.")
+            (res) => joinUi(inv, res).then(tpvm._utils.clearHash),
+            () => tpvm._utils.clearHash()
         )
 
         function joinUi(inv, people) {
@@ -870,7 +935,7 @@ class TP_Involvement extends TP_Mappable {
                 ga('send', 'event', inv.invType, 'join userIdentified', inv.name);
             }
 
-            Swal.fire({
+            return Swal.fire({
                 title: title,
                 html: "<p id=\"swal-tp-text\">Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
                 customClass: tpvm._utils.defaultSwalClasses(),
@@ -915,14 +980,19 @@ class TP_Involvement extends TP_Mappable {
             ga('send', 'event', inv.invType, 'contact btn click', inv.name);
         }
 
-        TP_Person.DoInformalAuth(title).then((res) => contactUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
+        tpvm._utils.applyHashForAction("contact", this);
+
+        TP_Person.DoInformalAuth(title).then(
+            (res) => contactUi(inv, res).then(tpvm._utils.clearHash),
+            () => tpvm._utils.clearHash()
+        )
 
         function contactUi(inv, people) {
             if (typeof ga === "function") {
                 ga('send', 'event', inv.invType, 'contact userIdentified', inv.name);
             }
 
-            Swal.fire({
+            return Swal.fire({
                 title: title,
                 html: '<form id="tp_inv_contact_form">' +
                     '<div class="form-group"><label for="tp_inv_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_inv_contact_fromPid", "fromPid") + '</div>' +
@@ -1019,7 +1089,6 @@ class TP_Involvement extends TP_Mappable {
         }
     }
 }
-TP_Involvement.prototype.classShort = "i";
 TP_Involvement.init();
 
 class TP_Person {
@@ -1042,7 +1111,7 @@ class TP_Person {
                 if (!actionBtns.hasOwnProperty(ai)) continue;
                 const action = actionBtns[ai].getAttribute('data-tp-action');
                 if (TP_Person.actions.includes(action)) {
-                    tpvm._utils.registerAction(action, psn, psn.peopleId)
+                    tpvm._utils.registerAction(action, psn)
                     actionBtns[ai].addEventListener('click', function (e) {
                         e.stopPropagation();
                         psn[action + "Action"]();
@@ -1052,6 +1121,19 @@ class TP_Person {
         }
 
         tpvm.people[peopleId] = this;
+    }
+
+    /**
+     * Returns the ID used for instances in tpvm.  Must be implemented by extenders if not the post_id.
+     *
+     * @return {int}
+     */
+    get id() {
+        return this.peopleId;
+    }
+
+    get shortClass() {
+        return "p";
     }
 
     static fromObj(obj) {
@@ -1165,14 +1247,19 @@ class TP_Person {
             ga('send', 'event', 'Person', 'contact btn click', psn.peopleId);
         }
 
-        TP_Person.DoInformalAuth(title).then((res) => contactUi(psn, res), () => console.log("Informal auth failed, probably user cancellation."))
+        tpvm._utils.applyHashForAction("contact", this);
+
+        TP_Person.DoInformalAuth(title).then(
+            (res) => contactUi(psn, res).then(tpvm._utils.clearHash),
+            () => tpvm._utils.clearHash()
+        )
 
         function contactUi(psn, people) {
             if (typeof ga === "function") {
                 ga('send', 'event', 'Person', 'contact userIdentified', psn.peopleId);
             }
 
-            Swal.fire({
+            return Swal.fire({
                 title: title,
                 html: '<form id="tp_person_contact_form">' +
                     '<div class="form-group"><label for="tp_person_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_person_contact_fromPid", "fromPid") + '</div>' +
@@ -1332,5 +1419,4 @@ class TP_Person {
         });
     }
 }
-TP_Person.prototype.classShort = "p";
 TP_Person.init();
