@@ -2293,6 +2293,10 @@ class TouchPointWP
 
         $respDecoded = json_decode($response['body']);
 
+        if ($respDecoded === null) {
+            throw new TouchPointWP_Exception("Connection Error", 179000);
+        }
+
         // Most likely the issue where a module import failed for no apparent reason.
         if (strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
             throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001);
