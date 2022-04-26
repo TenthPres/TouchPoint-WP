@@ -1442,7 +1442,7 @@ class Involvement implements api
             if (count($post) > 0) { // post exists already.
                 $post = $post[0];
             } else {
-                $post = wp_insert_post(
+                $post = wp_insert_post( // TODO avoid doing this if involvement will be deleted anyway.
                     [ // create new
                         'post_type'  => $typeSets->postType,
                         'post_name'  => $inv->name,
