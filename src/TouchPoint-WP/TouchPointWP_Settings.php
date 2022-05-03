@@ -183,16 +183,11 @@ class TouchPointWP_Settings
      *
      * @return array Fields to be displayed on settings page
      */
-    private function settingsFields($includeDetail = false, $includeDisabledFeatures = false): array
+    private function settingsFields($includeDetail = false): array
     {
         // Don't call API if we don't have API credentials
         if (!$this->hasValidApiSettings()) {
             $includeDetail = false;
-        }
-
-        if (count($this->settings) > 0 && !$includeDetail) {
-            // Settings are already loaded, and they have adequate detail for the task at hand.
-            return $this->settings;
         }
 
         $this->settings['basic'] = [
@@ -331,8 +326,8 @@ class TouchPointWP_Settings
         ];
 
         // Add Script generation section if necessary settings are established.
-        if ($includeDisabledFeatures || ($this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
-            && $this->hasValidApiSettings())) {
+        if ($this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
+            && $this->hasValidApiSettings()) {
             /** @noinspection HtmlUnknownTarget */
             $this->settings['basic']['fields'][] = [
                 'id'          => 'generate-scripts',
@@ -353,7 +348,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if ($includeDisabledFeatures || get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on") { // TODO MULTI
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on") { // TODO MULTI
             $includeThis = $includeDetail === true || $includeDetail === 'people';
             $this->settings['people'] = [
                 'title'       => __('People', TouchPointWP::TEXT_DOMAIN),
@@ -407,7 +402,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if ($includeDisabledFeatures || get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on") { // TODO MULTI
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on") { // TODO MULTI
             $includeThis = $includeDetail === true || $includeDetail === 'authentication';
             $this->settings['authentication'] = [
                 'title'       => __('Authentication', TouchPointWP::TEXT_DOMAIN),
@@ -485,7 +480,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if ($includeDisabledFeatures || get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {  // TODO MULTI
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {  // TODO MULTI
             $includeThis = $includeDetail === true || $includeDetail === 'involvements';
             $this->settings['involvements'] = [
                 'title'       => __('Involvements', TouchPointWP::TEXT_DOMAIN),
@@ -511,7 +506,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if ($includeDisabledFeatures || get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on") { // TODO MULTI
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on") { // TODO MULTI
             $includeThis = $includeDetail === true || $includeDetail === 'global';
             $this->settings['global'] = [
                 'title'       => __('Global Partners', TouchPointWP::TEXT_DOMAIN),
@@ -665,7 +660,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
         }
 
-        if ($includeDisabledFeatures || TouchPointWP::useTribeCalendar()) {
+        if (TouchPointWP::useTribeCalendar()) {
             $this->settings['events_calendar'] = [
                 'title'       => __('Events Calendar', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Integrate with The Events Calendar from ModernTribe.', TouchPointWP::TEXT_DOMAIN),
@@ -747,6 +742,47 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     'default'     => [],
                     'callback'    => function($new) {sort($new); return $new;}
                 ],
+            ],
+        ];
+
+        $this->settings['campuses'] = [
+            'title'       => __('Campuses', TouchPointWP::TEXT_DOMAIN),
+            'description' => __('Import Campuses from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', TouchPointWP::TEXT_DOMAIN),
+            'fields'      => [
+                [
+                    'id'          => 'camp_name_plural',
+                    'label'       => __('Campus Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'What you call Campuses at your church',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'Campuses',
+                    'placeholder' => 'Campuses'
+                ],
+                [
+                    'id'          => 'camp_name_singular',
+                    'label'       => __('Campus Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'What you call a Campus at your church',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'Campus',
+                    'placeholder' => 'Campus'
+                ],
+                [
+                    'id'          => 'camp_slug',
+                    'label'       => __('Campus Slug', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'The root path for the Campus Taxonomy',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'campus',
+                    'placeholder' => 'campus',
+                    'callback'    => fn($new) => $this->validation_slug($new, 'camp_slug')
+                ]
             ],
         ];
 
@@ -1271,7 +1307,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     protected function getDefaultValueForSetting(string $id)
     {
-        foreach ($this->settingsFields(false, true) as $category) {
+        if (substr($id, 0, 7) === "enable") {
+            return '';
+        }
+        foreach ($this->settingsFields() as $category) {
             foreach ($category['fields'] as $field) {
                 if ($field['id'] === $id) {
                     if (array_key_exists('default', $field)) {
