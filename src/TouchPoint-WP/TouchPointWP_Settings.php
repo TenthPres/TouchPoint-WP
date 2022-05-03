@@ -190,6 +190,11 @@ class TouchPointWP_Settings
             $includeDetail = false;
         }
 
+        if (count($this->settings) > 0 && $includeDetail === false) {
+            // Settings are already loaded, and they have adequate detail for the task at hand.
+            return $this->settings;
+        }
+
         $this->settings['basic'] = [
             'title'       => __('Basic Settings', 'TouchPoint-WP'),
             'description' => __('Connect to TouchPoint and choose which features you wish to use.', 'TouchPoint-WP'),
