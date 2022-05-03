@@ -854,20 +854,25 @@ class Person extends WP_User implements api, JsonSerializable
      * `data-tp-person` attribute with the invId as the value.
      *
      * @param ?string $context A reference to where the action buttons are meant to be used.
+     * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button elements.
      *
      * @return string
      */
-    public function getActionButtons(string $context = null): string
+    public function getActionButtons(string $context = null, string $btnClass = ""): string
     {
         TouchPointWP::requireScript('swal2-defer');
         TouchPointWP::requireScript('base-defer');
         $this->enqueueForJsInstantiation();
 
+        if ($btnClass !== "") {
+            $btnClass = " class=\"$btnClass\"";
+        }
+
         $text = __("Contact", TouchPointWP::TEXT_DOMAIN);
         TouchPointWP::enqueueActionsStyle('person-contact');
-        $ret = "<button type=\"button\" data-tp-action=\"contact\">$text</button>  ";
+        $ret = "<button type=\"button\" data-tp-action=\"contact\"$btnClass>$text</button>  ";
 
-        return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context);
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context, $btnClass);
     }
 
     /**

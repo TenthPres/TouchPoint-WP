@@ -532,6 +532,7 @@ class Partner implements api, JsonSerializable
         $params = shortcode_atts(
             [
                 'class' => 'TouchPoint-partner actions',
+                'btnclass' => 'btn button',
                 'famid' => null,
                 'id'    => wp_unique_id('tp-actions-')
             ],
@@ -574,7 +575,7 @@ class Partner implements api, JsonSerializable
         $eltId = $params['id'];
         $class = $params['class'];
 
-        return "<div id=\"$eltId\" class=\"$class\" data-tp-f=\"$prt->familyId\">{$prt->getActionButtons('actions-shortcode')}</div>";
+        return "<div id=\"$eltId\" class=\"$class\" data-tp-f=\"$prt->familyId\">{$prt->getActionButtons('actions-shortcode', $params['btnclass'])}</div>";
     }
 
     /**
@@ -1054,22 +1055,26 @@ class Partner implements api, JsonSerializable
      * `data-tp-partner` attribute with the post_id as the value or 0 for secure partners.
      *
      * @param ?string $context A reference to where the action buttons are meant to be used.
+     * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button elements.
      *
      * @return string
      */
-    public function getActionButtons(string $context = null): string
+    public function getActionButtons(string $context = null, string $btnClass = ""): string
     {
         $this->enqueueForJsInstantiation();
 
         $ret = "";
+        if ($btnClass !== "") {
+            $btnClass = " class=\"$btnClass\"";
+        }
 
         // Show on map button.  (Only works if map is called before this is.)
         if (self::$_hasArchiveMap && !$this->decoupleLocation && $this->geo !== null) {
             $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
-            $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\">$text</button>  ";
+            $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\"$btnClass>$text</button>  ";
         }
 
-        return apply_filters(TouchPointWP::HOOK_PREFIX . "partner_actions", $ret, $this, $context);
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "partner_actions", $ret, $this, $context, $btnClass);
     }
 
     public static function getJsInstantiationString(): string

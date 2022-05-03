@@ -54,7 +54,7 @@ TouchPointWP::enqueuePartialsStyle();
                 ?>
             </div>
             <div class="TouchPointWP-detail-cell-section involvement-actions">
-                <?php echo $inv->getActionButtons('single-template') ?>
+                <?php echo $inv->getActionButtons('single-template', "btn button") ?>
             </div>
         </div>
         <?php if ($settings->useGeo && $inv->geo !== null) { ?>

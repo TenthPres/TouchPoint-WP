@@ -49,6 +49,6 @@ if (!empty($image)) {
         <?php //echo wp_trim_words($person->description, 20, "..."); ?>
     </div>
     <div class="actions person-actions">
-        <?php echo $person->getActionButtons("person-list"); ?>
+        <?php echo $person->getActionButtons("person-list", "btn button"); ?>
     </div>
 </article>

@@ -459,6 +459,7 @@ class Involvement implements api
         $params = shortcode_atts(
             [
                 'class' => 'TouchPoint-involvement actions',
+                'btnclass' => 'btn button',
                 'invid' => null,
                 'id'    => wp_unique_id('tp-actions-')
             ],
@@ -501,7 +502,7 @@ class Involvement implements api
         $eltId = $params['id'];
         $class = $params['class'];
 
-        return "<div id=\"$eltId\" class=\"$class\" data-tp-involvement=\"$inv->post_id\">{$inv->getActionButtons('actions-shortcode')}</div>";
+        return "<div id=\"$eltId\" class=\"$class\" data-tp-involvement=\"$inv->post_id\">{$inv->getActionButtons('actions-shortcode', $params['btnclass'])}</div>";
     }
 
     /**
@@ -1854,17 +1855,22 @@ class Involvement implements api
      * `data-tp-involvement` attribute with the post_id (NOT the Inv ID) as the value.
      *
      * @param ?string $context A reference to where the action buttons are meant to be used.
+     * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button elements.
      *
      * @return string
      */
-    public function getActionButtons(string $context = null): string
+    public function getActionButtons(string $context = null, string $btnClass = ""): string
     {
         TouchPointWP::requireScript('swal2-defer');
         TouchPointWP::requireScript('base-defer');
         $this->enqueueForJsInstantiation();
 
+        if ($btnClass !== "") {
+            $btnClass = " class=\"$btnClass\"";
+        }
+
         $text = __("Contact Leaders", TouchPointWP::TEXT_DOMAIN);
-        $ret = "<button type=\"button\" data-tp-action=\"contact\">$text</button> ";
+        $ret = "<button type=\"button\" data-tp-action=\"contact\"$btnClass>$text</button> ";
         TouchPointWP::enqueueActionsStyle('inv-contact');
         $count = 1;
 
@@ -1897,11 +1903,11 @@ class Involvement implements api
                         break;
                 }
                 $link = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
-                $ret  .= "<a class=\"btn button\" href=\"$link\">$text</a>  ";
+                $ret  .= "<a class=\"btn button\" href=\"$link\"$btnClass>$text</a>  ";
                 TouchPointWP::enqueueActionsStyle('inv-register');
             } else {
                 $text = __('Join', TouchPointWP::TEXT_DOMAIN);
-                $ret  .= "<button type=\"button\" data-tp-action=\"join\">$text</button>  ";
+                $ret  .= "<button type=\"button\" data-tp-action=\"join\"$btnClass>$text</button>  ";
                 TouchPointWP::enqueueActionsStyle('inv-join');
             }
             $count++;
@@ -1912,14 +1918,14 @@ class Involvement implements api
             $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
             if ($count > 1) {
                 TouchPointWP::requireScript("fontAwesome");
-                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\"><i class=\"fa-solid fa-location-pin\"></i></button>  " . $ret;
+                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\"$btnClass><i class=\"fa-solid fa-location-pin\"></i></button>  " . $ret;
             } else {
-                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\">$text</button>  " . $ret;
+                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\"$btnClass>$text</button>  " . $ret;
             }
             $count++;
         }
 
-        return apply_filters(TouchPointWP::HOOK_PREFIX . "involvement_actions", $ret, $this, $context);
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "involvement_actions", $ret, $this, $context, $btnClass);
     }
 
     public static function getJsInstantiationString(): string
