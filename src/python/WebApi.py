@@ -304,6 +304,7 @@ elif (Data.a == "ident" and model.HttpMethod == "post"):
                 JOIN People p2 ON p1.FamilyId = p2.FamilyId
             WHERE (p1.EmailAddress = '{0}' OR p1.EmailAddress2 = '{0}')
                 AND (p1.ZipCode LIKE '{1}%' OR f.ZipCode LIKE '{1}%')
+                AND p2.DeceasedDate IS NULL
             ORDER BY""".format(inData.email, inData.zip) + getPersonSortSql('p2')
             # TODO add EV Email archive
 
