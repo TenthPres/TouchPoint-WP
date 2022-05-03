@@ -483,13 +483,12 @@ class Person extends WP_User implements api, JsonSerializable
         if (!is_object($pictureData)) {
             return null;
         }
-        if (!is_array($args))
 
-        if ((!isset($args['height']) || !isset($args['width'])) && !isset($args['size'])) {
+        if (!is_array($args) || (!isset($args['height']) || !isset($args['width'])) && !isset($args['size'])) {
             return $pictureData->large;
         }
-        $h = max($args['size'], $args['height']);
-        $w = max($args['size'], $args['width']);
+        $h = max($args['size'] ?? 0, $args['height'] ?? 0);
+        $w = max($args['size'] ?? 0, $args['width'] ?? 0);
 
         if ($w <= 50 && $h <= 50) {
             return $pictureData->thumb;
