@@ -3,7 +3,7 @@
 import re
 import json
 
-VERSION = "0.0.6"
+VERSION = "0.0.7"
 
 sgContactEvName = "Contact"
 defaultSgTaskDelegatePid = 16371
