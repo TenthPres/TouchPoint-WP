@@ -74,6 +74,10 @@ class TouchPointWP
     public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
     public const TAX_DIV = self::HOOK_PREFIX . "div";
     public const TAX_WEEKDAY = self::HOOK_PREFIX . "weekday";
+    public const TAX_TENSE = self::HOOK_PREFIX . "tense";
+    public const TAX_TENSE_PAST = "past";
+    public const TAX_TENSE_PRESENT = "present";
+    public const TAX_TENSE_FUTURE = "future";
     public const TAX_DAYTIME = self::HOOK_PREFIX . "timeOfDay";
     public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
@@ -1031,8 +1035,9 @@ class TouchPointWP
             }
         }
 
-        // Weekdays
         if ($this->settings->enable_involvements === "on") {
+
+            // Weekdays
             register_taxonomy(
                 self::TAX_WEEKDAY,
                 Involvement_PostTypeSettings::getPostTypes(),
@@ -1077,8 +1082,56 @@ class TouchPointWP
                     self::queueFlushRewriteRules();
                 }
             }
-        }
 
+            // Tenses
+            register_taxonomy(
+                self::TAX_TENSE,
+                Involvement_PostTypeSettings::getPostTypes(),
+                [
+                    'hierarchical'      => false,
+                    'show_ui'           => false,
+                    'description'       => __('Classify involvements by tense (present, future, past)'),
+                    'labels'            => [
+                        'name'          => __('Tenses'),
+                        'singular_name' => __('Tense'),
+                        'search_items'  => __('Search Tenses'),
+                        'all_items'     => __('All Tenses'),
+                        'edit_item'     => __('Edit Tense'),
+                        'update_item'   => __('Update Tense'),
+                        'add_new_item'  => __('Add New Tense'),
+                        'new_item_name' => __('New Tense'),
+                        'menu_name'     => __('Tenses'),
+                    ],
+                    'public'            => true,
+                    'show_in_rest'      => false,
+                    'show_admin_column' => false,
+
+                    // Control the slugs used for this taxonomy
+                    'rewrite'           => [
+                        'slug'         => 'tense',
+                        'with_front'   => false,
+                        'hierarchical' => false
+                    ],
+                ]
+            );
+            foreach ([
+                TouchPointWP::TAX_TENSE_FUTURE => __('Upcoming'),
+                TouchPointWP::TAX_TENSE_PRESENT => __('Current'),
+                TouchPointWP::TAX_TENSE_PAST => __('Past'),
+            ] as $slug => $name) {
+                if ( ! term_exists($slug, self::TAX_TENSE)) {
+                    wp_insert_term(
+                        $name,
+                        self::TAX_TENSE,
+                        [
+                            'description' => $name,
+                            'slug'        => $slug
+                        ]
+                    );
+                    self::queueFlushRewriteRules();
+                }
+            }
+        }
 
         // Time of Day
         if ($this->settings->enable_involvements === "on") {
@@ -1098,7 +1151,7 @@ class TouchPointWP
                         'edit_item'     => __('Edit Time of Day'),
                         'update_item'   => __('Update Time of Day'),
                         'add_new_item'  => __('Add New Time of Day'),
-                        'new_item_name' => __('New Time of Day Name'),
+                        'new_item_name' => __('New Time of Day'),
                         'menu_name'     => __('Times of Day'),
                     ],
                     'public'            => true,

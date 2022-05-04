@@ -107,6 +107,18 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 <!-- /ko -->
             </td>
         </tr>
+        <tr data-bind="">
+            <th>
+                <label for="it-tense" data-bind="attr: { for: 'it-' + slug() + '-tense'}"><?php _e("Default Grouping", TouchPointWP::TEXT_DOMAIN); ?></label>
+            </th>
+            <td colspan="2">
+                <select id="it-tense" data-bind="value: groupBy, attr: { id: 'it-' + slug() + '-tense'}">
+                    <option value=""><?php _e("No Grouping", TouchPointWP::TEXT_DOMAIN); ?></option>
+                    <option value="-<?php echo TouchPointWP::TAX_TENSE; ?>"><?php _e("Upcoming / Current", TouchPointWP::TEXT_DOMAIN); ?></option>
+                    <option value="<?php echo TouchPointWP::TAX_TENSE; ?>"><?php _e("Current / Upcoming", TouchPointWP::TEXT_DOMAIN); ?></option>
+                </select>
+            </td>
+        </tr>
         <tr>
             <th>
                 <?php _e("Default Filters", TouchPointWP::TEXT_DOMAIN); ?>
@@ -142,8 +154,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 </p>
             </td>
         </tr>
-        <!-- TODO action buttons -->
-        <tr data-bind=""><!-- TODO visibility based on action buttons -->
+        <tr data-bind="">
             <th><?php _e("Contact Leader Task Keywords", TouchPointWP::TEXT_DOMAIN); ?></th>
             <td colspan="2" class="column-wrap">
                 <!-- ko foreach: $root.keywords -->
@@ -154,7 +165,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 <!-- /ko -->
             </td>
         </tr>
-        <tr data-bind=""><!-- TODO visibility based on action buttons -->
+        <tr data-bind="">
             <th><?php _e("Join Task Keywords", TouchPointWP::TEXT_DOMAIN); ?></th>
             <td colspan="2" class="column-wrap">
                 <!-- ko foreach: $root.keywords -->
@@ -183,6 +194,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.slug = ko.observable(data.slug ?? "<?php _e("smallgroup", TouchPointWP::TEXT_DOMAIN); ?>").extend({slug: 0});
         this.importDivs = ko.observable(data.importDivs ?? []);
         this.useGeo = ko.observable(data.useGeo ?? false);
+        this.groupBy = ko.observable(data.groupBy ?? "");
         this.leaderTypes = ko.observableArray(data.leaderTypes ?? []);
         this.hostTypes = ko.observableArray(data.hostTypes ?? []);
         this.filters = ko.observableArray(data.filters ?? ['genderId', 'weekday', 'rescode', 'agegroup', 'div']);

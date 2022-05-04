@@ -128,6 +128,7 @@ class Involvement implements api
                 TouchPointWP::TAX_RESCODE,
                 TouchPointWP::TAX_AGEGROUP,
                 TouchPointWP::TAX_WEEKDAY,
+                TouchPointWP::TAX_TENSE,
                 TouchPointWP::TAX_DAYTIME,
                 TouchPointWP::TAX_INV_MARITAL,
                 TouchPointWP::TAX_DIV
@@ -1641,6 +1642,7 @@ class Involvement implements api
                 }
                 continue; // Stop processing this involvement.  This will cause it to be removed.
             }
+            $tense = TouchPointWP::TAX_TENSE_PRESENT;
             if ($inv->firstMeeting !== null && $inv->firstMeeting < $now) { // First meeting already happened.
                 $inv->firstMeeting = null; // We don't need to list info from the past.
             }
@@ -1663,6 +1665,7 @@ class Involvement implements api
                 } else {
                     $dayStr .= ", " . __("starting") . " " . $inv->firstMeeting->format($format);
                 }
+                $tense = TouchPointWP::TAX_TENSE_FUTURE;
             } elseif ($inv->lastMeeting !== null) {
                 if ($dayStr === null) {
                     $dayStr = __("Through") . " " . $inv->lastMeeting->format($format);
@@ -1682,6 +1685,9 @@ class Involvement implements api
                 $dayTerms[] = Utilities::getDayOfWeekShortForNumber(intval($k[1]));
             }
             wp_set_post_terms($post->ID, $dayTerms, TouchPointWP::TAX_WEEKDAY, false);
+
+            // Tense taxonomy
+            wp_set_post_terms($post->ID, [$tense], TouchPointWP::TAX_TENSE, false);
 
             // Time of day taxonomy
             wp_set_post_terms($post->ID, $timeTerms, TouchPointWP::TAX_DAYTIME, false);

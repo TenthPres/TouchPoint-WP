@@ -58,13 +58,13 @@ abstract class Utilities
     public static function getDayOfWeekShortForNumber(int $dayNum): string
     {
         $names = [
-            __('Sun'),
-            __('Mon'),
-            __('Tue'),
-            __('Wed'),
-            __('Thu'),
-            __('Fri'),
-            __('Sat'),
+            'Sun',
+            'Mon',
+            'Tue',
+            'Wed',
+            'Thu',
+            'Fri',
+            'Sat',
         ];
 
         return $names[$dayNum % 7];

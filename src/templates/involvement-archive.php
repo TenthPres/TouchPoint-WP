@@ -29,15 +29,12 @@ get_header($postType);
 $description = get_the_archive_description();
 
 if (have_posts()) {
-    global $wp_the_query;
+    global $wp_query;
 
-    $wp_the_query->set('posts_per_page', -1);
-    $wp_the_query->set('nopaging', true);
-    $wp_the_query->set('orderby', 'title'); // will mostly be overwritten by geographic sort, if available.
-    $wp_the_query->set('order', 'ASC');
-
-    $wp_the_query->get_posts();
-    $wp_the_query->rewind_posts();
+    $wp_query->set('posts_per_page', -1);
+    $wp_query->set('nopaging', true);
+    $wp_query->set('orderby', 'title'); // will mostly be overwritten by geographic sort, if available.
+    $wp_query->set('order', 'ASC');
 
     TouchPointWP::enqueuePartialsStyle();
     ?>
@@ -53,22 +50,65 @@ if (have_posts()) {
             <?php } ?>
         </div>
     </header>
-    <div class="involvement-list">
+
     <?php
 
-    global $posts;
-    usort($posts, [Involvement::class, 'sortPosts']);
+    $terms = [null];
 
-    while ($wp_the_query->have_posts()) {
-        $wp_the_query->the_post();
-        $loadedPart = get_template_part('list-item', 'involvement-list-item');
-        if ($loadedPart === false) {
-            require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
-        }
+    $groupBy = $settings->groupBy;
+    $groupByOrder = "ASC";
+    if (strlen($groupBy) > 1 && $groupBy[0] === "-") {
+        $groupBy = substr($groupBy, 1);
+        $groupByOrder = "DESC";
     }
-    ?>
-    </div>
-    <?php
+
+    if ($groupBy !== "" && taxonomy_exists($groupBy)) {
+        $terms = get_terms([
+            'taxonomy'   => $groupBy,
+            'order'      => $groupByOrder,
+            'orderby'    => 'name',
+            'hide_empty' => true,
+            'fields'     => 'id=>name'
+        ]);
+    }
+
+    foreach ($terms as $termId => $name) {
+        if (count($terms) > 1) {
+            // do the tax filtering
+            $taxQuery = [[
+                'taxonomy' => $groupBy,
+                'field'    => 'term_id',
+                'terms'    => [$termId],
+            ]];
+            $wp_query->tax_query->queries = $taxQuery;
+            $wp_query->query_vars['tax_query'] = $taxQuery;
+            global $posts;
+
+            echo "<h2>$name</h2>";
+        }
+        echo "<div class=\"involvement-list\">";
+
+        global $posts;
+        $posts = $wp_query->get_posts();
+
+        usort($posts, [Involvement::class, 'sortPosts']);
+
+        while ($wp_query->have_posts()) {
+            $wp_query->the_post();
+            $loadedPart = get_template_part('list-item', 'involvement-list-item');
+            if ($loadedPart === false) {
+                require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
+            }
+        }
+
+        echo "</div>";
+        wp_reset_query();
+    }
+    $taxQuery = [[]];
+    $wp_query->tax_query->queries = $taxQuery;
+    $wp_query->query_vars['tax_query'] = $taxQuery;
+    $wp_query->is_tax = false;  // prevents templates from thinking this is a taxonomy archive
+    global $posts;
 } else {
     $loadedPart = get_template_part('list-none', 'involvement-list-none');
     if ($loadedPart === false) {
