@@ -83,10 +83,13 @@ if (have_posts()) {
             $wp_query->tax_query->queries = $taxQuery;
             $wp_query->query_vars['tax_query'] = $taxQuery;
             global $posts;
+        }
 
+        echo "<div class=\"involvement-list\">";
+
+        if (count($terms) > 1) {
             echo "<h2>$name</h2>";
         }
-        echo "<div class=\"involvement-list\">";
 
         global $posts;
         $posts = $wp_query->get_posts();
