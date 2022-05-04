@@ -27,6 +27,11 @@ function utilInit() {
         return str;
     }
 
+    /**
+     *
+     * @param {string} action The name of the action function, minus the word "action"
+     * @param {object} object The object to which the action belongs.
+     */
     tpvm._utils.registerAction = function(action, object) {
         if (typeof object[action + "Action"] === "function") {
             let sc = object.shortClass;
@@ -35,19 +40,27 @@ function utilInit() {
                 return;
             }
             let actionLC = action.toLowerCase();
-            if (!tpvm._actions.hasOwnProperty(action)) {
-                tpvm._actions[actionLC] = () => object[action + "Action"]();
-            } else if (typeof tpvm._actions[actionLC] === "string") {
-                tpvm._actions[actionLC] = 2; // there are at least two items with this.
+            if (!tpvm._actions.hasOwnProperty(actionLC)) {
+                tpvm._actions[actionLC] = [];
             }
+            tpvm._actions[actionLC].push({
+                action: () => object[action + "Action"](),
+                uid: sc + object.id
+            });
         }
     }
 
     tpvm._utils.applyHashForAction = function(action, object) {
-        action = action.toLowerCase();
-        if (typeof tpvm._actions[action] === "string" && typeof object[action + "Action"] === "function") {
+        // Make sure a function exists
+        if (typeof object[action + "Action"] !== "function") {
+            return;
+        }
+
+        // Figure out the needed hash
+        action = action.toLowerCase()
+        if (tpvm._actions[action].length === 1) {
             window.location.hash = "tp-" + action;
-        } else if (typeof tpvm._actions[action] === "number" && typeof object[action + "Action"] === "function") {
+        } else if (tpvm._actions[action].length > 1) {
             window.location.hash = "tp-" + action + "-" + object.shortClass + object.id;
         }
     }
@@ -56,21 +69,29 @@ function utilInit() {
         window.location.hash = "";
     }
 
-    tpvm._utils.handleHash = function() {
+    /**
+     *
+     * @param {?string} limitToAction
+     */
+    tpvm._utils.handleHash = function(limitToAction = null) {
         if (window.location.hash.substring(1, 4) !== "tp-") {
             return;
         }
 
         let [action, identifier] = window.location.hash.toLowerCase().substring(4).split('-', 2);
 
-        // if (identifier === undefined) {
-            let obj = tpvm._actions[action]
-            console.log(obj); // TODO finish this.
-            obj();
-        // }
+        if (tpvm._actions[action] === undefined || (limitToAction !== null && action !== limitToAction.toLowerCase())) {
+            return;
+        }
+        if (tpvm._actions[action].length === 1 && identifier === undefined) {
+            tpvm._actions[action][0].action();
+            return;
+        }
 
-        console.log(action, identifier);
-
+        let obj = tpvm._actions[action].find((t) => t.uid === identifier);
+        if (obj !== undefined && typeof obj.action === "function") {
+            obj.action();
+        }
     }
     tpvm.addEventListener("load", tpvm._utils.handleHash);
 
@@ -376,6 +397,8 @@ class TP_MapMarker
             return;
         }
 
+        tpvm._utils.clearHash();
+
         const mp = this.gMkr.getMap();
         TP_MapMarker.smoothZoom(mp, this.gMkr.getPosition()).then(() => 1)
 
@@ -420,6 +443,7 @@ class TP_MapMarker
 class TP_Mappable {
     name = "";
     post_id = 0;
+    _id = null; // For situations where the ID needs to happen early in the instantiation chain.
 
     geo = {};
 
@@ -447,7 +471,9 @@ class TP_Mappable {
      */
     markers = [];
 
-    constructor(obj) {
+    constructor(obj, id = null) {
+        this._id = id;
+
         if (obj.geo !== undefined && obj.geo !== null && obj.geo.lat !== null && obj.geo.lng !== null) {
             obj.geo.lat = Math.round(obj.geo.lat * 1000) / 1000;
             obj.geo.lng = Math.round(obj.geo.lng * 1000) / 1000;
@@ -565,6 +591,7 @@ class TP_Mappable {
         for (const ei in elts) {
             if (! elts.hasOwnProperty(ei)) continue;
             elts[ei].addEventListener("click", (e) => {
+                tpvm._utils.clearHash();
                 e.preventDefault();
                 map.fitBounds(bounds);
             });
@@ -762,7 +789,7 @@ class TP_Involvement extends TP_Mappable {
     static actions = ['join', 'contact'];
 
     constructor(obj) {
-        super(obj);
+        super(obj, obj.invId);
 
         this.invId = obj.invId;
         this.invType = obj.invType;
@@ -773,7 +800,7 @@ class TP_Involvement extends TP_Mappable {
     }
 
     get id() {
-        return parseInt(this.invId);
+        return parseInt(this._id);
     }
 
     get shortClass() {
