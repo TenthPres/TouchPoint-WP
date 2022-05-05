@@ -284,8 +284,47 @@ elif (Data.a == "ident" and model.HttpMethod == "post"):
         # more than email and zip
 
         pid = model.FindAddPeopleId(inData.firstName, inData.lastName, inData.dob, inData.email, inData.phone)
+        updates = {}
+        p = model.GetPerson(pid)
 
-        model.UpdateNamedField(pid, "ZipCode", inData.zip)
+        # Update Zip code.  Assumes US Zip codes for comparison
+        if inData.zip is not None and len("{}".format(inData.zip)) > 4:
+            if "{}".format(p.Family.ZipCode[0:5]) == "{}".format("{}".format(inData.zip)[0:5]):
+                pass # Family Address already has zip code
+            elif "{}".format(p.ZipCode[0:5]) == "{}".format("{}".format(inData.zip)[0:5]):
+                pass # Person Address already has zip code
+            else:
+                updates['ZipCode'] = "{}".format(inData.zip)
+                updates['AddressLineOne'] = ""
+                updates['AddressLineTwo'] = ""
+                updates['CityName'] = ""
+                updates['StateCode'] = ""
+
+        # Update Phone
+        if inData.phone is not None and len("{}".format(inData.phone)) > 9:
+            cleanPhone = re.sub('[^0-9]', '', "{}".format(inData.phone))
+            if (p.HomePhone == cleanPhone or
+                p.CellPhone == cleanPhone or
+                p.WorkPhone == cleanPhone):
+                pass # Phone already exists somewhere
+            else:
+                updates['CellPhone'] = cleanPhone
+
+        # Update Email
+        if inData.email is not None and len("{}".format(inData.email)) > 5:
+            if (p.EmailAddress.lower() == "{}".format(inData.email).lower() or
+                p.EmailAddress2.lower() == "{}".format(inData.email).lower()):
+                pass # Email already exists somewhere
+            if p.EmailAddress is None or p.EmailAddress == "" or p.SendEmailAddress1 == False:
+                updates['EmailAddress'] = "{}".format(inData.email)
+                updates['SendEmailAddress1'] = True
+            else:
+                updates['EmailAddress2'] = "{}".format(inData.email)
+                updates['SendEmailAddress2'] = True
+
+        # Submit the Updates
+        if updates != {}:
+            model.UpdatePerson(pid, updates)
 
         sql = getPersonInfoSql('p2') + """
                     FROM People p1
