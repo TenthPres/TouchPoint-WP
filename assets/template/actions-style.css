@@ -16,6 +16,15 @@
     text-align: center;
 }
 
+div.swal2-content table.tp-checkbox-list,
+div.swal2-content table.tp-radio-list {
+    text-align: left;
+    margin: 0 auto;
+}
+div.swal2-content table.tp-radio-list {
+    width: 100%;
+}
+
 .tp-swal-container .no-wrap {
     white-space: nowrap;
 }
