@@ -208,6 +208,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'callback'    => fn($new) => $this->validation_updateScriptsIfChanged($new, 'enable_authentication'),
                 ],
                 [
                     'id'          => 'enable_rsvp',
@@ -314,7 +315,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => 'WebApi',
-                    'placeholder' => ''
+                    'placeholder' => '',
                 ],
                 [
                     'id'          => 'google_maps_api_key',
@@ -422,7 +423,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         ),
                         'type'        => 'text',
                         'default'     => 'WebAuth',
-                        'placeholder' => 'WebAuth'
+                        'placeholder' => 'WebAuth',
+                        'callback'    => fn($new) => $this->validation_updateScriptsIfChanged($new, 'auth_script_name'),
                     ],
                     [
                         'id'          => 'auth_default',
@@ -1448,7 +1450,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      *
      * @return string
      */
-    public function validation_secret(string $new, string $field): string
+    protected function validation_secret(string $new, string $field): string
     {
         if ($new === '') { // If there is no value, submit the already-saved one.
             return $this->$field;
@@ -1465,7 +1467,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      *
      * @return string
      */
-    public function validation_slug($new, string $field): string
+    protected function validation_slug($new, string $field): string
     {
         if ($new != $this->$field) { // only validate the field if it's changing.
             $new = $this->validation_lowercase($new);
@@ -1487,6 +1489,22 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     public function validation_lowercase(string $data): string
     {
         return strtolower($data);
+    }
+
+    /**
+     * If a setting is changed that impacts the scripts, update the scripts.
+     *
+     * @param mixed $new the new value, which could be anything
+     * @param string $field The name of the field that's getting updated
+     *
+     * @return mixed lower-case string
+     */
+    protected function validation_updateScriptsIfChanged($new, string $field)
+    {
+        if ($new !== $this->$field) {
+            TouchPointWP::queueUpdateDeployedScripts();
+        }
+        return $new;
     }
 
     /**
