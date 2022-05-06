@@ -1415,6 +1415,10 @@ class Involvement implements api
 
         $invData = $response->invs ?? []; // null coalesce for case where there is no data.
 
+        if ($verbose) {
+            echo "API returned " . count($invData) . " objects";
+        }
+
         $postsToKeep = [];
 
         try {
