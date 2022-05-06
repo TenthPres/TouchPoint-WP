@@ -1255,7 +1255,7 @@ class TP_Person {
         }
 
         // people -- secondary array
-        if (secondaryArray !== null) {
+        if (secondaryArray !== null && secondaryArray.length > 0) {
             out += `</tbody><tbody id="tp_people_list_othersOption" onclick="document.getElementById('tp_people_list_others').style.display = ''; document.getElementById('tp_people_list_othersOption').style.display = 'none';"><tr><th colspan="${options.length + 2}"><a>Other Relatives...</a></th></tr>`;
             out += `</tbody><tbody id="tp_people_list_others" style="display:none;">`;
             for (const pi in secondaryArray) {
@@ -1450,8 +1450,6 @@ class TP_Person {
                     }
                 }).then((result) => {
                     if (result.value) {
-                        console.log(result.value);
-
                         let ps = TP_Person.fromObjArray(result.value.people);
                         tpvm._plausibleUsers = TP_Person.mergePeopleArrays(tpvm._plausibleUsers, ps.filter((p) => result.value.primaryFam.indexOf(p.familyId) > -1));
                         tpvm._secondaryUsers = TP_Person.mergePeopleArrays(tpvm._secondaryUsers, ps.filter((p) => result.value.primaryFam.indexOf(p.familyId) === -1));

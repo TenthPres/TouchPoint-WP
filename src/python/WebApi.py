@@ -378,11 +378,16 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
         sql = """SELECT DISTINCT rf1.fid FROM (
             SELECT rf1a.FamilyId fid, rf1a.RelatedFamilyId rid FROM RelatedFamilies rf1a UNION
             SELECT rf1b.RelatedFamilyId fid, rf1b.FamilyId rid FROM RelatedFamilies rf1b UNION
-            SELECT rf1c.FamilyId fid, rf1c.FamilyId rid FROM RelatedFamilies rf1c
+            SELECT rf1c.RelatedFamilyId fid, rf1c.RelatedFamilyId rid FROM RelatedFamilies rf1c UNION
+			SELECT rf1d.FamilyId fid, rf1d.FamilyId rid FROM RelatedFamilies rf1d
         ) rf1
         WHERE rf1.rid IN ({})""".format(",".join(map(str, inData['fid'])))
 
         inData['fid'] = q.QuerySqlInts(sql)
+
+    for f in Data.primaryFam:
+    	if f not in inData['fid']:
+    		inData['fid'].Add(f)
 
     if len(inData['fid']) > 0:
         Data.a.append("people_get")
