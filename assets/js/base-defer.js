@@ -1120,6 +1120,7 @@ TP_Involvement.init();
 
 class TP_Person {
     peopleId;
+    familyId;
     displayName;
 
     static actions = ['join', 'contact'];
@@ -1224,12 +1225,12 @@ class TP_Person {
     /**
      * Take an array of person-like objects and make a list of radio buttons out of them.  These are NOT TP_People objects. TODO they should be.
      *
-     * @param array TP_Person[]
      * @param options string[]
-     * @param defaultPosition int - the Nth position in the options array should be selected by default.
+     * @param array TP_Person[]
+     * @param secondaryArray TP_Person[]
      */
-    static peopleArrayToRadio(array, options, defaultPosition = -1) {
-        let out = "<form id=\"tp_people_list_radio\"><table class=\"tp-radio-list\"><tbody>"
+    static peopleArrayToRadio(options, array, secondaryArray = null) {
+        let out = "<form id=\"tp_people_list_radio\"><table class=\"tp-radio-list\"><thead>"
 
         // headers
         out += "<tr>";
@@ -1237,9 +1238,9 @@ class TP_Person {
             if (!options.hasOwnProperty(oi)) continue;
             out += `<th>${options[oi]}</th>`
         }
-        out += `<th colspan="2"></th></tr>`;
+        out += `<th colspan="2"></th></tr></thead><tbody>`;
 
-        // people
+        // people -- primary array
         for (const pi in array) {
             if (!array.hasOwnProperty(pi)) continue;
             let p = array[pi];
@@ -1247,11 +1248,28 @@ class TP_Person {
             out += '<tr>'
             for (const oi in options) {
                 if (!options.hasOwnProperty(oi)) continue;
-                let selected = (parseInt(oi, 10) === defaultPosition ? "selected" : "")
-                out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${options[oi]}" value="${options[oi]}" ${selected} /></td>`
+                out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${options[oi]}" value="${options[oi]}" /></td>`
             }
             out += `<td><a href="#" class="swal-tp-clear-item" onclick="TP_Person.clearRadio('${p.peopleId}'); return false;">clear</a></td>`
             out += `<td style="text-align:left; width:50%;">${p.goesBy} ${p.lastName}</td></tr>`
+        }
+
+        // people -- secondary array
+        if (secondaryArray !== null) {
+            out += `</tbody><tbody id="tp_people_list_othersOption" onclick="document.getElementById('tp_people_list_others').style.display = ''; document.getElementById('tp_people_list_othersOption').style.display = 'none';"><tr><th colspan="${options.length + 2}"><a>Other Relatives...</a></th></tr>`;
+            out += `</tbody><tbody id="tp_people_list_others" style="display:none;">`;
+            for (const pi in secondaryArray) {
+                if (!secondaryArray.hasOwnProperty(pi)) continue;
+                let p = secondaryArray[pi];
+
+                out += '<tr>'
+                for (const oi in options) {
+                    if (!options.hasOwnProperty(oi)) continue;
+                    out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${options[oi]}" value="${options[oi]}" /></td>`
+                }
+                out += `<td><a href="#" class="swal-tp-clear-item" onclick="TP_Person.clearRadio('${p.peopleId}'); return false;">clear</a></td>`
+                out += `<td style="text-align:left; width:50%;">${p.goesBy} ${p.lastName}</td></tr>`
+            }
         }
 
         return out + "</tbody></table></form>"
@@ -1303,8 +1321,8 @@ class TP_Person {
                         message = form.getElementsByTagName('textarea')[0].value;
 
                     if (message.length < 5) {
-                        let prompt = document.getElementById('swal-tp-text');
-                        prompt.innerText = "Please provide a message.";
+                        let prompt = document.getElementById('swal2-title');
+                        prompt.innerText = "Please Provide a Message.";
                         prompt.classList.add('error')
                         return false;
                     }
@@ -1432,8 +1450,11 @@ class TP_Person {
                     }
                 }).then((result) => {
                     if (result.value) {
-                        let p = TP_Person.fromObjArray(result.value.people);
-                        tpvm._plausibleUsers = TP_Person.mergePeopleArrays(tpvm._plausibleUsers, p);
+                        console.log(result.value);
+
+                        let ps = TP_Person.fromObjArray(result.value.people);
+                        tpvm._plausibleUsers = TP_Person.mergePeopleArrays(tpvm._plausibleUsers, ps.filter((p) => result.value.primaryFam.indexOf(p.familyId) > -1));
+                        tpvm._secondaryUsers = TP_Person.mergePeopleArrays(tpvm._secondaryUsers, ps.filter((p) => result.value.primaryFam.indexOf(p.familyId) === -1));
                     }
 
                     if (result.isDismissed) {

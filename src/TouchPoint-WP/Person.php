@@ -990,7 +990,6 @@ class Person extends WP_User implements api, JsonSerializable
         }
     }
 
-
     /**
      * Take an array of people-ish objects and return a nicely human-readable list of names.
      *
@@ -1096,7 +1095,7 @@ class Person extends WP_User implements api, JsonSerializable
         $inputData = TouchPointWP::postHeadersAndFiltering();
 
         try {
-            $data = TouchPointWP::instance()->apiPost('ident', json_decode($inputData));
+            $data = TouchPointWP::instance()->apiPost('ident', json_decode($inputData), 30);
         } catch (Exception $ex) {
             echo json_encode(['error' => $ex->getMessage()]);
             exit;
@@ -1108,12 +1107,19 @@ class Person extends WP_User implements api, JsonSerializable
 
         $ret = [];
         foreach ($people as $p) {
-            $p->lastName = $p->lastName[0] ? $p->lastName[0] . "." : "";
-            unset($p->lastInitial);
-            $ret[] = $p;
+            $ret[] = [
+                'goesBy' => $p->GoesBy,
+                'lastName' => $p->LastName[0] ? $p->LastName[0] . "." : "",
+                'displayName' => trim($p->GoesBy . " " . ($p->LastName[0] ? $p->LastName[0] . "." : "")),
+                'familyId' => $p->FamilyId,
+                'peopleId' => $p->PeopleId
+            ];
         }
 
-        echo json_encode(['people' => $ret]);
+        echo json_encode([
+            'people' => $ret,
+            'primaryFam' => $data->primaryFam ?? []
+        ]);
         exit;
     }
 

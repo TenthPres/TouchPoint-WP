@@ -2373,7 +2373,7 @@ class TouchPointWP
     }
 
     /**
-     * Submit a person query with a structured array with the parameters.
+     * Submit a person query to TouchPoint with a structured array with the parameters.
      *
      * @param array $q
      * @param bool  $verbose
@@ -2392,6 +2392,7 @@ class TouchPointWP
             throw new TouchPointWP_Exception(__("People Query Failed", self::TEXT_DOMAIN), 179004);
         }
 
+        /** @noinspection PhpCastIsUnnecessaryInspection -- It actually is. */
         $data->people = (array)$data->people;
 
         if ($verbose) {

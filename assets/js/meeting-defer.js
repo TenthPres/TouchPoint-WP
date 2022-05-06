@@ -218,7 +218,7 @@ class TP_Meeting {
             }
 
             return Swal.fire({
-                html: `<p id="swal-tp-text">Who is coming?</p><p class="small swal-tp-instruction">Indicate who is or is not coming.  This will overwrite any existing RSVP.  <br />To avoid overwriting an existing RSVP, leave that person blank.  <br />To protect privacy, we won't show existing RSVPs here.</p></i>` + TP_Person.peopleArrayToRadio(people, ['Yes', 'No']),
+                html: `<p id="swal-tp-text">Who is coming?</p><p class="small swal-tp-instruction">Indicate who is or is not coming.  This will overwrite any existing RSVP.  <br />To avoid overwriting an existing RSVP, leave that person blank.  <br />To protect privacy, we won't show existing RSVPs here.</p></i>` + TP_Person.peopleArrayToRadio(['Yes', 'No'], people, tpvm._secondaryUsers),
                 customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,

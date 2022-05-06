@@ -64,7 +64,9 @@ def getPersonInfoForSync(PersonObj):
     p.GenderId = PersonObj.GenderId
     return p
 
-if (Data.a == "Divisions"):
+Data.a = Data.a.split(',')
+
+if ("Divisions" in Data.a):
     divSql = '''
     SELECT d.id,
         CONCAT(p.name, ' : ', d.name) as name,
@@ -78,22 +80,22 @@ if (Data.a == "Divisions"):
     Data.Title = "All Divisions"
     Data.divs = q.QuerySql(divSql, {})
 
-elif (Data.a == "ResCodes"):
+if ("ResCodes" in Data.a):
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.ResidentCode'''
     Data.Title = "All Resident Codes"
     Data.resCodes = q.QuerySql(rcSql, {})
 
-elif (Data.a == "Genders"):
+if ("Genders" in Data.a):
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.Gender'''
     Data.Title = "All Genders"
     Data.genders = q.QuerySql(rcSql, {})
 
-elif (Data.a == "Keywords"):
+if (Data.a == "Keywords" in Data.a):
     kwSql = '''SELECT KeywordId as Id, Code, Description as Name FROM Keyword ORDER BY Code'''
     Data.Title = "All Keywords"
     Data.keywords = q.QuerySql(kwSql, {})
 
-elif (Data.a == "PersonEvFields"):
+if (Data.a == "PersonEvFields" in Data.a):
     pevSql = '''SELECT Field, [Type], count(*) as Count,
                 CONCAT('pev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM PeopleExtra WHERE [Field] NOT LIKE '%_mv'
@@ -101,7 +103,7 @@ elif (Data.a == "PersonEvFields"):
     Data.Title = "Person Extra Value Fields"
     Data.personEvFields = q.QuerySql(pevSql, {})
 
-elif (Data.a == "FamilyEvFields"):
+if (Data.a == "FamilyEvFields" in Data.a):
     fevSql = '''SELECT Field, [Type], count(*) as Count,
                 CONCAT('fev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM FamilyExtra WHERE [Field] NOT LIKE '%_mv'
@@ -109,7 +111,7 @@ elif (Data.a == "FamilyEvFields"):
     Data.Title = "Family Extra Value Fields"
     Data.familyEvFields = q.QuerySql(fevSql, {})
 
-elif (Data.a == "SavedSearches"):
+if (Data.a == "SavedSearches" in Data.a):
     Data.savedSearches = model.DynamicData()
 
     if Data.PeopleId == '':
@@ -138,7 +140,7 @@ elif (Data.a == "SavedSearches"):
 
     Data.Title = "Saved Searches"
 
-elif (Data.a == "InvsForDivs"):
+if ("InvsForDivs" in Data.a):
     regex = re.compile('[^0-9\,]')
     divs = regex.sub('', Data.divs)
 
@@ -260,7 +262,7 @@ elif (Data.a == "InvsForDivs"):
 
     Data.invev = model.SqlListDynamicData(invEvSql) # TODO move to separate request
 
-elif (Data.a == "MemTypes"):
+if ("MemTypes" in Data.a):
     divs = Data.divs or ""
 
     regex = re.compile('[^0-9\,]')
@@ -275,42 +277,48 @@ elif (Data.a == "MemTypes"):
 
     Data.memTypes = model.SqlListDynamicData(memTypeSql)
 
-elif (Data.a == "updateScripts" and model.HttpMethod == "post"):
+
+
+# Start POST requests
+
+inData = json.loads(Data.data)['inputData']
+
+
+
+if ("updateScripts" in Data.a and model.HttpMethod == "post"):
     Data.Title = 'Updating Scripts'
-    inData = json.loads(Data.data)['inputData']
     Data.scriptsUpdated = 0
     for filename, content in inData.items():
         model.WriteContentPython(filename, content, "Web")
         Data.scriptsUpdated = Data.scriptsUpdated + 1
     Data.data = None
 
-elif (Data.a == "ident" and model.HttpMethod == "post"):
+if ("ident" in Data.a and model.HttpMethod == "post"):
     Data.Title = 'Matching People'
-    inData = model.JsonDeserialize(Data.data).inputData
 
-    if inData.firstName is not None and inData.lastName is not None:
+    if inData.has_key('firstName') and inData.has_key('lastName') and inData['firstName'] is not None and inData['firstName'] is not None:
         # more than email and zip
 
-        pid = model.FindAddPeopleId(inData.firstName, inData.lastName, inData.dob, inData.email, inData.phone)
+        pid = model.FindAddPeopleId(inData['firstName'], inData['lastName'], inData['dbo'], inData['email'], inData['phone'])
         updates = {}
         p = model.GetPerson(pid)
 
         # Update Zip code.  Assumes US Zip codes for comparison
-        if inData.zip is not None and len("{}".format(inData.zip)) > 4:
-            if "{}".format(p.Family.ZipCode[0:5]) == "{}".format("{}".format(inData.zip)[0:5]):
+        if inData.has_key('zip') and inData['zip'] is not None and len(inData['zip']) > 4:
+            if "{}".format(p.Family.ZipCode[0:5]) == "{}".format(inData['zip'][0:5]):
                 pass # Family Address already has zip code
-            elif "{}".format(p.ZipCode[0:5]) == "{}".format("{}".format(inData.zip)[0:5]):
+            elif "{}".format(p.ZipCode[0:5]) == "{}".format(inData['zip'][0:5]):
                 pass # Person Address already has zip code
             else:
-                updates['ZipCode'] = "{}".format(inData.zip)
+                updates['ZipCode'] = "{}".format(inData['zip'])
                 updates['AddressLineOne'] = ""
                 updates['AddressLineTwo'] = ""
                 updates['CityName'] = ""
                 updates['StateCode'] = ""
 
         # Update Phone
-        if inData.phone is not None and len("{}".format(inData.phone)) > 9:
-            cleanPhone = re.sub('[^0-9]', '', "{}".format(inData.phone))
+        if inData.has_key('phone') and inData['phone'] is not None and len(inData['phone']) > 9:
+            cleanPhone = re.sub('[^0-9]', '', inData['phone'])
             if (p.HomePhone == cleanPhone or
                 p.CellPhone == cleanPhone or
                 p.WorkPhone == cleanPhone):
@@ -319,45 +327,67 @@ elif (Data.a == "ident" and model.HttpMethod == "post"):
                 updates['CellPhone'] = cleanPhone
 
         # Update Email
-        if inData.email is not None and len("{}".format(inData.email)) > 5:
-            if (p.EmailAddress.lower() == "{}".format(inData.email).lower() or
-                p.EmailAddress2.lower() == "{}".format(inData.email).lower()):
+        if inData.has_key('email') and inData['email'] is not None and len(inData['email']) > 5:
+            if (p.EmailAddress.lower() == inData['email'].lower() or
+                p.EmailAddress2.lower() == inData['email'].lower()):
                 pass # Email already exists somewhere
-            if p.EmailAddress is None or p.EmailAddress == "" or p.SendEmailAddress1 == False:
-                updates['EmailAddress'] = "{}".format(inData.email)
+            elif p.EmailAddress is None or p.EmailAddress == "" or p.SendEmailAddress1 == False:
+                updates['EmailAddress'] = "{}".format(inData['email'])
                 updates['SendEmailAddress1'] = True
             else:
-                updates['EmailAddress2'] = "{}".format(inData.email)
+                updates['EmailAddress2'] = "{}".format(inData['email'])
                 updates['SendEmailAddress2'] = True
 
         # Submit the Updates
         if updates != {}:
             model.UpdatePerson(pid, updates)
 
-        sql = getPersonInfoSql('p2') + """
-                    FROM People p1
-                        JOIN Families f ON p1.FamilyId = f.FamilyId
-                        JOIN People p2 ON p1.FamilyId = p2.FamilyId
-                    WHERE p1.peopleId = {0}
-                    ORDER BY""".format(pid) + getPersonSortSql('p2')
-        Data.people = model.SqlListDynamicData(sql)
+        inData['fid'] = [p.FamilyId]
 
     else:
         # email and zip only
 
-        sql = getPersonInfoSql('p2') + """
+        sql = """SELECT p1.FamilyId
             FROM People p1
                 JOIN Families f ON p1.FamilyId = f.FamilyId
-                JOIN People p2 ON p1.FamilyId = p2.FamilyId
             WHERE (p1.EmailAddress = '{0}' OR p1.EmailAddress2 = '{0}')
-                AND (p1.ZipCode LIKE '{1}%' OR f.ZipCode LIKE '{1}%')
-                AND p2.DeceasedDate IS NULL
-            ORDER BY""".format(inData.email, inData.zip) + getPersonSortSql('p2')
+                AND (p1.ZipCode LIKE '{1}%' OR f.ZipCode LIKE '{1}%')""".format(inData['email'], inData['zip'])
             # TODO add EV Email archive
 
-        Data.people = model.SqlListDynamicData(sql)
+        inData['fid'] = q.QuerySqlInts(sql)
 
-elif (Data.a == "inv_join" and model.HttpMethod == "post"):
+    Data.primaryFam = inData['fid']
+    degreesOfSep = int(model.Setting("RegisterRelatedFamilies", "0"))
+
+    if degreesOfSep > 1:
+        sql = """SELECT DISTINCT rf1.fid FROM (
+            SELECT rf1a.FamilyId fid, rf1a.RelatedFamilyId rid FROM RelatedFamilies rf1a UNION
+            SELECT rf1b.RelatedFamilyId fid, rf1b.FamilyId rid FROM RelatedFamilies rf1b UNION
+            SELECT rf1c.RelatedFamilyId fid, rf1c.RelatedFamilyId rid FROM RelatedFamilies rf1c UNION
+            SELECT rf1d.FamilyId fid, rf1d.FamilyId rid FROM RelatedFamilies rf1d
+        ) rf1 JOIN
+        (
+            SELECT rf2a.FamilyId fid, rf2a.RelatedFamilyId rid FROM RelatedFamilies rf2a UNION
+            SELECT rf2b.RelatedFamilyId fid, rf2b.FamilyId rid FROM RelatedFamilies rf2b
+        ) rf2 ON (rf1.rid = rf2.fid)
+        WHERE rf2.rid IN ({})""".format(",".join(map(str, inData['fid'])))
+
+        inData['fid'] = q.QuerySqlInts(sql)
+        
+    elif degreesOfSep == 1:
+        sql = """SELECT DISTINCT rf1.fid FROM (
+            SELECT rf1a.FamilyId fid, rf1a.RelatedFamilyId rid FROM RelatedFamilies rf1a UNION
+            SELECT rf1b.RelatedFamilyId fid, rf1b.FamilyId rid FROM RelatedFamilies rf1b UNION
+            SELECT rf1c.FamilyId fid, rf1c.FamilyId rid FROM RelatedFamilies rf1c
+        ) rf1
+        WHERE rf1.rid IN ({})""".format(",".join(map(str, inData['fid'])))
+
+        inData['fid'] = q.QuerySqlInts(sql)
+
+    if len(inData['fid']) > 0:
+        Data.a.append("people_get")
+
+if ("inv_join" in Data.a and model.HttpMethod == "post"):
     Data.Title = 'Adding people to Involvement'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -394,7 +424,7 @@ They have also been added to your roster as prospective members.  Please move th
         model.CreateTaskNote(defaultSgTaskDelegatePid, addPeople[0].PeopleId, orgContactPid,
             None, False, text, None, None, keywords)
 
-elif (Data.a == "inv_contact" and model.HttpMethod == "post"):
+if ("inv_contact" in Data.a and model.HttpMethod == "post"):
     # TODO potentially merge with Join function.  Much of the code is duplicated.
     Data.Title = 'Contacting Involvement Leaders'
     inData = model.JsonDeserialize(Data.data).inputData
@@ -426,7 +456,7 @@ elif (Data.a == "inv_contact" and model.HttpMethod == "post"):
     Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
 
 
-elif (Data.a == "person_wpIds" and model.HttpMethod == "post"):
+if ("person_wpIds" in Data.a and model.HttpMethod == "post"):
     Data.Title = 'Updating WordPress IDs.'
     inData = model.JsonDeserialize(Data.data).inputData
     Data.success = 0
@@ -438,7 +468,7 @@ elif (Data.a == "person_wpIds" and model.HttpMethod == "post"):
         Data.success += 1
 
 
-elif (Data.a == "person_contact" and model.HttpMethod == "post"):
+if ("person_contact" in Data.a and model.HttpMethod == "post"):
     # TODO potentially merge with Join function.  Much of the code is duplicated.
     Data.Title = 'Contacting Person'
     inData = model.JsonDeserialize(Data.data).inputData
@@ -462,7 +492,7 @@ elif (Data.a == "person_contact" and model.HttpMethod == "post"):
     Data.success.append({'pid': p.peopleId, 'to': t})
 
 
-elif (Data.a == "mtg" and model.HttpMethod == "post"):
+if ("mtg" in Data.a and model.HttpMethod == "post"):
     Data.Title = 'Getting Meeting Info'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -488,7 +518,8 @@ elif (Data.a == "mtg" and model.HttpMethod == "post"):
         mtg.invName = mtg.invName.strip()
         Data.success.append(mtg)
 
-elif (Data.a == "mtg_rsvp" and model.HttpMethod == "post"):
+
+if ("mtg_rsvp" in Data.a and model.HttpMethod == "post"):
     Data.Title = 'Recording RSVPs'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -505,49 +536,59 @@ elif (Data.a == "mtg_rsvp" and model.HttpMethod == "post"):
             Data.success.append(pid)
 
 
-elif (Data.a == "people_get" and model.HttpMethod == "post"):
+if ("people_get" in Data.a and model.HttpMethod == "post"):
     Data.Title = 'People Query'
-    inData = json.loads(Data.data)['inputData']
 
     rules = []
     invsMembershipsToImport = []
     invsMemSubGroupsToImport = {}
     joiner = "OR"
-    sort = str(inData['groupBy']) # hypothetically should help speed grouping
+    if inData.has_key('groupBy'):
+        sort = str(inData['groupBy']) # hypothetically should help speed grouping
+    else:
+        sort = ""
 
     # People Ids
-    for pid in inData['pid']:
-        rules.append("PeopleId = {}".format(pid))
+    if inData.has_key('pid'):
+        for pid in inData['pid']:
+            rules.append("PeopleId = {}".format(pid))
+
+    # Family Ids
+    if inData.has_key('fid'):
+        for fid in inData['fid']:
+            rules.append("FamilyId = {}".format(fid))
 
     # Involvements
-    for iid in inData['inv']:
-        if inData['inv'][iid]['memTypes'] == None:
-            rules.append("IsMemberOf( Org={} ) = 1".format(iid))
-
-        if not iid in invsMembershipsToImport:
-            invsMembershipsToImport.append(iid)
-
-            # if inData['inv'][iid]['with_memTypes'] == True:
-            #    invsMemSubGroupsToImport[iid] = inData['inv'][iid]['memTypes']
+    if inData.has_key('inv'):
+        for iid in inData['inv']:
+            if inData['inv'][iid]['memTypes'] == None:
+                rules.append("IsMemberOf( Org={} ) = 1".format(iid))
+    
+            if not iid in invsMembershipsToImport:
+                invsMembershipsToImport.append(iid)
+    
+                # if inData['inv'][iid]['with_memTypes'] == True:
+                #    invsMemSubGroupsToImport[iid] = inData['inv'][iid]['memTypes']
 
     # Saved Searches (incl status flags)
-    for si in inData['src']:
-        if len(si) == 3 and si[0].upper() == "F" and si[1:3].isnumeric(): # status flag
-            rules.append("StatusFlag = '{}'".format(si))
-        elif re.match('[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}', si, re.I):
-            rules.append("SavedQuery(SavedQuery='{}') = 1".format(si))
+    if inData.has_key('inv'):
+        for si in inData['src']:
+            if len(si) == 3 and si[0].upper() == "F" and si[1:3].isnumeric(): # status flag
+                rules.append("StatusFlag = '{}'".format(si))
+            elif re.match('[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}', si, re.I):
+                rules.append("SavedQuery(SavedQuery='{}') = 1".format(si))
 
     joiner = " " + joiner + " "
     rules = joiner.join(rules)
 
-    if inData['groupBy'] is None:
+    if not inData.has_key('groupBy') or inData['groupBy'] is None:
         outPeople = []
     else:
         outPeople = {}
 
     # Prep SQL for People Extra Values
     pevSql = ''
-    if isinstance(inData['meta'], dict) and inData['meta'].has_key('pev'):
+    if inData.has_key('meta') and isinstance(inData['meta'], dict) and inData['meta'].has_key('pev'):
         pevSql = []
         for pev in inData['meta']['pev']:
             pevSql.append("([Field] = '{}' AND [Type] = '{}')".format(pev['field'], pev['type']))
@@ -558,7 +599,7 @@ elif (Data.a == "people_get" and model.HttpMethod == "post"):
 
     fevSql = ''
     useFamGeo = False
-    if isinstance(inData['meta'], dict) and inData['meta'].has_key('fev') and inData['groupBy'] == "FamilyId":
+    if inData.has_key('meta') and isinstance(inData['meta'], dict) and inData['meta'].has_key('fev') and inData['groupBy'] == "FamilyId":
         useFamGeo = isinstance(inData['meta'], dict) and inData['meta'].has_key('geo')
         fevSql = []
         for fev in inData['meta']['fev']:
@@ -602,7 +643,7 @@ elif (Data.a == "people_get" and model.HttpMethod == "post"):
                     'value': pev.Data
                 }
 
-        if inData['groupBy'] is None:
+        if not inData.has_key('groupBy') or inData['groupBy'] is None:
             outPeople.append(pr)
         else:
             grpId = getattr(po, inData['groupBy'])
@@ -642,6 +683,8 @@ elif (Data.a == "people_get" and model.HttpMethod == "post"):
             outPeople[grpId]["People"].append(pr)
 
     Data.people = outPeople
+
+    Data.inData = inData
 
     Data.rules = rules  # handy for debugging TODO remove, probably.
 
