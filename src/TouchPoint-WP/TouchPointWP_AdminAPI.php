@@ -15,6 +15,8 @@ if ( ! defined('ABSPATH')) {
  */
 class TouchPointWP_AdminAPI implements api {
 
+    public const API_ENDPOINT_SCRIPTZIP = "scriptzip";
+
     /**
      * Constructor function
      */
@@ -37,9 +39,58 @@ class TouchPointWP_AdminAPI implements api {
                 $mt = TouchPointWP::instance()->getMemberTypesForDivisions($divs);
                 echo json_encode($mt);
                 exit;
+
+            case self::API_ENDPOINT_SCRIPTZIP:
+                if (!current_user_can('administrator')) {
+                    return false;
+                }
+                if (!TouchPointWP::instance()->admin()->generateAndEchoPython()) {
+                    // something went wrong...
+                    return false;
+                }
+                exit;
+
+            case "scriptupdate":
+                if (!current_user_can('administrator')) {
+                    return false;
+                }
+                TouchPointWP::instance()->settings->updateDeployedScripts();
+                echo "Success";
+                exit;
+
+            case "force-migrate":
+                if (!current_user_can('administrator')) {
+                    return false;
+                }
+                TouchPointWP::instance()->settings->migrate();
+                exit;
         }
 
         return false;
+    }
+
+    /**
+     * Generate scripts package and send to client.
+     *
+     * There needs to be a permission check elsewhere, before this method is called.
+     *
+     * @return bool True on success, False on failure.
+     */
+    private function generateAndEchoPython(): bool
+    {
+        try {
+            $fileName = $this->generatePython(true);
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
+
+        TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
+        header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
+        header('Content-type: application/zip');
+
+        readfile($fileName);
+        unlink($fileName);
+        return true;
     }
 
     /**
@@ -290,17 +341,28 @@ class TouchPointWP_AdminAPI implements api {
 
     /**
      * Generate the python scripts to be uploaded to TouchPoint.
+     *
+     * @param bool  $toZip Set true to combine into a Zip file.
+     * @param array $filenames  Indicate which files should be included, and what they should be called in repoName => newName.
+     * Add '*' to the array to include all files regardless of name.  Existing name will be used by default.
+     *
+     * @return string|array If toZip is true, returns the file path of the zip file.  If toZip is false, returns an array of filename => content.
+     * @throws TouchPointWP_Exception
      */
-    public function generatePython() {
-
-        if (! class_exists('\ZipArchive')) {
-            return new TouchPointWP_Exception("ZipArchive extension is not enabled.");
+    public function generatePython(bool $toZip, array $filenames = ['*'])
+    {
+        if ($toZip && !class_exists('\ZipArchive')) {
+            throw new TouchPointWP_Exception("ZipArchive extension is not enabled.");
         }
 
-        $outZipPath = tempnam(sys_get_temp_dir(), 'TouchPoint-WP-Scripts.zip');
-        $z = new ZipArchive();
-        if (! $z->open($outZipPath, ZipArchive::CREATE) ){
-            return new TouchPointWP_Exception("Could not create a zip file for the scripts");
+        $out = [];
+        $za = null;
+        if ($toZip) {
+            $out = tempnam(sys_get_temp_dir(), 'TouchPoint-WP-Scripts.zip');
+            $za  = new ZipArchive();
+            if ($out === false || ! $za->open($out, ZipArchive::CREATE)) {
+                throw new TouchPointWP_Exception("Could not create a zip file for the scripts");
+            }
         }
 
         $directory = str_replace('\\', '/', __DIR__ . "/../python/");
@@ -308,7 +370,20 @@ class TouchPointWP_AdminAPI implements api {
 
         // Static Python files
         foreach ( glob($directory . '*.py') as $file ) {
-            $z->addFile($file, substr($file, $fnIndex));
+            $fn = substr($file, $fnIndex, -3);
+
+            if (!in_array('*', $filenames) && !isset($filenames[$fn])) {
+                continue;
+            }
+            if (isset($filenames[$fn])) {
+                $fn = $filenames[$fn];
+            }
+
+            if ($toZip) {
+                $za->addFile($file, $fn . ".py");
+            } else {
+                $out[$fn] = file_get_contents($file);
+            }
         }
 
         // Python files generated via PHP
@@ -316,16 +391,34 @@ class TouchPointWP_AdminAPI implements api {
         // Set variables for scripts
         $host = get_site_url();
         foreach ( glob($directory . '*.php') as $file ) {
+            $fn = substr($file, $fnIndex, -4);
+
+            if (!in_array('*', $filenames) && !isset($filenames[$fn])) {
+                continue;
+            }
+            if (isset($filenames[$fn])) {
+                $fn = $filenames[$fn];
+            }
+
             include $file; // TODO SOMEDAY This really should be in a sandbox if that were possible.
-            $fn = substr($file, $fnIndex, -3) . "py";
             $content = ob_get_clean();
-            $z->addFromString($fn, $content);
+
+            if ($toZip) {
+                $za->addFromString($fn . ".py", $content);
+            } else {
+                $out[$fn] = $content;
+            }
         }
         ob_end_clean();
 
-        // Commit and return file
-        $z->close();
-        return $outZipPath;
+        if ($toZip) {
+            // Commit and return file
+            $za->close();
+            return $out;
+        }
+
+        // return either zip location or array with content.
+        return $out;
     }
 
     /**

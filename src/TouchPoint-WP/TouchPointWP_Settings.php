@@ -345,7 +345,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 <p><a href="{apiUrl}" class="button-secondary" target="tp_zipIfr">' . __('Generate Scripts', TouchPointWP::TEXT_DOMAIN) . '</a></p>
 <iframe name="tp_zipIfr" style="width:0; height:0; opacity:0;"></iframe>',
                     [
-                        '{apiUrl}'    => "/" . TouchPointWP::API_ENDPOINT . "/" . TouchPointWP::API_ENDPOINT_GENERATE_SCRIPTS,
+                        '{apiUrl}'    => "/" . TouchPointWP::API_ENDPOINT . "/" . TouchPointWP::API_ENDPOINT_ADMIN_SCRIPTZIP,
                         '{tpName}'    => $this->get('system_name'),
                         '{uploadUrl}' => "https://" . $this->get('host') . "/InstallPyScriptProject"
                     ]
@@ -1157,6 +1157,14 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     {
         global $wpdb;
 
+        try {
+            $this->updateDeployedScripts();
+        } catch (TouchPointWP_Exception $e) {
+            if (is_admin()) {
+                TouchPointWP_AdminAPI::showError($e->getMessage());
+            }
+        }
+
         // 0.0.4 to 0.0.5 -- Merging Small Groups and Courses Components into a single Involvement Component
         $sgEnabled = $this->getWithoutDefault('enable_small_groups') === "on";
         $csEnabled = $this->getWithoutDefault('enable_courses') === "on";
@@ -1234,6 +1242,28 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
         // Update version string
         $this->set('version', TouchPointWP::VERSION);
+    }
+
+    /**
+     * Generate new scripts and deploy to TouchPoint.
+     *
+     * @return void
+     * @throws TouchPointWP_Exception
+     */
+    public function updateDeployedScripts(): void
+    {
+        $scripts = ["WebApi" => TouchPointWP::instance()->settings->api_script_name];
+        if (TouchPointWP::instance()->settings->enable_authentication) {
+            $scripts["WebAuth"] = TouchPointWP::instance()->settings->auth_script_name;
+        }
+
+        $scriptContent = TouchPointWP::instance()->admin()->generatePython(false, $scripts);
+        $data = TouchPointWP::instance()->apiPost('updateScripts', $scriptContent, 60);
+        $updates = $data->scriptsUpdated ?? 0;
+
+        if (count($scriptContent) !== $updates) {
+            throw new TouchPointWP_Exception(__("Script Update Failed", TouchPointWP::TEXT_DOMAIN), 170004);
+        }
     }
 
     /**

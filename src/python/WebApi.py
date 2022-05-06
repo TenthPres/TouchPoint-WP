@@ -275,6 +275,14 @@ elif (Data.a == "MemTypes"):
 
     Data.memTypes = model.SqlListDynamicData(memTypeSql)
 
+elif (Data.a == "updateScripts" and model.HttpMethod == "post"):
+    Data.Title = 'Updating Scripts'
+    inData = json.loads(Data.data)['inputData']
+    Data.scriptsUpdated = 0
+    for filename, content in inData.items():
+        model.WriteContentPython(filename, content, "Web")
+        Data.scriptsUpdated = Data.scriptsUpdated + 1
+    Data.data = None
 
 elif (Data.a == "ident" and model.HttpMethod == "post"):
     Data.Title = 'Matching People'

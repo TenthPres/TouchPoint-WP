@@ -51,6 +51,7 @@ class TouchPointWP
     public const API_ENDPOINT_PERSON = "person";
     public const API_ENDPOINT_MEETING = "mtg";
     public const API_ENDPOINT_ADMIN = "admin";
+    public const API_ENDPOINT_ADMIN_SCRIPTZIP = "admin/scriptzip";
     public const API_ENDPOINT_CLEANUP = "cleanup";
     public const API_ENDPOINT_GEOLOCATE = "geolocate";
 
@@ -226,6 +227,7 @@ class TouchPointWP
         self::scheduleCleanup();
     }
 
+
     public function admin(): TouchPointWP_AdminAPI
     {
         if ($this->admin === null) {
@@ -389,18 +391,6 @@ class TouchPointWP
                 }
             }
 
-            // Generate Python Scripts TODO move to admin
-            if ($reqUri['path'][1] === self::API_ENDPOINT_GENERATE_SCRIPTS &&
-                count($reqUri['path']) === 2 &&
-                current_user_can('administrator')) {
-
-                if (!$this->generateAndEchoPython()) {
-                    // something went wrong...
-                    return $continue;
-                }
-                exit;
-            }
-
             // Geolocate via IP TODO rework to minimize extra requests
             if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_GEOLOCATE &&
                 count($reqUri['path']) === 2) {
@@ -447,31 +437,6 @@ class TouchPointWP
             }
         }
         return $clauses;
-    }
-
-    /**
-     * Generate scripts package and send to client.
-     *
-     * There needs to be a permission check elsewhere, before this method is called.
-     *
-     * @return bool True on success, False on failure.
-     */
-    private function generateAndEchoPython(): bool
-    {
-        $fileName = $this->admin()->generatePython();
-
-        if (! is_string($fileName)) {
-            // something went wrong...
-            return false;
-        }
-
-        TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
-        header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
-        header('Content-type: application/zip');
-
-        readfile($fileName);
-        unlink ($fileName);
-        return true;
     }
 
     /**
@@ -621,6 +586,9 @@ class TouchPointWP
 
         // If any slugs have changed, flush.  Only executes if already enqueued.
         self::instance()->flushRewriteRules();
+
+        // If the scripts need to be updated, do that.
+        self::instance()->updateDeployedScripts();
 
         self::requireScript("base");
     }
@@ -1457,8 +1425,6 @@ class TouchPointWP
      */
     public function activation()
     {
-        $this->_log_version_number();
-
         self::queueFlushRewriteRules();
 
         $this->createTables();
@@ -1513,7 +1479,6 @@ class TouchPointWP
         dbDelta($sql);
     }
 
-
     /**
      * Drop database tables at uninstallation.
      */
@@ -1539,6 +1504,11 @@ class TouchPointWP
         update_option(self::TOKEN . '_version', self::VERSION, false);
     }
 
+    /**
+     * Indicates that Tribe Calendar Pro is enabled.
+     *
+     * @return bool
+     */
     public static function useTribeCalendarPro(): bool
     {
         if ( ! function_exists( 'is_plugin_active' ) ){
@@ -1548,11 +1518,15 @@ class TouchPointWP
         return is_plugin_active( 'events-calendar-pro/events-calendar-pro.php');
     }
 
+    /**
+     * Indicates that Tribe Calendar is enabled.
+     *
+     * @return bool
+     */
     public static function useTribeCalendar(): bool
     {
         return self::useTribeCalendarPro() || is_plugin_active( 'the-events-calendar/the-events-calendar.php');
     }
-
 
     /**
      * Sort a list of hierarchical terms into a list in which each parent is immediately followed by its children.
@@ -2309,7 +2283,7 @@ class TouchPointWP
 
         if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER) {
             throw new TouchPointWP_Exception(
-                __('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'), 170002
+                __('Host appears to be missing from TouchPoint-WP configuration.', TouchPointWP::TEXT_DOMAIN), 170002
             );
         }
 
@@ -2353,7 +2327,8 @@ class TouchPointWP
         }
 
         // Most likely the issue where a module import failed for no apparent reason.
-        if (strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
+        if (property_exists($respDecoded, 'output') &&
+            strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
             throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001);
         }
 
@@ -2439,9 +2414,36 @@ class TouchPointWP
     }
 
     /**
+     * Cause a script update on next load.
+     */
+    public static function queueUpdateDeployedScripts(): void
+    {
+        $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'updateDeployedScriptsOnNextLoad'] = true;
+    }
+
+    /**
+     * @param bool $force
+     *
+     * @return void
+     * @see queueUpdateDeployedScripts
+     */
+    public function updateDeployedScripts(bool $force = false): void
+    {
+        if ( isset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'updateDeployedScriptsOnNextLoad']) || $force) {
+            try {
+                $this->settings->updateDeployedScripts();
+            } catch (TouchPointWP_Exception $e) {
+                TouchPointWP_AdminAPI::showError($e->getMessage());
+            }
+            unset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'updateDeployedScriptsOnNextLoad']);
+        }
+    }
+
+    /**
      * Cause a flushing of rewrite rules on next load.
      */
-    public static function queueFlushRewriteRules(): void {
+    public static function queueFlushRewriteRules(): void
+    {
         $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'flushRewriteOnNextLoad'] = true;
     }
 
