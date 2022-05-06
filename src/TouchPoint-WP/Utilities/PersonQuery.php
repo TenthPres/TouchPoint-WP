@@ -13,7 +13,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 /**
- * Wrap the UserQuery object such that the returned object is a Person instead of a User.
+ * Wrap the UserQuery class such that the returned object is a Person instead of a User.
  */
 class PersonQuery extends WP_User_Query
 {
@@ -21,7 +21,15 @@ class PersonQuery extends WP_User_Query
     private array $results;
     protected string $fields = "all_with_meta"; // Not quite the same as the User Query $query['fields'] parameter
 
-    public function __construct($query = null, $forceResultToPerson = true)
+    /**
+     * Queries WordPress Users as Person objects.
+     *
+     * @param array $query Essentially the parameters passed to WP_User_Query
+     * @param bool  $forceResultToPerson If true, the output from the query will always be a Person, rather than a User.
+     *
+     * @see WP_User_Query::__construct
+     */
+    public function __construct($query = null, bool $forceResultToPerson = true)
     {
         $this->forceResultToPerson = !!$forceResultToPerson;
 
@@ -61,11 +69,7 @@ class PersonQuery extends WP_User_Query
     {
 
         if (! isset($this->results)) {
-            try {
-                $this->get_results();
-            } catch (TouchPointWP_Exception $e) { // TODO why is the exception returned, and not thrown?
-                return null;
-            }
+            $this->get_results();
         }
 
         $r = array_values($this->results)[0];
