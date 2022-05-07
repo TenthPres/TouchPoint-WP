@@ -2147,7 +2147,7 @@ class TouchPointWP
             return false;
         }
 
-        if ( ! is_array($data->keywords)) {
+        if ( ! property_exists($data, 'keywords') || ! is_array($data->keywords)) {
             return false;
         }
 

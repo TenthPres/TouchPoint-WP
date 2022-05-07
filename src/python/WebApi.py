@@ -90,12 +90,12 @@ if ("Genders" in Data.a):
     Data.Title = "All Genders"
     Data.genders = q.QuerySql(rcSql, {})
 
-if (Data.a == "Keywords" in Data.a):
+if ("Keywords" in Data.a):
     kwSql = '''SELECT KeywordId as Id, Code, Description as Name FROM Keyword ORDER BY Code'''
     Data.Title = "All Keywords"
     Data.keywords = q.QuerySql(kwSql, {})
 
-if (Data.a == "PersonEvFields" in Data.a):
+if ("PersonEvFields" in Data.a):
     pevSql = '''SELECT Field, [Type], count(*) as Count,
                 CONCAT('pev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM PeopleExtra WHERE [Field] NOT LIKE '%_mv'
@@ -103,7 +103,7 @@ if (Data.a == "PersonEvFields" in Data.a):
     Data.Title = "Person Extra Value Fields"
     Data.personEvFields = q.QuerySql(pevSql, {})
 
-if (Data.a == "FamilyEvFields" in Data.a):
+if ("FamilyEvFields" in Data.a):
     fevSql = '''SELECT Field, [Type], count(*) as Count,
                 CONCAT('fev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM FamilyExtra WHERE [Field] NOT LIKE '%_mv'
@@ -111,7 +111,7 @@ if (Data.a == "FamilyEvFields" in Data.a):
     Data.Title = "Family Extra Value Fields"
     Data.familyEvFields = q.QuerySql(fevSql, {})
 
-if (Data.a == "SavedSearches" in Data.a):
+if ("SavedSearches" in Data.a):
     Data.savedSearches = model.DynamicData()
 
     if Data.PeopleId == '':
@@ -159,6 +159,7 @@ if ("InvsForDivs" in Data.a):
         o.location,
         o.organizationName as name,
         o.memberCount,
+        o.parentOrgId as parentInvId,
         o.classFilled as groupFull,
         o.genderId,
         o.description,
@@ -222,7 +223,7 @@ if ("InvsForDivs" in Data.a):
             AND DivId IN ({})
         )
         AND o.organizationStatusId = 30
-        ORDER BY o.OrganizationId ASC'''.format(hostMemTypes, divs)
+        ORDER BY o.ParentOrgId ASC, o.OrganizationId ASC'''.format(hostMemTypes, divs)
 
     groups = model.SqlListDynamicData(invSql)
 
@@ -281,8 +282,10 @@ if ("MemTypes" in Data.a):
 
 # Start POST requests
 
-inData = json.loads(Data.data)['inputData']
-
+if Data.data != "":
+	inData = json.loads(Data.data)['inputData']
+else:
+	inData = {}
 
 
 if ("updateScripts" in Data.a and model.HttpMethod == "post"):

@@ -18,6 +18,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string $slug
  * @property-read string[] $importDivs
  * @property-read bool $useGeo
+ * @property-read bool $hierarchical
  * @property-read string $groupBy
  * @property-read string[] $leaderTypes
  * @property-read string[] $hostTypes
@@ -34,6 +35,7 @@ class Involvement_PostTypeSettings {
     protected string $slug;
     protected array $importDivs;
     protected bool $useGeo;
+    protected bool $hierarchical;
     protected string $groupBy = "";
     protected array $leaderTypes;
     protected array $hostTypes;

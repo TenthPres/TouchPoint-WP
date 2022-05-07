@@ -72,6 +72,13 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 
         <tr>
             <th>
+                <label for="it-hierarchical" data-bind="attr: { for: 'it-' + slug() + '-hierarchical'}"><?php _e("Import Hierarchically (Parent-Child Relationships)", TouchPointWP::TEXT_DOMAIN); ?></label>
+            </th>
+            <td colspan="2"><input id="it-hierarchical" type="checkbox" data-bind="checked: hierarchical, attr: { id: 'it-' + slug() + '-hierarchical'}" /></td>
+        </tr>
+
+        <tr>
+            <th>
                 <label for="it-useGeo" data-bind="attr: { for: 'it-' + slug() + '-useGeo'}"><?php _e("Use Geographic Location", TouchPointWP::TEXT_DOMAIN); ?></label>
             </th>
             <td colspan="2"><input id="it-useGeo" type="checkbox" data-bind="checked: useGeo, attr: { id: 'it-' + slug() + '-useGeo'}" /></td>
@@ -194,6 +201,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.slug = ko.observable(data.slug ?? "<?php _e("smallgroup", TouchPointWP::TEXT_DOMAIN); ?>").extend({slug: 0});
         this.importDivs = ko.observable(data.importDivs ?? []);
         this.useGeo = ko.observable(data.useGeo ?? false);
+        this.hierarchical = ko.observable(data.hierarchical ?? false);
         this.groupBy = ko.observable(data.groupBy ?? "");
         this.leaderTypes = ko.observableArray(data.leaderTypes ?? []);
         this.hostTypes = ko.observableArray(data.hostTypes ?? []);

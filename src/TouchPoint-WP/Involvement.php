@@ -220,7 +220,7 @@ class Involvement implements api
                         'singular_name' => $type->nameSingular
                     ],
                     'public'       => true,
-                    'hierarchical' => false,
+                    'hierarchical' => $type->hierarchical,
                     'show_ui'      => false,
                     'show_in_nav_menus' => true,
                     'show_in_rest' => true,
@@ -1473,6 +1473,30 @@ class Involvement implements api
             if ($post->post_title != $inv->name) { // only update if there's a change.  Otherwise, urls increment.
                 $post->post_title = $inv->name;
                 $post->post_name = ''; // Slug will regenerate;
+            }
+
+            // Parent Post
+            if ($typeSets->hierarchical) {
+                $parent = 0;
+                if ($inv->parentInvId > 0) {
+                    $q      = new WP_Query(
+                        [
+                            'post_type' => $typeSets->postType,
+                            'meta_key' => self::INVOLVEMENT_META_KEY,
+                            'meta_value' => $inv->parentInvId
+                        ]
+                    );
+                    $parentO = $q->get_posts();
+                    if (count($parentO) > 0) { // parent does exist.
+                        $parent = $parentO[0]->ID;
+                    }
+                }
+
+                if ($verbose) {
+                    echo "<p>Parent Post: $parent</p>";
+                }
+
+                $post->post_parent = $parent;
             }
 
             // Status & Submit
