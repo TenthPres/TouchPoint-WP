@@ -174,6 +174,19 @@ class TouchPointWP
      */
     private ?WP_Http $httpClient = null;
 
+    /** @var string Used to denote requests made in special circumstances, such as through the TouchPoint-WP API */
+    protected static string $context = "";
+
+    /**
+     * Indicates that the current request is being processed through the API.
+     *
+     * @return bool
+     */
+    public static function isApi(): bool
+    {
+        return self::$context === "api";
+    }
+
     /**
      * Constructor function.
      *
@@ -334,6 +347,8 @@ class TouchPointWP
             $reqUri['query'] = $queryParams;
             unset($queryParams);
 
+            self::$context = "api";
+
             // App Events Endpoint
             if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_APP_EVENTS &&
                 count($reqUri['path']) === 2 &&
@@ -398,6 +413,8 @@ class TouchPointWP
                 $this->ajaxGeolocate();
             }
         }
+
+        self::$context = "";
         return $continue;
     }
 
@@ -446,6 +463,9 @@ class TouchPointWP
      */
     public function printDynamicFooterScripts(): void
     {
+        if (self::isApi())
+            return;
+
         echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
         if (Person::useJsInstantiation()) {
             echo Person::getJsInstantiationString();
@@ -482,6 +502,8 @@ class TouchPointWP
                     }
                 }
             }
+
+            echo file_get_contents(TouchPointWP::$dir . "/assets/template/admin-style.css");
 
             echo "</style>";
         }

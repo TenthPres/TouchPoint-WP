@@ -368,6 +368,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
+                        'formClass'   => 'column-wrap',
                         'options'     => $includeThis ? $this->parent->getKeywordsAsKVArray() : [],
                         'default'     => [],
                     ],
@@ -401,6 +402,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
+                        'formClass'   => 'column-wrap',
                         'options'     => $includeThis ? $this->parent->getPersonEvFieldsAsKVArray() : [],
                         'default'     => [],
                     ],
@@ -649,6 +651,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
+                        'formClass'   => 'column-wrap',
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray() : [],
                         'default'     => [],
                     ],

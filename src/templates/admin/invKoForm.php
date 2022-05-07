@@ -8,21 +8,6 @@ $kws = json_encode($this->parent->getKeywords());
 /** @noinspection CommaExpressionJS */
 echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws }</script>";
 ?>
-<style>
-    .column-wrap {
-        column-count: 1;
-    }
-    @media (min-width: 1300px) {
-        .column-wrap {
-            column-count: 2;
-        }
-    }
-    @media (min-width: 1500px) {
-        .column-wrap {
-            column-count: 3;
-        }
-    }
-</style>
 <form>
 <div data-bind="foreach: invTypes, visible: invTypes().length > 0" style="display:none;">
     <div data-bind="click: toggleVisibility">

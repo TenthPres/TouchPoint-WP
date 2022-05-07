@@ -54,8 +54,12 @@ class TouchPointWP_AdminAPI implements api {
                 if (!current_user_can('administrator')) {
                     return false;
                 }
-                TouchPointWP::instance()->settings->updateDeployedScripts();
-                echo "Success";
+                try {
+                    TouchPointWP::instance()->settings->updateDeployedScripts();
+                    echo "Success";
+                } catch (TouchPointWP_Exception $e) {
+                    echo "Failed: " . $e->getMessage();
+                }
                 exit;
 
             case "force-migrate":
@@ -147,8 +151,12 @@ class TouchPointWP_AdminAPI implements api {
             $html .= "<div style=\"display:none\">";
         }
 
-        switch ( $field['type'] ) {
+        if (isset($field['formClass'])) {
+            $class = $field['formClass'];
+            $html .= "<div class=\"$class\">";
+        }
 
+        switch ( $field['type'] ) {
             case 'text':
             case 'url':
             case 'email':
@@ -288,6 +296,12 @@ class TouchPointWP_AdminAPI implements api {
 
         }
 
+
+        if (isset($field['formClass'])) {
+            $html .= "</div>";
+        }
+
+
         $description = null;
         if (array_key_exists('description', $field)) {
             $description = $field['description'];
@@ -296,9 +310,7 @@ class TouchPointWP_AdminAPI implements api {
                 $description = call_user_func($description);
             }
         }
-
         switch ( $field['type'] ) {
-
             case 'checkbox_multi':
             case 'radio':
             case 'select_multi':
