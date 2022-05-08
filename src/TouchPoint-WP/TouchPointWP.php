@@ -329,6 +329,7 @@ class TouchPointWP
     {
         if ($continue) {
             $reqUri = parse_url(trim($_SERVER['REQUEST_URI'], '/'));
+            $reqUri['path'] = $reqUri['path'] ?? "";
 
             // Remove trailing slash if it exists (and, it probably does)
             if (substr($reqUri['path'], -1) === '/')
