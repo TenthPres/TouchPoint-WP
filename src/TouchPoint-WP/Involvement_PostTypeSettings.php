@@ -30,12 +30,14 @@ if ( ! defined('ABSPATH')) {
 class Involvement_PostTypeSettings {
     protected static array $settings;
 
+    // IMPORTANT: when adding new settings, they MUST have a default defined here, since they won't exist in the JSON yet.
+
     protected string $nameSingular;
     protected string $namePlural;
     protected string $slug;
     protected array $importDivs;
     protected bool $useGeo;
-    protected bool $hierarchical;
+    protected bool $hierarchical = false;
     protected string $groupBy = "";
     protected array $leaderTypes;
     protected array $hostTypes;
