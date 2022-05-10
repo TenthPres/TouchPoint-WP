@@ -278,14 +278,87 @@ if ("MemTypes" in Data.a):
 
     Data.memTypes = model.SqlListDynamicData(memTypeSql)
 
+if ("src" in Data.a and Data.q is not None):
+    if len(Data.q) < 1:
+        Data.people = []
+
+    # Numeric query
+    elif Data.q.isnumeric():
+        #  this
+        Data.people = []
+
+    # Single word
+    elif Data.q.find(' ') == -1 and Data.q.find(',') == -1:
+        sql = """SELECT TOP 10
+                 p1.PeopleId,
+                 COALESCE(p1.NickName, p1.FirstName) GoesBy,
+                 p1.LastName,
+                 SUM(score),
+                 -- logins + attendance
+                 (SELECT COUNT(*) FROM Attend a 
+                     WHERE a.PeopleId = p1.PeopleId AND a.MeetingDate > DATEADD(month, -3, GETDATE())) +
+                 (SELECT COUNT(*) FROM ActivityLog al 
+                     WHERE ActivityDate > DATEADD(month, -3, GETDATE()) AND LEN(Activity) > 9 AND SUBSTRING(Activity, LEN(Activity) - 8, 9) = 'logged in' AND PeopleId = p1.PeopleId) as partic
+             FROM (
+                 SELECT p.*, 10 as score FROM Users u JOIN People p ON u.PeopleId = p.PeopleId WHERE u.Username LIKE '{0}%'
+                 UNION
+                 SELECT p.*, 9 as score FROM People p WHERE p.EmailAddress LIKE '{0}%' OR p.EmailAddress2 LIKE '{0}%'
+                 UNION
+                 SELECT p.*, 8 as score FROM People p WHERE p.LastName LIKE '{0}%'
+                 UNION
+                 SELECT p.*, 7 as score FROM People p WHERE p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%'
+                 UNION
+                 SELECT p.*, 5 as score FROM People p WHERE p.AltName LIKE '{0}%' OR p.MaidenName LIKE '{0}%'
+             ) p1
+             GROUP BY 
+                 p1.PeopleId,
+                 COALESCE(p1.NickName, p1.FirstName),
+                 p1.LastName
+             ORDER BY SUM(score) DESC, partic DESC
+             """.format(Data.q)
+        Data.people = q.QuerySql(sql)
+
+    # Multiple words
+    else:
+        if Data.q.find(',') > -1:
+            [second, first] = Data.q.split(',', 1)
+        else:
+            [first, second] = Data.q.split(' ', 1)
+
+        sql = """SELECT TOP 10
+                 p1.PeopleId,
+                 COALESCE(p1.NickName, p1.FirstName) GoesBy,
+                 p1.LastName,
+                 SUM(score),
+                 -- logins + attendance
+                 (SELECT COUNT(*) FROM Attend a
+                     WHERE a.PeopleId = p1.PeopleId AND a.MeetingDate > DATEADD(month, -3, GETDATE())) +
+                 (SELECT COUNT(*) FROM ActivityLog al
+                     WHERE ActivityDate > DATEADD(month, -3, GETDATE()) AND LEN(Activity) > 9 AND SUBSTRING(Activity, LEN(Activity) - 8, 9) = 'logged in' AND PeopleId = p1.PeopleId) as partic
+             FROM (
+                 SELECT p.*, 10 as score FROM People p WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') AND p.LastName LIKE '{1}%'
+                 UNION
+                 SELECT p.*, 8 as score FROM People p WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') AND (p.AltName LIKE '{1}%' OR p.MaidenName LIKE '{1}%')
+                 UNION
+                 SELECT p.*, 5 as score FROM People p WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') OR p.LastName LIKE '{1}%'
+                 UNION
+                 SELECT p.*, 4 as score FROM People p WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') OR (p.AltName LIKE '{1}%' OR p.MaidenName LIKE '{1}')
+             ) p1
+             GROUP BY
+                 p1.PeopleId,
+                 COALESCE(p1.NickName, p1.FirstName),
+                 p1.LastName
+             ORDER BY SUM(score) DESC, partic DESC
+             """.format(first, second)
+        Data.people = q.QuerySql(sql)
 
 
 # Start POST requests
 
 if Data.data != "":
-	inData = json.loads(Data.data)['inputData']
+    inData = json.loads(Data.data)['inputData']
 else:
-	inData = {}
+    inData = {}
 
 
 if ("updateScripts" in Data.a and model.HttpMethod == "post"):
@@ -382,15 +455,15 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
             SELECT rf1a.FamilyId fid, rf1a.RelatedFamilyId rid FROM RelatedFamilies rf1a UNION
             SELECT rf1b.RelatedFamilyId fid, rf1b.FamilyId rid FROM RelatedFamilies rf1b UNION
             SELECT rf1c.RelatedFamilyId fid, rf1c.RelatedFamilyId rid FROM RelatedFamilies rf1c UNION
-			SELECT rf1d.FamilyId fid, rf1d.FamilyId rid FROM RelatedFamilies rf1d
+            SELECT rf1d.FamilyId fid, rf1d.FamilyId rid FROM RelatedFamilies rf1d
         ) rf1
         WHERE rf1.rid IN ({})""".format(",".join(map(str, inData['fid'])))
 
         inData['fid'] = q.QuerySqlInts(sql)
 
     for f in Data.primaryFam:
-    	if f not in inData['fid']:
-    		inData['fid'].Add(f)
+        if f not in inData['fid']:
+            inData['fid'].Add(f)
 
     if len(inData['fid']) > 0:
         Data.a.append("people_get")
