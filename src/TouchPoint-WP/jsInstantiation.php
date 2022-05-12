@@ -45,6 +45,7 @@ trait jsInstantiation {
      */
     protected function enqueueForJsInstantiation(): bool
     {
+        TouchPointWP::requireScript('base-defer');
         if (!isset(static::$queueForJsInstantiation[$this->getTouchPointId()])) {
             static::$queueForJsInstantiation[$this->getTouchPointId()] = $this;
             return true;

@@ -6,7 +6,6 @@ import json
 VERSION = "0.0.7"
 
 sgContactEvName = "Contact"
-defaultSgTaskDelegatePid = 16371
 
 def getPersonInfoSql(tableAbbrev):
     return "SELECT DISTINCT {0}.PeopleId AS peopleId, {0}.FamilyId as familyId, {0}.LastName as lastName, COALESCE({0}.NickName, {0}.FirstName) as goesBy, SUBSTRING({0}.LastName, 1, 1) as lastInitial".format(tableAbbrev)
@@ -284,8 +283,31 @@ if ("src" in Data.a and Data.q is not None):
 
     # Numeric query
     elif Data.q.isnumeric():
-        #  this
-        Data.people = []
+        sql = """SELECT TOP 10
+                 p1.PeopleId,
+                 COALESCE(p1.NickName, p1.FirstName) GoesBy,
+                 p1.LastName,
+                 SUM(score),
+                 -- logins + attendance
+                 (SELECT COUNT(*) FROM Attend a
+                     WHERE a.PeopleId = p1.PeopleId AND a.MeetingDate > DATEADD(month, -3, GETDATE())) +
+                 (SELECT COUNT(*) FROM ActivityLog al
+                     WHERE ActivityDate > DATEADD(month, -3, GETDATE()) AND LEN(Activity) > 9 AND SUBSTRING(Activity, LEN(Activity) - 8, 9) = 'logged in' AND PeopleId = p1.PeopleId) as partic
+             FROM (
+                 SELECT p.*, 10 as score FROM People p WHERE CAST(p.PeopleId as CHAR) = '{0}'
+                 UNION
+                 SELECT p.*, 6 as score FROM People p WHERE CAST(p.PeopleId as CHAR) LIKE '{0}%'
+                 UNION
+                 SELECT p.*, 3 as score FROM People p WHERE CAST(p.CellPhone as CHAR) LIKE '{0}%'
+                 UNION
+                 SELECT p.*, 3 as score FROM People p WHERE CAST(p.WorkPhone as CHAR) LIKE '{0}%'
+             ) p1
+             GROUP BY
+                 p1.PeopleId,
+                 COALESCE(p1.NickName, p1.FirstName),
+                 p1.LastName
+             ORDER BY SUM(score) DESC, partic DESC
+             """.format(Data.q)
 
     # Single word
     elif Data.q.find(' ') == -1 and Data.q.find(',') == -1:
@@ -316,7 +338,6 @@ if ("src" in Data.a and Data.q is not None):
                  p1.LastName
              ORDER BY SUM(score) DESC, partic DESC
              """.format(Data.q)
-        Data.people = q.QuerySql(sql)
 
     # Multiple words
     else:
@@ -350,7 +371,8 @@ if ("src" in Data.a and Data.q is not None):
                  p1.LastName
              ORDER BY SUM(score) DESC, partic DESC
              """.format(first, second)
-        Data.people = q.QuerySql(sql)
+
+    Data.people = q.QuerySql(sql)
 
 
 # Start POST requests
@@ -423,7 +445,7 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
     else:
         # email and zip only
 
-        sql = """SELECT p1.FamilyId
+        sql = """SELECT DISTINCT p1.FamilyId
             FROM People p1
                 JOIN Families f ON p1.FamilyId = f.FamilyId
             WHERE (p1.EmailAddress = '{0}' OR p1.EmailAddress2 = '{0}')
@@ -435,7 +457,7 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
     Data.primaryFam = inData['fid']
     degreesOfSep = int(model.Setting("RegisterRelatedFamilies", "0"))
 
-    if degreesOfSep > 1:
+    if degreesOfSep > 1 and inData['fid'].Count > 0:
         sql = """SELECT DISTINCT rf1.fid FROM (
             SELECT rf1a.FamilyId fid, rf1a.RelatedFamilyId rid FROM RelatedFamilies rf1a UNION
             SELECT rf1b.RelatedFamilyId fid, rf1b.FamilyId rid FROM RelatedFamilies rf1b UNION
@@ -450,7 +472,7 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
 
         inData['fid'] = q.QuerySqlInts(sql)
         
-    elif degreesOfSep == 1:
+    elif degreesOfSep == 1 and inData['fid'].Count > 0:
         sql = """SELECT DISTINCT rf1.fid FROM (
             SELECT rf1a.FamilyId fid, rf1a.RelatedFamilyId rid FROM RelatedFamilies rf1a UNION
             SELECT rf1b.RelatedFamilyId fid, rf1b.FamilyId rid FROM RelatedFamilies rf1b UNION
@@ -470,82 +492,91 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
 
 if ("inv_join" in Data.a and model.HttpMethod == "post"):
     Data.Title = 'Adding people to Involvement'
-    inData = model.JsonDeserialize(Data.data).inputData
 
-    oid = inData.invId
-    keywords = inData.keywords
+    oid = inData['invId']
+    keywords = inData['keywords']
+    owner = inData['owner']
+    if not owner.isnumeric():
+        owner = 1
+    else:
+        owner = int(owner)
+
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
     SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
     '''.format(oid, sgContactEvName)
     orgContactPid = q.QuerySqlTop1(orgContactSql).contactId
-    orgContactPid = orgContactPid if orgContactPid is not None else defaultSgTaskDelegatePid
+    orgContactPid = orgContactPid if orgContactPid is not None else owner
 
     Data.success = []
 
     addPeople = []
-    for p in inData.people:
-        if not model.InOrg(p.peopleId, oid):
-            model.AddMemberToOrg(p.peopleId, oid)
-            model.SetMemberType(p.peopleId, oid, "Prospect")
-            addPeople.append(model.GetPerson(p.peopleId))
-        Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
+    for p in inData['people']:
+        if not model.InOrg(p['peopleId'], oid):
+            model.AddMemberToOrg(p['peopleId'], oid)
+            model.SetMemberType(p['peopleId'], oid, "Prospect")
+            addPeople.append(model.GetPerson(p['peopleId']))
+        Data.success.append({'pid': p['peopleId'], 'invId': oid, 'cpid': orgContactPid})
 
     if len(addPeople) > 0:
         org = model.GetOrganization(oid)
         names = " & ".join(p.FirstName for p in addPeople)  # TODO develop a better name listing mechanism for python.
-        pidStr = "(P" + ") (P".join(str(p.PeopleId) for p in addPeople) + ")"
+        pidStr = "(P" + ") (P".join(str(p['peopleId']) for p in addPeople) + ")"
 
         text = """**{0} {2} interested in joining {1}**. Please reach out to welcome them and mark the task as complete.
 They have also been added to your roster as prospective members.  Please move them to being a member of the group when appropriate.
 
 {3}""".format(names, org.name, "is" if len(addPeople) == 1 else "are", pidStr)
 
-        model.CreateTaskNote(defaultSgTaskDelegatePid, addPeople[0].PeopleId, orgContactPid,
+        model.CreateTaskNote(owner, addPeople[0].PeopleId, orgContactPid,
             None, False, text, None, None, keywords)
 
 if ("inv_contact" in Data.a and model.HttpMethod == "post"):
     # TODO potentially merge with Join function.  Much of the code is duplicated.
     Data.Title = 'Contacting Involvement Leaders'
-    inData = model.JsonDeserialize(Data.data).inputData
 
-    oid = inData.invId
-    message = inData.message
-    keywords = inData.keywords
+    oid = inData['invId']
+    message = inData['message']
+    keywords = inData['keywords']
+    owner = inData['owner']
+    if not owner.isnumeric():
+        owner = 1
+    else:
+        owner = int(owner)
+    
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
     SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
     '''.format(oid, sgContactEvName)
     orgContactPid = q.QuerySqlTop1(orgContactSql).contactId
-    orgContactPid = orgContactPid if orgContactPid is not None else defaultSgTaskDelegatePid
+    orgContactPid = orgContactPid if orgContactPid is not None else owner
 
     Data.success = []
 
-    p = inData.fromPerson
-    m = inData.message
+    p = inData['fromPerson']
+    m = inData['message']
     org = model.GetOrganization(oid)
     text = """**Online Contact Form: {0}**
 
 {1} sent the following message.  Please reach out to them and mark the task as complete.
 
-    {2}""".format(org.name, p.goesBy, str(m).replace("\n", "\n    "))  # being indented causes section to be treated like code
+    {2}""".format(org.name, p['goesBy'], str(m).replace("\n", "\n    "))  # being indented causes section to be treated like code
 
-    model.CreateTaskNote(defaultSgTaskDelegatePid, p.peopleId, orgContactPid, None, False, text, None, None, keywords)
+    model.CreateTaskNote(owner, p['peopleId'], orgContactPid, None, False, text, None, None, keywords)
 
-    Data.success.append({'pid': p.peopleId, 'invId': oid, 'cpid': orgContactPid})
+    Data.success.append({'pid': p['peopleId'], 'invId': oid, 'cpid': orgContactPid})
 
 
 if ("person_wpIds" in Data.a and model.HttpMethod == "post"):
     Data.Title = 'Updating WordPress IDs.'
-    inData = model.JsonDeserialize(Data.data).inputData
     Data.success = 0
 
-    ev = str(inData.evName)
+    ev = str(inData['evName'])
 
-    for p in inData.people:
-        model.AddExtraValueInt(int(p.PeopleId), ev, int(p.WpId))
+    for p in inData['people']:
+        model.AddExtraValueInt(int(p['peopleId']), ev, int(p['WpId']))
         Data.success += 1
 
 

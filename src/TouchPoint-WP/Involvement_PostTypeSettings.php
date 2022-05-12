@@ -23,6 +23,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string[] $leaderTypes
  * @property-read string[] $hostTypes
  * @property-read string[] $filters
+ * @property-read string $taskOwner
  * @property-read int[] $contactKeywords
  * @property-read int[] $joinKeywords
  * @property-read string $postType
@@ -42,6 +43,7 @@ class Involvement_PostTypeSettings {
     protected array $leaderTypes;
     protected array $hostTypes;
     protected array $filters;
+    protected string $taskOwner = ""; // PeopleID as a string
     protected array $contactKeywords;
     protected array $joinKeywords;
     protected ?string $postType = null;
@@ -166,8 +168,6 @@ class Involvement_PostTypeSettings {
      * @param string $new
      *
      * @return string
-     *
-     * @zthrows Exception
      */
     public static function validateNewSettings(string $new): string
     {

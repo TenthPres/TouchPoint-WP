@@ -1991,8 +1991,9 @@ class Involvement implements api
         $inputData->keywords = [];
 
         $settings = self::getSettingsForPostType($inputData->invType);
-        if (!!$settings || !$settings->joinKeywords) {
+        if (!!$settings) {
             $inputData->keywords = Utilities::idArrayToIntArray($settings->joinKeywords);
+            $inputData->owner = $settings->taskOwner;
         }
 
         try {
@@ -2016,8 +2017,9 @@ class Involvement implements api
         $inputData->keywords = [];
 
         $settings = self::getSettingsForPostType($inputData->invType);
-        if (!!$settings || !$settings->contactKeywords) {
+        if (!!$settings) {
             $inputData->keywords = Utilities::idArrayToIntArray($settings->contactKeywords);
+            $inputData->owner = $settings->taskOwner;
         }
 
         try {

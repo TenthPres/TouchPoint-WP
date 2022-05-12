@@ -210,6 +210,7 @@ class TouchPointWP
         add_action('init', [$this, 'registerScriptsAndStyles'], 0);
 
         add_action('wp_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
+        add_action('admin_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
 
         add_action('admin_print_styles', [$this, 'adminPrintStyleOverrides'], 1000);
 

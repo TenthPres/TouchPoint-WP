@@ -147,6 +147,28 @@ class Person extends WP_User implements api, JsonSerializable
     }
 
     /**
+     * Get a person from a TouchPoint PeopleID
+     *
+     * @param int $pid
+     *
+     * @return Person|null
+     */
+    public static function fromPeopleId(int $pid): ?Person
+    {
+        $q = new PersonQuery(
+            [
+                'meta_key'     => self::META_PEOPLEID,
+                'meta_value'   => $pid,
+                'meta_compare' => '='
+            ]
+        );
+        if ($q->get_total() === 1) {
+            return $q->get_first_result();
+        }
+        return null;
+    }
+
+    /**
      * @param $field
      * @param $value
      *
@@ -290,7 +312,8 @@ class Person extends WP_User implements api, JsonSerializable
                 'class' => 'TouchPoint-person people-list',
                 'invid' => null,
                 'id'    => wp_unique_id('tp-actions-'),
-                'withsubgroups' => false
+                'withsubgroups' => false,
+                'btnclass' => 'btn button'
             ],
             $params,
             self::SHORTCODE_PEOPLE_LIST
@@ -366,6 +389,7 @@ class Person extends WP_User implements api, JsonSerializable
         $out = "";
 
         $people = $q->get_results();
+        $btnClass = $params['btnclass'];
 
         $loadedPart = get_template_part('person-list', 'person-list');
         if ($loadedPart === false) {
@@ -875,6 +899,22 @@ class Person extends WP_User implements api, JsonSerializable
     }
 
     /**
+     * Ensure a person with a given PeopleId will be available in JS.
+     *
+     * @param int $pid TouchPoint People ID
+     *
+     * @return ?bool null if person is not found.  True if newly enqueued, false if it was already enqueued.
+     */
+    public static function enqueueForJS_byPeopleId(int $pid): ?bool
+    {
+        $p = self::fromPeopleId($pid);
+        if ($p === null) {
+            return null;
+        }
+        return $p->enqueueForJsInstantiation();
+    }
+
+    /**
      * Controls the information that's actually serialized for jsInstantiation
      *
      * @return array
@@ -883,7 +923,7 @@ class Person extends WP_User implements api, JsonSerializable
     {
         return [
             'peopleId' => $this->peopleId,
-            'displayName' => $this->display_name
+            'displayName' => $this->display_name,
         ];
     }
 
@@ -902,7 +942,7 @@ class Person extends WP_User implements api, JsonSerializable
 
         $listStr = json_encode($queue);
 
-        return "\ttpvm.addEventListener('Person_class_loaded', function() {
+        return "\ttpvm.addOrTriggerEventListener('Person_class_loaded', function() {
         TP_Person.fromObjArray($listStr);\n\t});\n";
     }
 

@@ -233,8 +233,9 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 
         // Operations
         self.addInvType = function() {
-            let newI = new InvType({})
-            self.invTypes.push(newI);
+            let newT = new InvType({})
+            self.invTypes.push(newT);
+            applySelect2ForData('#it-' + newT.slug() + '-taskOwner');
         };
         self.removeInvType = function(type) { self.invTypes.remove(type) };
     }
@@ -268,6 +269,12 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 
         ko.applyBindings(tpvm._vmContext.invTypesVM);
 
+        let types = tpvm._vmContext.invTypesVM.invTypes();
+        for (let i in types) {
+            let name = tpvm.people[invData[i].taskOwner]?.displayName ?? "(named person)";
+            applySelect2ForData('#it-' + types[i].slug() + '-taskOwner', name, invData[i].taskOwner);
+        }
+
         tpvm._vmContext.invTypesVM.invTypes.toJSON = function() {
             let copy = ko.toJS(tpvm._vmContext.invTypesVM.invTypes);
             for (const ii in copy) {
@@ -285,6 +292,30 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         }).subscribe(function() {
             formElt.innerText = tpvm._vmContext.invTypesVM.invTypes.toJSON()
         });
+    }
+
+    function applySelect2ForData(sel, optName = "", optId = "") {
+        let item = jQuery(sel).select2({
+            ajax: {
+                url: "/touchpoint-api/person/src",
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        q: params.term, // search term
+                        fmt: "s2"
+                    };
+                },
+                cache: true
+            },
+            placeholder: 'Select...', // i18n
+            minimumInputLength: 1,
+        });
+
+        if (optName !== "" && optId !== "") {
+            let newOption = new Option(optName, optId, true, true);
+            item.append(newOption).trigger('change');
+        }
     }
 
     tpvm.addOrTriggerEventListener('load', () => initInvVm())
