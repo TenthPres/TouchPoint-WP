@@ -147,6 +147,13 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             </td>
         </tr>
         <tr data-bind="">
+            <th><label for="it-taskOwner" data-bind="attr: {for: 'it-' + slug() + '-taskOwner'}"><?php _e("Task Owner", TouchPointWP::TEXT_DOMAIN); ?></th>
+            <td colspan="2">
+                <select id="it-taskOwner" data-bind="value: taskOwner, attr: { id: 'it-' + slug() + '-taskOwner'}" class="select2">
+                </select>
+            </td>
+        </tr>
+        <tr data-bind="">
             <th><?php _e("Contact Leader Task Keywords", TouchPointWP::TEXT_DOMAIN); ?></th>
             <td colspan="2" class="column-wrap">
                 <!-- ko foreach: $root.keywords -->
@@ -191,6 +198,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.leaderTypes = ko.observableArray(data.leaderTypes ?? []);
         this.hostTypes = ko.observableArray(data.hostTypes ?? []);
         this.filters = ko.observableArray(data.filters ?? ['genderId', 'weekday', 'rescode', 'agegroup', 'div']);
+        this.taskOwner = ko.observable(data.taskOwner ?? 0);
         this.contactKeywords = ko.observableArray(data.contactKeywords ?? []);
         this.joinKeywords = ko.observableArray(data.joinKeywords ?? []);
 

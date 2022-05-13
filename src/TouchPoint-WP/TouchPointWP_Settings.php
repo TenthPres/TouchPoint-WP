@@ -504,6 +504,14 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'description' => !$includeThis ? "" : function() {
                             TouchPointWP::requireScript("base");
                             TouchPointWP::requireScript("knockout-defer");
+                            TouchPointWP::requireScript("select2-defer");
+
+                            foreach (Involvement_PostTypeSettings::instance() as $it) {
+                                if (is_numeric($it->taskOwner)) {
+                                    Person::enqueueForJS_byPeopleId(intval($it->taskOwner));
+                                }
+                            }
+
                             ob_start();
                             /** @noinspection PhpIncludeInspection */
                             include TouchPointWP::$dir . "/src/templates/admin/invKoForm.php";
@@ -1057,26 +1065,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     public function configure_settings($settings = []): array
     {
         return $settings;
-    }
-
-    /**
-     * Load settings JS & CSS
-     *
-     * @return void
-     */
-    public function settings_assets()
-    {
-        // We're including the WP media scripts here because they're needed for the image upload field.
-        // If you're not including an image upload then you can leave this function call out.
-        wp_enqueue_media();
-        wp_register_script(
-            $this->parent::TOKEN . '-settings-js',
-            $this->parent->assets_url . 'js/settings' . $this->parent->script_suffix . '.js',
-            ['jquery'],
-            '1.0.0',
-            true
-        );
-        wp_enqueue_script($this->parent::TOKEN . '-settings-js');
     }
 
     /**

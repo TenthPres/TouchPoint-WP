@@ -660,6 +660,14 @@ class TouchPointWP
         );
 
         wp_register_script(
+            self::SHORTCODE_PREFIX . "select2-defer",
+            "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js",
+            ['jquery'],
+            '4.1.0',
+            true
+        );
+
+        wp_register_script(
             TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
             sprintf(
                 "https://maps.googleapis.com/maps/api/js?key=%s&v=3&libraries=geometry",

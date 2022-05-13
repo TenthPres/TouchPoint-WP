@@ -1163,6 +1163,47 @@ class Person extends WP_User implements api, JsonSerializable
         exit;
     }
 
+    private static function ajaxSrc(): void
+    {
+        $q['q'] = $_GET['q'] ?? '';
+        $q['context'] = 'src';
+
+
+        if ($q['q'] !== '') {
+            try {
+                $data = TouchPointWP::instance()->apiGet('src', $q, 30);
+                $data = $data->people ?? [];
+            } catch (Exception $ex) {
+                echo json_encode(['error' => $ex->getMessage()]);
+                exit;
+            }
+        } else {
+            $data = [];
+        }
+
+        $out = [];
+        if ($_GET['fmt'] == "s2") {
+            $out['fmt'] = "select2";
+            $out['pagination'] = [
+                'more' => false
+            ];
+
+            $out['results'] = [];
+            foreach ($data as $p) {
+                $out['results'][] = [
+                    'id' => $p->peopleId,
+                    'text' => $p->goesBy . " " . $p->lastName
+                ];
+            }
+
+        } else {
+            $out = $data;
+        }
+
+        echo json_encode($out);
+        exit;
+    }
+
     /**
      * Handle API requests
      *
@@ -1180,6 +1221,11 @@ class Person extends WP_User implements api, JsonSerializable
             case "ident":
                 TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
                 self::ajaxIdent();
+                exit;
+
+            case "src":
+                TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
+                self::ajaxSrc();
                 exit;
 
             case "contact":
