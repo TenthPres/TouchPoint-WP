@@ -35,6 +35,7 @@ if (have_posts()) {
     $wp_query->set('nopaging', true);
     $wp_query->set('orderby', 'title'); // will mostly be overwritten by geographic sort, if available.
     $wp_query->set('order', 'ASC');
+    $wp_query->set('post_parent', 0);
 
     TouchPointWP::enqueuePartialsStyle();
     ?>

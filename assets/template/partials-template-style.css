@@ -73,7 +73,8 @@ article.involvement-list-item h2 a {
 .partner-list-item .partner-actions button,
 .partner-list-item .partner-actions a.button,
 .involvement-list-item .involvement-actions button,
-.involvement-list-item .involvement-actions a.button {
+.involvement-list-item .involvement-actions a.button,
+.involvement-list-item .child-involvements a {
     position:relative;
     z-index:10;
 }
