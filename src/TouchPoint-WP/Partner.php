@@ -58,6 +58,7 @@ class Partner implements api, JsonSerializable
     protected WP_Post $post;
 
     public const FAMILY_META_KEY = TouchPointWP::SETTINGS_PREFIX . "famId";
+    public const IMAGE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "imageUrl";
 
     public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "partner";
 
@@ -213,7 +214,8 @@ class Partner implements api, JsonSerializable
                 'show_in_rest' => false, // For the benefit of secure partners
                 'supports'     => [
                     'title',
-                    'custom-fields'
+                    'custom-fields',
+                    'thumbnail'
                 ],
                 'has_archive'  => true,
                 'rewrite'      => [
@@ -270,6 +272,11 @@ class Partner implements api, JsonSerializable
     {
         set_time_limit(60);
 
+        // Required for image handling
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+
         $customFev = TouchPointWP::instance()->settings->global_fev_custom;
         $fevFields = $customFev;
 
@@ -315,7 +322,7 @@ class Partner implements api, JsonSerializable
 
         foreach ($familyData->people as $f) {
             /** @var object $f */
-            set_time_limit(15);
+            set_time_limit(30);
 
             if ($verbose) {
                 var_dump($f);
@@ -429,20 +436,42 @@ class Partner implements api, JsonSerializable
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "location", $location);
             unset($location);
 
-            // Positioning.  Ignores family addresses.
-            if ($latEv !== "" && $lngEv !== "" &&
+            // Positioning.
+            if ($latEv !== "" && $lngEv !== "" &&   // Has EV Lat/Lng
+                property_exists($f->familyEV, $latEv) && property_exists($f->familyEV, $lngEv) &&
                 $f->familyEV->$latEv !== null && $f->familyEV->$latEv->value !== null &&
                 $f->familyEV->$lngEv !== null && $f->familyEV->$lngEv->value !== null) {
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", Utilities::toFloatOrNull($f->familyEV->$latEv->value));
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", Utilities::toFloatOrNull($f->familyEV->$lngEv->value));
-            } elseif ($f->geo !== null && !$decouple &&
+            } elseif ($f->geo !== null && !$decouple &&   // Use Family Lat/Lng
                 is_numeric($f->geo->latitude) && is_numeric($f->geo->longitude) &&
                 ! (floatval($f->geo->latitude) === 0.0 && floatval($f->geo->longitude) === 0.0)) {
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", floatval($f->geo->latitude));
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", floatval($f->geo->longitude));
-            } else {
+            } else {  // Remove lat/lng
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat");
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng");
+            }
+
+            // Post image
+            $oldUrl = get_post_meta($post->ID, self::IMAGE_META_KEY, true);
+            $newUrl = "";
+            if ($f->picture !== null) {
+                $newUrl = $f->picture->large ?? "";
+            }
+            $oldAttId = get_post_thumbnail_id($post->ID);
+            if ($oldUrl !== $newUrl) {
+                if ($oldAttId > 0) {
+                    wp_delete_attachment($oldAttId, true);
+                    delete_post_thumbnail($post->ID);
+                }
+                if ($newUrl === "") { // Remove and delete
+                    delete_post_meta($post->ID, self::IMAGE_META_KEY);
+                } else {
+                    $attId = media_sideload_image($newUrl, $post->ID, $title,'id');
+                    set_post_thumbnail($post->ID, $attId);
+                    update_post_meta($post->ID, self::IMAGE_META_KEY, $newUrl);
+                }
             }
 
             $postsToKeep[] = $post->ID;
@@ -994,7 +1023,7 @@ class Partner implements api, JsonSerializable
     public static function getFamEvAsContent(string $ev, object $famObj, ?string $default): ?string
     {
         $newContent = $default;
-        if ($ev !== "" && $famObj->familyEV->$ev !== null && $famObj->familyEV->$ev->value !== null) {
+        if ($ev !== "" && property_exists($famObj->familyEV, $ev) && $famObj->familyEV->$ev !== null && $famObj->familyEV->$ev->value !== null) {
             $newContent = $famObj->familyEV->$ev->value;
             $newContent = strip_tags(
                 $newContent,

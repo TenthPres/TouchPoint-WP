@@ -781,8 +781,20 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
                     outPeople[grpId] = {
                         inData['groupBy']: grpId,
                         "People": [],
-                        "FamilyEV": fevOut
+                        "FamilyEV": fevOut,
+                        "Picture": None
                     }
+                        
+                    # Family's Picture
+                    if po.Family.Picture is not None:
+                        outPeople[grpId]['Picture'] = {
+                            'large': po.Family.Picture.LargeUrl,
+                            'medium': po.Family.Picture.MediumUrl,
+                            'small': po.Family.Picture.SmallUrl,
+                            'thumb': po.Family.Picture.ThumbUrl,
+                            'x': po.Family.Picture.X,
+                            'y': po.Family.Picture.Y
+                        }
                 else:
                     outPeople[grpId] = {
                         inData['groupBy']: grpId,

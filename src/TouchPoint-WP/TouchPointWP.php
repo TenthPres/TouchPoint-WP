@@ -1310,7 +1310,7 @@ class TouchPointWP
             $tax = $this->settings->global_primary_tax;
             if ($tax === "" || $tax === null) {
                 unregister_taxonomy(self::TAX_GP_CATEGORY);
-            } else {
+            } elseif (count($this->getFamilyEvFields([$tax])) > 0) {
                 $tax = $this->getFamilyEvFields([$tax])[0];
                 $plural = $tax->field . "s"; // Sad, but works.  i18n someday.
                 register_taxonomy(

@@ -13,6 +13,12 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
 ?>
 
 <article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class("partner-list-item"); ?> data-tp-partner="<?php echo $gp->jsId() ?>" style="border-bottom-color: <?php echo $gp->color ?>">
+    <?php
+    if (has_post_thumbnail($post)) {
+        $imgUrl = get_the_post_thumbnail_url($post);
+        echo "<img src=\"$imgUrl\" alt=\"$gp->name\" class=\"partner-thumbnail\" />";
+    }
+    ?>
     <header class="entry-header">
         <div class="entry-header-inner">
         <?php

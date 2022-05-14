@@ -18,9 +18,15 @@ article.involvement-list-item {
     margin: 0.8em;
     position: relative;
     padding: 0.8em;
-    display: flex;
     flex-direction: column;
     border-bottom: 2px solid transparent;
+    height: 100%;
+}
+
+article.partner-list-item img.partner-thumbnail {
+    float: right;
+    margin-left: 1em;
+    max-width: 8em;
 }
 
 article.partner-list-item h2 a,
