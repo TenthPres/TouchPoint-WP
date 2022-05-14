@@ -48,6 +48,9 @@ abstract class EventsCalendar implements api
 
         foreach ($eventsQ as $eQ) {
             /** @var WP_Post $eQ */
+            global $post;
+            $post = $eQ;
+
             $eO = [];
 
             $locationContent = [];

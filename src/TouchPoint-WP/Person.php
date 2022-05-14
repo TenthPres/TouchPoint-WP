@@ -147,6 +147,28 @@ class Person extends WP_User implements api, JsonSerializable
     }
 
     /**
+     * Get a person from a TouchPoint PeopleID
+     *
+     * @param int $pid
+     *
+     * @return Person|null
+     */
+    public static function fromPeopleId(int $pid): ?Person
+    {
+        $q = new PersonQuery(
+            [
+                'meta_key'     => self::META_PEOPLEID,
+                'meta_value'   => $pid,
+                'meta_compare' => '='
+            ]
+        );
+        if ($q->get_total() === 1) {
+            return $q->get_first_result();
+        }
+        return null;
+    }
+
+    /**
      * @param $field
      * @param $value
      *
@@ -290,7 +312,8 @@ class Person extends WP_User implements api, JsonSerializable
                 'class' => 'TouchPoint-person people-list',
                 'invid' => null,
                 'id'    => wp_unique_id('tp-actions-'),
-                'withsubgroups' => false
+                'withsubgroups' => false,
+                'btnclass' => 'btn button'
             ],
             $params,
             self::SHORTCODE_PEOPLE_LIST
@@ -366,6 +389,7 @@ class Person extends WP_User implements api, JsonSerializable
         $out = "";
 
         $people = $q->get_results();
+        $btnClass = $params['btnclass'];
 
         $loadedPart = get_template_part('person-list', 'person-list');
         if ($loadedPart === false) {
@@ -483,13 +507,12 @@ class Person extends WP_User implements api, JsonSerializable
         if (!is_object($pictureData)) {
             return null;
         }
-        if (!is_array($args))
 
-        if ((!isset($args['height']) || !isset($args['width'])) && !isset($args['size'])) {
+        if (!is_array($args) || (!isset($args['height']) || !isset($args['width'])) && !isset($args['size'])) {
             return $pictureData->large;
         }
-        $h = max($args['size'], $args['height']);
-        $w = max($args['size'], $args['width']);
+        $h = max($args['size'] ?? 0, $args['height'] ?? 0);
+        $w = max($args['size'] ?? 0, $args['width'] ?? 0);
 
         if ($w <= 50 && $h <= 50) {
             return $pictureData->thumb;
@@ -854,20 +877,41 @@ class Person extends WP_User implements api, JsonSerializable
      * `data-tp-person` attribute with the invId as the value.
      *
      * @param ?string $context A reference to where the action buttons are meant to be used.
+     * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button elements.
      *
      * @return string
      */
-    public function getActionButtons(string $context = null): string
+    public function getActionButtons(string $context = null, string $btnClass = ""): string
     {
         TouchPointWP::requireScript('swal2-defer');
         TouchPointWP::requireScript('base-defer');
         $this->enqueueForJsInstantiation();
 
+        if ($btnClass !== "") {
+            $btnClass = " class=\"$btnClass\"";
+        }
+
         $text = __("Contact", TouchPointWP::TEXT_DOMAIN);
         TouchPointWP::enqueueActionsStyle('person-contact');
-        $ret = "<button type=\"button\" data-tp-action=\"contact\">$text</button>  ";
+        $ret = "<button type=\"button\" data-tp-action=\"contact\"$btnClass>$text</button>  ";
 
-        return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context);
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context, $btnClass);
+    }
+
+    /**
+     * Ensure a person with a given PeopleId will be available in JS.
+     *
+     * @param int $pid TouchPoint People ID
+     *
+     * @return ?bool null if person is not found.  True if newly enqueued, false if it was already enqueued.
+     */
+    public static function enqueueForJS_byPeopleId(int $pid): ?bool
+    {
+        $p = self::fromPeopleId($pid);
+        if ($p === null) {
+            return null;
+        }
+        return $p->enqueueForJsInstantiation();
     }
 
     /**
@@ -879,7 +923,7 @@ class Person extends WP_User implements api, JsonSerializable
     {
         return [
             'peopleId' => $this->peopleId,
-            'displayName' => $this->display_name
+            'displayName' => $this->display_name,
         ];
     }
 
@@ -898,7 +942,7 @@ class Person extends WP_User implements api, JsonSerializable
 
         $listStr = json_encode($queue);
 
-        return "\ttpvm.addEventListener('Person_class_loaded', function() {
+        return "\ttpvm.addOrTriggerEventListener('Person_class_loaded', function() {
         TP_Person.fromObjArray($listStr);\n\t});\n";
     }
 
@@ -985,7 +1029,6 @@ class Person extends WP_User implements api, JsonSerializable
             return null;
         }
     }
-
 
     /**
      * Take an array of people-ish objects and return a nicely human-readable list of names.
@@ -1092,7 +1135,7 @@ class Person extends WP_User implements api, JsonSerializable
         $inputData = TouchPointWP::postHeadersAndFiltering();
 
         try {
-            $data = TouchPointWP::instance()->apiPost('ident', json_decode($inputData));
+            $data = TouchPointWP::instance()->apiPost('ident', json_decode($inputData), 30);
         } catch (Exception $ex) {
             echo json_encode(['error' => $ex->getMessage()]);
             exit;
@@ -1104,12 +1147,60 @@ class Person extends WP_User implements api, JsonSerializable
 
         $ret = [];
         foreach ($people as $p) {
-            $p->lastName = $p->lastName[0] ? $p->lastName[0] . "." : "";
-            unset($p->lastInitial);
-            $ret[] = $p;
+            $ret[] = [
+                'goesBy' => $p->GoesBy,
+                'lastName' => $p->LastName[0] ? $p->LastName[0] . "." : "",
+                'displayName' => trim($p->GoesBy . " " . ($p->LastName[0] ? $p->LastName[0] . "." : "")),
+                'familyId' => $p->FamilyId,
+                'peopleId' => $p->PeopleId
+            ];
         }
 
-        echo json_encode(['people' => $ret]);
+        echo json_encode([
+            'people' => $ret,
+            'primaryFam' => $data->primaryFam ?? []
+        ]);
+        exit;
+    }
+
+    private static function ajaxSrc(): void
+    {
+        $q['q'] = $_GET['q'] ?? '';
+        $q['context'] = 'src';
+
+
+        if ($q['q'] !== '') {
+            try {
+                $data = TouchPointWP::instance()->apiGet('src', $q, 30);
+                $data = $data->people ?? [];
+            } catch (Exception $ex) {
+                echo json_encode(['error' => $ex->getMessage()]);
+                exit;
+            }
+        } else {
+            $data = [];
+        }
+
+        $out = [];
+        if ($_GET['fmt'] == "s2") {
+            $out['fmt'] = "select2";
+            $out['pagination'] = [
+                'more' => false
+            ];
+
+            $out['results'] = [];
+            foreach ($data as $p) {
+                $out['results'][] = [
+                    'id' => $p->peopleId,
+                    'text' => $p->goesBy . " " . $p->lastName
+                ];
+            }
+
+        } else {
+            $out = $data;
+        }
+
+        echo json_encode($out);
         exit;
     }
 
@@ -1130,6 +1221,11 @@ class Person extends WP_User implements api, JsonSerializable
             case "ident":
                 TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
                 self::ajaxIdent();
+                exit;
+
+            case "src":
+                TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
+                self::ajaxSrc();
                 exit;
 
             case "contact":

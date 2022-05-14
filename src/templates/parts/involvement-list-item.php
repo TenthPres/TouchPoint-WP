@@ -1,11 +1,13 @@
 <?php
 
 use tp\TouchPointWP\Involvement;
+use tp\TouchPointWP\Involvement_PostTypeSettings;
 use tp\TouchPointWP\TouchPointWP;
 
 $post = get_post();
 
 /** @var $post WP_Post */
+/** @var $settings Involvement_PostTypeSettings */
 
 $inv = Involvement::fromPost($post);
 
@@ -64,6 +66,26 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
         <?php echo wp_trim_words(get_the_excerpt(), 20, "..."); ?>
     </div>
     <div class="actions involvement-actions <?php echo $postTypeClass; ?>-actions">
-        <?php echo $inv->getActionButtons('list-item'); ?>
+        <?php echo $inv->getActionButtons('list-item', "btn button"); ?>
     </div>
+    <?php if ($settings->hierarchical) {
+        $children = get_children([
+            'post_parent' => $post->ID,
+            'orderby' => 'title',
+            'order' => 'ASC'
+        ]);
+        if (count($children) > 0) {
+            echo "<div class='child-involvements'>";
+        }
+        foreach ($children as $child) {
+            /** @var WP_Post $child */
+            echo "<div>";
+            $link = get_permalink($child);
+            echo "<h3 class='inline'><a href=\"$link\" class='small'>$child->post_title</a></h3>";
+            echo "</div>";
+        }
+        if (count($children) > 0) {
+            echo "</div>";
+        }
+    } ?>
 </article>

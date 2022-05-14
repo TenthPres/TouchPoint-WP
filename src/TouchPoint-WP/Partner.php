@@ -58,6 +58,7 @@ class Partner implements api, JsonSerializable
     protected WP_Post $post;
 
     public const FAMILY_META_KEY = TouchPointWP::SETTINGS_PREFIX . "famId";
+    public const IMAGE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "imageUrl";
 
     public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "partner";
 
@@ -213,7 +214,8 @@ class Partner implements api, JsonSerializable
                 'show_in_rest' => false, // For the benefit of secure partners
                 'supports'     => [
                     'title',
-                    'custom-fields'
+                    'custom-fields',
+                    'thumbnail'
                 ],
                 'has_archive'  => true,
                 'rewrite'      => [
@@ -270,6 +272,11 @@ class Partner implements api, JsonSerializable
     {
         set_time_limit(60);
 
+        // Required for image handling
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+
         $customFev = TouchPointWP::instance()->settings->global_fev_custom;
         $fevFields = $customFev;
 
@@ -315,7 +322,7 @@ class Partner implements api, JsonSerializable
 
         foreach ($familyData->people as $f) {
             /** @var object $f */
-            set_time_limit(15);
+            set_time_limit(30);
 
             if ($verbose) {
                 var_dump($f);
@@ -429,20 +436,42 @@ class Partner implements api, JsonSerializable
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "location", $location);
             unset($location);
 
-            // Positioning.  Ignores family addresses.
-            if ($latEv !== "" && $lngEv !== "" &&
+            // Positioning.
+            if ($latEv !== "" && $lngEv !== "" &&   // Has EV Lat/Lng
+                property_exists($f->familyEV, $latEv) && property_exists($f->familyEV, $lngEv) &&
                 $f->familyEV->$latEv !== null && $f->familyEV->$latEv->value !== null &&
                 $f->familyEV->$lngEv !== null && $f->familyEV->$lngEv->value !== null) {
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", Utilities::toFloatOrNull($f->familyEV->$latEv->value));
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", Utilities::toFloatOrNull($f->familyEV->$lngEv->value));
-            } elseif ($f->geo !== null && !$decouple &&
+            } elseif ($f->geo !== null && !$decouple &&   // Use Family Lat/Lng
                 is_numeric($f->geo->latitude) && is_numeric($f->geo->longitude) &&
                 ! (floatval($f->geo->latitude) === 0.0 && floatval($f->geo->longitude) === 0.0)) {
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", floatval($f->geo->latitude));
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", floatval($f->geo->longitude));
-            } else {
+            } else {  // Remove lat/lng
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat");
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng");
+            }
+
+            // Post image
+            $oldUrl = get_post_meta($post->ID, self::IMAGE_META_KEY, true);
+            $newUrl = "";
+            if ($f->picture !== null) {
+                $newUrl = $f->picture->large ?? "";
+            }
+            $oldAttId = get_post_thumbnail_id($post->ID);
+            if ($oldUrl !== $newUrl) {
+                if ($oldAttId > 0) {
+                    wp_delete_attachment($oldAttId, true);
+                    delete_post_thumbnail($post->ID);
+                }
+                if ($newUrl === "") { // Remove and delete
+                    delete_post_meta($post->ID, self::IMAGE_META_KEY);
+                } else {
+                    $attId = media_sideload_image($newUrl, $post->ID, $title,'id');
+                    set_post_thumbnail($post->ID, $attId);
+                    update_post_meta($post->ID, self::IMAGE_META_KEY, $newUrl);
+                }
             }
 
             $postsToKeep[] = $post->ID;
@@ -532,6 +561,7 @@ class Partner implements api, JsonSerializable
         $params = shortcode_atts(
             [
                 'class' => 'TouchPoint-partner actions',
+                'btnclass' => 'btn button',
                 'famid' => null,
                 'id'    => wp_unique_id('tp-actions-')
             ],
@@ -574,7 +604,7 @@ class Partner implements api, JsonSerializable
         $eltId = $params['id'];
         $class = $params['class'];
 
-        return "<div id=\"$eltId\" class=\"$class\" data-tp-f=\"$prt->familyId\">{$prt->getActionButtons('actions-shortcode')}</div>";
+        return "<div id=\"$eltId\" class=\"$class\" data-tp-f=\"$prt->familyId\">{$prt->getActionButtons('actions-shortcode', $params['btnclass'])}</div>";
     }
 
     /**
@@ -993,7 +1023,7 @@ class Partner implements api, JsonSerializable
     public static function getFamEvAsContent(string $ev, object $famObj, ?string $default): ?string
     {
         $newContent = $default;
-        if ($ev !== "" && $famObj->familyEV->$ev !== null && $famObj->familyEV->$ev->value !== null) {
+        if ($ev !== "" && property_exists($famObj->familyEV, $ev) && $famObj->familyEV->$ev !== null && $famObj->familyEV->$ev->value !== null) {
             $newContent = $famObj->familyEV->$ev->value;
             $newContent = strip_tags(
                 $newContent,
@@ -1054,22 +1084,26 @@ class Partner implements api, JsonSerializable
      * `data-tp-partner` attribute with the post_id as the value or 0 for secure partners.
      *
      * @param ?string $context A reference to where the action buttons are meant to be used.
+     * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button elements.
      *
      * @return string
      */
-    public function getActionButtons(string $context = null): string
+    public function getActionButtons(string $context = null, string $btnClass = ""): string
     {
         $this->enqueueForJsInstantiation();
 
         $ret = "";
+        if ($btnClass !== "") {
+            $btnClass = " class=\"$btnClass\"";
+        }
 
         // Show on map button.  (Only works if map is called before this is.)
         if (self::$_hasArchiveMap && !$this->decoupleLocation && $this->geo !== null) {
             $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
-            $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\">$text</button>  ";
+            $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\"$btnClass>$text</button>  ";
         }
 
-        return apply_filters(TouchPointWP::HOOK_PREFIX . "partner_actions", $ret, $this, $context);
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "partner_actions", $ret, $this, $context, $btnClass);
     }
 
     public static function getJsInstantiationString(): string

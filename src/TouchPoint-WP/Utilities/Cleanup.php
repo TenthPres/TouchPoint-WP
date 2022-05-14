@@ -112,14 +112,14 @@ abstract class Cleanup implements api
     protected static function cleanupPersonEVs(): int
     {
         global $wpdb;
-        $conditions = ["uMeta.meta_key LIKE '" . Person::META_PEOPLE_EV_PREFIX . "%'"];
+        $conditions = ["meta_key LIKE '" . Person::META_PEOPLE_EV_PREFIX . "%'"];
         foreach (TouchPointWP::instance()->getPersonEvFields(TouchPointWP::instance()->settings->people_ev_custom) as $field) {
             $name = Person::META_PEOPLE_EV_PREFIX . ExtraValueHandler::standardizeExtraValueName($field->field);
-            $conditions[] = "uMeta.meta_key <> '$name'";
+            $conditions[] = "meta_key <> '$name'";
         }
         $conditions = implode(" AND ", $conditions);
 
-        $try = $wpdb->query("DELETE FROM `$wpdb->usermeta` AS uMeta WHERE $conditions");
+        $try = $wpdb->query("DELETE FROM `$wpdb->usermeta` WHERE $conditions");
         if ($try === false) {
             throw new TouchPointWP_Exception("Error encountered in Cleanup: ". $wpdb->last_error, 170003);
         }
@@ -136,14 +136,14 @@ abstract class Cleanup implements api
     protected static function cleanupFamilyEVs(): int
     {
         global $wpdb;
-        $conditions = ["pMeta.meta_key LIKE '" . Person::META_PEOPLE_EV_PREFIX . "%'"];
+        $conditions = ["meta_key LIKE '" . Person::META_PEOPLE_EV_PREFIX . "%'"];
         foreach (TouchPointWP::instance()->getPersonEvFields(TouchPointWP::instance()->settings->global_fev_custom) as $field) {
             $name = Partner::META_FEV_PREFIX . ExtraValueHandler::standardizeExtraValueName($field->field);
-            $conditions[] = "pMeta.meta_key <> '$name'";
+            $conditions[] = "meta_key <> '$name'";
         }
         $conditions = implode(" AND ", $conditions);
 
-        $try = $wpdb->query("DELETE FROM `$wpdb->postmeta` AS pMeta WHERE $conditions");
+        $try = $wpdb->query("DELETE FROM `$wpdb->postmeta` WHERE $conditions");
         if ($try === false) {
             throw new TouchPointWP_Exception("Error encountered in Cleanup: ". $wpdb->last_error, 170003);
         }

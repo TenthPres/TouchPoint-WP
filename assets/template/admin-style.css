@@ -1,0 +1,17 @@
+.column-wrap {
+    column-count: 1;
+}
+.select2-container {
+    width: 50%;
+    min-width:200px;
+}
+@media (min-width: 1300px) {
+    .column-wrap {
+        column-count: 2;
+    }
+}
+@media (min-width: 1500px) {
+    .column-wrap {
+        column-count: 3;
+    }
+}

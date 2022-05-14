@@ -54,7 +54,7 @@ TouchPointWP::enqueuePartialsStyle();
                 ?>
             </div>
             <div class="TouchPointWP-detail-cell-section involvement-actions">
-                <?php echo $inv->getActionButtons('single-template') ?>
+                <?php echo $inv->getActionButtons('single-template', "btn button") ?>
             </div>
         </div>
         <?php if ($settings->useGeo && $inv->geo !== null) { ?>
@@ -64,5 +64,27 @@ TouchPointWP::enqueuePartialsStyle();
         <?php } ?>
     </div>
 </article>
+
+<?php if ($settings->hierarchical) {
+    $children = get_children([
+                                 'post_parent' => $post->ID,
+                                 'orderby' => 'title',
+                                 'order' => 'ASC'
+                             ]);
+    if (count($children) > 0) {
+        echo "<div class='involvement-list child-involvements'>";
+    }
+    foreach ($children as $post) {
+        /** @var WP_Post $post */
+        $loadedPart = get_template_part('list-item', 'involvement-list-item');
+        if ($loadedPart === false) {
+            TouchPointWP::enqueuePartialsStyle();
+            require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
+        }
+    }
+    if (count($children) > 0) {
+        echo "</div>";
+    }
+} ?>
 
 <?php get_footer();

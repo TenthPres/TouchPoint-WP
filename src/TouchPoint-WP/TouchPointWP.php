@@ -26,7 +26,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.6";
+    public const VERSION = "0.0.7";
 
     public const DEBUG = false;
 
@@ -51,6 +51,7 @@ class TouchPointWP
     public const API_ENDPOINT_PERSON = "person";
     public const API_ENDPOINT_MEETING = "mtg";
     public const API_ENDPOINT_ADMIN = "admin";
+    public const API_ENDPOINT_ADMIN_SCRIPTZIP = "admin/scriptzip";
     public const API_ENDPOINT_CLEANUP = "cleanup";
     public const API_ENDPOINT_GEOLOCATE = "geolocate";
 
@@ -74,6 +75,10 @@ class TouchPointWP
     public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
     public const TAX_DIV = self::HOOK_PREFIX . "div";
     public const TAX_WEEKDAY = self::HOOK_PREFIX . "weekday";
+    public const TAX_TENSE = self::HOOK_PREFIX . "tense";
+    public const TAX_TENSE_PAST = "past";
+    public const TAX_TENSE_PRESENT = "present";
+    public const TAX_TENSE_FUTURE = "future";
     public const TAX_DAYTIME = self::HOOK_PREFIX . "timeOfDay";
     public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
@@ -169,6 +174,19 @@ class TouchPointWP
      */
     private ?WP_Http $httpClient = null;
 
+    /** @var string Used to denote requests made in special circumstances, such as through the TouchPoint-WP API */
+    protected static string $context = "";
+
+    /**
+     * Indicates that the current request is being processed through the API.
+     *
+     * @return bool
+     */
+    public static function isApi(): bool
+    {
+        return self::$context === "api";
+    }
+
     /**
      * Constructor function.
      *
@@ -192,6 +210,7 @@ class TouchPointWP
         add_action('init', [$this, 'registerScriptsAndStyles'], 0);
 
         add_action('wp_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
+        add_action('admin_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
 
         add_action('admin_print_styles', [$this, 'adminPrintStyleOverrides'], 1000);
 
@@ -221,6 +240,7 @@ class TouchPointWP
 
         self::scheduleCleanup();
     }
+
 
     public function admin(): TouchPointWP_AdminAPI
     {
@@ -310,6 +330,7 @@ class TouchPointWP
     {
         if ($continue) {
             $reqUri = parse_url(trim($_SERVER['REQUEST_URI'], '/'));
+            $reqUri['path'] = $reqUri['path'] ?? "";
 
             // Remove trailing slash if it exists (and, it probably does)
             if (substr($reqUri['path'], -1) === '/')
@@ -327,6 +348,8 @@ class TouchPointWP
             parse_str($reqUri['query'] ?? '', $queryParams);
             $reqUri['query'] = $queryParams;
             unset($queryParams);
+
+            self::$context = "api";
 
             // App Events Endpoint
             if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_APP_EVENTS &&
@@ -385,18 +408,6 @@ class TouchPointWP
                 }
             }
 
-            // Generate Python Scripts TODO move to admin
-            if ($reqUri['path'][1] === self::API_ENDPOINT_GENERATE_SCRIPTS &&
-                count($reqUri['path']) === 2 &&
-                current_user_can('administrator')) {
-
-                if (!$this->generateAndEchoPython()) {
-                    // something went wrong...
-                    return $continue;
-                }
-                exit;
-            }
-
             // Geolocate via IP TODO rework to minimize extra requests
             if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_GEOLOCATE &&
                 count($reqUri['path']) === 2) {
@@ -404,6 +415,8 @@ class TouchPointWP
                 $this->ajaxGeolocate();
             }
         }
+
+        self::$context = "";
         return $continue;
     }
 
@@ -446,37 +459,15 @@ class TouchPointWP
     }
 
     /**
-     * Generate scripts package and send to client.
-     *
-     * There needs to be a permission check elsewhere, before this method is called.
-     *
-     * @return bool True on success, False on failure.
-     */
-    private function generateAndEchoPython(): bool
-    {
-        $fileName = $this->admin()->generatePython();
-
-        if (! is_string($fileName)) {
-            // something went wrong...
-            return false;
-        }
-
-        TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
-        header("Content-disposition: attachment; filename=TouchPoint-WP-Scripts.zip");
-        header('Content-type: application/zip');
-
-        readfile($fileName);
-        unlink ($fileName);
-        return true;
-    }
-
-    /**
      * Print Dynamic Instantiation scripts.
      *
      * @return void
      */
     public function printDynamicFooterScripts(): void
     {
+        if (self::isApi())
+            return;
+
         echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
         if (Person::useJsInstantiation()) {
             echo Person::getJsInstantiationString();
@@ -513,6 +504,8 @@ class TouchPointWP
                     }
                 }
             }
+
+            echo file_get_contents(TouchPointWP::$dir . "/assets/template/admin-style.css");
 
             echo "</style>";
         }
@@ -618,6 +611,9 @@ class TouchPointWP
         // If any slugs have changed, flush.  Only executes if already enqueued.
         self::instance()->flushRewriteRules();
 
+        // If the scripts need to be updated, do that.
+        self::instance()->updateDeployedScripts();
+
         self::requireScript("base");
     }
 
@@ -660,6 +656,14 @@ class TouchPointWP
             "https://ajax.aspnetcdn.com/ajax/knockout/knockout-3.5.0.js",
             [],
             '3.5.0',
+            true
+        );
+
+        wp_register_script(
+            self::SHORTCODE_PREFIX . "select2-defer",
+            "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js",
+            ['jquery'],
+            '4.1.0',
             true
         );
 
@@ -1031,8 +1035,9 @@ class TouchPointWP
             }
         }
 
-        // Weekdays
         if ($this->settings->enable_involvements === "on") {
+
+            // Weekdays
             register_taxonomy(
                 self::TAX_WEEKDAY,
                 Involvement_PostTypeSettings::getPostTypes(),
@@ -1077,8 +1082,56 @@ class TouchPointWP
                     self::queueFlushRewriteRules();
                 }
             }
-        }
 
+            // Tenses
+            register_taxonomy(
+                self::TAX_TENSE,
+                Involvement_PostTypeSettings::getPostTypes(),
+                [
+                    'hierarchical'      => false,
+                    'show_ui'           => false,
+                    'description'       => __('Classify involvements by tense (present, future, past)'),
+                    'labels'            => [
+                        'name'          => __('Tenses'),
+                        'singular_name' => __('Tense'),
+                        'search_items'  => __('Search Tenses'),
+                        'all_items'     => __('All Tenses'),
+                        'edit_item'     => __('Edit Tense'),
+                        'update_item'   => __('Update Tense'),
+                        'add_new_item'  => __('Add New Tense'),
+                        'new_item_name' => __('New Tense'),
+                        'menu_name'     => __('Tenses'),
+                    ],
+                    'public'            => true,
+                    'show_in_rest'      => false,
+                    'show_admin_column' => false,
+
+                    // Control the slugs used for this taxonomy
+                    'rewrite'           => [
+                        'slug'         => 'tense',
+                        'with_front'   => false,
+                        'hierarchical' => false
+                    ],
+                ]
+            );
+            foreach ([
+                TouchPointWP::TAX_TENSE_FUTURE => __('Upcoming'),
+                TouchPointWP::TAX_TENSE_PRESENT => __('Current'),
+                TouchPointWP::TAX_TENSE_PAST => __('Past'),
+            ] as $slug => $name) {
+                if ( ! term_exists($slug, self::TAX_TENSE)) {
+                    wp_insert_term(
+                        $name,
+                        self::TAX_TENSE,
+                        [
+                            'description' => $name,
+                            'slug'        => $slug
+                        ]
+                    );
+                    self::queueFlushRewriteRules();
+                }
+            }
+        }
 
         // Time of Day
         if ($this->settings->enable_involvements === "on") {
@@ -1098,7 +1151,7 @@ class TouchPointWP
                         'edit_item'     => __('Edit Time of Day'),
                         'update_item'   => __('Update Time of Day'),
                         'add_new_item'  => __('Add New Time of Day'),
-                        'new_item_name' => __('New Time of Day Name'),
+                        'new_item_name' => __('New Time of Day'),
                         'menu_name'     => __('Times of Day'),
                     ],
                     'public'            => true,
@@ -1257,7 +1310,7 @@ class TouchPointWP
             $tax = $this->settings->global_primary_tax;
             if ($tax === "" || $tax === null) {
                 unregister_taxonomy(self::TAX_GP_CATEGORY);
-            } else {
+            } elseif (count($this->getFamilyEvFields([$tax])) > 0) {
                 $tax = $this->getFamilyEvFields([$tax])[0];
                 $plural = $tax->field . "s"; // Sad, but works.  i18n someday.
                 register_taxonomy(
@@ -1404,8 +1457,6 @@ class TouchPointWP
      */
     public function activation()
     {
-        $this->_log_version_number();
-
         self::queueFlushRewriteRules();
 
         $this->createTables();
@@ -1460,7 +1511,6 @@ class TouchPointWP
         dbDelta($sql);
     }
 
-
     /**
      * Drop database tables at uninstallation.
      */
@@ -1486,6 +1536,11 @@ class TouchPointWP
         update_option(self::TOKEN . '_version', self::VERSION, false);
     }
 
+    /**
+     * Indicates that Tribe Calendar Pro is enabled.
+     *
+     * @return bool
+     */
     public static function useTribeCalendarPro(): bool
     {
         if ( ! function_exists( 'is_plugin_active' ) ){
@@ -1495,11 +1550,15 @@ class TouchPointWP
         return is_plugin_active( 'events-calendar-pro/events-calendar-pro.php');
     }
 
+    /**
+     * Indicates that Tribe Calendar is enabled.
+     *
+     * @return bool
+     */
     public static function useTribeCalendar(): bool
     {
         return self::useTribeCalendarPro() || is_plugin_active( 'the-events-calendar/the-events-calendar.php');
     }
-
 
     /**
      * Sort a list of hierarchical terms into a list in which each parent is immediately followed by its children.
@@ -2120,7 +2179,7 @@ class TouchPointWP
             return false;
         }
 
-        if ( ! is_array($data->keywords)) {
+        if ( ! property_exists($data, 'keywords') || ! is_array($data->keywords)) {
             return false;
         }
 
@@ -2197,13 +2256,14 @@ class TouchPointWP
     /**
      * @param string $command The thing to get
      * @param ?array $parameters URL parameters to be added.
+     * @param int    $timeout Amount of time in sec to wait before timing out.
      *
      * @return stdClass|array An array with headers, body, and other keys
      * Data is generally in json_decode($response['body'])->data
      *
      * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
      */
-    public function apiGet(string $command, ?array $parameters = null)
+    public function apiGet(string $command, ?array $parameters = null, int $timeout = 5)
     {
         if ( ! is_array($parameters)) {
             $parameters = (array)$parameters;
@@ -2229,7 +2289,8 @@ class TouchPointWP
                     'Authorization' => 'Basic ' . base64_encode(
                             $this->settings->api_user . ':' . $this->settings->api_pass
                         )
-                ]
+                ],
+                'timeout' => $timeout
             ]
         );
 
@@ -2254,7 +2315,7 @@ class TouchPointWP
 
         if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER) {
             throw new TouchPointWP_Exception(
-                __('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'), 170002
+                __('Host appears to be missing from TouchPoint-WP configuration.', TouchPointWP::TEXT_DOMAIN), 170002
             );
         }
 
@@ -2298,7 +2359,8 @@ class TouchPointWP
         }
 
         // Most likely the issue where a module import failed for no apparent reason.
-        if (strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
+        if (property_exists($respDecoded, 'output') &&
+            strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
             throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001);
         }
 
@@ -2343,7 +2405,7 @@ class TouchPointWP
     }
 
     /**
-     * Submit a person query with a structured array with the parameters.
+     * Submit a person query to TouchPoint with a structured array with the parameters.
      *
      * @param array $q
      * @param bool  $verbose
@@ -2362,6 +2424,7 @@ class TouchPointWP
             throw new TouchPointWP_Exception(__("People Query Failed", self::TEXT_DOMAIN), 179004);
         }
 
+        /** @noinspection PhpCastIsUnnecessaryInspection -- It actually is. */
         $data->people = (array)$data->people;
 
         if ($verbose) {
@@ -2384,9 +2447,36 @@ class TouchPointWP
     }
 
     /**
+     * Cause a script update on next load.
+     */
+    public static function queueUpdateDeployedScripts(): void
+    {
+        $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'updateDeployedScriptsOnNextLoad'] = true;
+    }
+
+    /**
+     * @param bool $force
+     *
+     * @return void
+     * @see queueUpdateDeployedScripts
+     */
+    public function updateDeployedScripts(bool $force = false): void
+    {
+        if ( isset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'updateDeployedScriptsOnNextLoad']) || $force) {
+            try {
+                $this->settings->updateDeployedScripts();
+            } catch (TouchPointWP_Exception $e) {
+                TouchPointWP_AdminAPI::showError($e->getMessage());
+            }
+            unset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'updateDeployedScriptsOnNextLoad']);
+        }
+    }
+
+    /**
      * Cause a flushing of rewrite rules on next load.
      */
-    public static function queueFlushRewriteRules(): void {
+    public static function queueFlushRewriteRules(): void
+    {
         $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'flushRewriteOnNextLoad'] = true;
     }
 

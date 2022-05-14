@@ -9,7 +9,8 @@ const tpvm = {
     _events: {},
     _eventsTriggered: [],
     _invNear: {},
-    _plausibleUsers: [],
+    _plausibleUsers: [], // likely users
+    _secondaryUsers: [], // relatives of likely users, if RegisterRelatedFamilies > 0
     addEventListener: function(name, f) {
         if (typeof this._events[name] === "undefined")
             this._events[name] = [];

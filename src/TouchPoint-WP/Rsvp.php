@@ -60,18 +60,16 @@ abstract class Rsvp
      */
     public static function shortcode(array $params, string $content): string
     {
-        TouchPointWP::requireScript('swal2-defer');
-        TouchPointWP::requireScript('base-defer');
-
         // standardize parameters
         $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
         $params  = shortcode_atts(
             [
-                'class'     => 'TouchPoint-RSVP btn button',
+                'class'     => 'TouchPoint-RSVP',
+                'btnclass'  => 'btn button',
                 'meetingid' => null,
-                'preload' => __("Loading...", TouchPointWP::TEXT_DOMAIN)
+                'preload'   => __("Loading...", TouchPointWP::TEXT_DOMAIN)
             ],
             $params,
             self::SHORTCODE
@@ -90,17 +88,30 @@ abstract class Rsvp
             return "<!-- Can't add an RSVP link without a proper Meeting ID in a mtgId parameter. -->" . $content;
         }
 
-        TouchPointWP::requireScript('meeting-defer');
-
-        $meetingId = (int)($params['meetingid']);
+        $meetingId  = (int)($params['meetingid']);
         $preloadMsg = $params['preload'];
 
         // get any nesting
         $content = apply_shortcodes($content);
 
+        // merge the two class parameters
+        $class = trim($params['class'] . ' ' . $params['btnclass']);
+        if ($class !== '') {
+            $class = " class=\"$class\"";
+        }
+
         // create the link
-        TouchPointWP::enqueueActionsStyle('rsvp');
-        return "<a href=\"#\" onclick=\"return false;\" class=\"" . $params['class'] . " disabled\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$content</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
+        if (TouchPointWP::isApi()) {
+            global $post;
+            $link = get_permalink($post);
+            return "<a href=\"$link#tp-rsvp-m$meetingId\"><span class=\"rsvp-btn-content\">$content</span></a>";
+        } else {
+            TouchPointWP::requireScript('swal2-defer');
+            TouchPointWP::requireScript('meeting-defer');
+            TouchPointWP::enqueueActionsStyle('rsvp');
+
+            return "<a href=\"#\" onclick=\"return false;\" $class disabled\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$content</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
+        }
     }
 
 }

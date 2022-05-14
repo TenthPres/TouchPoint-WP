@@ -18,9 +18,12 @@ if ( ! defined('ABSPATH')) {
  * @property-read string $slug
  * @property-read string[] $importDivs
  * @property-read bool $useGeo
+ * @property-read bool $hierarchical
+ * @property-read string $groupBy
  * @property-read string[] $leaderTypes
  * @property-read string[] $hostTypes
  * @property-read string[] $filters
+ * @property-read string $taskOwner
  * @property-read int[] $contactKeywords
  * @property-read int[] $joinKeywords
  * @property-read string $postType
@@ -28,14 +31,19 @@ if ( ! defined('ABSPATH')) {
 class Involvement_PostTypeSettings {
     protected static array $settings;
 
+    // IMPORTANT: when adding new settings, they MUST have a default defined here, since they won't exist in the JSON yet.
+
     protected string $nameSingular;
     protected string $namePlural;
     protected string $slug;
     protected array $importDivs;
     protected bool $useGeo;
+    protected bool $hierarchical = false;
+    protected string $groupBy = "";
     protected array $leaderTypes;
     protected array $hostTypes;
     protected array $filters;
+    protected string $taskOwner = ""; // PeopleID as a string
     protected array $contactKeywords;
     protected array $joinKeywords;
     protected ?string $postType = null;
@@ -160,8 +168,6 @@ class Involvement_PostTypeSettings {
      * @param string $new
      *
      * @return string
-     *
-     * @zthrows Exception
      */
     public static function validateNewSettings(string $new): string
     {

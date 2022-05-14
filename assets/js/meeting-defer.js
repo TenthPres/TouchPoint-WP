@@ -49,11 +49,12 @@ class TP_Meeting {
 
                     // add event listener
                     if (TP_Meeting.actions.includes(action)) {
-                        tpvm._utils.registerAction(action, mtg, mtg.mtgId);
+                        tpvm._utils.registerAction(action, mtg);
                         actionBtns[ai].addEventListener('click', function (e) {
                             e.stopPropagation();
                             mtg[action + "Action"]();
                         });
+                        tpvm._utils.handleHash(action);
                     }
                 }
 
@@ -75,6 +76,14 @@ class TP_Meeting {
         }
 
         tpvm.meetings[this.mtgId] = this;
+    }
+
+    get id() {
+        return this.mtgId;
+    }
+
+    get shortClass() {
+        return "m";
     }
 
     get connectedElements() {
@@ -167,6 +176,7 @@ class TP_Meeting {
                     timer: 3000,
                     customClass: tpvm._utils.defaultSwalClasses()
                 });
+                // tpvm._utils.clearHash();  TODO remove
             }
         } else {
             console.error(res);
@@ -193,11 +203,13 @@ class TP_Meeting {
             ga('send', 'event', 'rsvp', 'rsvp btn click', meeting.mtgId);
         }
 
+        tpvm._utils.applyHashForAction("rsvp", this);
+
         let title = "RSVP for " + (meeting.description ?? meeting.inv.name) + "<br /><small>" + this.dateTimeString() + "</small>";
 
         TP_Person.DoInformalAuth(title, forceAsk).then(
-            (res) => rsvpUi(meeting, res),
-            () => console.log("Informal auth failed, probably user cancellation.")
+            (res) => rsvpUi(meeting, res).then(tpvm._utils.clearHash),
+            () => tpvm._utils.clearHash()
         )
 
         function rsvpUi(meeting, people) {
@@ -205,8 +217,8 @@ class TP_Meeting {
                 ga('send', 'event', 'rsvp', 'rsvp userIdentified', meeting.mtgId);
             }
 
-            Swal.fire({
-                html: `<p id="swal-tp-text">Who is coming?</p><p class="small swal-tp-instruction">Indicate who is or is not coming.  This will overwrite any existing RSVP.  <br />To avoid overwriting an existing RSVP, leave that person blank.  <br />To protect privacy, we won't show existing RSVPs here.</p></i>` + TP_Person.peopleArrayToRadio(people, ['Yes', 'No']),
+            return Swal.fire({
+                html: `<p id="swal-tp-text">Who is coming?</p><p class="small swal-tp-instruction">Indicate who is or is not coming.  This will overwrite any existing RSVP.  <br />To avoid overwriting an existing RSVP, leave that person blank.  <br />To protect privacy, we won't show existing RSVPs here.</p></i>` + TP_Person.peopleArrayToRadio(['Yes', 'No'], people, tpvm._secondaryUsers),
                 customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,
@@ -280,5 +292,4 @@ class TP_Meeting {
         return ret.replace(" PM", "pm").replace(" AM", "am").replace(":00", "");
     }
 }
-TP_Meeting.prototype.classShort = "m";
 TP_Meeting.init();

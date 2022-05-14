@@ -8,21 +8,6 @@ $kws = json_encode($this->parent->getKeywords());
 /** @noinspection CommaExpressionJS */
 echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws }</script>";
 ?>
-<style>
-    .column-wrap {
-        column-count: 1;
-    }
-    @media (min-width: 1300px) {
-        .column-wrap {
-            column-count: 2;
-        }
-    }
-    @media (min-width: 1500px) {
-        .column-wrap {
-            column-count: 3;
-        }
-    }
-</style>
 <form>
 <div data-bind="foreach: invTypes, visible: invTypes().length > 0" style="display:none;">
     <div data-bind="click: toggleVisibility">
@@ -72,6 +57,13 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 
         <tr>
             <th>
+                <label for="it-hierarchical" data-bind="attr: { for: 'it-' + slug() + '-hierarchical'}"><?php _e("Import Hierarchically (Parent-Child Relationships)", TouchPointWP::TEXT_DOMAIN); ?></label>
+            </th>
+            <td colspan="2"><input id="it-hierarchical" type="checkbox" data-bind="checked: hierarchical, attr: { id: 'it-' + slug() + '-hierarchical'}" /></td>
+        </tr>
+
+        <tr>
+            <th>
                 <label for="it-useGeo" data-bind="attr: { for: 'it-' + slug() + '-useGeo'}"><?php _e("Use Geographic Location", TouchPointWP::TEXT_DOMAIN); ?></label>
             </th>
             <td colspan="2"><input id="it-useGeo" type="checkbox" data-bind="checked: useGeo, attr: { id: 'it-' + slug() + '-useGeo'}" /></td>
@@ -105,6 +97,18 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                     <label for="it-host-type" data-bind="text: description, attr: {for: 'it-' + $parent.slug() + '-host-type-' + id}"></label>
                 </p>
                 <!-- /ko -->
+            </td>
+        </tr>
+        <tr data-bind="">
+            <th>
+                <label for="it-tense" data-bind="attr: { for: 'it-' + slug() + '-tense'}"><?php _e("Default Grouping", TouchPointWP::TEXT_DOMAIN); ?></label>
+            </th>
+            <td colspan="2">
+                <select id="it-tense" data-bind="value: groupBy, attr: { id: 'it-' + slug() + '-tense'}">
+                    <option value=""><?php _e("No Grouping", TouchPointWP::TEXT_DOMAIN); ?></option>
+                    <option value="-<?php echo TouchPointWP::TAX_TENSE; ?>"><?php _e("Upcoming / Current", TouchPointWP::TEXT_DOMAIN); ?></option>
+                    <option value="<?php echo TouchPointWP::TAX_TENSE; ?>"><?php _e("Current / Upcoming", TouchPointWP::TEXT_DOMAIN); ?></option>
+                </select>
             </td>
         </tr>
         <tr>
@@ -142,8 +146,14 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 </p>
             </td>
         </tr>
-        <!-- TODO action buttons -->
-        <tr data-bind=""><!-- TODO visibility based on action buttons -->
+        <tr data-bind="">
+            <th><label for="it-taskOwner" data-bind="attr: {for: 'it-' + slug() + '-taskOwner'}"><?php _e("Task Owner", TouchPointWP::TEXT_DOMAIN); ?></th>
+            <td colspan="2">
+                <select id="it-taskOwner" data-bind="value: taskOwner, attr: { id: 'it-' + slug() + '-taskOwner'}" class="select2">
+                </select>
+            </td>
+        </tr>
+        <tr data-bind="">
             <th><?php _e("Contact Leader Task Keywords", TouchPointWP::TEXT_DOMAIN); ?></th>
             <td colspan="2" class="column-wrap">
                 <!-- ko foreach: $root.keywords -->
@@ -154,7 +164,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 <!-- /ko -->
             </td>
         </tr>
-        <tr data-bind=""><!-- TODO visibility based on action buttons -->
+        <tr data-bind="">
             <th><?php _e("Join Task Keywords", TouchPointWP::TEXT_DOMAIN); ?></th>
             <td colspan="2" class="column-wrap">
                 <!-- ko foreach: $root.keywords -->
@@ -183,9 +193,12 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.slug = ko.observable(data.slug ?? "<?php _e("smallgroup", TouchPointWP::TEXT_DOMAIN); ?>").extend({slug: 0});
         this.importDivs = ko.observable(data.importDivs ?? []);
         this.useGeo = ko.observable(data.useGeo ?? false);
+        this.hierarchical = ko.observable(data.hierarchical ?? false);
+        this.groupBy = ko.observable(data.groupBy ?? "");
         this.leaderTypes = ko.observableArray(data.leaderTypes ?? []);
         this.hostTypes = ko.observableArray(data.hostTypes ?? []);
         this.filters = ko.observableArray(data.filters ?? ['genderId', 'weekday', 'rescode', 'agegroup', 'div']);
+        this.taskOwner = ko.observable(data.taskOwner ?? 0);
         this.contactKeywords = ko.observableArray(data.contactKeywords ?? []);
         this.joinKeywords = ko.observableArray(data.joinKeywords ?? []);
 
@@ -228,8 +241,9 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 
         // Operations
         self.addInvType = function() {
-            let newI = new InvType({})
-            self.invTypes.push(newI);
+            let newT = new InvType({})
+            self.invTypes.push(newT);
+            applySelect2ForData('#it-' + newT.slug() + '-taskOwner');
         };
         self.removeInvType = function(type) { self.invTypes.remove(type) };
     }
@@ -263,6 +277,12 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 
         ko.applyBindings(tpvm._vmContext.invTypesVM);
 
+        let types = tpvm._vmContext.invTypesVM.invTypes();
+        for (let i in types) {
+            let name = tpvm.people[invData[i].taskOwner]?.displayName ?? "(named person)";
+            applySelect2ForData('#it-' + types[i].slug() + '-taskOwner', name, invData[i].taskOwner);
+        }
+
         tpvm._vmContext.invTypesVM.invTypes.toJSON = function() {
             let copy = ko.toJS(tpvm._vmContext.invTypesVM.invTypes);
             for (const ii in copy) {
@@ -280,6 +300,30 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         }).subscribe(function() {
             formElt.innerText = tpvm._vmContext.invTypesVM.invTypes.toJSON()
         });
+    }
+
+    function applySelect2ForData(sel, optName = "", optId = "") {
+        let item = jQuery(sel).select2({
+            ajax: {
+                url: "/touchpoint-api/person/src",
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        q: params.term, // search term
+                        fmt: "s2"
+                    };
+                },
+                cache: true
+            },
+            placeholder: 'Select...', // i18n
+            minimumInputLength: 1,
+        });
+
+        if (optName !== "" && optId !== "") {
+            let newOption = new Option(optName, optId, true, true);
+            item.append(newOption).trigger('change');
+        }
     }
 
     tpvm.addOrTriggerEventListener('load', () => initInvVm())

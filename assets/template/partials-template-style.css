@@ -18,9 +18,15 @@ article.involvement-list-item {
     margin: 0.8em;
     position: relative;
     padding: 0.8em;
-    display: flex;
     flex-direction: column;
     border-bottom: 2px solid transparent;
+    height: 100%;
+}
+
+article.partner-list-item img.partner-thumbnail {
+    float: right;
+    margin-left: 1em;
+    max-width: 8em;
 }
 
 article.partner-list-item h2 a,
@@ -73,7 +79,8 @@ article.involvement-list-item h2 a {
 .partner-list-item .partner-actions button,
 .partner-list-item .partner-actions a.button,
 .involvement-list-item .involvement-actions button,
-.involvement-list-item .involvement-actions a.button {
+.involvement-list-item .involvement-actions a.button,
+.involvement-list-item .child-involvements a {
     position:relative;
     z-index:10;
 }
@@ -157,11 +164,6 @@ h1.archive-title.page-title {
 
 .map p {
     text-align: inherit;
-}
-
-div.swal2-content table.tp-checkbox-list {
-    text-align: left;
-    margin: 0 auto;
 }
 
 article .section-inner.TouchPointWP-detail {

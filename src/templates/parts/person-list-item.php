@@ -4,6 +4,7 @@ use tp\TouchPointWP\Person;
 
 /** @var $person Person */
 /** @var $iid int */
+/** @var $btnClass string */
 
 $image = get_avatar_url($person->id, ['width' => 200, 'height' => 300] );
 
@@ -49,6 +50,6 @@ if (!empty($image)) {
         <?php //echo wp_trim_words($person->description, 20, "..."); ?>
     </div>
     <div class="actions person-actions">
-        <?php echo $person->getActionButtons("person-list"); ?>
+        <?php echo $person->getActionButtons("person-list", $btnClass); ?>
     </div>
 </article>

@@ -43,7 +43,7 @@ TouchPointWP::enqueuePartialsStyle();
                 ?>
             </div>
             <div class="TouchPointWP-detail-cell-section partner-actions">
-                <?php echo $prtnr->getActionButtons('single-template') ?>
+                <?php echo $prtnr->getActionButtons('single-template', "btn button") ?>
             </div>
         </div>
         <?php if (!$prtnr->decoupleLocation && $prtnr->geo !== null) { ?>

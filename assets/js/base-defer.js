@@ -27,15 +27,73 @@ function utilInit() {
         return str;
     }
 
-    tpvm._utils.registerAction = function(action, object, id) {
-        let itemUId = object.classShort + id;
-        if (!tpvm._actions.hasOwnProperty(action)) {
-            tpvm._actions[action] = {};
-        }
+    /**
+     *
+     * @param {string} action The name of the action function, minus the word "action"
+     * @param {object} object The object to which the action belongs.
+     */
+    tpvm._utils.registerAction = function(action, object) {
         if (typeof object[action + "Action"] === "function") {
-            tpvm._actions[action][itemUId] = object[action + "Action"];
+            let sc = object.shortClass;
+            if (typeof sc !== "string") {
+                console.warn(`Action '${action}' cannot be registered because the short class name is missing.`)
+                return;
+            }
+            let actionLC = action.toLowerCase();
+            if (!tpvm._actions.hasOwnProperty(actionLC)) {
+                tpvm._actions[actionLC] = [];
+            }
+            tpvm._actions[actionLC].push({
+                action: () => object[action + "Action"](),
+                uid: sc + object.id
+            });
         }
     }
+
+    tpvm._utils.applyHashForAction = function(action, object) {
+        // Make sure a function exists
+        if (typeof object[action + "Action"] !== "function") {
+            return;
+        }
+
+        // Figure out the needed hash
+        action = action.toLowerCase()
+        if (tpvm._actions[action].length === 1) {
+            window.location.hash = "tp-" + action;
+        } else if (tpvm._actions[action].length > 1) {
+            window.location.hash = "tp-" + action + "-" + object.shortClass + object.id;
+        }
+    }
+
+    tpvm._utils.clearHash = function() {
+        window.location.hash = "";
+    }
+
+    /**
+     *
+     * @param {?string} limitToAction
+     */
+    tpvm._utils.handleHash = function(limitToAction = null) {
+        if (window.location.hash.substring(1, 4) !== "tp-") {
+            return;
+        }
+
+        let [action, identifier] = window.location.hash.toLowerCase().substring(4).split('-', 2);
+
+        if (tpvm._actions[action] === undefined || (limitToAction !== null && action !== limitToAction.toLowerCase())) {
+            return;
+        }
+        if (tpvm._actions[action].length === 1 && identifier === undefined) {
+            tpvm._actions[action][0].action();
+            return;
+        }
+
+        let obj = tpvm._actions[action].find((t) => t.uid === identifier);
+        if (obj !== undefined && typeof obj.action === "function") {
+            obj.action();
+        }
+    }
+    tpvm.addEventListener("load", tpvm._utils.handleHash);
 
     tpvm._utils.defaultSwalClasses = function() {
         return {
@@ -113,6 +171,10 @@ class TP_DataGeo {
         "type": null,
         "human": "Loading..." // i18n
     };
+
+    get shortClass() {
+        return "geo";
+    }
 
     static init() {
         tpvm.trigger('dataGeo_class_loaded');
@@ -231,7 +293,6 @@ class TP_DataGeo {
         }
     }
 }
-TP_DataGeo.prototype.classShort = "geo";
 TP_DataGeo.init();
 
 class TP_MapMarker
@@ -336,6 +397,8 @@ class TP_MapMarker
             return;
         }
 
+        tpvm._utils.clearHash();
+
         const mp = this.gMkr.getMap();
         TP_MapMarker.smoothZoom(mp, this.gMkr.getPosition()).then(() => 1)
 
@@ -380,6 +443,7 @@ class TP_MapMarker
 class TP_Mappable {
     name = "";
     post_id = 0;
+    _id = null; // For situations where the ID needs to happen early in the instantiation chain.
 
     geo = {};
 
@@ -407,7 +471,9 @@ class TP_Mappable {
      */
     markers = [];
 
-    constructor(obj) {
+    constructor(obj, id = null) {
+        this._id = id;
+
         if (obj.geo !== undefined && obj.geo !== null && obj.geo.lat !== null && obj.geo.lng !== null) {
             obj.geo.lat = Math.round(obj.geo.lat * 1000) / 1000;
             obj.geo.lng = Math.round(obj.geo.lng * 1000) / 1000;
@@ -438,7 +504,7 @@ class TP_Mappable {
                 if (!actionBtns.hasOwnProperty(ai)) continue;
                 const action = actionBtns[ai].getAttribute('data-tp-action');
                 if (typeof mappable[action + "Action"] === "function") {
-                    tpvm._utils.registerAction(action, mappable, mappable.post_id)
+                    tpvm._utils.registerAction(action, mappable)
                     actionBtns[ai].addEventListener('click', function (e) {
                         e.stopPropagation();
                         mappable[action + "Action"]();
@@ -448,6 +514,19 @@ class TP_Mappable {
         }
 
         TP_Mappable.items.push(this);
+    }
+
+    /**
+     * Returns the ID used for instances in tpvm.  Must be implemented by extenders if not the post_id.
+     *
+     * @return {int}
+     */
+    get id() {
+        return this.post_id;
+    }
+
+    get shortClass() {
+        return "mpbl";
     }
 
     static initMap(containerElt, mapOptions, list) {
@@ -512,6 +591,7 @@ class TP_Mappable {
         for (const ei in elts) {
             if (! elts.hasOwnProperty(ei)) continue;
             elts[ei].addEventListener("click", (e) => {
+                tpvm._utils.clearHash();
                 e.preventDefault();
                 map.fitBounds(bounds);
             });
@@ -574,6 +654,8 @@ class TP_Mappable {
         if (typeof ga === "function") {
             ga('send', 'event', this.itemTypeName, 'showOnMap btn click', this.name);
         }
+
+        tpvm._utils.applyHashForAction("showOnMap", this);
 
         // One marker (probably typical)
         if (this.markers.length === 1) {
@@ -707,7 +789,7 @@ class TP_Involvement extends TP_Mappable {
     static actions = ['join', 'contact'];
 
     constructor(obj) {
-        super(obj);
+        super(obj, obj.invId);
 
         this.invId = obj.invId;
         this.invType = obj.invType;
@@ -715,6 +797,14 @@ class TP_Involvement extends TP_Mappable {
         this.attributes = obj.attributes ?? null;
 
         tpvm.involvements[this.invId] = this;
+    }
+
+    get id() {
+        return parseInt(this._id);
+    }
+
+    get shortClass() {
+        return "i";
     }
 
     // noinspection JSUnusedGlobalSymbols  Used via dynamic instantiation.
@@ -860,9 +950,11 @@ class TP_Involvement extends TP_Mappable {
             ga('send', 'event', inv.invType, 'join btn click', inv.name);
         }
 
+        tpvm._utils.applyHashForAction("join", this);
+
         TP_Person.DoInformalAuth(title).then(
-            (res) => joinUi(inv, res),
-            () => console.log("Informal auth failed, probably user cancellation.")
+            (res) => joinUi(inv, res).then(tpvm._utils.clearHash),
+            () => tpvm._utils.clearHash()
         )
 
         function joinUi(inv, people) {
@@ -870,7 +962,7 @@ class TP_Involvement extends TP_Mappable {
                 ga('send', 'event', inv.invType, 'join userIdentified', inv.name);
             }
 
-            Swal.fire({
+            return Swal.fire({
                 title: title,
                 html: "<p id=\"swal-tp-text\">Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
                 customClass: tpvm._utils.defaultSwalClasses(),
@@ -915,14 +1007,19 @@ class TP_Involvement extends TP_Mappable {
             ga('send', 'event', inv.invType, 'contact btn click', inv.name);
         }
 
-        TP_Person.DoInformalAuth(title).then((res) => contactUi(inv, res), () => console.log("Informal auth failed, probably user cancellation."))
+        tpvm._utils.applyHashForAction("contact", this);
+
+        TP_Person.DoInformalAuth(title).then(
+            (res) => contactUi(inv, res).then(tpvm._utils.clearHash),
+            () => tpvm._utils.clearHash()
+        )
 
         function contactUi(inv, people) {
             if (typeof ga === "function") {
                 ga('send', 'event', inv.invType, 'contact userIdentified', inv.name);
             }
 
-            Swal.fire({
+            return Swal.fire({
                 title: title,
                 html: '<form id="tp_inv_contact_form">' +
                     '<div class="form-group"><label for="tp_inv_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_inv_contact_fromPid", "fromPid") + '</div>' +
@@ -1019,11 +1116,11 @@ class TP_Involvement extends TP_Mappable {
         }
     }
 }
-TP_Involvement.prototype.classShort = "i";
 TP_Involvement.init();
 
 class TP_Person {
     peopleId;
+    familyId;
     displayName;
 
     static actions = ['join', 'contact'];
@@ -1042,7 +1139,7 @@ class TP_Person {
                 if (!actionBtns.hasOwnProperty(ai)) continue;
                 const action = actionBtns[ai].getAttribute('data-tp-action');
                 if (TP_Person.actions.includes(action)) {
-                    tpvm._utils.registerAction(action, psn, psn.peopleId)
+                    tpvm._utils.registerAction(action, psn)
                     actionBtns[ai].addEventListener('click', function (e) {
                         e.stopPropagation();
                         psn[action + "Action"]();
@@ -1052,6 +1149,19 @@ class TP_Person {
         }
 
         tpvm.people[peopleId] = this;
+    }
+
+    /**
+     * Returns the ID used for instances in tpvm.  Must be implemented by extenders if not the post_id.
+     *
+     * @return {int}
+     */
+    get id() {
+        return this.peopleId;
+    }
+
+    get shortClass() {
+        return "p";
     }
 
     static fromObj(obj) {
@@ -1113,14 +1223,14 @@ class TP_Person {
     }
 
     /**
-     * Take an array of person-like objects and make a list of checkboxes out of them.  These are NOT TP_People objects. TODO they should be.
+     * Take an array of person-like objects and make a list of radio buttons out of them.  These are NOT TP_People objects. TODO they should be.
      *
-     * @param array TP_Person[]
      * @param options string[]
-     * @param defaultPosition int - the Nth position in the options array should be selected by default.
+     * @param array TP_Person[]
+     * @param secondaryArray TP_Person[]
      */
-    static peopleArrayToRadio(array, options, defaultPosition = -1) {
-        let out = "<form id=\"tp_people_list_radio\"><table class=\"tp-radio-list\"><tbody>"
+    static peopleArrayToRadio(options, array, secondaryArray = null) {
+        let out = "<form id=\"tp_people_list_radio\"><table class=\"tp-radio-list\"><thead>"
 
         // headers
         out += "<tr>";
@@ -1128,9 +1238,9 @@ class TP_Person {
             if (!options.hasOwnProperty(oi)) continue;
             out += `<th>${options[oi]}</th>`
         }
-        out += `<th colspan="2"></th></tr>`;
+        out += `<th colspan="2"></th></tr></thead><tbody>`;
 
-        // people
+        // people -- primary array
         for (const pi in array) {
             if (!array.hasOwnProperty(pi)) continue;
             let p = array[pi];
@@ -1138,11 +1248,28 @@ class TP_Person {
             out += '<tr>'
             for (const oi in options) {
                 if (!options.hasOwnProperty(oi)) continue;
-                let selected = (parseInt(oi, 10) === defaultPosition ? "selected" : "")
-                out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${options[oi]}" value="${options[oi]}" ${selected} /></td>`
+                out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${options[oi]}" value="${options[oi]}" /></td>`
             }
             out += `<td><a href="#" class="swal-tp-clear-item" onclick="TP_Person.clearRadio('${p.peopleId}'); return false;">clear</a></td>`
             out += `<td style="text-align:left; width:50%;">${p.goesBy} ${p.lastName}</td></tr>`
+        }
+
+        // people -- secondary array
+        if (secondaryArray !== null && secondaryArray.length > 0) {
+            out += `</tbody><tbody id="tp_people_list_othersOption" onclick="document.getElementById('tp_people_list_others').style.display = ''; document.getElementById('tp_people_list_othersOption').style.display = 'none';"><tr><th colspan="${options.length + 2}"><a>Other Relatives...</a></th></tr>`;
+            out += `</tbody><tbody id="tp_people_list_others" style="display:none;">`;
+            for (const pi in secondaryArray) {
+                if (!secondaryArray.hasOwnProperty(pi)) continue;
+                let p = secondaryArray[pi];
+
+                out += '<tr>'
+                for (const oi in options) {
+                    if (!options.hasOwnProperty(oi)) continue;
+                    out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${options[oi]}" value="${options[oi]}" /></td>`
+                }
+                out += `<td><a href="#" class="swal-tp-clear-item" onclick="TP_Person.clearRadio('${p.peopleId}'); return false;">clear</a></td>`
+                out += `<td style="text-align:left; width:50%;">${p.goesBy} ${p.lastName}</td></tr>`
+            }
         }
 
         return out + "</tbody></table></form>"
@@ -1165,14 +1292,19 @@ class TP_Person {
             ga('send', 'event', 'Person', 'contact btn click', psn.peopleId);
         }
 
-        TP_Person.DoInformalAuth(title).then((res) => contactUi(psn, res), () => console.log("Informal auth failed, probably user cancellation."))
+        tpvm._utils.applyHashForAction("contact", this);
+
+        TP_Person.DoInformalAuth(title).then(
+            (res) => contactUi(psn, res).then(tpvm._utils.clearHash),
+            () => tpvm._utils.clearHash()
+        )
 
         function contactUi(psn, people) {
             if (typeof ga === "function") {
                 ga('send', 'event', 'Person', 'contact userIdentified', psn.peopleId);
             }
 
-            Swal.fire({
+            return Swal.fire({
                 title: title,
                 html: '<form id="tp_person_contact_form">' +
                     '<div class="form-group"><label for="tp_person_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_person_contact_fromPid", "fromPid") + '</div>' +
@@ -1189,8 +1321,8 @@ class TP_Person {
                         message = form.getElementsByTagName('textarea')[0].value;
 
                     if (message.length < 5) {
-                        let prompt = document.getElementById('swal-tp-text');
-                        prompt.innerText = "Please provide a message.";
+                        let prompt = document.getElementById('swal2-title');
+                        prompt.innerText = "Please Provide a Message.";
                         prompt.classList.add('error')
                         return false;
                     }
@@ -1318,8 +1450,9 @@ class TP_Person {
                     }
                 }).then((result) => {
                     if (result.value) {
-                        let p = TP_Person.fromObjArray(result.value.people);
-                        tpvm._plausibleUsers = TP_Person.mergePeopleArrays(tpvm._plausibleUsers, p);
+                        let ps = TP_Person.fromObjArray(result.value.people);
+                        tpvm._plausibleUsers = TP_Person.mergePeopleArrays(tpvm._plausibleUsers, ps.filter((p) => result.value.primaryFam.indexOf(p.familyId) > -1));
+                        tpvm._secondaryUsers = TP_Person.mergePeopleArrays(tpvm._secondaryUsers, ps.filter((p) => result.value.primaryFam.indexOf(p.familyId) === -1));
                     }
 
                     if (result.isDismissed) {
@@ -1332,5 +1465,4 @@ class TP_Person {
         });
     }
 }
-TP_Person.prototype.classShort = "p";
 TP_Person.init();

@@ -190,7 +190,7 @@ class TouchPointWP_Settings
             $includeDetail = false;
         }
 
-        if (count($this->settings) > 0 && !$includeDetail) {
+        if (count($this->settings) > 0 && $includeDetail === false) {
             // Settings are already loaded, and they have adequate detail for the task at hand.
             return $this->settings;
         }
@@ -208,6 +208,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'callback'    => fn($new) => $this->validation_updateScriptsIfChanged($new, 'enable_authentication'),
                 ],
                 [
                     'id'          => 'enable_rsvp',
@@ -314,7 +315,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => 'WebApi',
-                    'placeholder' => ''
+                    'placeholder' => '',
                 ],
                 [
                     'id'          => 'google_maps_api_key',
@@ -345,7 +346,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 <p><a href="{apiUrl}" class="button-secondary" target="tp_zipIfr">' . __('Generate Scripts', TouchPointWP::TEXT_DOMAIN) . '</a></p>
 <iframe name="tp_zipIfr" style="width:0; height:0; opacity:0;"></iframe>',
                     [
-                        '{apiUrl}'    => "/" . TouchPointWP::API_ENDPOINT . "/" . TouchPointWP::API_ENDPOINT_GENERATE_SCRIPTS,
+                        '{apiUrl}'    => "/" . TouchPointWP::API_ENDPOINT . "/" . TouchPointWP::API_ENDPOINT_ADMIN_SCRIPTZIP,
                         '{tpName}'    => $this->get('system_name'),
                         '{uploadUrl}' => "https://" . $this->get('host') . "/InstallPyScriptProject"
                     ]
@@ -367,6 +368,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
+                        'formClass'   => 'column-wrap',
                         'options'     => $includeThis ? $this->parent->getKeywordsAsKVArray() : [],
                         'default'     => [],
                     ],
@@ -400,6 +402,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
+                        'formClass'   => 'column-wrap',
                         'options'     => $includeThis ? $this->parent->getPersonEvFieldsAsKVArray() : [],
                         'default'     => [],
                     ],
@@ -422,7 +425,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         ),
                         'type'        => 'text',
                         'default'     => 'WebAuth',
-                        'placeholder' => 'WebAuth'
+                        'placeholder' => 'WebAuth',
+                        'callback'    => fn($new) => $this->validation_updateScriptsIfChanged($new, 'auth_script_name'),
                     ],
                     [
                         'id'          => 'auth_default',
@@ -500,6 +504,14 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'description' => !$includeThis ? "" : function() {
                             TouchPointWP::requireScript("base");
                             TouchPointWP::requireScript("knockout-defer");
+                            TouchPointWP::requireScript("select2-defer");
+
+                            foreach (Involvement_PostTypeSettings::instance() as $it) {
+                                if (is_numeric($it->taskOwner)) {
+                                    Person::enqueueForJS_byPeopleId(intval($it->taskOwner));
+                                }
+                            }
+
                             ob_start();
                             /** @noinspection PhpIncludeInspection */
                             include TouchPointWP::$dir . "/src/templates/admin/invKoForm.php";
@@ -647,6 +659,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::TEXT_DOMAIN
                         ),
                         'type'        => 'checkbox_multi',
+                        'formClass'   => 'column-wrap',
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray() : [],
                         'default'     => [],
                     ],
@@ -747,6 +760,47 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     'default'     => [],
                     'callback'    => function($new) {sort($new); return $new;}
                 ],
+            ],
+        ];
+
+        $this->settings['campuses'] = [
+            'title'       => __('Campuses', TouchPointWP::TEXT_DOMAIN),
+            'description' => __('Import Campuses from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', TouchPointWP::TEXT_DOMAIN),
+            'fields'      => [
+                [
+                    'id'          => 'camp_name_plural',
+                    'label'       => __('Campus Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'What you call Campuses at your church',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'Campuses',
+                    'placeholder' => 'Campuses'
+                ],
+                [
+                    'id'          => 'camp_name_singular',
+                    'label'       => __('Campus Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'What you call a Campus at your church',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'Campus',
+                    'placeholder' => 'Campus'
+                ],
+                [
+                    'id'          => 'camp_slug',
+                    'label'       => __('Campus Slug', TouchPointWP::TEXT_DOMAIN),
+                    'description' => __(
+                        'The root path for the Campus Taxonomy',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => 'campus',
+                    'placeholder' => 'campus',
+                    'callback'    => fn($new) => $this->validation_slug($new, 'camp_slug')
+                ]
             ],
         ];
 
@@ -1014,26 +1068,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     }
 
     /**
-     * Load settings JS & CSS
-     *
-     * @return void
-     */
-    public function settings_assets()
-    {
-        // We're including the WP media scripts here because they're needed for the image upload field.
-        // If you're not including an image upload then you can leave this function call out.
-        wp_enqueue_media();
-        wp_register_script(
-            $this->parent::TOKEN . '-settings-js',
-            $this->parent->assets_url . 'js/settings' . $this->parent->script_suffix . '.js',
-            ['jquery'],
-            '1.0.0',
-            true
-        );
-        wp_enqueue_script($this->parent::TOKEN . '-settings-js');
-    }
-
-    /**
      * Add settings link to plugin list table
      *
      * @param array $links Existing links.
@@ -1116,6 +1150,14 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     {
         global $wpdb;
 
+        try {
+            $this->updateDeployedScripts();
+        } catch (TouchPointWP_Exception $e) {
+            if (is_admin()) {
+                TouchPointWP_AdminAPI::showError($e->getMessage());
+            }
+        }
+
         // 0.0.4 to 0.0.5 -- Merging Small Groups and Courses Components into a single Involvement Component
         $sgEnabled = $this->getWithoutDefault('enable_small_groups') === "on";
         $csEnabled = $this->getWithoutDefault('enable_courses') === "on";
@@ -1196,6 +1238,28 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     }
 
     /**
+     * Generate new scripts and deploy to TouchPoint.
+     *
+     * @return void
+     * @throws TouchPointWP_Exception
+     */
+    public function updateDeployedScripts(): void
+    {
+        $scripts = ["WebApi" => TouchPointWP::instance()->settings->api_script_name];
+        if (TouchPointWP::instance()->settings->enable_authentication) {
+            $scripts["WebAuth"] = TouchPointWP::instance()->settings->auth_script_name;
+        }
+
+        $scriptContent = TouchPointWP::instance()->admin()->generatePython(false, $scripts);
+        $data = TouchPointWP::instance()->apiPost('updateScripts', $scriptContent, 60);
+        $updates = $data->scriptsUpdated ?? 0;
+
+        if (count($scriptContent) !== $updates) {
+            throw new TouchPointWP_Exception(__("Script Update Failed", TouchPointWP::TEXT_DOMAIN), 170004);
+        }
+    }
+
+    /**
      * Register plugin settings
      *
      * @return void
@@ -1271,10 +1335,16 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     protected function getDefaultValueForSetting(string $id)
     {
+        if (substr($id, 0, 7) === "enable") {
+            return '';
+        }
         foreach ($this->settingsFields() as $category) {
             foreach ($category['fields'] as $field) {
-                if ($field['id'] === $id){
-                    return $field['default'] ?? self::UNDEFINED_PLACEHOLDER;
+                if ($field['id'] === $id) {
+                    if (array_key_exists('default', $field)) {
+                        return $field['default'];
+                    }
+                    return self::UNDEFINED_PLACEHOLDER;
                 }
             }
         }
@@ -1371,7 +1441,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      *
      * @return string
      */
-    public function validation_secret(string $new, string $field): string
+    protected function validation_secret(string $new, string $field): string
     {
         if ($new === '') { // If there is no value, submit the already-saved one.
             return $this->$field;
@@ -1388,7 +1458,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      *
      * @return string
      */
-    public function validation_slug($new, string $field): string
+    protected function validation_slug($new, string $field): string
     {
         if ($new != $this->$field) { // only validate the field if it's changing.
             $new = $this->validation_lowercase($new);
@@ -1410,6 +1480,22 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     public function validation_lowercase(string $data): string
     {
         return strtolower($data);
+    }
+
+    /**
+     * If a setting is changed that impacts the scripts, update the scripts.
+     *
+     * @param mixed $new the new value, which could be anything
+     * @param string $field The name of the field that's getting updated
+     *
+     * @return mixed lower-case string
+     */
+    protected function validation_updateScriptsIfChanged($new, string $field)
+    {
+        if ($new !== $this->$field) {
+            TouchPointWP::queueUpdateDeployedScripts();
+        }
+        return $new;
     }
 
     /**
