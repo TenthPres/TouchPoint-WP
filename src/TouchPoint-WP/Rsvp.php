@@ -104,7 +104,7 @@ abstract class Rsvp
         if (TouchPointWP::isApi()) {
             global $post;
             $link = get_permalink($post);
-            return "<a href=\"$link#tp-rsvp-m$meetingId\"><span class=\"rsvp-btn-content\">$content</span></a>";
+            return "<a href=\"$link#tp-rsvp-m$meetingId\" $class><span class=\"rsvp-btn-content\">$content</span></a>";
         } else {
             TouchPointWP::requireScript('swal2-defer');
             TouchPointWP::requireScript('meeting-defer');

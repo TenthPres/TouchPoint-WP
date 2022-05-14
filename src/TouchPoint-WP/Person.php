@@ -893,7 +893,7 @@ class Person extends WP_User implements api, JsonSerializable
 
         $text = __("Contact", TouchPointWP::TEXT_DOMAIN);
         TouchPointWP::enqueueActionsStyle('person-contact');
-        $ret = "<button type=\"button\" data-tp-action=\"contact\"$btnClass>$text</button>  ";
+        $ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
 
         return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context, $btnClass);
     }

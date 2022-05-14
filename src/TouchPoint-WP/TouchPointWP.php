@@ -44,7 +44,6 @@ class TouchPointWP
      * API Endpoint prefix, and specific endpoints.  All must be lower-case.
      */
     public const API_ENDPOINT = "touchpoint-api";
-    public const API_ENDPOINT_GENERATE_SCRIPTS = "generate-scripts";
     public const API_ENDPOINT_APP_EVENTS = "app-events";
     public const API_ENDPOINT_INVOLVEMENT = "inv";
     public const API_ENDPOINT_GLOBAL = "global";
@@ -353,8 +352,8 @@ class TouchPointWP
 
             // App Events Endpoint
             if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_APP_EVENTS &&
-                count($reqUri['path']) === 2 &&
-                TouchPointWP::useTribeCalendar()) {
+                TouchPointWP::useTribeCalendar()
+            ) {
 
                 if (!EventsCalendar::api($reqUri)) {
                     return $continue;
@@ -1497,6 +1496,7 @@ class TouchPointWP
     protected function createTables(): void
     {
         global $wpdb;
+        /** @noinspection PhpIncludeInspection */
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
         // IP Geo Caching table
@@ -1544,7 +1544,8 @@ class TouchPointWP
     public static function useTribeCalendarPro(): bool
     {
         if ( ! function_exists( 'is_plugin_active' ) ){
-            require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
+            /** @noinspection PhpIncludeInspection */
+            require_once(ABSPATH . '/wp-admin/includes/plugin.php' );
         }
 
         return is_plugin_active( 'events-calendar-pro/events-calendar-pro.php');
@@ -1982,28 +1983,7 @@ class TouchPointWP
      */
     public function getPersonEvFieldsAsKVArray(?string $type = null, bool $addNone = false): array
     {
-        $r = [];
-        if ($addNone) {
-            $r[''] = '';
-        }
-        if ($type !== null) {
-            $type = strtolower(trim($type));
-        }
-        foreach ($this->getPersonEvFields() as $pev) {
-            if ($pev->field == '') { // Apparently blank EV Fields exist.
-                continue;
-            }
-            if ($type === null) { // not filtered by type
-                if ($pev->type === "") {
-                    $pev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
-                }
-                $r[$pev->hash] = $pev->field . " (" . $pev->type . ")";
-            } elseif ($type === strtolower($pev->type)) {
-                $r[$pev->hash] = $pev->field;
-            }
-        }
-
-        return $r;
+        return self::standardizeExtraValuesForKVArray($this->getPersonEvFields(), $type, $addNone);
     }
 
     /**
@@ -2064,6 +2044,19 @@ class TouchPointWP
      */
     public function getFamilyEvFieldsAsKVArray(?string $type = null, bool $addNone = false): array
     {
+        return self::standardizeExtraValuesForKVArray($this->getFamilyEvFields(), $type, $addNone);
+    }
+
+
+    /**
+     * @param stdClass[] $fields
+     * @param ?string    $type
+     * @param bool       $addNone
+     *
+     * @return string[]
+     */
+    private static function standardizeExtraValuesForKVArray(array $fields, ?string $type = null, bool $addNone = false): array
+    {
         $r = [];
         if ($addNone) {
             $r[''] = '';
@@ -2071,17 +2064,17 @@ class TouchPointWP
         if ($type !== null) {
             $type = strtolower(trim($type));
         }
-        foreach ($this->getFamilyEvFields() as $fev) {
-            if ($fev->field == '') { // Apparently blank EV Fields exist.
+        foreach ($fields as $ev) {
+            if ($ev->field == '') { // Apparently blank EV Fields exist.
                 continue;
             }
             if ($type === null) { // not filtered by type
-                if ($fev->type === "") {
-                    $fev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
+                if ($ev->type === "") {
+                    $ev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
                 }
-                $r[$fev->hash] = $fev->field . " (" . $fev->type . ")";
-            } elseif ($type === strtolower($fev->type)) {
-                $r[$fev->hash] = $fev->field;
+                $r[$ev->hash] = $ev->field . " (" . $ev->type . ")";
+            } elseif ($type === strtolower($ev->type)) {
+                $r[$ev->hash] = $ev->field;
             }
         }
 

@@ -90,8 +90,6 @@ class TouchPointWP_Settings
      */
     protected array $settings = [];
 
-    protected bool $settingsIncludeDetail = false;
-
     public const UNDEFINED_PLACEHOLDER = INF;
 
     /**
@@ -122,7 +120,7 @@ class TouchPointWP_Settings
         );
 
         // Configure placement of plugin settings page. See readme for implementation.
-        add_filter(TouchPointWP::SETTINGS_PREFIX . 'menu_settings', [$this, 'configure_settings']);
+        add_filter(TouchPointWP::SETTINGS_PREFIX . 'menu_settings', [$this, 'configureSettings']);
     }
 
     /**
@@ -411,7 +409,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         }
 
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on") { // TODO MULTI
-            $includeThis = $includeDetail === true || $includeDetail === 'authentication';
+//            $includeThis = $includeDetail === true || $includeDetail === 'authentication';
             $this->settings['authentication'] = [
                 'title'       => __('Authentication', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Allow users to log into WordPress using TouchPoint.', TouchPointWP::TEXT_DOMAIN),
@@ -679,6 +677,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         }
 
         if (TouchPointWP::useTribeCalendar()) {
+            /** @noinspection HtmlUnknownTarget */
             $this->settings['events_calendar'] = [
                 'title'       => __('Events Calendar', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Integrate with The Events Calendar from ModernTribe.', TouchPointWP::TEXT_DOMAIN),
@@ -689,11 +688,16 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'type'    => 'instructions',
                         'description' => strtr(
                             '<p>' . __('To use your Events Calendar events in the Custom mobile app, set the Provider to <code>Wordpress Plugin - Modern Tribe</code> and use this url:', TouchPointWP::TEXT_DOMAIN) . '</p>' .
-                            '<input type="url" value="{apiUrl}" readonly style="width: 100%;" />',
+                            '<input type="url" value="{apiUrl}" readonly style="width: 100%;" />' .
+                            '<a href="{previewUrl}" class="btn">' . __('Preview', TouchPointWP::TEXT_DOMAIN) . '</a>',
                             [
                                 '{apiUrl}'    => get_site_url() . "/" .
                                                  TouchPointWP::API_ENDPOINT . "/" .
                                                  TouchPointWP::API_ENDPOINT_APP_EVENTS . "?v=" .
+                                                 TouchPointWP::VERSION,
+                                '{previewUrl}' => get_site_url() . "/" .
+                                                 TouchPointWP::API_ENDPOINT . "/" .
+                                                 TouchPointWP::API_ENDPOINT_APP_EVENTS . "/preview/?v=" .
                                                  TouchPointWP::VERSION
                             ]
                         ),
@@ -981,6 +985,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      * @param string $settingName
      *
      * @return string
+     * @noinspection PhpSameParameterValueInspection
      */
     private function passwordPlaceholder(string $settingName): string
     {
@@ -1048,7 +1053,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 'menu_title'  => __('TouchPoint-WP', TouchPointWP::TEXT_DOMAIN),
                 'capability'  => 'manage_options',
                 'menu_slug'   => $this->parent::TOKEN . '_Settings',
-                'function'    => [$this, 'settings_page'],
+                'function'    => [$this, 'settingsPage'],
                 'icon_url'    => '',
                 'position'    => null,
             ]
@@ -1058,11 +1063,11 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     /**
      * Container for settings page arguments
      *
-     * @param array $settings Settings array.
+     * @param ?array $settings Settings array.
      *
      * @return array
      */
-    public function configure_settings($settings = []): array
+    public function configureSettings(?array $settings = []): array
     {
         return $settings;
     }
@@ -1274,54 +1279,51 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         }
 
         $this->settings = $this->settingsFields($currentSection);
-        if (is_array($this->settings)) {
+        foreach ($this->settings as $section => $data) {
             // Check posted/selected tab.
+            if ($currentSection && $currentSection !== $section) {
+                continue;
+            }
 
-            foreach ($this->settings as $section => $data) {
-                if ($currentSection && $currentSection !== $section) {
-                    continue;
+            // Add section to page.
+            add_settings_section(
+                $section,
+                $data['title'],
+                [$this, 'settings_section'],
+                $this->parent::TOKEN . '_Settings'
+            );
+
+            foreach ($data['fields'] as $field) {
+                // Validation callback for field.
+                $args = [];
+                if (isset($field['callback'])) {
+                    $args['sanitize_callback'] = $field['callback'];
                 }
 
-                // Add section to page.
-                add_settings_section(
+                // Register field.  Don't save a value for instruction types.
+                if ($field['type'] == 'instructions') {
+                    $args['sanitize_callback'] = fn($new) => null;
+                }
+
+                $option_name = TouchPointWP::SETTINGS_PREFIX . $field['id'];
+                register_setting($this->parent::TOKEN . '_Settings', $option_name, $args);
+
+                // Add field to page.
+                add_settings_field(
+                    $field['id'],
+                    $field['label'],
+                    [$this->parent->admin(), 'displayField'],
+                    $this->parent::TOKEN . '_Settings',
                     $section,
-                    $data['title'],
-                    [$this, 'settings_section'],
-                    $this->parent::TOKEN . '_Settings'
+                    [
+                        'field'  => $field,
+                        'prefix' => TouchPointWP::SETTINGS_PREFIX,
+                    ]
                 );
+            }
 
-                foreach ($data['fields'] as $field) {
-                    // Validation callback for field.
-                    $args = [];
-                    if (isset($field['callback'])) {
-                        $args['sanitize_callback'] = $field['callback'];
-                    }
-
-                    // Register field.  Don't save a value for instruction types.
-                    if ($field['type'] == 'instructions') {
-                        $args['sanitize_callback'] = fn($new) => null;
-                    }
-
-                    $option_name = TouchPointWP::SETTINGS_PREFIX . $field['id'];
-                    register_setting($this->parent::TOKEN . '_Settings', $option_name, $args);
-
-                    // Add field to page.
-                    add_settings_field(
-                        $field['id'],
-                        $field['label'],
-                        [$this->parent->admin(), 'display_field'],
-                        $this->parent::TOKEN . '_Settings',
-                        $section,
-                        [
-                            'field'  => $field,
-                            'prefix' => TouchPointWP::SETTINGS_PREFIX,
-                        ]
-                    );
-                }
-
-                if ( ! $currentSection) {
-                    break;
-                }
+            if ( ! $currentSection) {
+                break;
             }
         }
     }
@@ -1335,7 +1337,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     protected function getDefaultValueForSetting(string $id)
     {
-        if (substr($id, 0, 7) === "enable") {
+        if (substr($id, 0, 7) === "enable") {  // Prevents settings content from needing to be generated for these settings.
             return '';
         }
         foreach ($this->settingsFields() as $category) {
@@ -1369,7 +1371,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      *
      * @return void
      */
-    public function settings_page(): void
+    public function settingsPage(): void
     {
         // Build page HTML.
         $html = '<div class="wrap" id="' . $this->parent::TOKEN . '_Settings">' . "\n";
@@ -1382,7 +1384,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         }
 
         // Show page tabs.
-        if (is_array($this->settings) && 1 < count($this->settings)) {
+        if (count($this->settings) > 1) {
             $html .= '<h2 class="nav-tab-wrapper">' . "\n";
 
             $c = 0;

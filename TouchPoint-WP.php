@@ -75,6 +75,7 @@ define("TOUCHPOINT_COMPOSER_ENABLED", file_exists(__DIR__ . '/vendor/autoload.ph
 
 /*** Load everything **/
 if (TOUCHPOINT_COMPOSER_ENABLED) {
+    /** @noinspection PhpIncludeInspection */
     require_once __DIR__ . '/vendor/autoload.php';
 } else {
     require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP_Exception.php";

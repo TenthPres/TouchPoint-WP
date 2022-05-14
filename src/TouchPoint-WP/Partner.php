@@ -1100,7 +1100,7 @@ class Partner implements api, JsonSerializable
         // Show on map button.  (Only works if map is called before this is.)
         if (self::$_hasArchiveMap && !$this->decoupleLocation && $this->geo !== null) {
             $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
-            $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\"$btnClass>$text</button>  ";
+            $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  ";
         }
 
         return apply_filters(TouchPointWP::HOOK_PREFIX . "partner_actions", $ret, $this, $context, $btnClass);
