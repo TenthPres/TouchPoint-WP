@@ -376,7 +376,7 @@ class Partner implements api, JsonSerializable
             // Partner Category
             $category = $f->familyEV->$categoryEv->value ?? null;
             // Insert Term if new
-            if ( ! Utilities::termExists($category, TouchPointWP::TAX_GP_CATEGORY)) {
+            if ($category !== null && !Utilities::termExists($category, TouchPointWP::TAX_GP_CATEGORY)) {
                 Utilities::insertTerm(
                     $category,
                     TouchPointWP::TAX_GP_CATEGORY,

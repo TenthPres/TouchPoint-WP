@@ -930,7 +930,7 @@ class TouchPointWP
             ]
         );
         foreach ($this->getResCodes() as $rc) {
-            if ( ! Utilities::termExists($rc->name, self::TAX_RESCODE)) {
+            if ($rc->name !== null && !Utilities::termExists($rc->name, self::TAX_RESCODE)) {
                 Utilities::insertTerm(
                     $rc->name,
                     self::TAX_RESCODE,
@@ -986,7 +986,7 @@ class TouchPointWP
                 if (in_array('div' . $d->id, $enabledDivisions)) {
                     // Program
                     $pTermInfo = Utilities::termExists($d->pName, self::TAX_DIV, 0);
-                    if ($pTermInfo === null) {
+                    if ($pTermInfo === null && $d->pName !== null) {
                         $pTermInfo = Utilities::insertTerm(
                             $d->pName,
                             self::TAX_DIV,
@@ -1001,7 +1001,7 @@ class TouchPointWP
 
                     // Division
                     $dTermInfo = Utilities::termExists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
-                    if ($dTermInfo === null) {
+                    if ($dTermInfo === null && $d->dName !== null) {
                         $dTermInfo = Utilities::insertTerm(
                             $d->dName,
                             self::TAX_DIV,
@@ -1069,7 +1069,7 @@ class TouchPointWP
             );
             for ($di = 0; $di < 7; $di++) {
                 $name = Utilities::getPluralDayOfWeekNameForNumber($di);
-                if ( ! Utilities::termExists($name, self::TAX_WEEKDAY)) {
+                if (!Utilities::termExists($name, self::TAX_WEEKDAY)) {
                     Utilities::insertTerm(
                         $name,
                         self::TAX_WEEKDAY,
@@ -1118,7 +1118,7 @@ class TouchPointWP
                 TouchPointWP::TAX_TENSE_PRESENT => __('Current'),
                 TouchPointWP::TAX_TENSE_PAST => __('Past'),
             ] as $slug => $name) {
-                if ( ! Utilities::termExists($slug, self::TAX_TENSE)) {
+                if (!Utilities::termExists($slug, self::TAX_TENSE)) {
                     Utilities::insertTerm(
                         $name,
                         self::TAX_TENSE,
@@ -1175,7 +1175,7 @@ class TouchPointWP
                 __('Night')
             ];
             foreach ($timesOfDay as $tod) {
-                if ( ! Utilities::termExists($tod, self::TAX_WEEKDAY)) {
+                if (!Utilities::termExists($tod, self::TAX_WEEKDAY)) {
                     $slug = str_replace(" ", "", $tod);
                     $slug = strtolower($slug);
                     Utilities::insertTerm(
@@ -1191,7 +1191,7 @@ class TouchPointWP
             }
             for ($di = 0; $di < 7; $di++) {
                 $name = Utilities::getPluralDayOfWeekNameForNumber($di);
-                if ( ! Utilities::termExists($name, self::TAX_WEEKDAY)) {
+                if (!Utilities::termExists($name, self::TAX_WEEKDAY)) {
                     Utilities::insertTerm(
                         $name,
                         self::TAX_WEEKDAY,
@@ -1243,7 +1243,7 @@ class TouchPointWP
             ]
         );
         foreach (["20s", "30s", "40s", "50s", "60s", "70+"] as $ag) {
-            if (! Utilities::termExists($ag, self::TAX_AGEGROUP)) {
+            if (!Utilities::termExists($ag, self::TAX_AGEGROUP)) {
                 Utilities::insertTerm(
                     $ag,
                     self::TAX_AGEGROUP,
@@ -1290,7 +1290,7 @@ class TouchPointWP
                 ]
             );
             foreach (['mostly_single', 'mostly_married'] as $ms) {
-                if ( ! Utilities::termExists($ms, self::TAX_INV_MARITAL)) {
+                if (!Utilities::termExists($ms, self::TAX_INV_MARITAL)) {
                     Utilities::insertTerm(
                         $ms,
                         self::TAX_INV_MARITAL,
