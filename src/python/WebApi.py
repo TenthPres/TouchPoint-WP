@@ -3,7 +3,7 @@
 import re
 import json
 
-VERSION = "0.0.7"
+VERSION = "0.0.8"
 
 sgContactEvName = "Contact"
 
@@ -727,6 +727,8 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
     invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
 
     famGeoSql = """SELECT geo.Longitude, geo.Latitude FROM AddressInfo ai LEFT JOIN Geocodes geo ON ai.FullAddress = geo.Address WHERE ai.FamilyId = {}"""
+
+    Data.Context = inData['context']
 
     for po in q.QueryList(rules, sort.lower()):
         pr = getPersonInfoForSync(po)

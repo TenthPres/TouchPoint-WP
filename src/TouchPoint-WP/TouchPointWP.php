@@ -26,7 +26,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.7";
+    public const VERSION = "0.0.8";
 
     public const DEBUG = false;
 
@@ -44,7 +44,6 @@ class TouchPointWP
      * API Endpoint prefix, and specific endpoints.  All must be lower-case.
      */
     public const API_ENDPOINT = "touchpoint-api";
-    public const API_ENDPOINT_GENERATE_SCRIPTS = "generate-scripts";
     public const API_ENDPOINT_APP_EVENTS = "app-events";
     public const API_ENDPOINT_INVOLVEMENT = "inv";
     public const API_ENDPOINT_GLOBAL = "global";
@@ -353,8 +352,8 @@ class TouchPointWP
 
             // App Events Endpoint
             if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_APP_EVENTS &&
-                count($reqUri['path']) === 2 &&
-                TouchPointWP::useTribeCalendar()) {
+                TouchPointWP::useTribeCalendar()
+            ) {
 
                 if (!EventsCalendar::api($reqUri)) {
                     return $continue;
@@ -931,8 +930,8 @@ class TouchPointWP
             ]
         );
         foreach ($this->getResCodes() as $rc) {
-            if ( ! term_exists($rc->name, self::TAX_RESCODE)) {
-                wp_insert_term(
+            if ($rc->name !== null && !Utilities::termExists($rc->name, self::TAX_RESCODE)) {
+                Utilities::insertTerm(
                     $rc->name,
                     self::TAX_RESCODE,
                     [
@@ -986,9 +985,9 @@ class TouchPointWP
             foreach ($this->getDivisions() as $d) {
                 if (in_array('div' . $d->id, $enabledDivisions)) {
                     // Program
-                    $pTermInfo = term_exists($d->pName, self::TAX_DIV, 0);
-                    if ($pTermInfo === null) {
-                        $pTermInfo = wp_insert_term(
+                    $pTermInfo = Utilities::termExists($d->pName, self::TAX_DIV, 0);
+                    if ($pTermInfo === null && $d->pName !== null) {
+                        $pTermInfo = Utilities::insertTerm(
                             $d->pName,
                             self::TAX_DIV,
                             [
@@ -1001,9 +1000,9 @@ class TouchPointWP
                     }
 
                     // Division
-                    $dTermInfo = term_exists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
-                    if ($dTermInfo === null) {
-                        $dTermInfo = wp_insert_term(
+                    $dTermInfo = Utilities::termExists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
+                    if ($dTermInfo === null && $d->dName !== null) {
+                        $dTermInfo = Utilities::insertTerm(
                             $d->dName,
                             self::TAX_DIV,
                             [
@@ -1019,9 +1018,9 @@ class TouchPointWP
                     // Remove terms that are disabled from importing.
 
                     // Delete disabled divisions.  Get program, so we delete the right division.
-                    $pTermInfo = term_exists($d->pName, self::TAX_DIV, 0);
+                    $pTermInfo = Utilities::termExists($d->pName, self::TAX_DIV, 0);
                     if ($pTermInfo !== null) {
-                        $dTermInfo = term_exists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
+                        $dTermInfo = Utilities::termExists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
                         if ($dTermInfo !== null) {
                             wp_delete_term($dTermInfo['term_id'], self::TAX_DIV);
                             self::queueFlushRewriteRules();
@@ -1070,8 +1069,8 @@ class TouchPointWP
             );
             for ($di = 0; $di < 7; $di++) {
                 $name = Utilities::getPluralDayOfWeekNameForNumber($di);
-                if ( ! term_exists($name, self::TAX_WEEKDAY)) {
-                    wp_insert_term(
+                if (!Utilities::termExists($name, self::TAX_WEEKDAY)) {
+                    Utilities::insertTerm(
                         $name,
                         self::TAX_WEEKDAY,
                         [
@@ -1119,8 +1118,8 @@ class TouchPointWP
                 TouchPointWP::TAX_TENSE_PRESENT => __('Current'),
                 TouchPointWP::TAX_TENSE_PAST => __('Past'),
             ] as $slug => $name) {
-                if ( ! term_exists($slug, self::TAX_TENSE)) {
-                    wp_insert_term(
+                if (!Utilities::termExists($slug, self::TAX_TENSE)) {
+                    Utilities::insertTerm(
                         $name,
                         self::TAX_TENSE,
                         [
@@ -1176,10 +1175,10 @@ class TouchPointWP
                 __('Night')
             ];
             foreach ($timesOfDay as $tod) {
-                if ( ! term_exists($tod, self::TAX_WEEKDAY)) {
+                if (!Utilities::termExists($tod, self::TAX_WEEKDAY)) {
                     $slug = str_replace(" ", "", $tod);
                     $slug = strtolower($slug);
-                    wp_insert_term(
+                    Utilities::insertTerm(
                         $tod,
                         self::TAX_DAYTIME,
                         [
@@ -1192,8 +1191,8 @@ class TouchPointWP
             }
             for ($di = 0; $di < 7; $di++) {
                 $name = Utilities::getPluralDayOfWeekNameForNumber($di);
-                if ( ! term_exists($name, self::TAX_WEEKDAY)) {
-                    wp_insert_term(
+                if (!Utilities::termExists($name, self::TAX_WEEKDAY)) {
+                    Utilities::insertTerm(
                         $name,
                         self::TAX_WEEKDAY,
                         [
@@ -1244,8 +1243,8 @@ class TouchPointWP
             ]
         );
         foreach (["20s", "30s", "40s", "50s", "60s", "70+"] as $ag) {
-            if (! term_exists($ag, self::TAX_AGEGROUP)) {
-                wp_insert_term(
+            if (!Utilities::termExists($ag, self::TAX_AGEGROUP)) {
+                Utilities::insertTerm(
                     $ag,
                     self::TAX_AGEGROUP,
                     [
@@ -1291,8 +1290,8 @@ class TouchPointWP
                 ]
             );
             foreach (['mostly_single', 'mostly_married'] as $ms) {
-                if ( ! term_exists($ms, self::TAX_INV_MARITAL)) {
-                    wp_insert_term(
+                if (!Utilities::termExists($ms, self::TAX_INV_MARITAL)) {
+                    Utilities::insertTerm(
                         $ms,
                         self::TAX_INV_MARITAL,
                         [
@@ -1497,6 +1496,7 @@ class TouchPointWP
     protected function createTables(): void
     {
         global $wpdb;
+        /** @noinspection PhpIncludeInspection */
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
         // IP Geo Caching table
@@ -1544,7 +1544,8 @@ class TouchPointWP
     public static function useTribeCalendarPro(): bool
     {
         if ( ! function_exists( 'is_plugin_active' ) ){
-            require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
+            /** @noinspection PhpIncludeInspection */
+            require_once(ABSPATH . '/wp-admin/includes/plugin.php' );
         }
 
         return is_plugin_active( 'events-calendar-pro/events-calendar-pro.php');
@@ -1982,28 +1983,7 @@ class TouchPointWP
      */
     public function getPersonEvFieldsAsKVArray(?string $type = null, bool $addNone = false): array
     {
-        $r = [];
-        if ($addNone) {
-            $r[''] = '';
-        }
-        if ($type !== null) {
-            $type = strtolower(trim($type));
-        }
-        foreach ($this->getPersonEvFields() as $pev) {
-            if ($pev->field == '') { // Apparently blank EV Fields exist.
-                continue;
-            }
-            if ($type === null) { // not filtered by type
-                if ($pev->type === "") {
-                    $pev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
-                }
-                $r[$pev->hash] = $pev->field . " (" . $pev->type . ")";
-            } elseif ($type === strtolower($pev->type)) {
-                $r[$pev->hash] = $pev->field;
-            }
-        }
-
-        return $r;
+        return self::standardizeExtraValuesForKVArray($this->getPersonEvFields(), $type, $addNone);
     }
 
     /**
@@ -2064,6 +2044,19 @@ class TouchPointWP
      */
     public function getFamilyEvFieldsAsKVArray(?string $type = null, bool $addNone = false): array
     {
+        return self::standardizeExtraValuesForKVArray($this->getFamilyEvFields(), $type, $addNone);
+    }
+
+
+    /**
+     * @param stdClass[] $fields
+     * @param ?string    $type
+     * @param bool       $addNone
+     *
+     * @return string[]
+     */
+    private static function standardizeExtraValuesForKVArray(array $fields, ?string $type = null, bool $addNone = false): array
+    {
         $r = [];
         if ($addNone) {
             $r[''] = '';
@@ -2071,17 +2064,17 @@ class TouchPointWP
         if ($type !== null) {
             $type = strtolower(trim($type));
         }
-        foreach ($this->getFamilyEvFields() as $fev) {
-            if ($fev->field == '') { // Apparently blank EV Fields exist.
+        foreach ($fields as $ev) {
+            if ($ev->field == '') { // Apparently blank EV Fields exist.
                 continue;
             }
             if ($type === null) { // not filtered by type
-                if ($fev->type === "") {
-                    $fev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
+                if ($ev->type === "") {
+                    $ev->type = __("Unknown Type", TouchPointWP::TEXT_DOMAIN);
                 }
-                $r[$fev->hash] = $fev->field . " (" . $fev->type . ")";
-            } elseif ($type === strtolower($fev->type)) {
-                $r[$fev->hash] = $fev->field;
+                $r[$ev->hash] = $ev->field . " (" . $ev->type . ")";
+            } elseif ($type === strtolower($ev->type)) {
+                $r[$ev->hash] = $ev->field;
             }
         }
 

@@ -1904,7 +1904,7 @@ class Involvement implements api
         }
 
         $text = __("Contact Leaders", TouchPointWP::TEXT_DOMAIN);
-        $ret = "<button type=\"button\" data-tp-action=\"contact\"$btnClass>$text</button> ";
+        $ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button> ";
         TouchPointWP::enqueueActionsStyle('inv-contact');
         $count = 1;
 
@@ -1937,11 +1937,11 @@ class Involvement implements api
                         break;
                 }
                 $link = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
-                $ret  .= "<a class=\"btn button\" href=\"$link\"$btnClass>$text</a>  ";
+                $ret  .= "<a class=\"btn button\" href=\"$link\" $btnClass>$text</a>  ";
                 TouchPointWP::enqueueActionsStyle('inv-register');
             } else {
                 $text = __('Join', TouchPointWP::TEXT_DOMAIN);
-                $ret  .= "<button type=\"button\" data-tp-action=\"join\"$btnClass>$text</button>  ";
+                $ret  .= "<button type=\"button\" data-tp-action=\"join\" $btnClass>$text</button>  ";
                 TouchPointWP::enqueueActionsStyle('inv-join');
             }
             $count++;
@@ -1952,9 +1952,9 @@ class Involvement implements api
             $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
             if ($count > 1) {
                 TouchPointWP::requireScript("fontAwesome");
-                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\"$btnClass><i class=\"fa-solid fa-location-pin\"></i></button>  " . $ret;
+                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\" $btnClass><i class=\"fa-solid fa-location-pin\"></i></button>  " . $ret;
             } else {
-                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\"$btnClass>$text</button>  " . $ret;
+                $ret = "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  " . $ret;
             }
             $count++;
         }

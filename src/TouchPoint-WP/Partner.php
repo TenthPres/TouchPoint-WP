@@ -376,8 +376,8 @@ class Partner implements api, JsonSerializable
             // Partner Category
             $category = $f->familyEV->$categoryEv->value ?? null;
             // Insert Term if new
-            if ( ! term_exists($category, TouchPointWP::TAX_GP_CATEGORY)) {
-                wp_insert_term(
+            if ($category !== null && !Utilities::termExists($category, TouchPointWP::TAX_GP_CATEGORY)) {
+                Utilities::insertTerm(
                     $category,
                     TouchPointWP::TAX_GP_CATEGORY,
                     [
@@ -1100,7 +1100,7 @@ class Partner implements api, JsonSerializable
         // Show on map button.  (Only works if map is called before this is.)
         if (self::$_hasArchiveMap && !$this->decoupleLocation && $this->geo !== null) {
             $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
-            $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\"$btnClass>$text</button>  ";
+            $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  ";
         }
 
         return apply_filters(TouchPointWP::HOOK_PREFIX . "partner_actions", $ret, $this, $context, $btnClass);

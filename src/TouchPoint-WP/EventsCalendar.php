@@ -20,12 +20,7 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
  */
 abstract class EventsCalendar implements api
 {
-    /**
-     * Print json for Events Calendar for Mobile app.
-     *
-     * @param array $params Parameters from the request to use for filtering or such.
-     */
-    protected static function echoAppList(array $params = [])
+    protected static function generateEventsList(array $params = []): array
     {
         $eventsList = [];
 
@@ -33,7 +28,7 @@ abstract class EventsCalendar implements api
             [
                 'ends_after'                  => 'now',
                 'event_display'               => 'custom',
-                'total_per_page'              => 20,
+                'total_per_page'              => 50,
                 'hide_subsequent_recurrences' => true
             ],
             $params
@@ -148,16 +143,74 @@ abstract class EventsCalendar implements api
 
             $eventsList[] = $eO;
         }
+        return $eventsList;
+    }
+
+    /**
+     * Print json for Events Calendar for Mobile app.
+     *
+     * @param array $params Parameters from the request to use for filtering or such.
+     */
+    protected static function echoAppList(array $params = []): void
+    {
+        $eventsList = self::generateEventsList($params);
 
         header('Content-Type: application/json');
 
         echo json_encode($eventsList);
     }
 
+    /**
+     * Generate previews of the HTML generated for the App Events Calendar
+     *
+     * This is wildly inefficient since each iframe will calculate the full list.
+     */
+    protected static function previewAppList(array $params = []): void
+    {
+        $eventsList = self::generateEventsList($params);
+
+        foreach ($eventsList as $i => $eo) {
+            echo "<h2>{$eo['title']}</h2>";
+            $url = get_site_url() . "/" .
+                   TouchPointWP::API_ENDPOINT . "/" .
+                   TouchPointWP::API_ENDPOINT_APP_EVENTS . "/" .$i;
+            echo "<iframe src='$url' style='width:500px; height:500px;'></iframe>";
+        }
+    }
+
+    protected static function previewAppListItem(array $params = [], int $item = 0): void
+    {
+        $eventsList = self::generateEventsList($params);
+
+        echo $eventsList[$item]['content'];
+    }
+
     public static function api(array $uri): bool
     {
-        TouchPointWP::doCacheHeaders();  // Public? May as well, since there isn't any way to distinguish users.
-        EventsCalendar::echoAppList($uri['query']);
-        exit;
+        if (count($uri['path']) === 2) {
+            TouchPointWP::doCacheHeaders();  // Public? May as well, since there isn't any way to distinguish users.
+            EventsCalendar::echoAppList($uri['query']);
+            exit;
+        }
+
+        // Preview list
+        if (count($uri['path']) === 3 &&
+            strtolower($uri['path'][2]) === 'preview' &&
+            current_user_can('admin')
+        ) {
+            EventsCalendar::previewAppList($uri['query']);
+            exit;
+        }
+
+        // Preview items
+        if (count($uri['path']) === 3 &&
+            is_numeric($uri['path'][2]) &&
+            current_user_can('admin')
+        ) {
+            EventsCalendar::previewAppListItem($uri['query'], intval($uri['path'][2]));
+            exit;
+        }
+
+        return false;
     }
 }

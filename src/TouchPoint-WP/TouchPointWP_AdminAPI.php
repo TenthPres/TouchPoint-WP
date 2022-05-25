@@ -4,6 +4,7 @@
  */
 namespace tp\TouchPointWP;
 
+use WP_Post;
 use ZipArchive;
 
 if ( ! defined('ABSPATH')) {
@@ -100,19 +101,16 @@ class TouchPointWP_AdminAPI implements api {
     /**
      * Generate HTML for displaying fields.
      *
-     * @param  array   $data Data array.
-     * @param  object  $post Post object.
-     * @param  boolean $echo  Whether to echo the field HTML or return it.
+     * @param array    $data Data array.
+     * @param ?WP_Post $post Post object.
+     * @param bool     $echo Whether to echo the field HTML or return it.
+     *
      * @return string
      */
-    public function display_field( $data = array(), $post = null, $echo = true ) {
-
+    public function displayField(array $data = [], ?WP_Post $post = null, bool $echo = true ): string
+    {
         // Get field info.
-        if ( isset( $data['field'] ) ) {
-            $field = $data['field'];
-        } else {
-            $field = $data;
-        }
+        $field = $data['field'] ?? $data;
 
         // Check for prefix on option name.
         $option_name = '';
@@ -263,26 +261,26 @@ class TouchPointWP_AdminAPI implements api {
                 $html .= '</select> ';
                 break;
 
-            case 'image':
-                $image_thumb = '';
-                if ( $data ) {
-                    $image_thumb = wp_get_attachment_thumb_url( $data );
-                }
-                $html .= '<img id="' . $option_name . '_preview" class="image_preview" src="' . $image_thumb . '" /><br/>' . "\n";
-                $html .= '<input id="' . $option_name . '_button" type="button" data-uploader_title="' . __( 'Upload an image', 'wordpress-plugin-template' ) . '" data-uploader_button_text="' . __( 'Use image', 'wordpress-plugin-template' ) . '" class="image_upload_button button" value="' . __( 'Upload new image', 'wordpress-plugin-template' ) . '" />' . "\n";
-                $html .= '<input id="' . $option_name . '_delete" type="button" class="image_delete_button button" value="' . __( 'Remove image', 'wordpress-plugin-template' ) . '" />' . "\n";
-                $html .= '<input id="' . $option_name . '" class="image_data_field" type="hidden" name="' . $option_name . '" value="' . $data . '"/><br/>' . "\n";
-                break;
-
-            case 'color':
-                //phpcs:disable
-                ?><div class="color-picker" style="position:relative;">
-                <input type="text" name="<?php esc_attr_e( $option_name ); ?>" class="color" value="<?php esc_attr_e( $data ); ?>" />
-                <div style="position:absolute;background:#FFF;z-index:99;border-radius:100%;" class="colorpicker"></div>
-                </div>
-                <?php
-                //phpcs:enable
-                break;
+//            case 'image':
+//                $image_thumb = '';
+//                if ( $data ) {
+//                    $image_thumb = wp_get_attachment_thumb_url( $data );
+//                }
+//                $html .= '<img id="' . $option_name . '_preview" class="image_preview" src="' . $image_thumb . '" /><br/>' . "\n";
+//                $html .= '<input id="' . $option_name . '_button" type="button" data-uploader_title="' . __( 'Upload an image', 'wordpress-plugin-template' ) . '" data-uploader_button_text="' . __( 'Use image', 'wordpress-plugin-template' ) . '" class="image_upload_button button" value="' . __( 'Upload new image', 'wordpress-plugin-template' ) . '" />' . "\n";
+//                $html .= '<input id="' . $option_name . '_delete" type="button" class="image_delete_button button" value="' . __( 'Remove image', 'wordpress-plugin-template' ) . '" />' . "\n";
+//                $html .= '<input id="' . $option_name . '" class="image_data_field" type="hidden" name="' . $option_name . '" value="' . $data . '"/><br/>' . "\n";
+//                break;
+//
+//            case 'color':
+//                //phpcs:disable
+//                ?><!--<div class="color-picker" style="position:relative;">-->
+<!--                <input type="text" name="--><?php //esc_attr_e( $option_name ); ?><!--" class="color" value="--><?php //esc_attr_e( $data ); ?><!--" />-->
+<!--                <div style="position:absolute;background:#FFF;z-index:99;border-radius:100%;" class="colorpicker"></div>-->
+<!--                </div>-->
+<!--                --><?php
+//                //phpcs:enable
+//                break;
 
             case 'editor':
                 wp_editor(
