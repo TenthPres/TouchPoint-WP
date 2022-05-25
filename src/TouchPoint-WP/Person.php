@@ -585,6 +585,7 @@ class Person extends WP_User implements api, JsonSerializable
         global $wpdb;
 
         self::$_indexingQueries = TouchPointWP::newQueryObject();
+        self::$_indexingQueries['context'] = "users";
 
         $pidMeta = self::META_PEOPLEID;
         $queryNeeded = false;

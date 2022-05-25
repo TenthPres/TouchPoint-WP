@@ -728,6 +728,8 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
 
     famGeoSql = """SELECT geo.Longitude, geo.Latitude FROM AddressInfo ai LEFT JOIN Geocodes geo ON ai.FullAddress = geo.Address WHERE ai.FamilyId = {}"""
 
+    Data.Context = inData['context']
+
     for po in q.QueryList(rules, sort.lower()):
         pr = getPersonInfoForSync(po)
 

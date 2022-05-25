@@ -2,7 +2,7 @@
 ## website.  For example, you may want to prevent the full names of mission partners from being displayed, or you may
 ## want titles (Mrs., Rev., Dr.) to be part of a display name.  You can also prevent a person from being listed entirely.
 ##
-## There are two pertinent variables:
+## There are three pertinent variables:
 ## Data.Person - 	This is the Person object direct from TouchPoint.  Its attributes are documented in the documentation and
 ## 					the code repository.
 ## Data.Info - 		This is the object that gets returned for display.  It has the following attributes and default values:
@@ -14,6 +14,8 @@
 ##					- GoesBy - string - Default: NickName if the Person has one, otherwise FirstName.
 ##					- LastName - string - Default: LastName
 ##					- DisplayName - string - Default: GoesBy + " " + LastName
+## Data.Context - This indicates which part of TouchPoint-WP is querying the person information.  Values include "partner"
+##					and "user".
 
 goSecurityLevel = model.ExtraValueIntFamily(Data.Person.PeopleId, "Security Level")
 
@@ -31,4 +33,8 @@ if goSecurityLevel > 2:
 	Data.Info.DecoupleLocation = True
 
 if goSecurityLevel > 3:
+	Data.Info.Exclude = True
+
+# For Partner listings, exclude global partner Children
+if Data.Context == 'partner' and Data.Person.PositionInFamilyId == 30:
 	Data.Info.Exclude = True

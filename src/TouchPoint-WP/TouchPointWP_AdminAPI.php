@@ -98,15 +98,15 @@ class TouchPointWP_AdminAPI implements api {
         return true;
     }
 
-/**
- * Generate HTML for displaying fields.
- *
- * @param array    $data Data array.
- * @param ?WP_Post $post Post object.
- * @param bool     $echo Whether to echo the field HTML or return it.
- *
- * @return string
- */
+    /**
+     * Generate HTML for displaying fields.
+     *
+     * @param array    $data Data array.
+     * @param ?WP_Post $post Post object.
+     * @param bool     $echo Whether to echo the field HTML or return it.
+     *
+     * @return string
+     */
     public function displayField(array $data = [], ?WP_Post $post = null, bool $echo = true ): string
     {
         // Get field info.
