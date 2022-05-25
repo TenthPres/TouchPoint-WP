@@ -1136,7 +1136,9 @@ class Person extends WP_User implements api, JsonSerializable
         $inputData = TouchPointWP::postHeadersAndFiltering();
 
         try {
-            $data = TouchPointWP::instance()->apiPost('ident', json_decode($inputData), 30);
+            $inputData = json_decode($inputData);
+            $inputData->context = "ident";
+            $data = TouchPointWP::instance()->apiPost('ident', $inputData, 30);
         } catch (Exception $ex) {
             echo json_encode(['error' => $ex->getMessage()]);
             exit;
