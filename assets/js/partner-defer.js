@@ -49,10 +49,10 @@ class TP_Partner extends TP_Mappable {
         if (this.post_id === 0) {
             return {
                 text: " ",
-                fontFamily: "\"Font Awesome 6 Free\"",
+                fontFamily: "\"Font Awesome 6 Free\", FontAwesome",
                 color: "#00000088",
                 fontSize: "90%",
-                className: "fa-solid fa-lock"
+                className: "fa fa-solid fa-lock"
             }
         }
         return false;
