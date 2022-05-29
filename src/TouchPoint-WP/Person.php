@@ -721,11 +721,6 @@ class Person extends WP_User implements api, JsonSerializable
                 }
             }
 
-            if ($verbose) {
-                var_dump($person);
-                echo "<hr />";
-            }
-
             // User doesn't exist.
             if ($person === null) {
                 continue;
@@ -771,7 +766,7 @@ class Person extends WP_User implements api, JsonSerializable
             $bioField = TouchPointWP::instance()->settings->people_ev_bio;
             if ($bioField !== "") {
                 if (isset($pData->PeopleEV->$bioField)) {
-                    update_user_meta($person->ID, 'description', $pData->PeopleEV->$bioField);
+                    update_user_meta($person->ID, 'description', $pData->PeopleEV->$bioField->value);
                 } else {
                     update_user_meta($person->ID, 'description', '');
                 }
@@ -822,6 +817,12 @@ class Person extends WP_User implements api, JsonSerializable
                     delete_user_option($person->ID, self::META_INV_ATTEND_PREFIX . $iid, true);
                     delete_user_option($person->ID, self::META_INV_DESC_PREFIX . $iid, true);
                 }
+            }
+
+            if ($verbose) {
+                var_dump($pData);
+                var_dump($person);
+                echo "<hr />";
             }
 
             // Submit update.
