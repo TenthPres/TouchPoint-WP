@@ -249,6 +249,10 @@ class Involvement implements api
         add_filter('get_the_date', [self::class, 'filterPublishDate'], 10, 3);
         add_filter('get_the_time', [self::class, 'filterPublishDate'], 10, 3);
 
+        // Register function to return leaders instead of authors
+        add_filter('the_author', [self::class, 'filterAuthor'], 10, 3);
+        add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 3);
+
         // Run cron if it hasn't been run before or is overdue.
         if (TouchPointWP::instance()->settings->inv_cron_last_run * 1 < time() - 86400 - 3600) {
             self::updateFromTouchPoint();
@@ -296,27 +300,29 @@ class Involvement implements api
      */
     public static function templateFilter(string $template): string
     {
-        $postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
-        $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
+        if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
+            $postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
+            $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
 
-        if (count($postTypesToFilter) == 0) {
-            return $template;
-        }
+            if (count($postTypesToFilter) == 0) {
+                return $template;
+            }
 
-        if ( ! in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
-            return $template;
-        }
-        
-        if (is_post_type_archive($postTypesToFilter) && file_exists(
-                TouchPointWP::$dir . '/src/templates/involvement-archive.php'
-            )) {
-            $template = TouchPointWP::$dir . '/src/templates/involvement-archive.php';
-        }
+            if ( ! in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
+                return $template;
+            }
 
-        if (is_singular($postTypesToFilter) && file_exists(
-                TouchPointWP::$dir . '/src/templates/involvement-single.php'
-            )) {
-            $template = TouchPointWP::$dir . '/src/templates/involvement-single.php';
+            if (is_post_type_archive($postTypesToFilter) && file_exists(
+                    TouchPointWP::$dir . '/src/templates/involvement-archive.php'
+                )) {
+                $template = TouchPointWP::$dir . '/src/templates/involvement-archive.php';
+            }
+
+            if (is_singular($postTypesToFilter) && file_exists(
+                    TouchPointWP::$dir . '/src/templates/involvement-single.php'
+                )) {
+                $template = TouchPointWP::$dir . '/src/templates/involvement-single.php';
+            }
         }
 
         return $template;
@@ -1817,6 +1823,8 @@ class Involvement implements api
     }
 
     /**
+     * Replace the date with the schedule summary
+     *
      * @param $theDate
      * @param $format
      * @param $post
@@ -1838,6 +1846,27 @@ class Involvement implements api
             $theDate = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", true);
         }
         return $theDate;
+    }
+
+    /**
+     * Replace the author with the leaders
+     *
+     * @param $author Author's display name
+     *
+     * @return string
+     *
+     * @noinspection PhpUnusedParameterInspection WordPress API
+     */
+    public static function filterAuthor($author): string
+    {
+        $post = get_the_ID();
+
+        $invTypes = Involvement_PostTypeSettings::getPostTypes();
+
+        if (in_array(get_post_type($post), $invTypes)) {
+            $author = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "leaders", true);
+        }
+        return $author;
     }
 
     /**

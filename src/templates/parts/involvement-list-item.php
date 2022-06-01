@@ -57,7 +57,7 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
                     $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
                 }
 
-                echo implode(" &nbsp;&#9702;&nbsp; ", $metaStrings);
+                echo implode(tp\TouchPointWP\TouchPointWP::$joiner, $metaStrings);
                 ?>
             </span><!-- .post-meta -->
         </div>

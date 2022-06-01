@@ -103,6 +103,11 @@ class TouchPointWP
     private static int $cacheLevel = self::CACHE_PUBLIC;
 
     /**
+     * @var string Used for imploding arrays together in human-friendly formats.
+     */
+    public static string $joiner = " &nbsp;&#9702;&nbsp; ";
+
+    /**
      * The singleton.
      */
     private static ?TouchPointWP $_instance = null;

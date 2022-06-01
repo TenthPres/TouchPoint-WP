@@ -3,16 +3,19 @@
 use tp\TouchPointWP\Partner;
 use tp\TouchPointWP\TouchPointWP;
 
+global $post;
+
 /** @var $post WP_Post */
 
 $gp = Partner::fromPost($post);
 
 $postTypeClass = get_post_type($post);
 $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
+$postItemClass = $params['itemclass'] ?? "partner-list-item";
 
 ?>
 
-<article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class("partner-list-item"); ?> data-tp-partner="<?php echo $gp->jsId() ?>" style="border-bottom-color: <?php echo $gp->color ?>">
+<article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class($postItemClass); ?> data-tp-partner="<?php echo $gp->jsId() ?>" style="border-bottom-color: <?php echo $gp->color ?>">
     <?php
     if (has_post_thumbnail($post)) {
         $imgUrl = get_the_post_thumbnail_url($post);
@@ -26,7 +29,7 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
         the_title(sprintf('<h2 class="entry-title default-max-width heading-size-1"><a href="%s">', esc_url(get_permalink())), '</a></h2>');
         ?>
         </div>
-        <div class="post-meta-single post-meta-single-top">
+        <div class="post-meta-list-item">
             <span class="post-meta">
                 <?php
                 $metaStrings = [];
@@ -36,7 +39,7 @@ $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
                     $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
                 }
 
-                echo implode(" &nbsp;&#9702;&nbsp; ", $metaStrings);
+                echo implode(tp\TouchPointWP\TouchPointWP::$joiner, $metaStrings);
                 ?>
             </span><!-- .post-meta -->
         </div>
