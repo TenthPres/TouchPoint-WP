@@ -30,7 +30,7 @@ class TouchPointWP_Exception extends Exception
             add_action('admin_notices', fn() => TouchPointWP_AdminAPI::showError($this->getMessage()), 10, 2);
         }
         error_log($message);
-        if (TouchPointWP::DEBUG) {
+        if (TouchPointWP::DEBUG || get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true") {
             file_put_contents(
                 TouchPointWP::$dir . '/TouchPointWP_ErrorLog.txt',
                 time() . "\t" . TouchPointWP::VERSION . "\t" . $this->getCode() . "\t" . $this->getFile() . "#" . $this->getLine() . "\t" . $this->getMessage() . "\n",
