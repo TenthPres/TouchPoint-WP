@@ -35,17 +35,7 @@ TouchPointWP::enqueuePartialsStyle();
         <div class="TouchPointWP-detail-cell">
             <div class="TouchPointWP-detail-cell-section involvement-logistics" >
                 <?php
-                $metaKeys    = [
-                    TouchPointWP::SETTINGS_PREFIX . "meetingSchedule",
-                    TouchPointWP::SETTINGS_PREFIX . "locationName",
-                    TouchPointWP::SETTINGS_PREFIX . "leaders"
-                ];
                 $metaStrings = [];
-                foreach ($metaKeys as $mk) {
-                    if ($p->$mk) {
-                        $metaStrings[] = sprintf('<span class="meta-text">%s</span>', $p->$mk);
-                    }
-                }
                 foreach ($inv->notableAttributes() as $a)
                 {
                     $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);

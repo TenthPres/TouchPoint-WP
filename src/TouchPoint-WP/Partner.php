@@ -181,6 +181,7 @@ class Partner implements api, JsonSerializable
             $this->geo->lng = round($this->geo->lng, 3);
         }
 
+        // Decouple Location
         $this->decoupleLocation = !!get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_decouple", true);
         if ($this->decoupleLocation) {
             self::$_hasDecoupledInstances = true;
@@ -621,6 +622,8 @@ class Partner implements api, JsonSerializable
      * @param string $content
      *
      * @return string
+     *
+     * @noinspection PhpUnusedParameterInspection
      */
     public static function listShortcode($params = [], string $content = ""): string
     {
@@ -642,15 +645,16 @@ class Partner implements api, JsonSerializable
             self::SHORTCODE_ACTIONS
         );
 
-        global $wp_the_query;
+        global $the_query, $wp_the_query;
+        $the_query = $wp_the_query;
 
-        $wp_the_query->set('posts_per_page', -1);
-        $wp_the_query->set('nopaging', true);
-        $wp_the_query->set('orderby', 'title');
-        $wp_the_query->set('order', 'ASC');
+        $the_query->set('posts_per_page', -1);
+        $the_query->set('nopaging', true);
+        $the_query->set('orderby', 'title');
+        $the_query->set('order', 'ASC');
 
-        $wp_the_query->get_posts();
-        $wp_the_query->rewind_posts();
+        $the_query->get_posts();
+        $the_query->rewind_posts();
 
         $params['includecss'] = $params['includecss'] === true || $params['includecss'] === 'true';
 
@@ -660,8 +664,8 @@ class Partner implements api, JsonSerializable
 
         ob_start();
 
-        while ($wp_the_query->have_posts()) {
-            $wp_the_query->the_post();
+        while ($the_query->have_posts()) {
+            $the_query->the_post();
 
             $loadedPart = get_template_part('list-item', 'partner-list-item');
             if ($loadedPart === false) {
@@ -669,7 +673,7 @@ class Partner implements api, JsonSerializable
             }
         }
 
-        return "<div class=\"{$params['class']}\">" . ob_get_clean() . "</div>";
+        return apply_shortcodes("<div class=\"{$params['class']}\">" . ob_get_clean() . "</div>");
     }
 
     /**
@@ -688,6 +692,10 @@ class Partner implements api, JsonSerializable
             );
 
             return "<!-- Descriptive parameters are required for the filter shortcode. -->";
+        }
+
+        if ($params === '') {
+            $params = [];
         }
 
         self::requireAllObjectsInJs();
@@ -1164,8 +1172,7 @@ class Partner implements api, JsonSerializable
             TouchPointWP::requireScript("fontAwesome");  // For map icons
         }
 
-        // TODO add hook
-        return $r;
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "partner_attributes", $r, $this);
     }
 
     /**
