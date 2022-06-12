@@ -396,16 +396,29 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
 
     if inData.has_key('firstName') and inData.has_key('lastName') and inData['firstName'] is not None and inData['firstName'] is not None:
         # more than email and zip
+        
+        # coalescing.
+        dob = None
+        if inData.has_key('dob'):
+            dob = inData['dob']
+        
+        email = None
+        if inData.has_key('email'):
+            email = inData['email']
+        
+        phone = None
+        if inData.has_key('phone'):
+            phone = inData['phone']
 
-        pid = model.FindAddPeopleId(inData['firstName'], inData['lastName'], inData['dbo'], inData['email'], inData['phone'])
+        pid = model.FindAddPeopleId(inData['firstName'], inData['lastName'], dob, email, phone)
         updates = {}
         p = model.GetPerson(pid)
 
         # Update Zip code.  Assumes US Zip codes for comparison
         if inData.has_key('zip') and inData['zip'] is not None and len(inData['zip']) > 4:
-            if "{}".format(p.Family.ZipCode[0:5]) == "{}".format(inData['zip'][0:5]):
+            if p.Family.ZipCode is not None and len(p.Family.ZipCode) > 0 and "{}".format(p.Family.ZipCode[0:5]) == "{}".format(inData['zip'][0:5]):
                 pass # Family Address already has zip code
-            elif "{}".format(p.ZipCode[0:5]) == "{}".format(inData['zip'][0:5]):
+            elif p.ZipCode is not None and len(p.ZipCode) > 0 and "{}".format(p.ZipCode[0:5]) == "{}".format(inData['zip'][0:5]):
                 pass # Person Address already has zip code
             else:
                 updates['ZipCode'] = "{}".format(inData['zip'])
@@ -457,7 +470,7 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
     Data.primaryFam = inData['fid']
     degreesOfSep = int(model.Setting("RegisterRelatedFamilies", "0"))
 
-    if degreesOfSep > 1 and inData['fid'].Count > 0:
+    if degreesOfSep > 1 and len(inData['fid']) > 0:
         sql = """SELECT DISTINCT rf1.fid FROM (
             SELECT rf1a.FamilyId fid, rf1a.RelatedFamilyId rid FROM RelatedFamilies rf1a UNION
             SELECT rf1b.RelatedFamilyId fid, rf1b.FamilyId rid FROM RelatedFamilies rf1b UNION
@@ -472,7 +485,7 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
 
         inData['fid'] = q.QuerySqlInts(sql)
         
-    elif degreesOfSep == 1 and inData['fid'].Count > 0:
+    elif degreesOfSep == 1 and len(inData['fid']) > 0:
         sql = """SELECT DISTINCT rf1.fid FROM (
             SELECT rf1a.FamilyId fid, rf1a.RelatedFamilyId rid FROM RelatedFamilies rf1a UNION
             SELECT rf1b.RelatedFamilyId fid, rf1b.FamilyId rid FROM RelatedFamilies rf1b UNION
@@ -522,7 +535,7 @@ if ("inv_join" in Data.a and model.HttpMethod == "post"):
     if len(addPeople) > 0:
         org = model.GetOrganization(oid)
         names = " & ".join(p.FirstName for p in addPeople)  # TODO develop a better name listing mechanism for python.
-        pidStr = "(P" + ") (P".join(str(p['peopleId']) for p in addPeople) + ")"
+        pidStr = "(P" + ") (P".join(str(p.PeopleId) for p in addPeople) + ")"
 
         text = """**{0} {2} interested in joining {1}**. Please reach out to welcome them and mark the task as complete.
 They have also been added to your roster as prospective members.  Please move them to being a member of the group when appropriate.
