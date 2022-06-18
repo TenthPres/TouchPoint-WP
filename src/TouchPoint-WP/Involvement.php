@@ -625,6 +625,10 @@ class Involvement implements api
         $the_query->set('orderby', 'title');
         $the_query->set('order', 'ASC'); // May be over-ridden by distance sort.
 
+        if (is_post_type_archive()) {
+            $the_query->set('post_parent', 0);
+        }
+
         // Get the formalized post types
         $types = [];
         foreach (explode(',', $params['type']) as $t) {

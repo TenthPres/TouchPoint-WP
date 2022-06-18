@@ -11,6 +11,10 @@ global $post;
 
 $inv = Involvement::fromPost($post);
 
+if (!isset($settings)) {
+    $settings = Involvement::getSettingsForPostType($inv->invType);
+}
+
 $postTypeClass = get_post_type($post);
 $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
 $postItemClass = $params['itemclass'] ?? "inv-list-item";
@@ -46,7 +50,7 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
     <div class="actions involvement-actions <?php echo $postTypeClass; ?>-actions">
         <?php echo $inv->getActionButtons('list-item', "btn button"); ?>
     </div>
-    <?php if ($settings->hierarchical) {
+    <?php if (isset($settings) && $settings->hierarchical) {
         $children = get_children([
             'post_parent' => $post->ID,
             'orderby' => 'title',
