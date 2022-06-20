@@ -3,7 +3,7 @@
 import re
 import json
 
-VERSION = "0.0.8"
+VERSION = "0.0.9"
 
 sgContactEvName = "Contact"
 
@@ -204,9 +204,7 @@ if ("InvsForDivs" in Data.a):
         COALESCE(oai.Longitude, paih.Longitude, faih.Longitude) lng,
         COALESCE(orc.Description, prch.Description, frch.Description) resCodeName
         FROM Organizations o
-            JOIN Setting s ON s.Id = 'ExtraValueHost'
-            LEFT JOIN OrganizationExtra aoe ON o.OrganizationId = aoe.OrganizationId AND s.Setting = aoe.Field
-            LEFT JOIN AddressInfo oai ON aoe.Data = oai.FullAddress -- TODO change to ON o.OrganizationId = oai.OrganizationId and remove aoe and setting above when bvcms/bvcms#1964 is merged.
+            LEFT JOIN AddressInfo oai ON o.OrganizationId = oai.OrganizationId
             LEFT JOIN Zips z ON CAST(SUBSTRING(SUBSTRING(aoe.Data, 8, 1000), PATINDEX('%[0-9][0-9][0-9][0-9][0-9]%', SUBSTRING(aoe.Data, 8, 1000)), 5) as INT) = z.ZipCode
             LEFT JOIN lookup.ResidentCode orc ON z.MetroMarginalCode = orc.id
             LEFT JOIN People ph ON (SELECT TOP 1 omh.PeopleId FROM OrganizationMembers omh WHERE o.OrganizationId = omh.OrganizationId AND omh.MemberTypeId IN ({})) = ph.PeopleId
