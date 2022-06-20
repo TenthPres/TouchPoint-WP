@@ -1,6 +1,6 @@
 .tp-swal-container input[type=text],
 .tp-swal-container input[type=email],
-.tp-swal-container input[type=phone],
+.tp-swal-container input[type=tel],
 .tp-swal-container textarea,
 .tp-swal-container select {
     display: block;
