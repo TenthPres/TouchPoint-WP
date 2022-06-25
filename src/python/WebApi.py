@@ -205,7 +205,7 @@ if ("InvsForDivs" in Data.a):
         COALESCE(orc.Description, prch.Description, frch.Description) resCodeName
         FROM Organizations o
             LEFT JOIN AddressInfo oai ON o.OrganizationId = oai.OrganizationId
-            LEFT JOIN Zips z ON CAST(SUBSTRING(SUBSTRING(aoe.Data, 8, 1000), PATINDEX('%[0-9][0-9][0-9][0-9][0-9]%', SUBSTRING(aoe.Data, 8, 1000)), 5) as INT) = z.ZipCode
+            LEFT JOIN Zips z ON CAST(SUBSTRING(SUBSTRING(oai.FullAddress, 8, 1000), PATINDEX('%[0-9][0-9][0-9][0-9][0-9]%', SUBSTRING(oai.FullAddress, 8, 1000)), 5) as INT) = z.ZipCode
             LEFT JOIN lookup.ResidentCode orc ON z.MetroMarginalCode = orc.id
             LEFT JOIN People ph ON (SELECT TOP 1 omh.PeopleId FROM OrganizationMembers omh WHERE o.OrganizationId = omh.OrganizationId AND omh.MemberTypeId IN ({})) = ph.PeopleId
             LEFT JOIN Families fh ON ph.FamilyId = fh.FamilyId
