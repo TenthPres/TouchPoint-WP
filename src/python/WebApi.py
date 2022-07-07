@@ -132,8 +132,8 @@ if ("SavedSearches" in Data.a):
         """.format(Data.PeopleId))
 
     Data.savedSearches.flags = model.SqlListDynamicData("""
-        SELECT TOP 100 q.Name, SUBSTRING(q.Name, 0, 4) AS QueryId FROM Query q
-        WHERE q.Name LIKE 'F[0-9][0-9]:%'
+        SELECT TOP 100 q.Name, q.QueryId FROM Query q
+        WHERE q.StatusFlag = 1
         ORDER BY q.Name
     """)
 
@@ -696,9 +696,8 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
     # Saved Searches (incl status flags)
     if inData.has_key('inv'):
         for si in inData['src']:
-            if len(si) == 3 and si[0].upper() == "F" and si[1:3].isnumeric(): # status flag
-                rules.append("StatusFlag = '{}'".format(si))
-            elif re.match('[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}', si, re.I):
+            # TODO figure out a more efficient method for Status Flags
+            if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}', si, re.I):
                 rules.append("SavedQuery(SavedQuery='{}') = 1".format(si))
 
     joiner = " " + joiner + " "
