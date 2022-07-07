@@ -284,20 +284,29 @@ class Involvement implements api
     public static function updateFromTouchPoint(bool $verbose = false)
     {
         $count = 0;
+        $success = true;
 
         foreach (self::allTypeSettings() as $type) {
             if (count($type->importDivs) < 1) {
                 // Don't update if there aren't any divisions selected yet.
+                if ($verbose) {
+                    print "Skipping {$type->namePlural} because no divisions are selected.";
+                }
                 continue;
             }
 
             // Divisions
             $divs = Utilities::idArrayToIntArray($type->importDivs, false);
+            $update = self::updateInvolvementPostsForType($type, $divs, $verbose);
 
-            $count += self::updateInvolvementPostsForType($type, $divs, $verbose);
+            if ($update === false) {
+                $success = false;
+            } else {
+                $count += $update;
+            }
         }
 
-        if ($count !== false && $count !== 0) {
+        if ($success && $count !== 0) {
             TouchPointWP::instance()->settings->set('inv_cron_last_run', time());
         }
 
