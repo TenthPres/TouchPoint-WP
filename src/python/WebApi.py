@@ -587,7 +587,7 @@ if ("person_wpIds" in Data.a and model.HttpMethod == "post"):
     ev = str(inData['evName'])
 
     for p in inData['people']:
-        model.AddExtraValueInt(int(p['peopleId']), ev, int(p['WpId']))
+        model.AddExtraValueInt(int(p['PeopleId']), ev, int(p['WpId']))
         Data.success += 1
 
 
