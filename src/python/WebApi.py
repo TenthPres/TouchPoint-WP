@@ -3,7 +3,7 @@
 import re
 import json
 
-VERSION = "0.0.9"
+VERSION = "0.0.11"
 
 sgContactEvName = "Contact"
 
