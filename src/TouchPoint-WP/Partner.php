@@ -278,7 +278,7 @@ class Partner implements api, JsonSerializable
     {
         set_time_limit(60);
 
-        $verbose &= current_user_can('administrator');
+        $verbose &= TouchPointWP::currentUserIsAdmin();
 
         // Required for image handling
         require_once(ABSPATH . 'wp-admin/includes/media.php');

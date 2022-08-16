@@ -196,7 +196,7 @@ abstract class EventsCalendar implements api
         // Preview list
         if (count($uri['path']) === 3 &&
             strtolower($uri['path'][2]) === 'preview' &&
-            current_user_can('admin')
+            TouchPointWP::currentUserIsAdmin()
         ) {
             EventsCalendar::previewAppList($uri['query']);
             exit;
@@ -205,7 +205,7 @@ abstract class EventsCalendar implements api
         // Preview items
         if (count($uri['path']) === 3 &&
             is_numeric($uri['path'][2]) &&
-            current_user_can('admin')
+            TouchPointWP::currentUserIsAdmin()
         ) {
             EventsCalendar::previewAppListItem($uri['query'], intval($uri['path'][2]));
             exit;

@@ -425,6 +425,16 @@ class TouchPointWP
     }
 
     /**
+     * Whether the current user is an admin.
+     *
+     * @return bool
+     */
+    public static function currentUserIsAdmin(): bool
+    {
+        return current_user_can('manage_options');
+    }
+
+    /**
      * Filter to add a tp_post_type option to get_terms that takes either a string of one post type or an array of post
      * types.
      *

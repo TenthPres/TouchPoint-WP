@@ -26,7 +26,7 @@ class TouchPointWP_Exception extends Exception
     public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
-        if (is_admin() && current_user_can("administrator")) {
+        if (is_admin() && TouchPointWP::currentUserIsAdmin()) {
             add_action('admin_notices', fn() => TouchPointWP_AdminAPI::showError($this->getMessage()), 10, 2);
         }
         error_log($message);

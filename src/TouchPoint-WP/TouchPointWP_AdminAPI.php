@@ -42,7 +42,7 @@ class TouchPointWP_AdminAPI implements api {
                 exit;
 
             case self::API_ENDPOINT_SCRIPTZIP:
-                if (!current_user_can('administrator')) {
+                if (!TouchPointWP::currentUserIsAdmin()) {
                     return false;
                 }
                 if (!TouchPointWP::instance()->admin()->generateAndEchoPython()) {
@@ -52,7 +52,7 @@ class TouchPointWP_AdminAPI implements api {
                 exit;
 
             case "scriptupdate":
-                if (!current_user_can('administrator')) {
+                if (!TouchPointWP::currentUserIsAdmin()) {
                     return false;
                 }
                 try {
@@ -64,7 +64,7 @@ class TouchPointWP_AdminAPI implements api {
                 exit;
 
             case "force-migrate":
-                if (!current_user_can('administrator')) {
+                if (!TouchPointWP::currentUserIsAdmin()) {
                     return false;
                 }
                 TouchPointWP::instance()->settings->migrate();

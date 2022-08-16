@@ -552,7 +552,7 @@ class Person extends WP_User implements api, JsonSerializable
      */
     public static function userContactMethods(array $methods): array
     {
-        if (current_user_can("administrator")) {
+        if (TouchPointWP::currentUserIsAdmin()) {
             $methods[self::META_PEOPLEID] = __("TouchPoint People ID", TouchPointWP::TEXT_DOMAIN);
         }
 
@@ -590,7 +590,7 @@ class Person extends WP_User implements api, JsonSerializable
         $pidMeta = self::META_PEOPLEID;
         $queryNeeded = false;
 
-        $debug = $verbose && current_user_can('administrator');
+        $verbose &= TouchPointWP::currentUserIsAdmin();
 
         // Existing Users
         /** @noinspection SqlResolve */
@@ -639,10 +639,10 @@ class Person extends WP_User implements api, JsonSerializable
         self::$_indexingQueries['context'] = 'peopleLists';
 
         // Submit to API
-        $people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $debug, 50);
+        $people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, 50);
 
         // Parse the API results
-        $count = self::updatePeopleFromApiData($people->people, $debug);
+        $count = self::updatePeopleFromApiData($people->people, $verbose);
 
         if ($count !== 0) {
             TouchPointWP::instance()->settings->set('person_cron_last_run', time());

@@ -286,7 +286,7 @@ class Involvement implements api
         $count = 0;
         $success = true;
 
-        $debug = $verbose && current_user_can('administrator');
+        $verbose &= TouchPointWP::currentUserIsAdmin();
 
         foreach (self::allTypeSettings() as $type) {
             if (count($type->importDivs) < 1) {
@@ -299,7 +299,7 @@ class Involvement implements api
 
             // Divisions
             $divs = Utilities::idArrayToIntArray($type->importDivs, false);
-            $update = self::updateInvolvementPostsForType($type, $divs, $debug);
+            $update = self::updateInvolvementPostsForType($type, $divs, $verbose);
 
             if ($update === false) {
                 $success = false;
