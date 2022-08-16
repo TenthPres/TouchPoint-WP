@@ -2426,7 +2426,7 @@ class TouchPointWP
         $data->people = (array)$data->people;
 
         if ($verbose) {
-            echo "Found " . count($data->people) . " people groups";
+            echo "Found " . count($data->people) . " people or groups of people";
         }
 
         return $data;

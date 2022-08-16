@@ -694,7 +694,7 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
                 #    invsMemSubGroupsToImport[iid] = inData['inv'][iid]['memTypes']
 
     # Saved Searches (incl status flags)
-    if inData.has_key('inv'):
+    if inData.has_key('src'):
         for si in inData['src']:
             # TODO figure out a more efficient method for Status Flags
             if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}', si, re.I):
