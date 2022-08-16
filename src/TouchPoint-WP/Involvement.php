@@ -286,6 +286,8 @@ class Involvement implements api
         $count = 0;
         $success = true;
 
+        $debug = $verbose && current_user_can('administrator');
+
         foreach (self::allTypeSettings() as $type) {
             if (count($type->importDivs) < 1) {
                 // Don't update if there aren't any divisions selected yet.
@@ -297,7 +299,7 @@ class Involvement implements api
 
             // Divisions
             $divs = Utilities::idArrayToIntArray($type->importDivs, false);
-            $update = self::updateInvolvementPostsForType($type, $divs, $verbose);
+            $update = self::updateInvolvementPostsForType($type, $divs, $debug);
 
             if ($update === false) {
                 $success = false;
@@ -308,6 +310,10 @@ class Involvement implements api
 
         if ($success && $count !== 0) {
             TouchPointWP::instance()->settings->set('inv_cron_last_run', time());
+        }
+
+        if ($verbose) {
+            echo "Updated $count items";
         }
 
         return $count;

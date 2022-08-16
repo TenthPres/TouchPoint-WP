@@ -590,6 +590,8 @@ class Person extends WP_User implements api, JsonSerializable
         $pidMeta = self::META_PEOPLEID;
         $queryNeeded = false;
 
+        $debug = $verbose && current_user_can('administrator');
+
         // Existing Users
         /** @noinspection SqlResolve */
 //        $sql = "SELECT meta_value FROM $wpdb->usermeta WHERE meta_key = '$pidMeta'";  TODO restore when bvcms/bvcms#2166 is merged
@@ -637,10 +639,10 @@ class Person extends WP_User implements api, JsonSerializable
         self::$_indexingQueries['context'] = 'peopleLists';
 
         // Submit to API
-        $people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, 50);
+        $people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $debug, 50);
 
         // Parse the API results
-        $count = self::updatePeopleFromApiData($people->people, $verbose);
+        $count = self::updatePeopleFromApiData($people->people, $debug);
 
         if ($count !== 0) {
             TouchPointWP::instance()->settings->set('person_cron_last_run', time());
