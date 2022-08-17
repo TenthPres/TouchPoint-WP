@@ -5,6 +5,7 @@
 namespace tp\TouchPointWP;
 
 use Exception;
+use TypeError;
 
 if ( ! defined('ABSPATH')) {
     exit(1);
@@ -37,15 +38,15 @@ class Involvement_PostTypeSettings {
     protected string $namePlural;
     protected string $slug;
     protected array $importDivs;
-    protected bool $useGeo;
+    protected bool $useGeo = false;
     protected bool $hierarchical = false;
     protected string $groupBy = "";
-    protected array $leaderTypes;
-    protected array $hostTypes;
-    protected array $filters;
+    protected array $leaderTypes = [];
+    protected array $hostTypes = [];
+    protected array $filters = [];
     protected string $taskOwner = ""; // PeopleID as a string
-    protected array $contactKeywords;
-    protected array $joinKeywords;
+    protected array $contactKeywords = [];
+    protected array $joinKeywords = [];
     protected ?string $postType = null;
 
     const POST_TYPE_PREFIX = "inv_";
@@ -75,7 +76,11 @@ class Involvement_PostTypeSettings {
     {
         foreach ($o as $k => $v) {
             if (property_exists(self::class, $k)) {
-                $this->$k = $v;
+                try {
+                    $this->$k = $v;
+                } catch (TypeError $e) {  // See issue #90
+                    new TouchPointWP_Exception("Type Error", 170005, $e);
+                }
             }
         }
     }

@@ -1221,7 +1221,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         }
 
         // Remove former smallgroup cron hook.  New cron is scheduled elsewhere.
-        if ( wp_next_scheduled(TouchPointWP::HOOK_PREFIX . "sg_cron_hook")) {
+        if (wp_next_scheduled(TouchPointWP::HOOK_PREFIX . "sg_cron_hook")) {
             wp_clear_scheduled_hook(TouchPointWP::HOOK_PREFIX . "sg_cron_hook");
         }
 
