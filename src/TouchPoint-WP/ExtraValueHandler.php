@@ -51,4 +51,14 @@ class ExtraValueHandler
         $what = self::standardizeExtraValueName($what);
         return $this->owner->getExtraValue($what);
     }
+
+    public function __isset($name)
+    {
+        return $this->owner->getExtraValue($name) !== null;
+    }
+
+    public function __call($name, $arguments)
+    {
+        return $this->__get($name);
+    }
 }

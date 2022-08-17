@@ -46,6 +46,11 @@ class Involvement implements api
     public ?object $geo = null;
     static protected object $compareGeo;
 
+    protected ?string $location = "";
+    protected ?string $meetingSchedule = "";
+    protected ?string $leaders = "";
+    public ?string $color = "#999999";
+
     public string $name;
     public int $invId;
 
@@ -57,8 +62,6 @@ class Involvement implements api
     public int $post_id;
     public string $post_excerpt;
     protected WP_Post $post;
-
-    public ?string $color = "#999999";
 
     public const INVOLVEMENT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "invId";
 
@@ -157,8 +160,19 @@ class Involvement implements api
             }
         }
 
+        // Meeting Schedule string
+        $this->meetingSchedule = trim(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", true));
+
+        // Gender ID
         $this->attributes->genderId = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "genderId", true);
 
+        // Leaders
+        $this->leaders = trim(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "leaders", true));
+
+        // Location string
+        $this->location = trim(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "locationName", true));
+
+        // Geo
         if (self::getSettingsForPostType($this->invType)->useGeo) {
             if (property_exists($object, 'geo_lat') &&
                 $object->geo_lat !== null &&
@@ -249,6 +263,10 @@ class Involvement implements api
         add_filter('get_the_date', [self::class, 'filterPublishDate'], 10, 3);
         add_filter('get_the_time', [self::class, 'filterPublishDate'], 10, 3);
 
+        // Register function to return leaders instead of authors
+        add_filter('the_author', [self::class, 'filterAuthor'], 10, 3);
+        add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 3);
+
         // Run cron if it hasn't been run before or is overdue.
         if (TouchPointWP::instance()->settings->inv_cron_last_run * 1 < time() - 86400 - 3600) {
             self::updateFromTouchPoint();
@@ -266,21 +284,36 @@ class Involvement implements api
     public static function updateFromTouchPoint(bool $verbose = false)
     {
         $count = 0;
+        $success = true;
+
+        $verbose &= TouchPointWP::currentUserIsAdmin();
 
         foreach (self::allTypeSettings() as $type) {
             if (count($type->importDivs) < 1) {
                 // Don't update if there aren't any divisions selected yet.
+                if ($verbose) {
+                    print "Skipping {$type->namePlural} because no divisions are selected.";
+                }
                 continue;
             }
 
             // Divisions
             $divs = Utilities::idArrayToIntArray($type->importDivs, false);
+            $update = self::updateInvolvementPostsForType($type, $divs, $verbose);
 
-            $count += self::updateInvolvementPostsForType($type, $divs, $verbose);
+            if ($update === false) {
+                $success = false;
+            } else {
+                $count += $update;
+            }
         }
 
-        if ($count !== false && $count !== 0) {
+        if ($success && $count !== 0) {
             TouchPointWP::instance()->settings->set('inv_cron_last_run', time());
+        }
+
+        if ($verbose) {
+            echo "Updated $count items";
         }
 
         return $count;
@@ -296,27 +329,29 @@ class Involvement implements api
      */
     public static function templateFilter(string $template): string
     {
-        $postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
-        $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
+        if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
+            $postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
+            $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
 
-        if (count($postTypesToFilter) == 0) {
-            return $template;
-        }
+            if (count($postTypesToFilter) == 0) {
+                return $template;
+            }
 
-        if ( ! in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
-            return $template;
-        }
-        
-        if (is_post_type_archive($postTypesToFilter) && file_exists(
-                TouchPointWP::$dir . '/src/templates/involvement-archive.php'
-            )) {
-            $template = TouchPointWP::$dir . '/src/templates/involvement-archive.php';
-        }
+            if ( ! in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
+                return $template;
+            }
 
-        if (is_singular($postTypesToFilter) && file_exists(
-                TouchPointWP::$dir . '/src/templates/involvement-single.php'
-            )) {
-            $template = TouchPointWP::$dir . '/src/templates/involvement-single.php';
+            if (is_post_type_archive($postTypesToFilter) && file_exists(
+                    TouchPointWP::$dir . '/src/templates/involvement-archive.php'
+                )) {
+                $template = TouchPointWP::$dir . '/src/templates/involvement-archive.php';
+            }
+
+            if (is_singular($postTypesToFilter) && file_exists(
+                    TouchPointWP::$dir . '/src/templates/involvement-single.php'
+                )) {
+                $template = TouchPointWP::$dir . '/src/templates/involvement-single.php';
+            }
         }
 
         return $template;
@@ -368,21 +403,13 @@ class Involvement implements api
     }
 
     /**
-     * @param array|null $exclude
+     * Returns an array of the Involvement's Divisions, excluding those that cause it to be included.
      *
      * @return string[]
      */
-    public function getDivisionsStrings(?array $exclude = null): array
+    public function getDivisionsStrings(): array
     {
-        if ($exclude === null) {
-            $importDivs = $this->settings()->importDivs;
-            if (count($importDivs) < 2) {
-                // Exclude the import divs if there's only one of them, and all invs have the same div
-                $exclude = $importDivs;
-            } else {
-                $exclude = [];
-            }
-        }
+        $exclude = $this->settings()->importDivs;
 
         if (!isset($this->divisions)) {
             if (count($exclude) > 1) {
@@ -514,7 +541,7 @@ class Involvement implements api
     public static function filterShortcode($params = []): string
     {
         // Check that params aren't a string.
-        if (is_string($params)) {
+        if (is_string($params) && $params !== '') {
             _doing_it_wrong(
                 __FUNCTION__,
                 "Descriptive parameters are required for the filter shortcode.",
@@ -522,6 +549,10 @@ class Involvement implements api
             );
 
             return "<!-- Descriptive parameters are required for the filter shortcode. -->";
+        }
+
+        if ($params === '') {
+            $params = [];
         }
 
         // Attempt to infer the type if it doesn't exist.
@@ -577,33 +608,41 @@ class Involvement implements api
      * @param string $content
      *
      * @return string
+     *
+     * @noinspection PhpUnusedParameterInspection
      */
     public static function listShortcode($params = [], string $content = ""): string
     {
-        if ($params === '') {
-            $params = [];
-        }
-
         // standardize parameters
+        if (is_string($params)) {
+            $params = explode(",", $params);
+        }
         $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
         $params = shortcode_atts(
             [
-                'div' => null,
-                'type' => null
+                'type'       => null,
+                'div'        => null,
+                'class'      => 'inv-list',
+                'includecss' => 'true',
+                'itemclass'  => 'inv-list-item'
             ],
             $params,
             self::SHORTCODE_NEARBY
         );
 
-        // Prep the query
-        $q = new WP_Query([
-            'posts_per_page' => -1,
-            'nopaging'       => true,
-            'orderby'        => 'title',
-            'order'          => 'ASC',
-        ]);
+        global $the_query, $wp_the_query;
+        $the_query = $wp_the_query;
+
+        $the_query->set('posts_per_page', -1);
+        $the_query->set('nopaging', true);
+        $the_query->set('orderby', 'title');
+        $the_query->set('order', 'ASC'); // May be over-ridden by distance sort.
+
+        if (is_post_type_archive()) {
+            $the_query->set('post_parent', 0);
+        }
 
         // Get the formalized post types
         $types = [];
@@ -614,7 +653,7 @@ class Involvement implements api
             }
         }
         if (count($types) > 0) {
-            $q->set('post_type', $types);
+            $the_query->set('post_type', $types);
         }
 
         $taxQuery = ['relation' => 'AND'];
@@ -637,36 +676,45 @@ class Involvement implements api
             }
         }
 
-        $q->set('tax_query', $taxQuery);
+        $the_query->set('tax_query', $taxQuery);
 
-        $q->get_posts();
-        $q->rewind_posts();
+        $the_query->get_posts();
+        $the_query->rewind_posts();
 
-        ob_start();
+        $params['includecss'] = $params['includecss'] === true || $params['includecss'] === 'true';
 
-        echo "<div class=\"involvement-list\">";
-        if ($q->have_posts()) {
-            while ($q->have_posts()) {
-                $q->the_post();
+        if ($the_query->have_posts()) {
+            if ($params['includecss']) {
+                TouchPointWP::enqueuePartialsStyle();
+            }
+
+            $userLoc = TouchPointWP::instance()->geolocate(false);
+
+            if ($userLoc !== false) {
+                // we have a viable location. Use it for sorting by distance.
+                Involvement::setComparisonGeo($userLoc);
+                TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
+            }
+
+            $list = $the_query->get_posts();
+            usort($list, [Involvement::class, 'sortPosts']);
+
+            ob_start();
+
+            foreach ($list as $p) {
+                global $post;
+                $post = $p;
+
                 $loadedPart = get_template_part('list-item', 'involvement-list-item');
                 if ($loadedPart === false) {
-                    TouchPointWP::enqueuePartialsStyle();
                     require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
                 }
-                wp_reset_postdata();
             }
 
-        } else {
-            $loadedPart = get_template_part('list-none', 'involvement-list-none');
-            if ($loadedPart === false) {
-                require TouchPointWP::$dir . "/src/templates/parts/involvement-list-none.php";
-            }
+            return apply_shortcodes("<div class=\"{$params['class']}\">" . ob_get_clean() . "</div>");
         }
-        echo "</div>";
-        $content = ob_get_clean();
 
-        // get any nesting
-        return apply_shortcodes($content);
+        return "<!-- Nothing to show -->";
     }
 
     /**
@@ -1228,6 +1276,8 @@ class Involvement implements api
 
 
     /**
+     * Returns distance to the given involvement from the $compareGeo point.
+     *
      * Math thanks to https://stackoverflow.com/a/574736/2339939
      *
      * @param bool $useHiForFalse Set to true if a high number should be used for distances that can't be computed.
@@ -1318,16 +1368,20 @@ class Involvement implements api
     }
 
     /**
-     * @param array  $params
+     * @param string|array  $params
      * @param string $content
      *
      * @return string
      *
      * @noinspection PhpUnusedParameterInspection WordPress API
      */
-    public static function mapShortcode(array $params = [], string $content = ""): string
+    public static function mapShortcode($params = [], string $content = ""): string
     {
         if ( ! self::$_hasUsedMap) {
+            if (is_string($params)) {
+                $params = explode(",", $params);
+            }
+
             self::$_hasUsedMap = true;
 
             // standardize parameters
@@ -1817,6 +1871,8 @@ class Involvement implements api
     }
 
     /**
+     * Replace the date with the schedule summary
+     *
      * @param $theDate
      * @param $format
      * @param $post
@@ -1841,6 +1897,27 @@ class Involvement implements api
     }
 
     /**
+     * Replace the author with the leaders
+     *
+     * @param $author Author's display name
+     *
+     * @return string
+     *
+     * @noinspection PhpUnusedParameterInspection WordPress API
+     */
+    public static function filterAuthor($author): string
+    {
+        $post = get_the_ID();
+
+        $invTypes = Involvement_PostTypeSettings::getPostTypes();
+
+        if (in_array(get_post_type($post), $invTypes)) {
+            $author = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "leaders", true);
+        }
+        return $author;
+    }
+
+    /**
      * Get the settings object that corresponds to the Involvement's Post Type
      *
      * @return Involvement_PostTypeSettings|null
@@ -1857,31 +1934,55 @@ class Involvement implements api
      */
     public function notableAttributes(): array
     {
-        $ret = [];
+        $r = [];
+
+        if ($this->meetingSchedule) {
+            $r[] = $this->meetingSchedule;
+        }
+
+        if ($this->location) {
+            $r[] = $this->location;
+        }
+
+        foreach ($this->getDivisionsStrings() as $a) {
+            $r[] = $a;
+        }
+
+        if ($this->leaders) {
+            $r[] = $this->leaders;
+        }
+
         if ($this->attributes->genderId != 0) {
             switch($this->attributes->genderId) {
                 case 1:
-                    $ret[] = __('Men Only', TouchPointWP::TEXT_DOMAIN);
+                    $r[] = __('Men Only', TouchPointWP::TEXT_DOMAIN);
                     break;
                 case 2:
-                    $ret[] = __('Women Only', TouchPointWP::TEXT_DOMAIN);
+                    $r[] = __('Women Only', TouchPointWP::TEXT_DOMAIN);
                     break;
             }
         }
 
         $canJoin = $this->acceptingNewMembers();
         if ($canJoin !== true) {
-            $ret[] = $canJoin;
+            $r[] = $canJoin;
         }
+
+        // Not shown on map (only if there is a map, and the involvement has geo)
+        // Excluded because it doesn't seem helpful.
+//        if (self::$_hasArchiveMap && $this->geo === null) {
+//            $r[] = __("Not Shown on Map", TouchPointWP::TEXT_DOMAIN);
+//            TouchPointWP::requireScript("fontAwesome");  // For map icons
+//        }
 
         if ($this->settings() && $this->settings()->useGeo) {
             $dist = $this->getDistance();
-            if ($dist != false) {
-                $ret[] = $dist . " mi";
+            if ($dist !== false) {
+                $r[] = $dist . " mi";
             }
         }
 
-        return $ret;
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "involvement_attributes", $r, $this);
     }
 
     /**

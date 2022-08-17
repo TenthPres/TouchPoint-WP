@@ -26,7 +26,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.8";
+    public const VERSION = "0.0.11";
 
     public const DEBUG = false;
 
@@ -101,6 +101,11 @@ class TouchPointWP
     public const CACHE_PRIVATE = 10;
     public const CACHE_NONE = 20;
     private static int $cacheLevel = self::CACHE_PUBLIC;
+
+    /**
+     * @var string Used for imploding arrays together in human-friendly formats.
+     */
+    public static string $joiner = " &nbsp;&#9702;&nbsp; ";
 
     /**
      * The singleton.
@@ -417,6 +422,16 @@ class TouchPointWP
 
         self::$context = "";
         return $continue;
+    }
+
+    /**
+     * Whether the current user is an admin.
+     *
+     * @return bool
+     */
+    public static function currentUserIsAdmin(): bool
+    {
+        return current_user_can('manage_options');
     }
 
     /**
@@ -2421,7 +2436,7 @@ class TouchPointWP
         $data->people = (array)$data->people;
 
         if ($verbose) {
-            echo "Found " . count($data->people) . " people groups";
+            echo "Found " . count($data->people) . " people or groups of people";
         }
 
         return $data;

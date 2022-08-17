@@ -34,6 +34,7 @@ class Partner implements api, JsonSerializable
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "Partner-Map";
     public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "Partner-Filters";
     public const SHORTCODE_ACTIONS = TouchPointWP::SHORTCODE_PREFIX . "Partner-Actions";
+    public const SHORTCODE_LIST = TouchPointWP::SHORTCODE_PREFIX . "Partner-List";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "global_cron_hook";
     protected static bool $_hasUsedMap = false;
     protected static bool $_hasArchiveMap = false;
@@ -180,6 +181,7 @@ class Partner implements api, JsonSerializable
             $this->geo->lng = round($this->geo->lng, 3);
         }
 
+        // Decouple Location
         $this->decoupleLocation = !!get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "geo_decouple", true);
         if ($this->decoupleLocation) {
             self::$_hasDecoupledInstances = true;
@@ -237,6 +239,10 @@ class Partner implements api, JsonSerializable
         add_filter('get_the_date', [self::class, 'filterPublishDate'], 10, 3);
         add_filter('get_the_time', [self::class, 'filterPublishDate'], 10, 3);
 
+        // Register function to return nulls instead of authors
+        add_filter('the_author', [self::class, 'filterAuthor'], 10, 3);
+        add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 3);
+
         // Run cron if it hasn't been run before or is overdue.
         if (TouchPointWP::instance()->settings->global_cron_last_run * 1 < time() - 86400 - 3600) {
             try {
@@ -271,6 +277,8 @@ class Partner implements api, JsonSerializable
     public static function updateFromTouchPoint(bool $verbose = false)
     {
         set_time_limit(60);
+
+        $verbose &= TouchPointWP::currentUserIsAdmin();
 
         // Required for image handling
         require_once(ABSPATH . 'wp-admin/includes/media.php');
@@ -516,23 +524,25 @@ class Partner implements api, JsonSerializable
      */
     public static function templateFilter(string $template): string
     {
-        $postTypesToFilter        = self::POST_TYPE;
-        $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
+        if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
+            $postTypesToFilter        = self::POST_TYPE;
+            $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
 
-        if ( ! in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
-            return $template;
-        }
-        
-        if (is_post_type_archive($postTypesToFilter) && file_exists(
-                TouchPointWP::$dir . '/src/templates/partner-archive.php'
-            )) {
-            $template = TouchPointWP::$dir . '/src/templates/partner-archive.php';
-        }
+            if ( ! in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
+                return $template;
+            }
 
-        if (is_singular($postTypesToFilter) && file_exists(
-                TouchPointWP::$dir . '/src/templates/partner-single.php'
-            )) {
-            $template = TouchPointWP::$dir . '/src/templates/partner-single.php';
+            if (is_post_type_archive($postTypesToFilter) && file_exists(
+                    TouchPointWP::$dir . '/src/templates/partner-archive.php'
+                )) {
+                $template = TouchPointWP::$dir . '/src/templates/partner-archive.php';
+            }
+
+            if (is_singular($postTypesToFilter) && file_exists(
+                    TouchPointWP::$dir . '/src/templates/partner-single.php'
+                )) {
+                $template = TouchPointWP::$dir . '/src/templates/partner-single.php';
+            }
         }
 
         return $template;
@@ -608,6 +618,67 @@ class Partner implements api, JsonSerializable
     }
 
     /**
+     * Display a list of the partners, as used in the templates.
+     *
+     * @param array|string  $params
+     * @param string $content
+     *
+     * @return string
+     *
+     * @noinspection PhpUnusedParameterInspection
+     */
+    public static function listShortcode($params = [], string $content = ""): string
+    {
+        // standardize parameters
+        if (is_string($params)) {
+            $params = explode(",", $params);
+        }
+        $params = array_change_key_case($params, CASE_LOWER);
+
+        // set some defaults
+        /** @noinspection SpellCheckingInspection */
+        $params = shortcode_atts(
+            [
+                'class' => 'partner-list',
+                'includecss' => 'true',
+                'itemclass' => 'partner-list-item'
+            ],
+            $params,
+            self::SHORTCODE_ACTIONS
+        );
+
+        global $the_query, $wp_the_query;
+        $the_query = $wp_the_query;
+
+        $the_query->set('posts_per_page', -1);
+        $the_query->set('nopaging', true);
+        $the_query->set('orderby', 'title');
+        $the_query->set('order', 'ASC');
+
+        $the_query->get_posts();
+        $the_query->rewind_posts();
+
+        $params['includecss'] = $params['includecss'] === true || $params['includecss'] === 'true';
+
+        if ($params['includecss']) {
+            TouchPointWP::enqueuePartialsStyle();
+        }
+
+        ob_start();
+
+        while ($the_query->have_posts()) {
+            $the_query->the_post();
+
+            $loadedPart = get_template_part('list-item', 'partner-list-item');
+            if ($loadedPart === false) {
+                require TouchPointWP::$dir . "/src/templates/parts/partner-list-item.php";
+            }
+        }
+
+        return apply_shortcodes("<div class=\"{$params['class']}\">" . ob_get_clean() . "</div>");
+    }
+
+    /**
      * @param array|string $params
      *
      * @return string
@@ -615,7 +686,7 @@ class Partner implements api, JsonSerializable
     public static function filterShortcode($params = []): string
     {
         // Check that params aren't a string.
-        if (is_string($params)) {
+        if (is_string($params) && $params !== '') {
             _doing_it_wrong(
                 __FUNCTION__,
                 "Descriptive parameters are required for the filter shortcode.",
@@ -623,6 +694,10 @@ class Partner implements api, JsonSerializable
             );
 
             return "<!-- Descriptive parameters are required for the filter shortcode. -->";
+        }
+
+        if ($params === '') {
+            $params = [];
         }
 
         self::requireAllObjectsInJs();
@@ -643,12 +718,15 @@ class Partner implements api, JsonSerializable
 
 
     /**
-     * @param array                        $params
+     * @param string|array                        $params
      *
      * @return string
      */
-    protected static final function filterDropdownHtml(array $params): string
+    protected static final function filterDropdownHtml($params = []): string
     {
+        if (is_string($params))
+            $params = wp_parse_args($params);
+
         // standardize parameters
         $params = array_change_key_case($params, CASE_LOWER);
 
@@ -823,6 +901,10 @@ class Partner implements api, JsonSerializable
             add_shortcode(self::SHORTCODE_ACTIONS, [self::class, "actionsShortcode"]);
         }
 
+        if ( ! shortcode_exists(self::SHORTCODE_LIST)) {
+            add_shortcode(self::SHORTCODE_LIST, [self::class, "listShortcode"]);
+        }
+
         // Setup cron for updating Partners daily.
         add_action(self::CRON_HOOK, [self::class, 'updateCron']);
         if ( ! wp_next_scheduled(self::CRON_HOOK)) {
@@ -929,15 +1011,19 @@ class Partner implements api, JsonSerializable
     }
 
     /**
-     * @param array  $params
+     * @param string|array  $params
      * @param string $content
      *
      * @return string
      *
      * @noinspection PhpUnusedParameterInspection WordPress API
      */
-    public static function mapShortcode(array $params = [], string $content = ""): string
+    public static function mapShortcode($params = [], string $content = ""): string
     {
+        if (is_string($params)) {
+            $params = explode(",", $params);
+        }
+
         if ( ! self::$_hasUsedMap) {
             self::$_hasUsedMap = true;
 
@@ -988,7 +1074,7 @@ class Partner implements api, JsonSerializable
 
 
     /**
-     * Prevents the date from being shown.
+     * Replace the date with information that's relevant
      *
      * @param $theDate
      * @param $format
@@ -1003,12 +1089,39 @@ class Partner implements api, JsonSerializable
         if ($post == null)
             $post = get_the_ID();
 
-        $invTypes = Involvement_PostTypeSettings::getPostTypes();
-
-        if (in_array(get_post_type($post), $invTypes)) {
-            $theDate = "";
+        if (get_post_type($post) == self::POST_TYPE) {
+            if ($format == '') {
+                try {
+                    $gp      = self::fromPost($post);
+                    $theDate = $gp->notableAttributes();
+                    $theDate = implode(TouchPointWP::$joiner, $theDate);
+                } catch (TouchPointWP_Exception $e) {
+                }
+            } else {
+                $theDate = "Can't do that format"; // TODO
+            }
         }
         return $theDate;
+    }
+
+
+    /**
+     * Prevents the author from being shown
+     *
+     * @param $author
+     *
+     * @return string
+     *
+     * @noinspection PhpUnusedParameterInspection WordPress API
+     */
+    public static function filterAuthor($author): string
+    {
+        $post = get_the_ID();
+
+        if (get_post_type($post) == self::POST_TYPE) {
+            return "";
+        }
+        return $author;
     }
 
     /**
@@ -1061,8 +1174,7 @@ class Partner implements api, JsonSerializable
             TouchPointWP::requireScript("fontAwesome");  // For map icons
         }
 
-        // TODO add hook
-        return $r;
+        return apply_filters(TouchPointWP::HOOK_PREFIX . "partner_attributes", $r, $this);
     }
 
     /**

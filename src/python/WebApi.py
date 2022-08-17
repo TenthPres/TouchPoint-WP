@@ -3,7 +3,7 @@
 import re
 import json
 
-VERSION = "0.0.8"
+VERSION = "0.0.11"
 
 sgContactEvName = "Contact"
 
@@ -132,8 +132,8 @@ if ("SavedSearches" in Data.a):
         """.format(Data.PeopleId))
 
     Data.savedSearches.flags = model.SqlListDynamicData("""
-        SELECT TOP 100 q.Name, SUBSTRING(q.Name, 0, 4) AS QueryId FROM Query q
-        WHERE q.Name LIKE 'F[0-9][0-9]:%'
+        SELECT TOP 100 q.Name, q.QueryId FROM Query q
+        WHERE q.StatusFlag = 1
         ORDER BY q.Name
     """)
 
@@ -204,10 +204,8 @@ if ("InvsForDivs" in Data.a):
         COALESCE(oai.Longitude, paih.Longitude, faih.Longitude) lng,
         COALESCE(orc.Description, prch.Description, frch.Description) resCodeName
         FROM Organizations o
-            JOIN Setting s ON s.Id = 'ExtraValueHost'
-            LEFT JOIN OrganizationExtra aoe ON o.OrganizationId = aoe.OrganizationId AND s.Setting = aoe.Field
-            LEFT JOIN AddressInfo oai ON aoe.Data = oai.FullAddress -- TODO change to ON o.OrganizationId = oai.OrganizationId and remove aoe and setting above when bvcms/bvcms#1964 is merged.
-            LEFT JOIN Zips z ON CAST(SUBSTRING(SUBSTRING(aoe.Data, 8, 1000), PATINDEX('%[0-9][0-9][0-9][0-9][0-9]%', SUBSTRING(aoe.Data, 8, 1000)), 5) as INT) = z.ZipCode
+            LEFT JOIN AddressInfo oai ON o.OrganizationId = oai.OrganizationId
+            LEFT JOIN Zips z ON CAST(SUBSTRING(SUBSTRING(oai.FullAddress, 8, 1000), PATINDEX('%[0-9][0-9][0-9][0-9][0-9]%', SUBSTRING(oai.FullAddress, 8, 1000)), 5) as INT) = z.ZipCode
             LEFT JOIN lookup.ResidentCode orc ON z.MetroMarginalCode = orc.id
             LEFT JOIN People ph ON (SELECT TOP 1 omh.PeopleId FROM OrganizationMembers omh WHERE o.OrganizationId = omh.OrganizationId AND omh.MemberTypeId IN ({})) = ph.PeopleId
             LEFT JOIN Families fh ON ph.FamilyId = fh.FamilyId
@@ -589,7 +587,7 @@ if ("person_wpIds" in Data.a and model.HttpMethod == "post"):
     ev = str(inData['evName'])
 
     for p in inData['people']:
-        model.AddExtraValueInt(int(p['peopleId']), ev, int(p['WpId']))
+        model.AddExtraValueInt(int(p['PeopleId']), ev, int(p['WpId']))
         Data.success += 1
 
 
@@ -696,11 +694,10 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
                 #    invsMemSubGroupsToImport[iid] = inData['inv'][iid]['memTypes']
 
     # Saved Searches (incl status flags)
-    if inData.has_key('inv'):
+    if inData.has_key('src'):
         for si in inData['src']:
-            if len(si) == 3 and si[0].upper() == "F" and si[1:3].isnumeric(): # status flag
-                rules.append("StatusFlag = '{}'".format(si))
-            elif re.match('[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}', si, re.I):
+            # TODO figure out a more efficient method for Status Flags
+            if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}', si, re.I):
                 rules.append("SavedQuery(SavedQuery='{}') = 1".format(si))
 
     joiner = " " + joiner + " "

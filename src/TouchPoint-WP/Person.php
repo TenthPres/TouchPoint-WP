@@ -552,7 +552,7 @@ class Person extends WP_User implements api, JsonSerializable
      */
     public static function userContactMethods(array $methods): array
     {
-        if (current_user_can("administrator")) {
+        if (TouchPointWP::currentUserIsAdmin()) {
             $methods[self::META_PEOPLEID] = __("TouchPoint People ID", TouchPointWP::TEXT_DOMAIN);
         }
 
@@ -590,13 +590,15 @@ class Person extends WP_User implements api, JsonSerializable
         $pidMeta = self::META_PEOPLEID;
         $queryNeeded = false;
 
+        $verbose &= TouchPointWP::currentUserIsAdmin();
+
         // Existing Users
         /** @noinspection SqlResolve */
-        $sql = "SELECT meta_value FROM $wpdb->usermeta WHERE meta_key = '$pidMeta'";
-        self::$_indexingQueries['pid'] = $wpdb->get_col($sql);
-        if (count(self::$_indexingQueries['pid']) > 0) {
-            $queryNeeded = true;
-        }
+//        $sql = "SELECT meta_value FROM $wpdb->usermeta WHERE meta_key = '$pidMeta'";  TODO restore when bvcms/bvcms#2166 is merged
+//        self::$_indexingQueries['pid'] = $wpdb->get_col($sql);
+//        if (count(self::$_indexingQueries['pid']) > 0) {
+//            $queryNeeded = true;
+//        }
 
         // Update People Indexes
         if (TouchPointWP::instance()->settings->enable_people_lists) {
@@ -721,11 +723,6 @@ class Person extends WP_User implements api, JsonSerializable
                 }
             }
 
-            if ($verbose) {
-                var_dump($person);
-                echo "<hr />";
-            }
-
             // User doesn't exist.
             if ($person === null) {
                 continue;
@@ -771,7 +768,7 @@ class Person extends WP_User implements api, JsonSerializable
             $bioField = TouchPointWP::instance()->settings->people_ev_bio;
             if ($bioField !== "") {
                 if (isset($pData->PeopleEV->$bioField)) {
-                    update_user_meta($person->ID, 'description', $pData->PeopleEV->$bioField);
+                    update_user_meta($person->ID, 'description', $pData->PeopleEV->$bioField->value);
                 } else {
                     update_user_meta($person->ID, 'description', '');
                 }
@@ -822,6 +819,12 @@ class Person extends WP_User implements api, JsonSerializable
                     delete_user_option($person->ID, self::META_INV_ATTEND_PREFIX . $iid, true);
                     delete_user_option($person->ID, self::META_INV_DESC_PREFIX . $iid, true);
                 }
+            }
+
+            if ($verbose) {
+                var_dump($pData);
+                var_dump($person);
+                echo "<hr />";
             }
 
             // Submit update.
