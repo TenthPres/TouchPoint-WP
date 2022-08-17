@@ -8,6 +8,7 @@
 .involvement-list > h2 {
     /* Tense headings for involvements */
     flex: 1 1 100%;
+    padding: 0 0.8em;
 }
 
 /* compensates for some themes */
