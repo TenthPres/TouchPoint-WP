@@ -5,6 +5,11 @@
     /* align-items: stretch; */
 }
 
+.involvement-list > h2 {
+    /* Tense headings for involvements */
+    flex: 1 1 100%;
+}
+
 /* compensates for some themes */
 .entry-content > .involvement-list {
     max-width: none !important;
