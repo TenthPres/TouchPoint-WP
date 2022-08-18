@@ -26,7 +26,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.12";
+    public const VERSION = "0.0.13";
 
     public const DEBUG = false;
 
