@@ -157,7 +157,7 @@ if ("InvsForDivs" in Data.a):
         (	
         SELECT 
                 o.OrganizationId,
-                o.ParentOrgId,
+                o.ParentOrgId as parentInvId,
                 o.LeaderMemberTypeId,
                 o.Location,
                 o.OrganizationName AS name,
@@ -285,6 +285,7 @@ if ("InvsForDivs" in Data.a):
         -- join all our ctes together
         SELECT 
             o.[OrganizationId]               AS [involvementId]
+			, o.[parentInvId] 				 AS [parentInvId]
             , o.[LeaderMemberTypeId]         AS [leaderMemberTypeId]
             , o.[Location]                   AS [location]
             , o.[name]                       AS [name]
@@ -322,7 +323,7 @@ if ("InvsForDivs" in Data.a):
                 ON o.OrganizationId = d.OrganizationId
             LEFT JOIN cteOrganizationLocation ol
                 ON o.OrganizationId = ol.OrganizationId
-        ORDER BY o.ParentOrgId ASC, o.OrganizationId ASC'''.format(divs, hostMemTypes)
+        ORDER BY o.parentInvId ASC, o.OrganizationId ASC'''.format(divs, hostMemTypes)
 
     groups = model.SqlListDynamicData(invSql)
 
