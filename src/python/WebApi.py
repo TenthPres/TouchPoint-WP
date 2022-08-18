@@ -152,75 +152,177 @@ if ("InvsForDivs" in Data.a):
     if hostMemTypes == "":
         hostMemTypes = "NULL"
 
-    invSql = '''SELECT
-        o.organizationId as involvementId,
-        o.leaderMemberTypeId,
-        o.location,
-        o.organizationName as name,
-        o.memberCount,
-        o.parentOrgId as parentInvId,
-        o.classFilled as groupFull,
-        o.genderId,
-        o.description,
-        o.registrationClosed as closed,
-        o.notWeekly,
-        o.registrationTypeId as regTypeId,
-        o.orgPickList,
-        o.mainLeaderId,
-        o.RegSettingXml.exist('/Settings/AskItems') AS hasRegQuestions,
-        FORMAT(o.RegStart, 'yyyy-MM-ddTHH:mm:ss') as regStart,
-        FORMAT(o.RegEnd, 'yyyy-MM-ddTHH:mm:ss') as regEnd,
-        FORMAT(o.FirstMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as firstMeeting,
-        FORMAT(o.LastMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as lastMeeting,
-        (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
-            LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0)) as marital_denom,
-        (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
-            LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId IN (20)) as marital_married,
-        (SELECT COUNT(pi.MaritalStatusId) FROM OrganizationMembers omi
-            LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.organizationId AND pi.MaritalStatusId NOT IN (0, 20)) as marital_single,
-        (SELECT STRING_AGG(ag, ',') WITHIN GROUP (ORDER BY ag ASC) FROM
-            (SELECT DISTINCT (CASE
-                 WHEN pi.Age > 69 THEN '70+'
-                 ELSE CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's'
-                 END) as ag FROM OrganizationMembers omi
-                     LEFT JOIN People pi ON omi.PeopleId = pi.PeopleId AND omi.OrganizationId = o.OrganizationId
-                     WHERE pi.Age > 19
-            ) ag_agg
-        ) as age_groups,
-        (SELECT STRING_AGG(sdt, ' | ') WITHIN GROUP (ORDER BY sdt ASC) FROM
-            (SELECT CONCAT(FORMAT(NextMeetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|S') as sdt FROM OrgSchedule os
-                WHERE os.OrganizationId = o.OrganizationId
+    invSql = '''
+        WITH cteTargetOrgs as
+        (	
+        SELECT 
+                o.OrganizationId,
+                o.ParentOrgId,
+                o.LeaderMemberTypeId,
+                o.Location,
+                o.OrganizationName AS name,
+                o.MemberCount,
+                o.ClassFilled AS groupFull,
+                o.GenderId,
+                o.Description,
+                o.RegistrationClosed AS closed,
+                o.NotWeekly,
+                o.RegistrationTypeId AS regTypeId,
+                o.OrgPickList,
+                o.MainLeaderId,
+                o.RegSettingXml.exist('/Settings/AskItems') AS hasRegQuestions,
+                FORMAT(o.RegStart, 'yyyy-MM-ddTHH:mm:ss') AS regStart,
+                FORMAT(o.RegEnd, 'yyyy-MM-ddTHH:mm:ss') AS regEnd,
+                FORMAT(o.FirstMeetingDate, 'yyyy-MM-ddTHH:mm:ss') AS firstMeeting,
+                FORMAT(o.LastMeetingDate, 'yyyy-MM-ddTHH:mm:ss') AS lastMeeting
+        FROM dbo.Organizations o
+            WHERE o.OrganizationId = (
+                    SELECT MIN(OrgId)
+                    FROM dbo.DivOrg do
+                    WHERE do.OrgId = o.OrganizationId
+                    AND do.DivId IN ({})
+                )
+            AND o.organizationStatusId = 30
+        ),
+        -- select all members for these organizations to avoid multiple scans of Organization members table
+        cteOrganizationMembers AS 
+        (SELECT 
+            omi.OrganizationId,
+            omi.PeopleId
+            FROM dbo.OrganizationMembers omi WITH(NOLOCK)  
+                INNER JOIN cteTargetOrgs o
+                    ON omi.OrganizationId = o.OrganizationId),
+        -- pull denom users from all target organization members
+        cteMaritalStatus AS 
+        (SELECT 
+            omi.OrganizationId
+            , SUM(CASE WHEN pi.MaritalStatusId NOT IN ( 0 ) THEN 1 ELSE 0  END)     AS marital_denom
+            , SUM(CASE WHEN pi.MaritalStatusId = 20 THEN 1 ELSE 0  END)             AS marital_married
+            , SUM(CASE WHEN pi.MaritalStatusId NOT IN ( 0, 20 ) THEN 1 ELSE 0  END) AS marital_single
+            FROM cteOrganizationMembers omi
+                INNER JOIN dbo.People pi WITH(NOLOCK)
+                    ON omi.PeopleId = pi.PeopleId
+                    AND pi.MaritalStatusId NOT IN ( 0 )
+            GROUP BY omi.OrganizationId),
+        -- pull aggregate ages for all target organization members
+        cteAggAges AS 
+        (SELECT OrganizationId, STRING_AGG(ag, ',') WITHIN GROUP (ORDER BY ag ASC)  AS PeopleAge
+        FROM (
+        SELECT omi.OrganizationId, 
+                (CASE
+                    WHEN pi.Age > 69 THEN '70+'
+                    ELSE CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's'
+                    END) as ag 
+            FROM cteOrganizationMembers omi
+                INNER JOIN dbo.People pi WITH(NOLOCK)
+                ON omi.PeopleId = pi.PeopleId
+                        WHERE pi.Age > 19
+            GROUP BY omi.OrganizationId, 
+                    (CASE
+                    WHEN pi.Age > 69 THEN '70+'
+                    ELSE CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's'
+                    END)
+        ) AS ag_agg
+        GROUP BY ag_agg.OrganizationId       
+        ),
+        -- pull aggregate schedules for all target organizations
+        cteSchedule AS
+        (SELECT OrganizationId, STRING_AGG(sdt, ' | ') WITHIN GROUP (ORDER BY sdt ASC) AS OrgSchedule
+        FROM (
+            SELECT o.OrganizationId, CONCAT(FORMAT(os.NextMeetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|S') as sdt 
+            FROM dbo.OrgSchedule os WITH(NOLOCK)
+                INNER JOIN cteTargetOrgs o
+                    ON os.OrganizationId = o.OrganizationId
             UNION
-            SELECT CONCAT(FORMAT(meetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|M') as sdt FROM Meetings as m
-                WHERE m.meetingDate > getdate() AND m.OrganizationId = o.OrganizationId
-            ) s_agg
-        ) as occurrences,
-        (SELECT STRING_AGG(divId, ',') WITHIN GROUP (ORDER BY divId ASC) FROM
-            (SELECT divId FROM DivOrg do
-                WHERE do.OrgId = o.OrganizationId
-                ) d_agg
-        ) as divs,
-        COALESCE(oai.Latitude, paih.Latitude, faih.Latitude) lat,
-        COALESCE(oai.Longitude, paih.Longitude, faih.Longitude) lng,
-        COALESCE(orc.Description, prch.Description, frch.Description) resCodeName
-        FROM Organizations o
-            LEFT JOIN AddressInfo oai ON o.OrganizationId = oai.OrganizationId
-            LEFT JOIN Zips z ON CAST(SUBSTRING(SUBSTRING(oai.FullAddress, 8, 1000), PATINDEX('%[0-9][0-9][0-9][0-9][0-9]%', SUBSTRING(oai.FullAddress, 8, 1000)), 5) as INT) = z.ZipCode
-            LEFT JOIN lookup.ResidentCode orc ON z.MetroMarginalCode = orc.id
-            LEFT JOIN People ph ON (SELECT TOP 1 omh.PeopleId FROM OrganizationMembers omh WHERE o.OrganizationId = omh.OrganizationId AND omh.MemberTypeId IN ({})) = ph.PeopleId
-            LEFT JOIN Families fh ON ph.FamilyId = fh.FamilyId
-            LEFT JOIN AddressInfo paih ON ph.PeopleId = paih.PeopleId
-            LEFT JOIN AddressInfo faih ON fh.FamilyId = faih.FamilyId
-            LEFT JOIN lookup.ResidentCode prch ON ph.ResCodeId = prch.Id
-            LEFT JOIN lookup.ResidentCode frch ON fh.ResCodeId = frch.Id
-        WHERE o.OrganizationId = (
-            SELECT MIN(OrgId)
-            FROM DivOrg
-            WHERE OrgId = o.OrganizationId
-            AND DivId IN ({})
-        )
-        AND o.organizationStatusId = 30
-        ORDER BY o.ParentOrgId ASC, o.OrganizationId ASC'''.format(hostMemTypes, divs)
+            SELECT o.OrganizationId, CONCAT(FORMAT(m.meetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|M') as sdt 
+            FROM dbo.Meetings as m WITH(NOLOCK)
+                INNER JOIN cteTargetOrgs o
+                    ON m.OrganizationId = o.OrganizationId
+            WHERE m.meetingDate > getdate() 
+        ) s_agg
+        GROUP BY s_agg.OrganizationId),
+        -- pull aggregate divisions for all target organizations
+        cteDivision AS 
+        (SELECT OrganizationId, STRING_AGG(divId, ',') WITHIN GROUP (ORDER BY divId ASC) AS OrgDivision
+        FROM (
+            SELECT o.OrganizationId, do.divId 
+            FROM dbo.DivOrg do WITH(NOLOCK)
+                INNER JOIN cteTargetOrgs o
+                    ON do.OrgId = o.OrganizationId
+            ) d_agg
+        GROUP BY OrganizationId),
+        -- pull organization location information
+        cteOrganizationLocation AS
+            (
+                SELECT 
+                    o.[OrganizationId]            
+                    , COALESCE(oai.[Latitude], paih.[Latitude], faih.[Latitude])           AS [lat]
+                    , COALESCE(oai.[Longitude], paih.[Longitude], faih.[Longitude])        AS [lng]
+                    , COALESCE(orc.[Description], prch.[Description], frch.[Description])  AS [resCodeName]
+                FROM cteTargetOrgs o 
+                    LEFT JOIN AddressInfo oai 
+                        ON o.OrganizationId = oai.OrganizationId
+                    LEFT JOIN Zips z 
+                        ON CAST(SUBSTRING(SUBSTRING(oai.FullAddress, 8, 1000), PATINDEX('%[0-9][0-9][0-9][0-9][0-9]%', SUBSTRING(oai.FullAddress, 8, 1000)), 5) as INT) = z.ZipCode
+                    LEFT JOIN lookup.ResidentCode orc
+                        ON z.MetroMarginalCode = orc.id
+                    LEFT JOIN dbo.People ph ON
+                        (SELECT TOP 1 omh.PeopleId 
+                        FROM dbo.OrganizationMembers omh 
+                        WHERE o.OrganizationId = omh.OrganizationId 
+                        AND omh.MemberTypeId IN ({})) = ph.PeopleId
+                    LEFT JOIN dbo.Families fh ON
+                        ph.FamilyId = fh.FamilyId
+                    LEFT JOIN dbo.AddressInfo paih ON
+                        ph.PeopleId = paih.PeopleId
+                    LEFT JOIN dbo.AddressInfo faih ON
+                        fh.FamilyId = faih.FamilyId
+                    LEFT JOIN lookup.ResidentCode prch
+                        ON ph.ResCodeId = prch.Id
+                    LEFT JOIN lookup.ResidentCode frch
+                        ON fh.ResCodeId = frch.Id
+            )
+        -- join all our ctes together
+        SELECT 
+            o.[OrganizationId]               AS [involvementId]
+            , o.[LeaderMemberTypeId]         AS [leaderMemberTypeId]
+            , o.[Location]                   AS [location]
+            , o.[name]                       AS [name]
+            , o.[MemberCount]                AS [memberCount]
+            , o.[groupFull]                  AS [groupFull]
+            , o.[GenderId]                   AS [genderId]
+            , o.[Description]                AS [description]
+            , o.[closed]                     AS [closed]
+            , o.[NotWeekly]                  AS [notWeekly]
+            , o.[regTypeId]                  AS [regTypeId]
+            , o.[OrgPickList]                AS [orgPickList]
+            , o.[MainLeaderId]               AS [mainLeaderId]
+            , o.[hasRegQuestions]            AS [hasRegQuestions]
+            , o.[regStart]                   AS [regStart]
+            , o.[regEnd]                     AS [regEnd]
+            , o.[firstMeeting]               AS [firstMeeting]
+            , o.[lastMeeting]                AS [lastMeeting]
+            , ISNULL(ms.marital_denom, 0)    AS [marital_denom]
+            , ISNULL(ms.marital_married, 0)  AS [marital_married]
+            , ISNULL(ms.marital_single, 0)   AS [marital_single]
+            , aa.PeopleAge                   AS [age_groups]
+            , s.OrgSchedule                  AS [occurrences]
+            , d.OrgDivision                  AS [divs]
+            , ol.lat                         AS [lat]
+            , ol.lng                         AS [lng]
+            , ol.resCodeName                 AS [resCodeName]
+        FROM cteTargetOrgs o
+            LEFT JOIN cteMaritalStatus ms
+                ON o.OrganizationId = ms.OrganizationId
+            LEFT JOIN cteAggAges aa 
+                ON o.OrganizationId = aa.OrganizationId
+            LEFT JOIN cteSchedule s
+                ON o.OrganizationId = s.OrganizationId
+            LEFT JOIN cteDivision d
+                ON o.OrganizationId = d.OrganizationId
+            LEFT JOIN cteOrganizationLocation ol
+                ON o.OrganizationId = ol.OrganizationId
+        ORDER BY o.ParentOrgId ASC, o.OrganizationId ASC'''.format(divs, hostMemTypes)
 
     groups = model.SqlListDynamicData(invSql)
 
