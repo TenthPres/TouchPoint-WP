@@ -1238,6 +1238,9 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             WHERE post_content LIKE '%$oldShortcode%'
         ");
 
+        // Disable Auth until it's properly supported again.
+        $this->set('enable_authentication', '');
+
         // Update version string
         $this->set('version', TouchPointWP::VERSION);
     }
@@ -1250,9 +1253,9 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     public function updateDeployedScripts(): void
     {
-        $scripts = ["WebApi" => TouchPointWP::instance()->settings->api_script_name];
-        if (TouchPointWP::instance()->settings->enable_authentication) {
-            $scripts["WebAuth"] = TouchPointWP::instance()->settings->auth_script_name;
+        $scripts = ["WebApi"];
+        if (TouchPointWP::instance()->settings->enable_authentication === 'on') {
+            $scripts[] = "WebAuth";
         }
 
         $scriptContent = TouchPointWP::instance()->admin()->generatePython(false, $scripts);
