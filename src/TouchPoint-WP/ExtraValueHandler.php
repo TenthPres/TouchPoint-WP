@@ -5,7 +5,7 @@
 namespace tp\TouchPointWP;
 
 /**
- * Manages the handling of Extra Values
+ * Manages the handling of Extra Values.  Items that support Extra Values MUST use the ExtraValues Trait.
  */
 class ExtraValueHandler
 {

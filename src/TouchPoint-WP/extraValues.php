@@ -20,14 +20,17 @@ trait extraValues {
     protected ?ExtraValueHandler $handler = null;
 
     /**
-     * @return ExtraValueHandler
-     *
-     * @throws TouchPointWP_Exception When the object does not support Extra Values, an exception is thrown.
+     * @return ?ExtraValueHandler
      */
-    public function ExtraValues(): ExtraValueHandler
+    public function ExtraValues(): ?ExtraValueHandler
     {
         if ($this->handler === null) {
-            $this->handler = new ExtraValueHandler($this);
+            try {
+                $this->handler = new ExtraValueHandler($this);
+            } catch (TouchPointWP_Exception $e) {
+                // this should be impossible, as exception is only thrown when handler is initiated outside trait.
+                return null;
+            }
         }
         return $this->handler;
     }
