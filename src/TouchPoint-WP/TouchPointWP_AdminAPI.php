@@ -437,7 +437,7 @@ class TouchPointWP_AdminAPI implements api {
     public static function showError($message)
     {
         $class = 'notice notice-error';
-        printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr($class), esc_html($message));
+        printf( '<div class="%1$s"><p><b>TouchPoint-WP:</b> %2$s</p></div>', esc_attr($class), esc_html($message));
     }
 
 }
