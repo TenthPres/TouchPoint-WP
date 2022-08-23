@@ -497,7 +497,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'id'          => 'inv_json', // involvement settings json (stored as a json string)
                         'type'        => 'textarea',
                         'label'       => __('Involvement Post Types', 'TouchPoint-WP'),
-                        'default'     => '{}',
+                        'default'     => '[]',
                         'hidden'      => true,
                         'description' => !$includeThis ? "" : function() {
                             TouchPointWP::requireScript("base");
