@@ -594,11 +594,11 @@ class Person extends WP_User implements api, JsonSerializable
 
         // Existing Users
         /** @noinspection SqlResolve */
-//        $sql = "SELECT meta_value FROM $wpdb->usermeta WHERE meta_key = '$pidMeta'";  TODO restore when bvcms/bvcms#2166 is merged
-//        self::$_indexingQueries['pid'] = $wpdb->get_col($sql);
-//        if (count(self::$_indexingQueries['pid']) > 0) {
-//            $queryNeeded = true;
-//        }
+        $sql = "SELECT meta_value FROM $wpdb->usermeta WHERE meta_key = '$pidMeta'";
+        self::$_indexingQueries['pid'] = $wpdb->get_col($sql);
+        if (count(self::$_indexingQueries['pid']) > 0) {
+            $queryNeeded = true;
+        }
 
         // Update People Indexes
         if (TouchPointWP::instance()->settings->enable_people_lists) {
