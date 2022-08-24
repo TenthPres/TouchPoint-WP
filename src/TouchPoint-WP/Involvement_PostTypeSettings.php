@@ -205,9 +205,8 @@ class Involvement_PostTypeSettings {
                     $type->slug = $name . ($first ? "" : "-" . bin2hex(random_bytes(1)));
                 } catch (Exception $e) {
                     $type->slug = $name . ($first ? "" : "-" . bin2hex($count++));
-                } finally {
-                    $first = false;
                 }
+                $first = false;
                 TouchPointWP::queueFlushRewriteRules();
             }
             $postTypesSlugs[] = $type->slug;
