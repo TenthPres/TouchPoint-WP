@@ -37,7 +37,7 @@ class Involvement_PostTypeSettings {
     protected string $nameSingular;
     protected string $namePlural;
     protected string $slug;
-    protected array $importDivs;
+    protected array $importDivs = [];
     protected bool $useGeo = false;
     protected bool $hierarchical = false;
     protected string $groupBy = "";
