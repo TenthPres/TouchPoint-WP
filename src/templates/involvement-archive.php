@@ -84,28 +84,27 @@ if (have_posts()) {
             $wp_query->tax_query->queries = $taxQuery;
             $wp_query->query_vars['tax_query'] = $taxQuery;
             global $posts;
-        }
 
-        echo "<div class=\"involvement-list\">";
+            echo "<div class=\"involvement-list\">";
 
-        if (count($terms) > 1) {
             echo "<h2>$name</h2>";
-        }
 
-        global $posts;
-        $posts = $wp_query->get_posts();
+            global $posts;
+            $posts = $wp_query->get_posts();
 
-        usort($posts, [Involvement::class, 'sortPosts']);
+            usort($posts, [Involvement::class, 'sortPosts']);
 
-        while ($wp_query->have_posts()) {
-            $wp_query->the_post();
-            $loadedPart = get_template_part('list-item', 'involvement-list-item');
-            if ($loadedPart === false) {
-                require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
+            while ($wp_query->have_posts()) {
+                $wp_query->the_post();
+                $loadedPart = get_template_part('list-item', 'involvement-list-item');
+                if ($loadedPart === false) {
+                    require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
+                }
             }
+
+            echo "</div>";
         }
 
-        echo "</div>";
         wp_reset_query();
     }
     $taxQuery = [[]];
