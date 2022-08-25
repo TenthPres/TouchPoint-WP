@@ -1511,13 +1511,6 @@ class Involvement implements api
                     $inv->lastMeeting = null;
                 }
             }
-            // Filter start and end dates to be relevant
-            if ($inv->lastMeeting !== null && $inv->lastMeeting < $now) { // last meeting already happened.
-                if ($verbose) {
-                    echo "<p>Stopping processing because all meetings are in the past.  Involvement will be deleted from WordPress.</p>";
-                }
-                continue; // Stop processing this involvement.  This will cause it to be removed if it exists already.
-            }
 
 
             ////////////////
@@ -1525,6 +1518,15 @@ class Involvement implements api
             ////////////////
 
             // 'continue' causes involvement to be deleted (or not created).
+
+            // Filter by end dates to stay relevant
+            if ($inv->lastMeeting !== null && $inv->lastMeeting < $now) { // last meeting already happened.
+                if ($verbose) {
+                    echo "<p>Stopping processing because all meetings are in the past.  Involvement will be deleted from WordPress.</p>";
+                }
+                continue; // Stop processing this involvement.  This will cause it to be removed if it exists already.
+            }
+
             if (in_array("closed", $typeSets->excludeIf) && !!$inv->closed) {
                 if ($verbose) {
                     echo "<p>Stopping processing because Involvements with Closed Registrations are excluded.  Involvement will be deleted from WordPress.</p>";
