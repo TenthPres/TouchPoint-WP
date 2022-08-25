@@ -21,6 +21,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read bool $useGeo
  * @property-read bool $hierarchical
  * @property-read string $groupBy
+ * @property-read string[] $excludeIf
  * @property-read string[] $leaderTypes
  * @property-read string[] $hostTypes
  * @property-read string[] $filters
@@ -41,6 +42,7 @@ class Involvement_PostTypeSettings {
     protected bool $useGeo = false;
     protected bool $hierarchical = false;
     protected string $groupBy = "";
+    protected array $excludeIf = [];
     protected array $leaderTypes = [];
     protected array $hostTypes = [];
     protected array $filters = [];

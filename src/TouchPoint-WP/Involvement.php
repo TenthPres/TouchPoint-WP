@@ -1491,6 +1491,58 @@ class Involvement implements api
                 var_dump($inv);
             }
 
+
+            ////////////////////////
+            // Standardize Inputs //
+            ////////////////////////
+
+            // Start and end dates
+            if ($inv->firstMeeting !== null) {
+                try {
+                    $inv->firstMeeting = new DateTimeImmutable($inv->firstMeeting, $siteTz);
+                } catch  (Exception $e) {
+                    $inv->firstMeeting = null;
+                }
+            }
+            if ($inv->lastMeeting !== null) {
+                try {
+                    $inv->lastMeeting = new DateTimeImmutable($inv->lastMeeting, $siteTz);
+                } catch  (Exception $e) {
+                    $inv->lastMeeting = null;
+                }
+            }
+            // Filter start and end dates to be relevant
+            if ($inv->lastMeeting !== null && $inv->lastMeeting < $now) { // last meeting already happened.
+                if ($verbose) {
+                    echo "<p>Stopping processing because all meetings are in the past.  Involvement will be deleted from WordPress.</p>";
+                }
+                continue; // Stop processing this involvement.  This will cause it to be removed if it exists already.
+            }
+
+
+            ////////////////
+            // Exclusions //
+            ////////////////
+
+            // 'continue' causes involvement to be deleted (or not created).
+            if (in_array("closed", $typeSets->excludeIf) && !!$inv->closed) {
+                if ($verbose) {
+                    echo "<p>Stopping processing because Involvements with Closed Registrations are excluded.  Involvement will be deleted from WordPress.</p>";
+                }
+                continue;
+            }
+            if (in_array("child", $typeSets->excludeIf) && $inv->parentInvId > 0) {
+                if ($verbose) {
+                    echo "<p>Stopping processing because Involvements with parents are excluded.  Involvement will be deleted from WordPress.</p>";
+                }
+                continue;
+            }
+
+
+            /////////////////////////
+            // Find or Create Post //
+            /////////////////////////
+
             $q = new WP_Query(
                 [
                     'post_type'  => $typeSets->postType,
@@ -1502,7 +1554,7 @@ class Involvement implements api
             if (count($post) > 0) { // post exists already.
                 $post = $post[0];
             } else {
-                $post = wp_insert_post( // TODO avoid doing this if involvement will be deleted anyway.
+                $post = wp_insert_post(
                     [ // create new
                         'post_type'  => $typeSets->postType,
                         'post_name'  => $inv->name,
@@ -1703,27 +1755,6 @@ class Involvement implements api
             }
 
             // Start and end dates
-            if ($inv->firstMeeting !== null) {
-                try {
-                    $inv->firstMeeting = new DateTimeImmutable($inv->firstMeeting, $siteTz);
-                } catch  (Exception $e) {
-                    $inv->firstMeeting = null;
-                }
-            }
-            if ($inv->lastMeeting !== null) {
-                try {
-                    $inv->lastMeeting = new DateTimeImmutable($inv->lastMeeting, $siteTz);
-                } catch  (Exception $e) {
-                    $inv->lastMeeting = null;
-                }
-            }
-            // Filter start and end dates to be relevant
-            if ($inv->lastMeeting !== null && $inv->lastMeeting < $now) { // last meeting already happened.
-                if ($verbose) {
-                    echo "<p>Stopping processing because all meetings are in the past.  Involvement will be deleted from WordPress.</p>";
-                }
-                continue; // Stop processing this involvement.  This will cause it to be removed.
-            }
             $tense = TouchPointWP::TAX_TENSE_PRESENT;
             if ($inv->firstMeeting !== null && $inv->firstMeeting < $now) { // First meeting already happened.
                 $inv->firstMeeting = null; // We don't need to list info from the past.

@@ -70,6 +70,20 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         </tr>
 
         <tr>
+            <th><?php _e("Exclude Involvements if", TouchPointWP::TEXT_DOMAIN); ?></th>
+            <td colspan="2">
+                <p>
+                    <input id="it-excludeIf-closed" type="checkbox" value="closed" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-closed'}" />
+                    <label for="it-excludeIf-closed" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-closed'}"><?php _e("Involvement is Closed", TouchPointWP::TEXT_DOMAIN); ?></label>
+                </p>
+                <p>
+                    <input id="it-excludeIf-child" type="checkbox" value="child" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-child'}" />
+                    <label for="it-excludeIf-child" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-child'}"><?php _e("Involvement is a Child Involvement", TouchPointWP::TEXT_DOMAIN); ?></label>
+                </p>
+            </td>
+        </tr>
+
+        <tr>
             <th><?php _e("Leader Member Types", TouchPointWP::TEXT_DOMAIN); ?></th>
             <td colspan="2">
                 <!-- ko if: $data._activeMemberTypes().length < 1 -->
@@ -193,6 +207,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.slug = ko.observable(data.slug ?? "<?php _e("smallgroup", TouchPointWP::TEXT_DOMAIN); ?>").extend({slug: 0});
         this.importDivs = ko.observable(data.importDivs ?? []);
         this.useGeo = ko.observable(data.useGeo ?? false);
+        this.excludeIf = ko.observable(data.excludeIf ?? []);
         this.hierarchical = ko.observable(data.hierarchical ?? false);
         this.groupBy = ko.observable(data.groupBy ?? "");
         this.leaderTypes = ko.observableArray(data.leaderTypes ?? []);
