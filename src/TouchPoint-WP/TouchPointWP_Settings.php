@@ -491,7 +491,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             $includeThis = $includeDetail === true || $includeDetail === 'involvements';
             $this->settings['involvements'] = [
                 'title'       => __('Involvements', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Import Involvements from TouchPoint to your website, for Small Groups, Classes, and more.  You do not need to import an involvement here to use the RSVP tool.', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Import Involvements from TouchPoint to list them on your website, for Small Groups, Classes, and more.  Select the division(s) that immediately correspond to the type of Involvement you want to list.  For example, if you want a Small Group list and have a Small Group Division, only select the Small Group Division.  If you want Involvements to be filterable by additional Divisions, select those Divisions on the Divisions tab, not here.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
                     [
                         'id'          => 'inv_json', // involvement settings json (stored as a json string)

@@ -43,6 +43,9 @@ class Partner implements api, JsonSerializable
     private static array $_instances = [];
     private static bool $_isLoaded = false;
 
+    public static string $containerClass = 'partner-list';
+    public static string $itemClass = 'partner-list-item';
+
     private static bool $filterJsAdded = false;
     public ?object $geo = null;
     public bool $decoupleLocation;
@@ -639,9 +642,9 @@ class Partner implements api, JsonSerializable
         /** @noinspection SpellCheckingInspection */
         $params = shortcode_atts(
             [
-                'class' => 'partner-list',
-                'includecss' => 'true',
-                'itemclass' => 'partner-list-item'
+                'class'      => self::$containerClass,
+                'includecss' => apply_filters(TouchPointWP::HOOK_PREFIX . 'use_css', true, self::class),
+                'itemclass'  => self::$itemClass,
             ],
             $params,
             self::SHORTCODE_ACTIONS

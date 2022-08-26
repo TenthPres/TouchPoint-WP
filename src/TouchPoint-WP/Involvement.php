@@ -42,6 +42,9 @@ class Involvement implements api
     private static array $_instances = [];
     private static bool $_isLoaded = false;
 
+    public static string $containerClass = 'inv-list';
+    public static string $itemClass = 'inv-list-item';
+
     private static bool $filterJsAdded = false;
     public ?object $geo = null;
     static protected object $compareGeo;
@@ -601,6 +604,140 @@ class Involvement implements api
         return self::filterDropdownHtml($params, $settings);
     }
 
+
+    public static function doInvolvementList(WP_Query $q, $params = []): void
+    {
+        $q->set('posts_per_page', -1);
+        $q->set('nopaging', true);
+        $q->set('orderby', 'title'); // will mostly be overwritten by geographic sort, if available.
+        $q->set('order', 'ASC');
+
+        if ($q->is_post_type_archive()) {
+            $q->set('post_parent', 0);
+        }
+
+        // Get the formalized post types
+        $types = [];
+        $terms = [null];
+        if (!isset($params['type']) && $q->is_post_type_archive()) {
+            $params['type'] = $q->query['post_type'];
+        }
+        $settings = null;
+        foreach (explode(',', $params['type']) as $t) {
+            $settings = self::getSettingsForPostType($params['type']);
+            if ($settings !== null) {
+                $types[] = $settings->postType;
+            }
+        }
+        if (count($types) > 0) {
+            $q->set('post_type', $types);
+        }
+
+        // CSS
+        $params['includecss'] = !isset($params['includecss']) ||
+                                $params['includecss'] === true ||
+                                $params['includecss'] === 'true';
+
+        // Only group for single post types.
+        $groupBy = null;
+        if (count($types) === 1) {
+            $groupBy = $settings->groupBy;
+            $groupByOrder = "ASC";
+            if (strlen($groupBy) > 1 && $groupBy[0] === "-") {
+                $groupBy = substr($groupBy, 1);
+                $groupByOrder = "DESC";
+            }
+
+            if ($groupBy !== "" && taxonomy_exists($groupBy)) {
+                $terms = get_terms([
+                                       'taxonomy'   => $groupBy,
+                                       'order'      => $groupByOrder,
+                                       'orderby'    => 'name',
+                                       'hide_empty' => true,
+                                       'fields'     => 'id=>name'
+                                   ]);
+            }
+        }
+
+        $taxQuery = ['relation' => 'AND'];
+
+        // Filter by Division
+        if (isset($params['div'])) {
+            $divs = [];
+            foreach (explode(',', $params['div']) as $d) {
+                $tid = TouchPointWP::getDivisionTermIdByDivId($d);
+                if ( ! ! $tid) {
+                    $divs[] = $tid;
+                }
+            }
+            if (count($divs) > 0) {
+                $taxQuery[] = [
+                    'taxonomy' => TouchPointWP::TAX_DIV,
+                    'field' => 'ID',
+                    'terms' => $divs
+                ];
+            }
+        }
+
+        // Prepare to sort by distance if location is already cached.
+        $userLoc = TouchPointWP::instance()->geolocate(false);
+        if ($userLoc !== false) {
+            // we have a viable location. Use it for sorting by distance.
+            Involvement::setComparisonGeo($userLoc);
+            if (!headers_sent()) { // Depending on when this was called, it may be too late.
+                TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
+            }
+        }
+
+        $containerClass = $params['class'] ?? self::$containerClass;
+
+        // Groupings
+        foreach ($terms as $termId => $name) {
+            if (count($terms) > 1 && $groupBy !== null) {
+                // do the tax filtering
+                $taxQuery[] = [
+                    'taxonomy' => $groupBy,
+                    'field'    => 'term_id',
+                    'terms'    => [$termId],
+                ];
+            }
+
+            $q->set('tax_query', $taxQuery);
+
+            global $posts;
+            $posts = $q->get_posts();
+
+            if ($q->post_count > 0) {
+                if ($params['includecss']) {
+                    TouchPointWP::enqueuePartialsStyle();
+                }
+
+                echo "<div class=\"$containerClass\">";
+
+                echo "<h2>$name</h2>";
+
+                usort($posts, [Involvement::class, 'sortPosts']);
+
+                while ($q->have_posts()) {
+                    $q->the_post();
+                    $loadedPart = get_template_part('list-item', 'involvement-list-item');
+                    if ($loadedPart === false) {
+                        require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
+                    }
+                }
+
+                echo "</div>";
+            }
+
+            // remove the grouping
+            if (count($terms) > 1 && $groupBy !== null) {
+                array_pop($taxQuery);
+            }
+
+            wp_reset_query();
+        }
+    }
+
     /**
      * Print a list of involvements that match the given criteria.
      *
@@ -624,97 +761,28 @@ class Involvement implements api
             [
                 'type'       => null,
                 'div'        => null,
-                'class'      => 'inv-list',
-                'includecss' => 'true',
-                'itemclass'  => 'inv-list-item'
+                'class'      => self::$containerClass,
+                'includecss' => apply_filters(TouchPointWP::HOOK_PREFIX . 'use_css', true, self::class),
+                'itemclass'  => self::$itemClass,
+                'usequery'   => false
             ],
             $params,
             self::SHORTCODE_NEARBY
         );
 
-        global $the_query, $wp_the_query;
-        $the_query = $wp_the_query;
-
-        $the_query->set('posts_per_page', -1);
-        $the_query->set('nopaging', true);
-        $the_query->set('orderby', 'title');
-        $the_query->set('order', 'ASC'); // May be over-ridden by distance sort.
-
-        if (is_post_type_archive()) {
-            $the_query->set('post_parent', 0);
+        global $wp_the_query;
+        $q = $wp_the_query;
+        if (!$q->is_post_type_archive() && ($params['usequery'] === false || $params['usequery'] === 'false')) {
+            $q = new WP_Query();
         }
+        ob_start();
+        self::doInvolvementList($q, $params);
+        $render = ob_get_clean();
 
-        // Get the formalized post types
-        $types = [];
-        foreach (explode(',', $params['type']) as $t) {
-            $s = self::getSettingsForPostType($params['type']);
-            if ($s !== null) {
-                $types[] = $s->postType;
-            }
+        if (trim($render) == "") {
+            return "<!-- Nothing to show -->";
         }
-        if (count($types) > 0) {
-            $the_query->set('post_type', $types);
-        }
-
-        $taxQuery = ['relation' => 'AND'];
-
-        // Filter by Division
-        if (isset($params['div'])) {
-            $divs = [];
-            foreach (explode(',', $params['div']) as $d) {
-                $tid = TouchPointWP::getDivisionTermIdByDivId($d);
-                if ( ! ! $tid) {
-                    $divs[] = $tid;
-                }
-            }
-            if (count($divs) > 0) {
-                $taxQuery[] = [
-                    'taxonomy' => TouchPointWP::TAX_DIV,
-                    'field' => 'ID',
-                    'terms' => $divs
-                ];
-            }
-        }
-
-        $the_query->set('tax_query', $taxQuery);
-
-        $the_query->get_posts();
-        $the_query->rewind_posts();
-
-        $params['includecss'] = $params['includecss'] === true || $params['includecss'] === 'true';
-
-        if ($the_query->have_posts()) {
-            if ($params['includecss']) {
-                TouchPointWP::enqueuePartialsStyle();
-            }
-
-            $userLoc = TouchPointWP::instance()->geolocate(false);
-
-            if ($userLoc !== false) {
-                // we have a viable location. Use it for sorting by distance.
-                Involvement::setComparisonGeo($userLoc);
-                TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
-            }
-
-            $list = $the_query->get_posts();
-            usort($list, [Involvement::class, 'sortPosts']);
-
-            ob_start();
-
-            foreach ($list as $p) {
-                global $post;
-                $post = $p;
-
-                $loadedPart = get_template_part('list-item', 'involvement-list-item');
-                if ($loadedPart === false) {
-                    require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
-                }
-            }
-
-            return apply_shortcodes("<div class=\"{$params['class']}\">" . ob_get_clean() . "</div>");
-        }
-
-        return "<!-- Nothing to show -->";
+        return apply_shortcodes($render);
     }
 
     /**
