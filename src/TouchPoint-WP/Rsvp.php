@@ -29,7 +29,7 @@ abstract class Rsvp
         }
         self::$_isLoaded = true;
 
-        add_action('init', [self::class, 'init']);
+        add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'init']);
 
         if ( ! shortcode_exists(self::SHORTCODE)) {
             add_shortcode(self::SHORTCODE, [self::class, "shortcode"]);

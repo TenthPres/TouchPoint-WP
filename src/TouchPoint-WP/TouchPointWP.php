@@ -66,6 +66,8 @@ class TouchPointWP
      */
     public const HOOK_PREFIX = "tp_";
 
+    public const INIT_ACTION_HOOK = self::HOOK_PREFIX . "init";
+
     /**
      * Prefix to use for all settings.
      */
@@ -629,6 +631,8 @@ class TouchPointWP
         self::instance()->updateDeployedScripts();
 
         self::requireScript("base");
+
+        do_action(self::INIT_ACTION_HOOK);
     }
 
     public static function renderBaseInlineScript(): void

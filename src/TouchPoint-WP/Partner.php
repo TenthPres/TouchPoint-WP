@@ -9,8 +9,9 @@ if ( ! defined('ABSPATH')) {
 }
 
 if (!TOUCHPOINT_COMPOSER_ENABLED) {
-    require_once 'api.php';
+    require_once "api.php";
     require_once "jsInstantiation.php";
+    require_once "updatesViaCron.php";
     require_once "Utilities.php";
 }
 
@@ -24,7 +25,7 @@ use WP_Term;
 /**
  * An Outreach partner, corresponding to a family in TouchPoint
  */
-class Partner implements api, JsonSerializable
+class Partner implements api, JsonSerializable, updatesViaCron
 {
     use jsInstantiation {
         jsInstantiation::enqueueForJsInstantiation as protected enqueueForJsInstantiationTrait;
@@ -246,6 +247,11 @@ class Partner implements api, JsonSerializable
         add_filter('the_author', [self::class, 'filterAuthor'], 10, 3);
         add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 3);
 
+        self::checkUpdates();
+    }
+
+    public static function checkUpdates(): void
+    {
         // Run cron if it hasn't been run before or is overdue.
         if (TouchPointWP::instance()->settings->global_cron_last_run * 1 < time() - 86400 - 3600) {
             try {
@@ -254,6 +260,7 @@ class Partner implements api, JsonSerializable
             }
         }
     }
+
 
     /**
      * Run the updating cron task.  Fail quietly to not disturb the visitor experience if using WP default cron handling.
@@ -890,7 +897,7 @@ class Partner implements api, JsonSerializable
 
         self::$_isLoaded = true;
 
-        add_action('init', [self::class, 'init']);
+        add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'init']);
 
         if ( ! shortcode_exists(self::SHORTCODE_MAP)) {
             add_shortcode(self::SHORTCODE_MAP, [self::class, "mapShortcode"]);
@@ -907,6 +914,8 @@ class Partner implements api, JsonSerializable
         if ( ! shortcode_exists(self::SHORTCODE_LIST)) {
             add_shortcode(self::SHORTCODE_LIST, [self::class, "listShortcode"]);
         }
+
+        add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'checkUpdates']);
 
         // Setup cron for updating Partners daily.
         add_action(self::CRON_HOOK, [self::class, 'updateCron']);

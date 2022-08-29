@@ -9,10 +9,11 @@ if ( ! defined('ABSPATH')) {
 }
 
 if (!TOUCHPOINT_COMPOSER_ENABLED) {
-    require_once 'api.php';
-    require_once 'extraValues.php';
+    require_once "api.php";
+    require_once "extraValues.php";
     require_once "jsInstantiation.php";
-    require_once 'InvolvementMembership.php';
+    require_once "updatesViaCron.php";
+    require_once "InvolvementMembership.php";
     require_once "Utilities/PersonQuery.php";
 }
 
@@ -27,7 +28,7 @@ use WP_User;
  *
  * @property ?object $picture An object with the picture URLs and other metadata
  */
-class Person extends WP_User implements api, JsonSerializable
+class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 {
     use jsInstantiation;
     use extraValues;
@@ -1285,7 +1286,7 @@ class Person extends WP_User implements api, JsonSerializable
             add_shortcode(self::SHORTCODE_PEOPLE_LIST, [self::class, "peopleListShortcode"]);
         }
 
-        add_action('init', [self::class, 'checkUpdates']);
+        add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'checkUpdates']);
 
         // Setup cron for updating People daily.
         add_action(self::CRON_HOOK, [self::class, 'updateCron']);

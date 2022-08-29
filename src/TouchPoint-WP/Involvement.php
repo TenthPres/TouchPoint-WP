@@ -9,8 +9,9 @@ if ( ! defined('ABSPATH')) {
 }
 
 if (!TOUCHPOINT_COMPOSER_ENABLED) {
-    require_once 'api.php';
+    require_once "api.php";
     require_once "jsInstantiation.php";
+    require_once "updatesViaCron.php";
     require_once "Utilities.php";
     require_once "Involvement_PostTypeSettings.php";
 }
@@ -27,7 +28,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement implements api
+class Involvement implements api, updatesViaCron
 {
     use jsInstantiation;
 
@@ -270,12 +271,16 @@ class Involvement implements api
         add_filter('the_author', [self::class, 'filterAuthor'], 10, 3);
         add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 3);
 
+        self::checkUpdates();
+    }
+
+    public static function checkUpdates(): void
+    {
         // Run cron if it hasn't been run before or is overdue.
         if (TouchPointWP::instance()->settings->inv_cron_last_run * 1 < time() - 86400 - 3600) {
             self::updateFromTouchPoint();
         }
     }
-
 
     /**
      * Query TouchPoint and update Involvements in WordPress
@@ -1306,7 +1311,7 @@ class Involvement implements api
 
         self::$_isLoaded = true;
 
-        add_action('init', [self::class, 'init']);
+        add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'init']);
 
         if ( ! shortcode_exists(self::SHORTCODE_MAP)) {
             add_shortcode(self::SHORTCODE_MAP, [self::class, "mapShortcode"]);
@@ -1328,8 +1333,11 @@ class Involvement implements api
             add_shortcode(self::SHORTCODE_ACTIONS, [self::class, "actionsShortcode"]);
         }
 
+        // Do an update if needed.
+        add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'checkUpdates']);
+
         // Setup cron for updating Small Groups daily.
-        add_action(self::CRON_HOOK, [self::class, 'updateFromTouchPoint']);
+        add_action(self::CRON_HOOK, [self::class, 'updateCron']);
         if ( ! wp_next_scheduled(self::CRON_HOOK)) {
             // Runs at 6am EST (11am UTC), hypothetically after TouchPoint runs its Morning Batches.
             wp_schedule_event(
@@ -1342,6 +1350,18 @@ class Involvement implements api
         return true;
     }
 
+    /**
+     * Run the updating cron task.  Fail quietly to not disturb the visitor experience if using WP default cron handling.
+     *
+     * @return void
+     */
+    public static function updateCron(): void
+    {
+        try {
+            self::updateFromTouchPoint();
+        } catch (Exception $ex) {
+        }
+    }
 
     /**
      * Returns distance to the given involvement from the $compareGeo point.
