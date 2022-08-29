@@ -10,9 +10,10 @@ if ( ! defined('ABSPATH')) {
 
 
 /**
- * API Interface
+ * Interface to standardize items that are updated with Cron.
  */
 interface updatesViaCron {
     public static function checkUpdates();
 
-    public static function updateCron();}
+    public static function updateCron();
+}
