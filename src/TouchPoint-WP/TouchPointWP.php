@@ -26,7 +26,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.13";
+    public const VERSION = "0.0.14";
 
     public const DEBUG = false;
 
@@ -65,6 +65,8 @@ class TouchPointWP
      * Prefix to use for all filters and hooks.
      */
     public const HOOK_PREFIX = "tp_";
+
+    public const INIT_ACTION_HOOK = self::HOOK_PREFIX . "init";
 
     /**
      * Prefix to use for all settings.
@@ -629,6 +631,8 @@ class TouchPointWP
         self::instance()->updateDeployedScripts();
 
         self::requireScript("base");
+
+        do_action(self::INIT_ACTION_HOOK);
     }
 
     public static function renderBaseInlineScript(): void

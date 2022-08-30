@@ -491,7 +491,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             $includeThis = $includeDetail === true || $includeDetail === 'involvements';
             $this->settings['involvements'] = [
                 'title'       => __('Involvements', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Import Involvements from TouchPoint to your website, for Small Groups, Classes, and more.  You do not need to import an involvement here to use the RSVP tool.', TouchPointWP::TEXT_DOMAIN),
+                'description' => __('Import Involvements from TouchPoint to list them on your website, for Small Groups, Classes, and more.  Select the division(s) that immediately correspond to the type of Involvement you want to list.  For example, if you want a Small Group list and have a Small Group Division, only select the Small Group Division.  If you want Involvements to be filterable by additional Divisions, select those Divisions on the Divisions tab, not here.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
                     [
                         'id'          => 'inv_json', // involvement settings json (stored as a json string)
@@ -1238,6 +1238,9 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             WHERE post_content LIKE '%$oldShortcode%'
         ");
 
+        // Disable Auth until it's properly supported again.
+        $this->set('enable_authentication', '');
+
         // Update version string
         $this->set('version', TouchPointWP::VERSION);
     }
@@ -1250,9 +1253,9 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      */
     public function updateDeployedScripts(): void
     {
-        $scripts = ["WebApi" => TouchPointWP::instance()->settings->api_script_name];
-        if (TouchPointWP::instance()->settings->enable_authentication) {
-            $scripts["WebAuth"] = TouchPointWP::instance()->settings->auth_script_name;
+        $scripts = ["WebApi"];
+        if (TouchPointWP::instance()->settings->enable_authentication === 'on') {
+            $scripts[] = "WebAuth";
         }
 
         $scriptContent = TouchPointWP::instance()->admin()->generatePython(false, $scripts);

@@ -9,8 +9,9 @@ if ( ! defined('ABSPATH')) {
 }
 
 if (!TOUCHPOINT_COMPOSER_ENABLED) {
-    require_once 'api.php';
+    require_once "api.php";
     require_once "jsInstantiation.php";
+    require_once "updatesViaCron.php";
     require_once "Utilities.php";
     require_once "Involvement_PostTypeSettings.php";
 }
@@ -27,7 +28,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement implements api
+class Involvement implements api, updatesViaCron
 {
     use jsInstantiation;
 
@@ -41,6 +42,9 @@ class Involvement implements api
     protected static bool $_hasArchiveMap = false;
     private static array $_instances = [];
     private static bool $_isLoaded = false;
+
+    public static string $containerClass = 'inv-list';
+    public static string $itemClass = 'inv-list-item';
 
     private static bool $filterJsAdded = false;
     public ?object $geo = null;
@@ -267,12 +271,16 @@ class Involvement implements api
         add_filter('the_author', [self::class, 'filterAuthor'], 10, 3);
         add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 3);
 
+        self::checkUpdates();
+    }
+
+    public static function checkUpdates(): void
+    {
         // Run cron if it hasn't been run before or is overdue.
         if (TouchPointWP::instance()->settings->inv_cron_last_run * 1 < time() - 86400 - 3600) {
             self::updateFromTouchPoint();
         }
     }
-
 
     /**
      * Query TouchPoint and update Involvements in WordPress
@@ -601,6 +609,140 @@ class Involvement implements api
         return self::filterDropdownHtml($params, $settings);
     }
 
+
+    public static function doInvolvementList(WP_Query $q, $params = []): void
+    {
+        $q->set('posts_per_page', -1);
+        $q->set('nopaging', true);
+        $q->set('orderby', 'title'); // will mostly be overwritten by geographic sort, if available.
+        $q->set('order', 'ASC');
+
+        if ($q->is_post_type_archive()) {
+            $q->set('post_parent', 0);
+        }
+
+        // Get the formalized post types
+        $types = [];
+        $terms = [null];
+        if (!isset($params['type']) && $q->is_post_type_archive()) {
+            $params['type'] = $q->query['post_type'];
+        }
+        $settings = null;
+        foreach (explode(',', $params['type']) as $t) {
+            $settings = self::getSettingsForPostType($params['type']);
+            if ($settings !== null) {
+                $types[] = $settings->postType;
+            }
+        }
+        if (count($types) > 0) {
+            $q->set('post_type', $types);
+        }
+
+        // CSS
+        $params['includecss'] = !isset($params['includecss']) ||
+                                $params['includecss'] === true ||
+                                $params['includecss'] === 'true';
+
+        // Only group for single post types.
+        $groupBy = null;
+        if (count($types) === 1) {
+            $groupBy = $settings->groupBy;
+            $groupByOrder = "ASC";
+            if (strlen($groupBy) > 1 && $groupBy[0] === "-") {
+                $groupBy = substr($groupBy, 1);
+                $groupByOrder = "DESC";
+            }
+
+            if ($groupBy !== "" && taxonomy_exists($groupBy)) {
+                $terms = get_terms([
+                                       'taxonomy'   => $groupBy,
+                                       'order'      => $groupByOrder,
+                                       'orderby'    => 'name',
+                                       'hide_empty' => true,
+                                       'fields'     => 'id=>name'
+                                   ]);
+            }
+        }
+
+        $taxQuery = ['relation' => 'AND'];
+
+        // Filter by Division
+        if (isset($params['div'])) {
+            $divs = [];
+            foreach (explode(',', $params['div']) as $d) {
+                $tid = TouchPointWP::getDivisionTermIdByDivId($d);
+                if ( ! ! $tid) {
+                    $divs[] = $tid;
+                }
+            }
+            if (count($divs) > 0) {
+                $taxQuery[] = [
+                    'taxonomy' => TouchPointWP::TAX_DIV,
+                    'field' => 'ID',
+                    'terms' => $divs
+                ];
+            }
+        }
+
+        // Prepare to sort by distance if location is already cached.
+        $userLoc = TouchPointWP::instance()->geolocate(false);
+        if ($userLoc !== false) {
+            // we have a viable location. Use it for sorting by distance.
+            Involvement::setComparisonGeo($userLoc);
+            if (!headers_sent()) { // Depending on when this was called, it may be too late.
+                TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
+            }
+        }
+
+        $containerClass = $params['class'] ?? self::$containerClass;
+
+        // Groupings
+        foreach ($terms as $termId => $name) {
+            if (count($terms) > 1 && $groupBy !== null) {
+                // do the tax filtering
+                $taxQuery[] = [
+                    'taxonomy' => $groupBy,
+                    'field'    => 'term_id',
+                    'terms'    => [$termId],
+                ];
+            }
+
+            $q->set('tax_query', $taxQuery);
+
+            global $posts;
+            $posts = $q->get_posts();
+
+            if ($q->post_count > 0) {
+                if ($params['includecss']) {
+                    TouchPointWP::enqueuePartialsStyle();
+                }
+
+                echo "<div class=\"$containerClass\">";
+
+                echo "<h2>$name</h2>";
+
+                usort($posts, [Involvement::class, 'sortPosts']);
+
+                while ($q->have_posts()) {
+                    $q->the_post();
+                    $loadedPart = get_template_part('list-item', 'involvement-list-item');
+                    if ($loadedPart === false) {
+                        require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
+                    }
+                }
+
+                echo "</div>";
+            }
+
+            // remove the grouping
+            if (count($terms) > 1 && $groupBy !== null) {
+                array_pop($taxQuery);
+            }
+
+            wp_reset_query();
+        }
+    }
+
     /**
      * Print a list of involvements that match the given criteria.
      *
@@ -624,97 +766,28 @@ class Involvement implements api
             [
                 'type'       => null,
                 'div'        => null,
-                'class'      => 'inv-list',
-                'includecss' => 'true',
-                'itemclass'  => 'inv-list-item'
+                'class'      => self::$containerClass,
+                'includecss' => apply_filters(TouchPointWP::HOOK_PREFIX . 'use_css', true, self::class),
+                'itemclass'  => self::$itemClass,
+                'usequery'   => false
             ],
             $params,
             self::SHORTCODE_NEARBY
         );
 
-        global $the_query, $wp_the_query;
-        $the_query = $wp_the_query;
-
-        $the_query->set('posts_per_page', -1);
-        $the_query->set('nopaging', true);
-        $the_query->set('orderby', 'title');
-        $the_query->set('order', 'ASC'); // May be over-ridden by distance sort.
-
-        if (is_post_type_archive()) {
-            $the_query->set('post_parent', 0);
+        global $wp_the_query;
+        $q = $wp_the_query;
+        if (!$q->is_post_type_archive() && ($params['usequery'] === false || $params['usequery'] === 'false')) {
+            $q = new WP_Query();
         }
+        ob_start();
+        self::doInvolvementList($q, $params);
+        $render = ob_get_clean();
 
-        // Get the formalized post types
-        $types = [];
-        foreach (explode(',', $params['type']) as $t) {
-            $s = self::getSettingsForPostType($params['type']);
-            if ($s !== null) {
-                $types[] = $s->postType;
-            }
+        if (trim($render) == "") {
+            return "<!-- Nothing to show -->";
         }
-        if (count($types) > 0) {
-            $the_query->set('post_type', $types);
-        }
-
-        $taxQuery = ['relation' => 'AND'];
-
-        // Filter by Division
-        if (isset($params['div'])) {
-            $divs = [];
-            foreach (explode(',', $params['div']) as $d) {
-                $tid = TouchPointWP::getDivisionTermIdByDivId($d);
-                if ( ! ! $tid) {
-                    $divs[] = $tid;
-                }
-            }
-            if (count($divs) > 0) {
-                $taxQuery[] = [
-                    'taxonomy' => TouchPointWP::TAX_DIV,
-                    'field' => 'ID',
-                    'terms' => $divs
-                ];
-            }
-        }
-
-        $the_query->set('tax_query', $taxQuery);
-
-        $the_query->get_posts();
-        $the_query->rewind_posts();
-
-        $params['includecss'] = $params['includecss'] === true || $params['includecss'] === 'true';
-
-        if ($the_query->have_posts()) {
-            if ($params['includecss']) {
-                TouchPointWP::enqueuePartialsStyle();
-            }
-
-            $userLoc = TouchPointWP::instance()->geolocate(false);
-
-            if ($userLoc !== false) {
-                // we have a viable location. Use it for sorting by distance.
-                Involvement::setComparisonGeo($userLoc);
-                TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
-            }
-
-            $list = $the_query->get_posts();
-            usort($list, [Involvement::class, 'sortPosts']);
-
-            ob_start();
-
-            foreach ($list as $p) {
-                global $post;
-                $post = $p;
-
-                $loadedPart = get_template_part('list-item', 'involvement-list-item');
-                if ($loadedPart === false) {
-                    require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
-                }
-            }
-
-            return apply_shortcodes("<div class=\"{$params['class']}\">" . ob_get_clean() . "</div>");
-        }
-
-        return "<!-- Nothing to show -->";
+        return apply_shortcodes($render);
     }
 
     /**
@@ -1238,7 +1311,7 @@ class Involvement implements api
 
         self::$_isLoaded = true;
 
-        add_action('init', [self::class, 'init']);
+        add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'init']);
 
         if ( ! shortcode_exists(self::SHORTCODE_MAP)) {
             add_shortcode(self::SHORTCODE_MAP, [self::class, "mapShortcode"]);
@@ -1260,8 +1333,11 @@ class Involvement implements api
             add_shortcode(self::SHORTCODE_ACTIONS, [self::class, "actionsShortcode"]);
         }
 
+        // Do an update if needed.
+        add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'checkUpdates']);
+
         // Setup cron for updating Small Groups daily.
-        add_action(self::CRON_HOOK, [self::class, 'updateFromTouchPoint']);
+        add_action(self::CRON_HOOK, [self::class, 'updateCron']);
         if ( ! wp_next_scheduled(self::CRON_HOOK)) {
             // Runs at 6am EST (11am UTC), hypothetically after TouchPoint runs its Morning Batches.
             wp_schedule_event(
@@ -1274,6 +1350,18 @@ class Involvement implements api
         return true;
     }
 
+    /**
+     * Run the updating cron task.  Fail quietly to not disturb the visitor experience if using WP default cron handling.
+     *
+     * @return void
+     */
+    public static function updateCron(): void
+    {
+        try {
+            self::updateFromTouchPoint();
+        } catch (Exception $ex) {
+        }
+    }
 
     /**
      * Returns distance to the given involvement from the $compareGeo point.
@@ -1491,6 +1579,60 @@ class Involvement implements api
                 var_dump($inv);
             }
 
+
+            ////////////////////////
+            // Standardize Inputs //
+            ////////////////////////
+
+            // Start and end dates
+            if ($inv->firstMeeting !== null) {
+                try {
+                    $inv->firstMeeting = new DateTimeImmutable($inv->firstMeeting, $siteTz);
+                } catch  (Exception $e) {
+                    $inv->firstMeeting = null;
+                }
+            }
+            if ($inv->lastMeeting !== null) {
+                try {
+                    $inv->lastMeeting = new DateTimeImmutable($inv->lastMeeting, $siteTz);
+                } catch  (Exception $e) {
+                    $inv->lastMeeting = null;
+                }
+            }
+
+
+            ////////////////
+            // Exclusions //
+            ////////////////
+
+            // 'continue' causes involvement to be deleted (or not created).
+
+            // Filter by end dates to stay relevant
+            if ($inv->lastMeeting !== null && $inv->lastMeeting < $now) { // last meeting already happened.
+                if ($verbose) {
+                    echo "<p>Stopping processing because all meetings are in the past.  Involvement will be deleted from WordPress.</p>";
+                }
+                continue; // Stop processing this involvement.  This will cause it to be removed if it exists already.
+            }
+
+            if (in_array("closed", $typeSets->excludeIf) && !!$inv->closed) {
+                if ($verbose) {
+                    echo "<p>Stopping processing because Involvements with Closed Registrations are excluded.  Involvement will be deleted from WordPress.</p>";
+                }
+                continue;
+            }
+            if (in_array("child", $typeSets->excludeIf) && $inv->parentInvId > 0) {
+                if ($verbose) {
+                    echo "<p>Stopping processing because Involvements with parents are excluded.  Involvement will be deleted from WordPress.</p>";
+                }
+                continue;
+            }
+
+
+            /////////////////////////
+            // Find or Create Post //
+            /////////////////////////
+
             $q = new WP_Query(
                 [
                     'post_type'  => $typeSets->postType,
@@ -1502,7 +1644,7 @@ class Involvement implements api
             if (count($post) > 0) { // post exists already.
                 $post = $post[0];
             } else {
-                $post = wp_insert_post( // TODO avoid doing this if involvement will be deleted anyway.
+                $post = wp_insert_post(
                     [ // create new
                         'post_type'  => $typeSets->postType,
                         'post_name'  => $inv->name,
@@ -1703,27 +1845,6 @@ class Involvement implements api
             }
 
             // Start and end dates
-            if ($inv->firstMeeting !== null) {
-                try {
-                    $inv->firstMeeting = new DateTimeImmutable($inv->firstMeeting, $siteTz);
-                } catch  (Exception $e) {
-                    $inv->firstMeeting = null;
-                }
-            }
-            if ($inv->lastMeeting !== null) {
-                try {
-                    $inv->lastMeeting = new DateTimeImmutable($inv->lastMeeting, $siteTz);
-                } catch  (Exception $e) {
-                    $inv->lastMeeting = null;
-                }
-            }
-            // Filter start and end dates to be relevant
-            if ($inv->lastMeeting !== null && $inv->lastMeeting < $now) { // last meeting already happened.
-                if ($verbose) {
-                    echo "<p>Stopping processing because all meetings are in the past.  Involvement will be deleted from WordPress.</p>";
-                }
-                continue; // Stop processing this involvement.  This will cause it to be removed.
-            }
             $tense = TouchPointWP::TAX_TENSE_PRESENT;
             if ($inv->firstMeeting !== null && $inv->firstMeeting < $now) { // First meeting already happened.
                 $inv->firstMeeting = null; // We don't need to list info from the past.

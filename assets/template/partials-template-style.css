@@ -1,18 +1,18 @@
-.involvement-list,
+.inv-list,
 .partner-list {
     display: flex;
     flex-wrap: wrap;
     /* align-items: stretch; */
 }
 
-.involvement-list > h2 {
+.inv-list > h2 {
     /* Tense headings for involvements */
     flex: 1 1 100%;
     padding: 0 0.8em;
 }
 
 /* compensates for some themes */
-.entry-content > .involvement-list {
+.entry-content > .inv-list {
     max-width: none !important;
     width: unset;
 }
@@ -111,7 +111,7 @@ article.inv-list-item h2 a {
 }
 
 div.partner-list article.partner-list-item h2.entry-title,
-div.involvement-list article.inv-list-item h2.entry-title {
+div.inv-list article.inv-list-item h2.entry-title {
     padding: 0 0 0 0;
 }
 

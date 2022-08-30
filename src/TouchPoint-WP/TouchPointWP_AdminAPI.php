@@ -353,8 +353,8 @@ class TouchPointWP_AdminAPI implements api {
      * Generate the python scripts to be uploaded to TouchPoint.
      *
      * @param bool  $toZip Set true to combine into a Zip file.
-     * @param array $filenames  Indicate which files should be included, and what they should be called in repoName => newName.
-     * Add '*' to the array to include all files regardless of name.  Existing name will be used by default.
+     * @param array $filenames  Indicate which files should be included, based on their repo name.
+     * Add '*' to the array to include all files regardless of name.
      *
      * @return string|array If toZip is true, returns the file path of the zip file.  If toZip is false, returns an array of filename => content.
      * @throws TouchPointWP_Exception
@@ -379,20 +379,27 @@ class TouchPointWP_AdminAPI implements api {
         $fnIndex = strlen($directory);
 
         // Static Python files
-        foreach ( glob($directory . '*.py') as $file ) {
+        foreach (glob($directory . '*.py') as $file ) {
             $fn = substr($file, $fnIndex, -3);
 
-            if (!in_array('*', $filenames) && !isset($filenames[$fn])) {
+            // $fn = repo file name w/o extension
+
+            if (str_starts_with($fn, '.')) {
                 continue;
             }
-            if (isset($filenames[$fn])) {
-                $fn = $filenames[$fn];
+            if (!in_array('*', $filenames) && !in_array($fn, $filenames)) {
+                continue;
+            }
+            if ($fn === 'WebAuth' && in_array('*', $filenames)) {
+                continue;
             }
 
+            $outFn = self::getTpFilenameForRepoFilename($fn);
+
             if ($toZip) {
-                $za->addFile($file, $fn . ".py");
+                $za->addFile($file, $outFn . ".py");
             } else {
-                $out[$fn] = file_get_contents($file);
+                $out[$outFn] = file_get_contents($file);
             }
         }
 
@@ -403,20 +410,24 @@ class TouchPointWP_AdminAPI implements api {
         foreach ( glob($directory . '*.php') as $file ) {
             $fn = substr($file, $fnIndex, -4);
 
-            if (!in_array('*', $filenames) && !isset($filenames[$fn])) {
+            // $fn = repo file name w/o extension
+
+            if (str_starts_with($fn, '.')) {
                 continue;
             }
-            if (isset($filenames[$fn])) {
-                $fn = $filenames[$fn];
+            if (!in_array('*', $filenames) && !in_array($fn, $filenames)) {
+                continue;
             }
 
             include $file; // TODO SOMEDAY This really should be in a sandbox if that were possible.
             $content = ob_get_clean();
 
+            $outFn = self::getTpFilenameForRepoFilename($fn);
+
             if ($toZip) {
-                $za->addFromString($fn . ".py", $content);
+                $za->addFromString($outFn . ".py", $content);
             } else {
-                $out[$fn] = $content;
+                $out[$outFn] = $content;
             }
         }
         ob_end_clean();
@@ -429,6 +440,33 @@ class TouchPointWP_AdminAPI implements api {
 
         // return either zip location or array with content.
         return $out;
+    }
+
+    /**
+     * @param $fn string The repository file name without the extension
+     *
+     * @return string The filename, without extension, that should go to TouchPoint.
+     */
+    private static function getTpFilenameForRepoFilename(string $fn): string
+    {
+        $newFn = '';
+        switch ($fn) {
+            case 'WebApi':
+                $newFn = TouchPointWP::instance()->settings->api_script_name;
+                break;
+
+            case 'WebAuth':
+                $newFn = TouchPointWP::instance()->settings->auth_script_name;
+                break;
+        }
+
+        $newFn = trim($newFn); // this is necessary.
+
+        // make sure there's actually a value
+        if ($newFn === '') {
+            return $fn;
+        }
+        return $newFn;
     }
 
     /**
