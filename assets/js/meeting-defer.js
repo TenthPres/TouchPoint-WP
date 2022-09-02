@@ -162,9 +162,7 @@ class TP_Meeting {
         let meeting = this;
         showConfirm = !!showConfirm;
 
-        if (typeof ga === "function") {
-            ga('send', 'event', 'rsvp', 'rsvp complete', meeting.mtgId);
-        }
+        tpvm._utils.ga('send', 'event', 'rsvp', 'rsvp complete', meeting.mtgId);
 
         let res = await tpvm.postData('mtg/rsvp', {mtgId: meeting.mtgId, responses: data});
         if (res.success.length > 0) {
@@ -199,9 +197,7 @@ class TP_Meeting {
     rsvpAction(forceAsk = false) {
         let meeting = this;
 
-        if (typeof ga === "function") {
-            ga('send', 'event', 'rsvp', 'rsvp btn click', meeting.mtgId);
-        }
+        tpvm._utils.ga('send', 'event', 'rsvp', 'rsvp btn click', meeting.mtgId);
 
         tpvm._utils.applyHashForAction("rsvp", this);
 
@@ -213,9 +209,7 @@ class TP_Meeting {
         )
 
         function rsvpUi(meeting, people) {
-            if (typeof ga === "function") {
-                ga('send', 'event', 'rsvp', 'rsvp userIdentified', meeting.mtgId);
-            }
+            tpvm._utils.ga('send', 'event', 'rsvp', 'rsvp userIdentified', meeting.mtgId);
 
             return Swal.fire({
                 html: `<p id="swal-tp-text">Who is coming?</p><p class="small swal-tp-instruction">Indicate who is or is not coming.  This will overwrite any existing RSVP.  <br />To avoid overwriting an existing RSVP, leave that person blank.  <br />To protect privacy, we won't show existing RSVPs here.</p></i>` + TP_Person.peopleArrayToRadio(['Yes', 'No'], people, tpvm._secondaryUsers),

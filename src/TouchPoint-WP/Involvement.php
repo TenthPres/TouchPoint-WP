@@ -834,12 +834,16 @@ class Involvement implements api, updatesViaCron
             return "<!-- A Post Type is required for the Nearby Involvement Shortcode. -->";
         }
 
-        if ($content === '') {
-            // TODO Switch to template, or switch templates to match this.
-            $content = file_get_contents(TouchPointWP::$dir . "/src/templates/parts/involvement-nearby-list-item.html");
-        }
-
         $nearbyListId = wp_unique_id('tp-nearby-list-');
+        $type = $params['type'];
+        $count = $params['count'];
+
+        ob_start();
+        $loadedPart = get_template_part('list-item', 'involvement-nearby-list');
+        if ($loadedPart === false) {
+            require TouchPointWP::$dir . "/src/templates/parts/involvement-nearby-list.php";
+        }
+        $content = ob_get_clean();
 
         $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/involvement-nearby-inline.js");
 
@@ -853,9 +857,6 @@ class Involvement implements api, updatesViaCron
             $script,
             'after'
         );
-
-
-        $content = "<div class=\"\" id=\"$nearbyListId\" data-bind=\"foreach: nearby\">" . $content . "</div>";
 
         // get any nesting
         return apply_shortcodes($content);
@@ -1146,28 +1147,60 @@ class Involvement implements api, updatesViaCron
     }
 
 
-    public static function ajaxNearby() // TODO this should get some fairly drastic reworking to fit into other existing data structures.
+    /**
+     * Handles the API call to get nearby involvements (probably small groups)
+     */
+    public static function ajaxNearby(): void
     {
         $settings = self::getSettingsForPostType($_GET['type']);
 
         if (! $settings->useGeo) {
-            return [];
+            json_encode([
+                "invList" => [],
+                "error" => __("Error: This involvement type doesn't have geographic locations enabled.")
+            ]);
         }
+
+        $r = [];
 
         if ($_GET['lat'] === "null" || $_GET['lng'] === "null" ||
             $_GET['lat'] === null || $_GET['lng'] === null) {
-            $_GET['lat'] = null;
-            $_GET['lng'] = null;
+
+            $geoObj = TouchPointWP::instance()->geolocate();
+
+            if ($geoObj === false) {
+                echo json_encode([
+                    "invList" => [],
+                    "error" => __("Error: No Location Available"),
+                    "geo" => false
+                ]);
+                exit;
+            }
+
+            $_GET['lat'] = $geoObj->lat;
+            $_GET['lng'] = $geoObj->lng;
+
+            $r['geo'] = $geoObj;
+
+        } else {
+            $geoObj = TouchPointWP::instance()->reverseGeocode($_GET['lat'], $_GET['lng']);
+
+            if ($geoObj !== false) {
+                $r['geo'] = $geoObj;
+            }
         }
 
-        $r = self::getGroupsNear($_GET['lat'], $_GET['lng'], $settings->postType, $_GET['limit']);
+        $invs = self::getInvsNear($_GET['lat'], $_GET['lng'], $settings->postType, $_GET['limit']);
 
-        if ($r === null) {
-            $r = [];
+        if ($invs === null) {
+            json_encode([
+                "invList" => [],
+                "error" => sprintf(esc_html__("No %s found.", TouchPointWP::TEXT_DOMAIN), $settings->namePlural)
+            ]);
         }
 
         $errorMessage = null;
-        foreach ($r as $g) {
+        foreach ($invs as $g) {
             try {
                 $inv        = self::fromObj($g);
                 $g->name    = html_entity_decode($inv->name);
@@ -1177,6 +1210,8 @@ class Involvement implements api, updatesViaCron
                 $errorMessage = $ex->getMessage();
             }
         }
+
+        $r['invList'] = $invs;
 
         if ($errorMessage !== null) {
             $r['error'] = $errorMessage;
@@ -1199,7 +1234,7 @@ class Involvement implements api, updatesViaCron
      * @return object[]|null  An array of database query result objects, or null if the location isn't provided or
      *     valid.
      */
-    private static function getGroupsNear(?float $lat = null, ?float $lng = null, string $postType = null, int $limit = 3): ?array
+    private static function getInvsNear(?float $lat = null, ?float $lng = null, string $postType = null, int $limit = 3): ?array
     {
         if ($lat === null || $lng === null) {
             $geoObj = TouchPointWP::instance()->geolocate();

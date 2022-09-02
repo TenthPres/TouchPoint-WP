@@ -161,6 +161,12 @@ function utilInit() {
         }
         return "#" + components.join('');
     }
+
+    tpvm._utils.ga = function(command, hitType, category, action, label = null, value = null) {
+        if (typeof ga === "function") {
+            ga(command, hitType, category, action, label, value);
+        }
+    }
 }
 utilInit();
 
@@ -241,27 +247,33 @@ class TP_DataGeo {
             type = [type];
         }
 
-        // if location is already known and of an acceptable type
-        if (TP_DataGeo.loc.lat !== null && type.indexOf(TP_DataGeo.loc.type) > -1) {
-            then(TP_DataGeo.loc);
-        }
+        tpvm.addEventListener("dataGeo_located", then);
 
         // navigator is preferred if available and allowed.
         if (navigator.geolocation && navigator.permissions && type.indexOf("nav") > -1) {
-            navigator.permissions.query({name: 'geolocation'}).then(function(PermissionStatus) {
-                TP_DataGeo.loc.permission = PermissionStatus.state;
-                if (PermissionStatus.state === 'granted') {
-                    return TP_DataGeo.geoByNavigator(then, error);
+            navigator.permissions.query({name: 'geolocation'}).then(
+                function(PermissionStatus) {
+                    TP_DataGeo.loc.permission = PermissionStatus.state;
+                    if (PermissionStatus.state === 'granted') {
+                        return TP_DataGeo.geoByNavigator(null, error);
+                    } else {
+                        // Fallback to Server
+                        if (type.indexOf("ip") > -1) {
+                            return TP_DataGeo.geoByServer(null, error);
+                        } else {
+                            error({error: true, message: "No geolocation option available"});
+                        }
+                    }
                 }
-            })
+            )
+        } else {
+            // Fallback to Server
+            if (type.indexOf("ip") > -1) {
+                return TP_DataGeo.geoByServer(null, error);
+            } else {
+                error({error: true, message: "No geolocation option available"});
+            }
         }
-
-        // Fallback to Server
-        if (type.indexOf("ip") > -1) {
-            return TP_DataGeo.geoByServer(then, error);
-        }
-
-        error({error: true, message: "No geolocation option available"});
     }
 
     static geoByServer(then, error) {
@@ -275,22 +287,13 @@ class TP_DataGeo {
                         TP_DataGeo.loc[di] = responseData[di];
                 }
 
-                then(TP_DataGeo.loc);
+                if (then !== null) {
+                    then(TP_DataGeo.loc)
+                }
+
                 tpvm.trigger("dataGeo_located", TP_DataGeo.loc)
             }
         }, error);
-    }
-
-    static errorMessageHtml() {
-        if (TP_DataGeo.loc.type === 'nav') {
-            return "You appear to be quite far away or using a mobile connection on a device without a GPS."; // i18n
-        } else {
-            if (navigator.geolocation) {
-                return "You appear to be either quite far away or using a mobile connection.<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"ga('send', 'event', 'sgf', 'permission', 'Device Location');\">Click here to use your actual location.</a>"; // i18n
-            } else {
-                return "You appear to be either quite far away or using a mobile connection.<br />Your browser doesn't support geolocation so we can't find a small group near you."; // i18n
-            }
-        }
     }
 }
 TP_DataGeo.init();
@@ -402,9 +405,7 @@ class TP_MapMarker
         const mp = this.gMkr.getMap();
         TP_MapMarker.smoothZoom(mp, this.gMkr.getPosition()).then(() => 1)
 
-        if (typeof ga === "function") {
-            ga('send', 'event', this.items[0].itemTypeName, 'mapMarker click', this.gMkr.getTitle());
-        }
+        tpvm._utils.ga('send', 'event', this.items[0].itemTypeName, 'mapMarker click', this.gMkr.getTitle());
     }
 
     /**
@@ -651,9 +652,7 @@ class TP_Mappable {
 
     // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
     showOnMapAction() {
-        if (typeof ga === "function") {
-            ga('send', 'event', this.itemTypeName, 'showOnMap btn click', this.name);
-        }
+        tpvm._utils.ga('send', 'event', this.itemTypeName, 'showOnMap btn click', this.name);
 
         tpvm._utils.applyHashForAction("showOnMap", this);
 
@@ -883,9 +882,7 @@ class TP_Involvement extends TP_Mappable {
         let inv = this;
         showConfirm = !!showConfirm;
 
-        if (typeof ga === "function") {
-            ga('send', 'event', inv.invType, 'join complete', inv.name);
-        }
+        tpvm._utils.ga('send', 'event', inv.invType, 'join complete', inv.name);
 
         let res = await tpvm.postData('inv/join', {invId: inv.invId, people: people, invType: inv.invType});
         if (res.success.length > 0) {
@@ -914,9 +911,7 @@ class TP_Involvement extends TP_Mappable {
         let inv = this;
         showConfirm = !!showConfirm;
 
-        if (typeof ga === "function") {
-            ga('send', 'event', inv.invType, 'contact complete', inv.name);
-        }
+        tpvm._utils.ga('send', 'event', inv.invType, 'contact complete', inv.name);
 
         let res = await tpvm.postData('inv/contact', {invId: inv.invId, fromPerson: fromPerson, message: message, invType: inv.invType});
         if (res.success.length > 0) {
@@ -946,9 +941,7 @@ class TP_Involvement extends TP_Mappable {
         let inv = this,
             title = `Join ${inv.name}`;
 
-        if (typeof ga === "function") {
-            ga('send', 'event', inv.invType, 'join btn click', inv.name);
-        }
+        tpvm._utils.ga('send', 'event', inv.invType, 'join btn click', inv.name);
 
         tpvm._utils.applyHashForAction("join", this);
 
@@ -958,9 +951,7 @@ class TP_Involvement extends TP_Mappable {
         )
 
         function joinUi(inv, people) {
-            if (typeof ga === "function") {
-                ga('send', 'event', inv.invType, 'join userIdentified', inv.name);
-            }
+            tpvm._utils.ga('send', 'event', inv.invType, 'join userIdentified', inv.name);
 
             return Swal.fire({
                 title: title,
@@ -1003,9 +994,7 @@ class TP_Involvement extends TP_Mappable {
         let inv = this,
             title = `<span class="no-wrap">Contact the leaders</span> of <span class="no-wrap">${inv.name}</span>`;
 
-        if (typeof ga === "function") {
-            ga('send', 'event', inv.invType, 'contact btn click', inv.name);
-        }
+        tpvm._utils.ga('send', 'event', inv.invType, 'contact btn click', inv.name);
 
         tpvm._utils.applyHashForAction("contact", this);
 
@@ -1015,9 +1004,7 @@ class TP_Involvement extends TP_Mappable {
         )
 
         function contactUi(inv, people) {
-            if (typeof ga === "function") {
-                ga('send', 'event', inv.invType, 'contact userIdentified', inv.name);
-            }
+            tpvm._utils.ga('send', 'event', inv.invType, 'contact userIdentified', inv.name);
 
             return Swal.fire({
                 title: title,
@@ -1098,22 +1085,42 @@ class TP_Involvement extends TP_Mappable {
 
         let target = document.getElementById(targetId);
         tpvm._invNear.nearby = ko.observableArray([]);
+        tpvm._invNear.labelStr = ko.observable("Loading..."); // i18n
         ko.applyBindings(tpvm._invNear, target);
 
         // continue to next action for either success or failure.
-        TP_DataGeo.getLocation(getNearbyGroups, getNearbyGroups, ['nav']);
+        TP_DataGeo.getLocation(getNearbyInvolvements, getNearbyInvolvements, 'nav');
 
-        function getNearbyGroups() {
+        function getNearbyInvolvements() {
             tpvm.getData('inv/nearby', {
                 lat: TP_DataGeo.loc.lat,
                 lng: TP_DataGeo.loc.lng,
                 type: type,
                 limit: count,
-            }).then(handleGroupsLoaded);
+            }).then(handleNearbyLoaded);
         }
 
-        function handleGroupsLoaded(response) {
-            tpvm._invNear.nearby(response);
+        function handleNearbyLoaded(response) {
+            tpvm._invNear.nearby(response.invList);
+            if (response.error !== undefined) {
+                if (response.geo === false) {
+                    if (navigator.geolocation) {
+                        tpvm._invNear.labelStr("We don't know where you are.<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'sgf', 'permission', 'Device Location');\">Click here to use your actual location.</a>"); // i18n
+                    } else {
+                        tpvm._invNear.labelStr("We don't know where you are."); // i18n
+                    }
+                } else {
+                    tpvm._invNear.labelStr(response.error);
+                }
+            } else if (response.geo?.human !== undefined) {
+                let label = response.geo.human;
+                if (response.geo.type === "ip" && navigator.geolocation) {
+                    label += "<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'sgf', 'permission', 'Device Location');\">Click here to use your actual location.</a>"; // i18n
+                }
+                tpvm._invNear.labelStr(label);
+            } else {
+                tpvm._invNear.labelStr("Your Location"); // i18n
+            }
         }
     }
 }
@@ -1205,7 +1212,7 @@ class TP_Person {
     }
 
     /**
-     * Take an array of person-like objects and make a list of checkboxes out of them.  These are NOT TP_People objects. TODO they should be.
+     * Take an array of TP_Person objects and make a list of checkboxes out of them.
      *
      * @param array TP_Person[]
      */
@@ -1224,7 +1231,7 @@ class TP_Person {
     }
 
     /**
-     * Take an array of person-like objects and make a list of radio buttons out of them.  These are NOT TP_People objects. TODO they should be.
+     * Take an array of TP_Person objects and make a list of radio buttons out of them.
      *
      * @param options string[]
      * @param array TP_Person[]
@@ -1289,9 +1296,7 @@ class TP_Person {
         let psn = this,
             title = `Contact ${psn.displayName}`;
 
-        if (typeof ga === "function") {
-            ga('send', 'event', 'Person', 'contact btn click', psn.peopleId);
-        }
+        tpvm._utils.ga('send', 'event', 'Person', 'contact btn click', psn.peopleId);
 
         tpvm._utils.applyHashForAction("contact", this);
 
@@ -1301,9 +1306,7 @@ class TP_Person {
         )
 
         function contactUi(psn, people) {
-            if (typeof ga === "function") {
-                ga('send', 'event', 'Person', 'contact userIdentified', psn.peopleId);
-            }
+            tpvm._utils.ga('send', 'event', 'Person', 'contact userIdentified', psn.peopleId);
 
             return Swal.fire({
                 title: title,
@@ -1340,9 +1343,7 @@ class TP_Person {
         let psn = this;
         showConfirm = !!showConfirm;
 
-        if (typeof ga === "function") {
-            ga('send', 'event', 'Person', 'contact complete', psn.peopleId);
-        }
+        tpvm._utils.ga('send', 'event', 'Person', 'contact complete', psn.peopleId);
 
         let res = await tpvm.postData('person/contact', {toId: psn.peopleId, fromPerson: fromPerson, message: message});
         if (res.success.length > 0) {

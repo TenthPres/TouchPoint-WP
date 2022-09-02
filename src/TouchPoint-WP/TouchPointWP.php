@@ -414,7 +414,7 @@ class TouchPointWP
                 }
             }
 
-            // Geolocate via IP TODO rework to minimize extra requests
+            // Geolocate via IP
             if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_GEOLOCATE &&
                 count($reqUri['path']) === 2) {
 
@@ -779,7 +779,7 @@ class TouchPointWP
         return $tag;
     }
 
-    // TODO move to somewhere more conducive to the API data model. (Utilities, probably?)
+    // TODO move to somewhere more conducive to the API data model. (Utilities, probably?) -- Is this ever actually called?
     public function ajaxGeolocate(): void
     {
         header('Content-Type: application/json');
@@ -798,7 +798,7 @@ class TouchPointWP
     /**
      * @param bool $useApi Set false to only use cached data, and not the IP API.
      *
-     * @return stdClass|false An object with a 'lat' and 'lng' attribute, if a location could be identified. Or, false if not available.
+     * @return stdClass|false An object with 'lat', 'lng', and 'human' attributes, if a location could be identified. Or, false if not available.
      */
     public function geolocate(bool $useApi = true)
     {
@@ -854,14 +854,75 @@ class TouchPointWP
             return false;
         }
 
+        /** @see self::reverseGeocode  Formatting needs to remain consistent */
         if ($d->country === "US") {
-            $d->human = $d->city . ", " . $d->postal;
+            $human = $d->city . ", " . $d->postal;
         } else {
-            $d->human = $d->city . ", " . $d->country_name;
+            $human = $d->city . ", " . $d->country_name;
         }
 
-        return (object)['lat' => $d->latitude, 'lng' => $d->longitude, 'human' => $d->human, 'type' => 'ip' ];
+        return (object)['lat' => $d->latitude, 'lng' => $d->longitude, 'human' => $human, 'type' => 'ip'];
     }
+
+    /**
+     * @param float lat Latitude
+     * @param float lng Longitude
+     *
+     * @return stdClass|false An object with a 'human' attribute, if a location could be identified. Or, false if not available.
+     */
+    public function reverseGeocode(float $lat, float $lng)
+    {
+        if ($lat === 0.0 && $lng === 0.0) {
+            return false; // avoiding an easy error case.
+        }
+        if ($this->settings->google_geo_api_key === "") {
+            return false;
+        }
+
+        $reqData = [
+            'key' => $this->settings->google_geo_api_key,
+            'latlng' => "$lat,$lng"
+        ];
+
+        try {
+            $apiData = $this->extGet("https://maps.googleapis.com/maps/api/geocode/json", $reqData);
+        } catch (TouchPointWP_WPError $e) {
+            return false;
+        }
+
+        $apiData = json_decode($apiData['body']);
+
+        $leadResult = $apiData->results[0]->address_components ?? false;
+        if ($leadResult === false) {
+            return false;
+        }
+
+        $out = [];
+        foreach ($leadResult as $r) {
+            $out[$r->types[0]] = $r->short_name;
+            if ($r->short_name !== $r->long_name) {
+                $out[$r->types[0] . "_long"] = $r->long_name;
+            }
+        }
+
+        /** @see self::geolocate  Formatting needs to remain consistent */
+        $human = "";
+        if (isset($out['country']) && $out['country'] === "US" && isset($out['locality']) && isset($out['postal_code'])) {
+            $human = $out['locality'] . ", " . $out['postal_code'];
+        } elseif (isset($out['locality']) && isset($out['country_long']) ) {
+            $human = $out['locality'] . ", " . $out['country_long'];
+        }
+
+        $out['human'] = $human;
+        return (object)$out;
+    }
+
+    /**
+     * Cache the ip Data to reduce database/API hits
+     *
+     * @var stdClass|false  IP Object if already loaded.  False if not in the database but API has not been attempted.
+     */
+    private $ipData = null;
 
     /**
      * The underlying IP Data function, which handles caching.
@@ -875,6 +936,10 @@ class TouchPointWP
      */
     protected function getIpData(string $ip, bool $useApi = true)
     {
+        if ($this->ipData !== null || (!$useApi && $this->ipData === false)) {
+            return $this->ipData;
+        }
+
         $ip_pton = inet_pton($ip);
 
         // TODO allow admin to define some static IPs and corresponding locations
@@ -885,10 +950,12 @@ class TouchPointWP
         $q = $wpdb->prepare("SELECT * FROM $tableName WHERE ip = %s and updatedDt > (NOW() - INTERVAL 30 DAY)", $ip_pton);
         $cache = $wpdb->get_row($q);
         if ($cache) {
+            $this->ipData = $cache->data;
             return $cache->data;
         }
 
         if (! $useApi) {
+            $this->ipData = false;
             return false;
         }
 
@@ -899,6 +966,8 @@ class TouchPointWP
         if (property_exists($return, 'error')) {
             throw new TouchPointWP_Exception("IP Geolocation Error: " . $return->error . " " . $return->reason ?? "", 178001);
         }
+
+        $this->ipData = $return;
 
         /** @noinspection SqlResolve */
         $q = $wpdb->prepare( "
@@ -1515,7 +1584,6 @@ class TouchPointWP
     protected function createTables(): void
     {
         global $wpdb;
-        /** @noinspection PhpIncludeInspection */
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
         // IP Geo Caching table
@@ -1563,7 +1631,6 @@ class TouchPointWP
     public static function useTribeCalendarPro(): bool
     {
         if ( ! function_exists( 'is_plugin_active' ) ){
-            /** @noinspection PhpIncludeInspection */
             require_once(ABSPATH . '/wp-admin/includes/plugin.php' );
         }
 
@@ -2393,7 +2460,7 @@ class TouchPointWP
      * @param string $url The destination of the request.
      * @param ?array $parameters URL parameters to be added.
      *
-     * @return array An array with headers, body, and other keys on failure.
+     * @return array An array with headers, body, and other keys.
      * @throws TouchPointWP_WPError If there's an issue.
      */
     public function extGet(string $url, ?array $parameters = null): array
