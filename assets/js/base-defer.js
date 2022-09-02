@@ -1100,11 +1100,12 @@ class TP_Involvement extends TP_Mappable {
         tpvm._invNear.nearby = ko.observableArray([]);
         ko.applyBindings(tpvm._invNear, target);
 
-        TP_DataGeo.getLocation(getNearbyGroups, console.error);
+        // continue to next action for either success or failure.
+        TP_DataGeo.getLocation(getNearbyGroups, getNearbyGroups, ['nav']);
 
         function getNearbyGroups() {
             tpvm.getData('inv/nearby', {
-                lat: TP_DataGeo.loc.lat, // TODO reduce double-requesting
+                lat: TP_DataGeo.loc.lat,
                 lng: TP_DataGeo.loc.lng,
                 type: type,
                 limit: count,

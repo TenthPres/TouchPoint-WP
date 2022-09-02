@@ -1154,6 +1154,12 @@ class Involvement implements api, updatesViaCron
             return [];
         }
 
+        if ($_GET['lat'] === "null" || $_GET['lng'] === "null" ||
+            $_GET['lat'] === null || $_GET['lng'] === null) {
+            $_GET['lat'] = null;
+            $_GET['lng'] = null;
+        }
+
         $r = self::getGroupsNear($_GET['lat'], $_GET['lng'], $settings->postType, $_GET['limit']);
 
         if ($r === null) {
