@@ -85,7 +85,7 @@ abstract class Rsvp
             );
 
             // TODO alternatives to meetingid
-            return "<!-- Can't add an RSVP link without a proper Meeting ID in a mtgId parameter. -->" . $content;
+            return "<!-- Can't add an RSVP link without a proper Meeting ID in a meetingId parameter. -->" . $content;
         }
 
         $meetingId  = (int)($params['meetingid']);
@@ -110,7 +110,7 @@ abstract class Rsvp
             TouchPointWP::requireScript('meeting-defer');
             TouchPointWP::enqueueActionsStyle('rsvp');
 
-            return "<a href=\"#\" onclick=\"return false;\" $class disabled\" data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$content</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
+            return "<a href=\"#\" onclick=\"return false;\" $class disabled data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$content</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
         }
     }
 
