@@ -1156,8 +1156,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         foreach ($people as $p) {
             $ret[] = [
                 'goesBy' => $p->GoesBy,
-                'lastName' => $p->LastName[0] ? $p->LastName[0] . "." : "",
-                'displayName' => trim($p->GoesBy . " " . ($p->LastName[0] ? $p->LastName[0] . "." : "")),
+                'lastName' => strlen($p->LastName) > 0 ? $p->LastName[0] . "." : "",
+                'displayName' => trim($p->GoesBy . " " . (strlen($p->LastName) > 0 ? $p->LastName[0] . "." : "")),
                 'familyId' => $p->FamilyId,
                 'peopleId' => $p->PeopleId
             ];
