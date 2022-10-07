@@ -38,6 +38,7 @@ class Involvement implements api, updatesViaCron
     public const SHORTCODE_NEARBY = TouchPointWP::SHORTCODE_PREFIX . "Inv-Nearby";
     public const SHORTCODE_ACTIONS = TouchPointWP::SHORTCODE_PREFIX . "Inv-Actions";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
+    public const CRON_OFFSET = 86400 + 3600;
     protected static bool $_hasUsedMap = false;
     protected static bool $_hasArchiveMap = false;
     private static array $_instances = [];
@@ -270,14 +271,31 @@ class Involvement implements api, updatesViaCron
         // Register function to return leaders instead of authors
         add_filter('the_author', [self::class, 'filterAuthor'], 10, 3);
         add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 3);
-
-        self::checkUpdates();
     }
 
     public static function checkUpdates(): void
     {
-        // Run cron if it hasn't been run before or is overdue.
-        if (TouchPointWP::instance()->settings->inv_cron_last_run * 1 < time() - 86400 - 3600) {
+        // Return if not overdue.
+        if (TouchPointWP::instance()->settings->inv_cron_last_run * 1 >= time() - self::CRON_OFFSET) {
+            return;
+        }
+
+        // Fork sync to a different process, if supported. (only some linux systems)
+        $forked = false;
+        if (function_exists('pcntl_fork')) {
+            $pid = pcntl_fork();
+            if ($pid >= 0) {
+                // Forking successful.
+                $forked = true;
+
+                if ($pid === 0) {
+                    // Child process.  Parent process will have some PID > 0.
+                    self::updateFromTouchPoint();
+                    exit;
+                }
+            }
+        }
+        if (! $forked) {
             self::updateFromTouchPoint();
         }
     }
@@ -293,6 +311,9 @@ class Involvement implements api, updatesViaCron
     {
         $count = 0;
         $success = true;
+
+        // Prevent other threads from attempting for an hour.
+        TouchPointWP::instance()->settings->set('inv_cron_last_run', time() - self::CRON_OFFSET + 3600);
 
         $verbose &= TouchPointWP::currentUserIsAdmin();
 
@@ -318,6 +339,8 @@ class Involvement implements api, updatesViaCron
 
         if ($success && $count !== 0) {
             TouchPointWP::instance()->settings->set('inv_cron_last_run', time());
+        } else {
+            TouchPointWP::instance()->settings->set('inv_cron_last_run', 0);
         }
 
         if ($verbose) {
@@ -1572,7 +1595,7 @@ class Involvement implements api, updatesViaCron
     {
         $siteTz = wp_timezone();
 
-        set_time_limit(60);
+        set_time_limit(180);
 
         $qOpts = [];
 
@@ -1590,7 +1613,7 @@ class Involvement implements api, updatesViaCron
             $response = TouchPointWP::instance()->apiGet(
                 "InvsForDivs",
                 array_merge($qOpts, ['divs' => $divs]),
-                30
+                180
             );
         } catch (TouchPointWP_Exception $e) {
             return false;

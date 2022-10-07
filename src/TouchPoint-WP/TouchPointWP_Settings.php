@@ -695,7 +695,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 'description' => __('Integrate with The Events Calendar from ModernTribe.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
                     [
-                        'id'          => 'copy-app-endpoint-address',
+                        'id'          => 'ec_app_cal_url',
                         'label'       => __('Events for Custom Mobile App', 'TouchPoint-WP'),
                         'type'    => 'instructions',
                         'description' => strtr(
