@@ -51,7 +51,7 @@ class TouchPointWP_AdminAPI implements api {
                 }
                 exit;
 
-            case "scriptupdate":
+            case "script-update":
                 if (!TouchPointWP::currentUserIsAdmin()) {
                     return false;
                 }
@@ -64,17 +64,18 @@ class TouchPointWP_AdminAPI implements api {
                 exit;
 
             case "debug-enable":
-                if (!TouchPointWP::currentUserIsAdmin()) {
-                    return false;
+                if (TouchPointWP::currentUserIsAdmin()) {
+                    echo self::setDebug(true) ? "Success" : "Failure";
+                    exit;
                 }
-                update_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "true", false);
-                exit;
+                return false;
+
             case "debug-disable":
-                if (!TouchPointWP::currentUserIsAdmin()) {
-                    return false;
+                if (TouchPointWP::currentUserIsAdmin()) {
+                    echo self::setDebug(false) ? "Success" : "Failure";
+                    exit;
                 }
-                update_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "", false);
-                exit;
+                return false;
 
             case "force-migrate":
                 if (!TouchPointWP::currentUserIsAdmin()) {
@@ -85,6 +86,20 @@ class TouchPointWP_AdminAPI implements api {
         }
 
         return false;
+    }
+
+    /**
+     * @param bool $debug
+     *
+     * @return bool
+     */
+    protected static function setDebug(bool $debug): bool
+    {
+        $debugSet = $debug ? "true" : "";
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === $debugSet) {
+            return true;
+        }
+        return update_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", $debugSet, false);
     }
 
     /**
