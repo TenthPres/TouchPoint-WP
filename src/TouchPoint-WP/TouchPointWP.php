@@ -26,7 +26,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.15";
+    public const VERSION = "0.0.16";
 
     public const DEBUG = false;
 
@@ -2451,6 +2451,21 @@ class TouchPointWP
         // Error caught by error handling within Python script
         if (property_exists($respDecoded, 'message') && $respDecoded->message !== '') {
             throw new TouchPointWP_Exception($respDecoded->message, 179003);
+        }
+
+        if (!property_exists($respDecoded->data, "VERSION") || $respDecoded->data->VERSION !== self::VERSION) {
+            if (in_array("updateScripts", $respDecoded->data->a ?? [])) {
+                if (class_exists("TouchPointWP_AdminAPI")) {
+                    TouchPointWP_AdminAPI::showError(
+                        __(
+                            "The script on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed.",
+                            self::TEXT_DOMAIN
+                        )
+                    );
+                }
+            } else {
+                self::instance()->settings->updateDeployedScripts();
+            }
         }
 
         return $respDecoded->data;

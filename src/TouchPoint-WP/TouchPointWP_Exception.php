@@ -27,13 +27,25 @@ class TouchPointWP_Exception extends Exception
     {
         parent::__construct($message, $code, $previous);
         if (is_admin() && TouchPointWP::currentUserIsAdmin()) {
-            add_action('admin_notices', fn() => TouchPointWP_AdminAPI::showError($this->getMessage()), 10, 2);
+            TouchPointWP_AdminAPI::showError($this->getMessage());
         }
         error_log($message);
+        self::debugLog($this->getCode(), $this->getFile(), $this->getLine(), $this->getMessage());
+    }
+
+    /**
+     * @param $code
+     * @param $file
+     * @param $line
+     * @param $message
+     *
+     * @return void
+     */
+    public static function debugLog($code, $file, $line, $message) {
         if (TouchPointWP::DEBUG || get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true") {
             file_put_contents(
                 TouchPointWP::$dir . '/TouchPointWP_ErrorLog.txt',
-                time() . "\t" . TouchPointWP::VERSION . "\t" . $this->getCode() . "\t" . $this->getFile() . "#" . $this->getLine() . "\t" . $this->getMessage() . "\n",
+                time() . "\t" . TouchPointWP::VERSION . "\t" . $code . "\t" . $file . "#" . $line . "\t" . $message . "\n",
                 FILE_APPEND | LOCK_EX
             );
         }

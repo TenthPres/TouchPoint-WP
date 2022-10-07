@@ -3,7 +3,7 @@
 import re
 import json
 
-VERSION = "0.0.15"
+VERSION = "0.0.16"
 
 sgContactEvName = "Contact"
 
@@ -929,4 +929,4 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
 
     Data.success = True
 
-#
+Data.VERSION = VERSION
