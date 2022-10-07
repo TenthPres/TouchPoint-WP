@@ -38,6 +38,7 @@ class Involvement implements api, updatesViaCron
     public const SHORTCODE_NEARBY = TouchPointWP::SHORTCODE_PREFIX . "Inv-Nearby";
     public const SHORTCODE_ACTIONS = TouchPointWP::SHORTCODE_PREFIX . "Inv-Actions";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
+    public const CRON_OFFSET = 86400 + 3600;
     protected static bool $_hasUsedMap = false;
     protected static bool $_hasArchiveMap = false;
     private static array $_instances = [];
@@ -270,14 +271,31 @@ class Involvement implements api, updatesViaCron
         // Register function to return leaders instead of authors
         add_filter('the_author', [self::class, 'filterAuthor'], 10, 3);
         add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 3);
-
-        self::checkUpdates();
     }
 
     public static function checkUpdates(): void
     {
-        // Run cron if it hasn't been run before or is overdue.
-        if (TouchPointWP::instance()->settings->inv_cron_last_run * 1 < time() - 86400 - 3600) {
+        // Return if not overdue.
+        if (TouchPointWP::instance()->settings->inv_cron_last_run * 1 >= time() - self::CRON_OFFSET) {
+            return;
+        }
+
+        // Fork sync to a different process, if supported. (only some linux systems)
+        $forked = false;
+        if (function_exists('pcntl_fork')) {
+            $pid = pcntl_fork();
+            if ($pid >= 0) {
+                // Forking successful.
+                $forked = true;
+
+                if ($pid === 0) {
+                    // Child process.  Parent process will have some PID > 0.
+                    self::updateFromTouchPoint();
+                    exit;
+                }
+            }
+        }
+        if (! $forked) {
             self::updateFromTouchPoint();
         }
     }
@@ -293,6 +311,9 @@ class Involvement implements api, updatesViaCron
     {
         $count = 0;
         $success = true;
+
+        // Prevent other threads from attempting for an hour.
+        TouchPointWP::instance()->settings->set('inv_cron_last_run', time() - self::CRON_OFFSET + 3600);
 
         $verbose &= TouchPointWP::currentUserIsAdmin();
 
@@ -318,6 +339,8 @@ class Involvement implements api, updatesViaCron
 
         if ($success && $count !== 0) {
             TouchPointWP::instance()->settings->set('inv_cron_last_run', time());
+        } else {
+            TouchPointWP::instance()->settings->set('inv_cron_last_run', 0);
         }
 
         if ($verbose) {
@@ -834,12 +857,16 @@ class Involvement implements api, updatesViaCron
             return "<!-- A Post Type is required for the Nearby Involvement Shortcode. -->";
         }
 
-        if ($content === '') {
-            // TODO Switch to template, or switch templates to match this.
-            $content = file_get_contents(TouchPointWP::$dir . "/src/templates/parts/involvement-nearby-list-item.html");
-        }
-
         $nearbyListId = wp_unique_id('tp-nearby-list-');
+        $type = $params['type'];
+        $count = $params['count'];
+
+        ob_start();
+        $loadedPart = get_template_part('list-item', 'involvement-nearby-list');
+        if ($loadedPart === false) {
+            require TouchPointWP::$dir . "/src/templates/parts/involvement-nearby-list.php";
+        }
+        $content = ob_get_clean();
 
         $script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/involvement-nearby-inline.js");
 
@@ -853,9 +880,6 @@ class Involvement implements api, updatesViaCron
             $script,
             'after'
         );
-
-
-        $content = "<div class=\"\" id=\"$nearbyListId\" data-bind=\"foreach: nearby\">" . $content . "</div>";
 
         // get any nesting
         return apply_shortcodes($content);
@@ -1146,22 +1170,60 @@ class Involvement implements api, updatesViaCron
     }
 
 
-    public static function ajaxNearby() // TODO this should get some fairly drastic reworking to fit into other existing data structures.
+    /**
+     * Handles the API call to get nearby involvements (probably small groups)
+     */
+    public static function ajaxNearby(): void
     {
         $settings = self::getSettingsForPostType($_GET['type']);
 
         if (! $settings->useGeo) {
-            return [];
+            json_encode([
+                "invList" => [],
+                "error" => __("Error: This involvement type doesn't have geographic locations enabled.")
+            ]);
         }
 
-        $r = self::getGroupsNear($_GET['lat'], $_GET['lng'], $settings->postType, $_GET['limit']);
+        $r = [];
 
-        if ($r === null) {
-            $r = [];
+        if ($_GET['lat'] === "null" || $_GET['lng'] === "null" ||
+            $_GET['lat'] === null || $_GET['lng'] === null) {
+
+            $geoObj = TouchPointWP::instance()->geolocate();
+
+            if ($geoObj === false) {
+                echo json_encode([
+                    "invList" => [],
+                    "error" => __("Error: No Location Available"),
+                    "geo" => false
+                ]);
+                exit;
+            }
+
+            $_GET['lat'] = $geoObj->lat;
+            $_GET['lng'] = $geoObj->lng;
+
+            $r['geo'] = $geoObj;
+
+        } else {
+            $geoObj = TouchPointWP::instance()->reverseGeocode($_GET['lat'], $_GET['lng']);
+
+            if ($geoObj !== false) {
+                $r['geo'] = $geoObj;
+            }
+        }
+
+        $invs = self::getInvsNear($_GET['lat'], $_GET['lng'], $settings->postType, $_GET['limit']);
+
+        if ($invs === null) {
+            json_encode([
+                "invList" => [],
+                "error" => sprintf(esc_html__("No %s found.", TouchPointWP::TEXT_DOMAIN), $settings->namePlural)
+            ]);
         }
 
         $errorMessage = null;
-        foreach ($r as $g) {
+        foreach ($invs as $g) {
             try {
                 $inv        = self::fromObj($g);
                 $g->name    = html_entity_decode($inv->name);
@@ -1171,6 +1233,8 @@ class Involvement implements api, updatesViaCron
                 $errorMessage = $ex->getMessage();
             }
         }
+
+        $r['invList'] = $invs;
 
         if ($errorMessage !== null) {
             $r['error'] = $errorMessage;
@@ -1193,7 +1257,7 @@ class Involvement implements api, updatesViaCron
      * @return object[]|null  An array of database query result objects, or null if the location isn't provided or
      *     valid.
      */
-    private static function getGroupsNear(?float $lat = null, ?float $lng = null, string $postType = null, int $limit = 3): ?array
+    private static function getInvsNear(?float $lat = null, ?float $lng = null, string $postType = null, int $limit = 3): ?array
     {
         if ($lat === null || $lng === null) {
             $geoObj = TouchPointWP::instance()->geolocate();
@@ -1531,7 +1595,7 @@ class Involvement implements api, updatesViaCron
     {
         $siteTz = wp_timezone();
 
-        set_time_limit(60);
+        set_time_limit(180);
 
         $qOpts = [];
 
@@ -1549,7 +1613,7 @@ class Involvement implements api, updatesViaCron
             $response = TouchPointWP::instance()->apiGet(
                 "InvsForDivs",
                 array_merge($qOpts, ['divs' => $divs]),
-                30
+                180
             );
         } catch (TouchPointWP_Exception $e) {
             return false;

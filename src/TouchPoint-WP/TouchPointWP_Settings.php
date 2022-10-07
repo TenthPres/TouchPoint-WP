@@ -26,7 +26,8 @@ if ( ! defined('ABSPATH')) {
  * @property-read string api_pass           Password for a user account with API access
  * @property-read string api_script_name    The name of the script loaded into TouchPoint for API Interfacing
  * @property-read string api_secret_key     The secret key used for the Auth API
- * @property-read string google_maps_api_key Google Maps API Key for embedded maps and such
+ * @property-read string google_maps_api_key Google Maps API Key for embedded maps
+ * @property-read string google_geo_api_key Google Maps API Key for geocoding
  *
  * @property-read array people_contact_keywords Keywords to use for the generic Contact person button.
  * @property-read string people_ev_bio      Extra Value field that should be imported as a User bio.
@@ -317,9 +318,20 @@ class TouchPointWP_Settings
                 ],
                 [
                     'id'          => 'google_maps_api_key',
-                    'label'       => __('Google Maps API Key', 'TouchPoint-WP'),
+                    'label'       => __('Google Maps Javascript API Key', 'TouchPoint-WP'),
                     'description' => __(
                         'Required for embedding maps.',
+                        TouchPointWP::TEXT_DOMAIN
+                    ),
+                    'type'        => 'text',
+                    'default'     => '',
+                    'placeholder' => '',
+                ],
+                [
+                    'id'          => 'google_geo_api_key',
+                    'label'       => __('Google Maps Geocoding API Key', 'TouchPoint-WP'),
+                    'description' => __(
+                        'Optional.  Allows for reverse geocoding of user locations.',
                         TouchPointWP::TEXT_DOMAIN
                     ),
                     'type'        => 'text',
@@ -683,7 +695,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 'description' => __('Integrate with The Events Calendar from ModernTribe.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
                     [
-                        'id'          => 'copy-app-endpoint-address',
+                        'id'          => 'ec_app_cal_url',
                         'label'       => __('Events for Custom Mobile App', 'TouchPoint-WP'),
                         'type'    => 'instructions',
                         'description' => strtr(

@@ -63,6 +63,10 @@ class Partner implements api, JsonSerializable, updatesViaCron
     protected WP_Post $post;
 
     public const FAMILY_META_KEY = TouchPointWP::SETTINGS_PREFIX . "famId";
+
+    /**
+     * @deprecated since 0.0.15
+     */
     public const IMAGE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "imageUrl";
 
     public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "partner";
@@ -472,25 +476,29 @@ class Partner implements api, JsonSerializable, updatesViaCron
             }
 
             // Post image
-            $oldUrl = get_post_meta($post->ID, self::IMAGE_META_KEY, true);
+            global $wpdb;
+            $oldAttId = get_post_thumbnail_id($post->ID);
+            $oldFName = $wpdb->get_var( "SELECT meta_value FROM $wpdb->postmeta WHERE post_id = '$oldAttId' AND meta_key = '_wp_attached_file'" );
+            $oldFName = substr($oldFName, strrpos($oldFName, '/') + 1);
+
             $newUrl = "";
+            $newFName = "";
             if ($f->picture !== null) {
                 $newUrl = $f->picture->large ?? "";
+                $newFName = substr($newUrl, strrpos($newUrl, '/') + 1);
             }
-            $oldAttId = get_post_thumbnail_id($post->ID);
-            if ($oldUrl !== $newUrl) {
+
+            if ($newFName !== $oldFName) {
                 if ($oldAttId > 0) {
                     wp_delete_attachment($oldAttId, true);
-                    delete_post_thumbnail($post->ID);
                 }
-                if ($newUrl === "") { // Remove and delete
-                    delete_post_meta($post->ID, self::IMAGE_META_KEY);
-                } else {
+                if ($newUrl !== "") { // Remove and delete
                     $attId = media_sideload_image($newUrl, $post->ID, $title,'id');
                     set_post_thumbnail($post->ID, $attId);
-                    update_post_meta($post->ID, self::IMAGE_META_KEY, $newUrl);
                 }
             }
+
+            delete_post_meta($post->ID, self::IMAGE_META_KEY); // TODO Remove. Deprecated in 0.0.15
 
             $postsToKeep[] = $post->ID;
 
