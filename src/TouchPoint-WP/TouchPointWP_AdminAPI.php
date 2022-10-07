@@ -63,6 +63,19 @@ class TouchPointWP_AdminAPI implements api {
                 }
                 exit;
 
+            case "debug-enable":
+                if (!TouchPointWP::currentUserIsAdmin()) {
+                    return false;
+                }
+                update_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "true", false);
+                exit;
+            case "debug-disable":
+                if (!TouchPointWP::currentUserIsAdmin()) {
+                    return false;
+                }
+                update_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "", false);
+                exit;
+
             case "force-migrate":
                 if (!TouchPointWP::currentUserIsAdmin()) {
                     return false;

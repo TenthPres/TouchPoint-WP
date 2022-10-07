@@ -28,8 +28,6 @@ class TouchPointWP
      */
     public const VERSION = "0.0.16";
 
-    public const DEBUG = false;
-
     /**
      * The Token
      */
@@ -206,7 +204,8 @@ class TouchPointWP
         $this->assets_dir = trailingslashit(self::$dir) . 'assets';
         $this->assets_url = esc_url(trailingslashit(plugins_url('/assets/', $this->file)));
 
-        $this->script_suffix = defined('SCRIPT_DEBUG') && SCRIPT_DEBUG ? '' : '.min';
+        $debug = get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true";
+        $this->script_suffix = $debug ? '' : '.min';
 
         register_activation_hook($this->file, [$this, 'activation']);
         register_deactivation_hook($this->file, [$this, 'deactivation']);

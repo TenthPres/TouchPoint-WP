@@ -42,7 +42,7 @@ class TouchPointWP_Exception extends Exception
      * @return void
      */
     public static function debugLog($code, $file, $line, $message) {
-        if (TouchPointWP::DEBUG || get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true") {
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true") {
             file_put_contents(
                 TouchPointWP::$dir . '/TouchPointWP_ErrorLog.txt',
                 time() . "\t" . TouchPointWP::VERSION . "\t" . $code . "\t" . $file . "#" . $line . "\t" . $message . "\n",
