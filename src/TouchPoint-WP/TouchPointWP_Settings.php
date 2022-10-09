@@ -515,6 +515,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             TouchPointWP::requireScript("base");
                             TouchPointWP::requireScript("knockout-defer");
                             TouchPointWP::requireScript("select2-defer");
+                            TouchPointWP::requireStyle("select2-css");
 
                             foreach (Involvement_PostTypeSettings::instance() as $it) {
                                 if (is_numeric($it->taskOwner)) {

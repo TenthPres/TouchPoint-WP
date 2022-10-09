@@ -676,11 +676,18 @@ class TouchPointWP
             true
         );
 
+        wp_register_style(
+            self::SHORTCODE_PREFIX . "select2-css",
+            "https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css",
+            [],
+            '4.0.13',
+            'screen'
+        );
         wp_register_script(
             self::SHORTCODE_PREFIX . "select2-defer",
-            "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js",
+            "https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js",
             ['jquery'],
-            '4.1.0',
+            '4.0.13',
             true
         );
 
@@ -721,6 +728,7 @@ class TouchPointWP
     }
 
     private static array $enqueuedScripts = [];
+    private static array $enqueuedStyles = [];
 
     /**
      * Enqueue TouchPoint Scripts.  Also, always adds Base if it hasn't been added yet.
@@ -747,6 +755,23 @@ class TouchPointWP
                 self::$enqueuedScripts[] = $name;
                 wp_enqueue_script(TouchPointWP::SHORTCODE_PREFIX . $name);
             }
+        }
+    }
+
+    /**
+     * Enqueue TouchPoint Styles.
+     *
+     * @param ?string $name
+     */
+    public static function requireStyle(string $name = null): void
+    {
+        if (!apply_filters(TouchPointWP::HOOK_PREFIX . "include_style_" . strtolower($name), true)){
+            return;
+        }
+
+        if ( ! in_array($name, self::$enqueuedStyles)) {
+            self::$enqueuedStyles[] = $name;
+            wp_enqueue_style(TouchPointWP::SHORTCODE_PREFIX . $name);
         }
     }
 
