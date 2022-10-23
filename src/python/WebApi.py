@@ -610,6 +610,7 @@ if ("inv_join" in Data.a and model.HttpMethod == "post"):
     oid = inData['invId']
     keywords = inData['keywords']
     owner = inData['owner']
+    memTypes = inData['leaderTypes']
     if not owner.isnumeric():
         owner = 1
     else:
@@ -618,10 +619,12 @@ if ("inv_join" in Data.a and model.HttpMethod == "post"):
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
+    SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
+    UNION
     SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
-    '''.format(oid, sgContactEvName)
-    orgContactPid = q.QuerySqlTop1(orgContactSql).contactId
-    orgContactPid = orgContactPid if orgContactPid is not None else owner
+    '''.format(oid, sgContactEvName, memTypes)
+    orgContact = q.QuerySqlTop1(orgContactSql)
+    orgContactPid = orgContact.contactId if orgContact is not None else None  # May be None if not found.  Falls back to Owner
 
     Data.success = []
 
@@ -654,6 +657,7 @@ if ("inv_contact" in Data.a and model.HttpMethod == "post"):
     message = inData['message']
     keywords = inData['keywords']
     owner = inData['owner']
+    memTypes = inData['leaderTypes']
     if not owner.isnumeric():
         owner = 1
     else:
@@ -662,10 +666,12 @@ if ("inv_contact" in Data.a and model.HttpMethod == "post"):
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
+    SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
+    UNION
     SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
-    '''.format(oid, sgContactEvName)
-    orgContactPid = q.QuerySqlTop1(orgContactSql).contactId
-    orgContactPid = orgContactPid if orgContactPid is not None else owner
+    '''.format(oid, sgContactEvName, memTypes)
+    orgContact = q.QuerySqlTop1(orgContactSql)
+    orgContactPid = orgContact.contactId if orgContact is not None else None  # May be None if not found.  Falls back to Owner
 
     Data.success = []
 

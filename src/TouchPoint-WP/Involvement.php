@@ -2280,6 +2280,8 @@ class Involvement implements api, updatesViaCron
         if (!!$settings) {
             $inputData->keywords = Utilities::idArrayToIntArray($settings->joinKeywords);
             $inputData->owner = $settings->taskOwner;
+            $lTypes = implode(',', $settings->leaderTypes);
+            $inputData->leaderTypes = str_replace('mt', '', $lTypes);
         }
 
         try {
@@ -2306,6 +2308,8 @@ class Involvement implements api, updatesViaCron
         if (!!$settings) {
             $inputData->keywords = Utilities::idArrayToIntArray($settings->contactKeywords);
             $inputData->owner = $settings->taskOwner;
+            $lTypes = implode(',', $settings->leaderTypes);
+            $inputData->leaderTypes = str_replace('mt', '', $lTypes);
         }
 
         try {
