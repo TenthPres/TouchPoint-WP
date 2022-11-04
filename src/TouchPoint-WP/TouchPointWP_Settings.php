@@ -50,7 +50,6 @@ if ( ! defined('ABSPATH')) {
  *
  * @property-read int|false global_cron_last_run Timestamp of the last time the Partner syncing task ran.  (No setting UI.)
  *
- * @property-read string auth_script_name   DEPRECATED The name of the Python script within TouchPoint
  * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
  * @property-read string auth_change_profile_urls Enabled to indicate the profiles should be located on TouchPoint
  * @property-read string auth_auto_provision Enabled to indicate that new users should be created automatically.
@@ -426,18 +425,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 'title'       => __('Authentication', TouchPointWP::TEXT_DOMAIN),
                 'description' => __('Allow users to log into WordPress using TouchPoint.', TouchPointWP::TEXT_DOMAIN),
                 'fields'      => [
-                    [
-                        'id'          => 'auth_script_name',
-                        'label'       => __('Authentication Script name', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'The filename of the authentication script installed in your TouchPoint database.',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'text',
-                        'default'     => 'WebAuth',
-                        'placeholder' => 'WebAuth',
-                        'callback'    => fn($new) => $this->validation_updateScriptsIfChanged($new, 'auth_script_name'),
-                    ],
                     [
                         'id'          => 'auth_default',
                         'label'       => __('Make TouchPoint the default authentication method.', TouchPointWP::TEXT_DOMAIN),

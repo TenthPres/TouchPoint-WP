@@ -486,10 +486,6 @@ class TouchPointWP_AdminAPI implements api {
             case 'WebApi':
                 $newFn = TouchPointWP::instance()->settings->api_script_name;
                 break;
-
-            case 'WebAuth':
-                $newFn = TouchPointWP::instance()->settings->auth_script_name;
-                break;
         }
 
         $newFn = trim($newFn); // this is necessary.
