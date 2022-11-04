@@ -1250,9 +1250,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             WHERE post_content LIKE '%$oldShortcode%'
         ");
 
-        // Disable Auth until it's properly supported again.
-        $this->set('enable_authentication', '');
-
         // Update version string
         $this->set('version', TouchPointWP::VERSION);
     }

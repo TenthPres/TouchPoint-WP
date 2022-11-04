@@ -7,7 +7,7 @@ VERSION = "0.0.17"
 
 sgContactEvName = "Contact"
 
-ALLOW_UNSECURE = True  # Should always be False in production, because https should be required.
+ALLOW_UNSECURE = True  # TODO Should always be False in production, because https should be required.
 
 def getPersonInfoSql(tableAbbrev):
     return "SELECT DISTINCT {0}.PeopleId AS peopleId, {0}.FamilyId as familyId, {0}.LastName as lastName, COALESCE({0}.NickName, {0}.FirstName) as goesBy, SUBSTRING({0}.LastName, 1, 1) as lastInitial".format(tableAbbrev)
