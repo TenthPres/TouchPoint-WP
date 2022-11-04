@@ -1377,6 +1377,10 @@ class Involvement implements api, updatesViaCron
 
         add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'init']);
 
+        //////////////////
+        /// Shortcodes ///
+        //////////////////
+
         if ( ! shortcode_exists(self::SHORTCODE_MAP)) {
             add_shortcode(self::SHORTCODE_MAP, [self::class, "mapShortcode"]);
         }
@@ -1396,6 +1400,10 @@ class Involvement implements api, updatesViaCron
         if ( ! shortcode_exists(self::SHORTCODE_ACTIONS)) {
             add_shortcode(self::SHORTCODE_ACTIONS, [self::class, "actionsShortcode"]);
         }
+
+        ///////////////
+        /// Syncing ///
+        ///////////////
 
         // Do an update if needed.
         add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'checkUpdates']);

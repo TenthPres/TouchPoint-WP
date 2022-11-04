@@ -3,9 +3,11 @@
 import re
 import json
 
-VERSION = "0.0.16"
+VERSION = "0.0.17"
 
 sgContactEvName = "Contact"
+
+ALLOW_UNSECURE = True  # Should always be False in production, because https should be required.
 
 def getPersonInfoSql(tableAbbrev):
     return "SELECT DISTINCT {0}.PeopleId AS peopleId, {0}.FamilyId as familyId, {0}.LastName as lastName, COALESCE({0}.NickName, {0}.FirstName) as goesBy, SUBSTRING({0}.LastName, 1, 1) as lastInitial".format(tableAbbrev)
@@ -62,10 +64,102 @@ def getPersonInfoForSync(PersonObj):
     p.FamilyId = PersonObj.FamilyId
     p.GenderId = PersonObj.GenderId
     return p
+    
+def handleLogin():
+    pid = 0
+    if (hasattr(model, "UserPeopleId")):
+        pid = model.UserPeopleId
+
+    if pid < 1:
+        model.Title = "Error"
+        model.Header = "Something went wrong."
+        print "<p>User not found.  If you receive this error message again, please email <b>" + model.Setting("AdminMail", "the church staff") + "</b>.</p>"
+
+    else:
+        po = model.GetPerson(pid)
+        p = getPersonInfoForSync(po)
+
+        body = {
+            "p": p
+        }
+
+        # separate method / host / path
+        useSsl = True
+        defaultHost = model.Setting("wp_defaultHost", "")
+        r = Data.r if Data.r != '' else (defaultHost + '/')
+        path = ""
+        if r[0:8].lower() == "https://":
+            r = r[8:]
+        elif r[0:7].lower() == "http://":
+            if ALLOW_UNSECURE:
+                useSsl = False
+            r = r[7:]
+        
+        if not r.__contains__('/'):
+            r = r + "/"
+        [host, path] = r.split('/', 2)
+        host = host.lower()
+        
+        apiSettingKey = "wp_api_" + host.replace(".", "_")
+        apiKey = model.Setting(apiSettingKey, "")
+        
+        headers = {
+            "X-API-KEY": apiKey,
+            "content-type": "application/json"
+        }
+        
+        if apiKey == '':
+            model.Title = "Error"
+            model.Header = "Site not authorized"
+
+            print "<p><b>This site is not authorized to use authentication.</b> (Error 177001)</p>"
+
+        else:
+            if (Data.sToken is not ''):
+                body["sToken"] = Data.sToken  # Note that this key is absent if no value is available.
+    
+            body["linkedRequest"] = True  # TODO CURRENT remove?
+
+            http = "https://" if useSsl else "http://"
+    
+            response = model.RestPostJson(http + host + "/touchpoint-api/auth/token", headers, body)
+    
+            model.Title = "Login"
+            model.Header = "Processing..."
+    
+            try:
+                response = json.loads(response)
+    
+                if ("apiKey" in response) and (model.Setting(apiKey, "") != response["apiKey"]):
+                    model.SetSetting(apiSettingKey, response["apiKey"])
+    
+                if ("wpid" in response and
+                    "wpevk" in response and
+                    model.ExtraValueInt(pid, response["wpevk"]) != response["wpid"]):
+                    model.AddExtraValueInt(pid, response["wpevk"], response["wpid"])
+
+                loginPathSettingKey = "wp_loginPath_" + host.replace(".", "_")
+                loginPath = model.Setting(loginPathSettingKey, "/wp-login.php")
+                redir = http + host + loginPath + '?loginToken=' + response["userLoginToken"]
+    
+                if (path is not ''):
+                    redir += "&redirect_to=" + path
+    
+                print("REDIRECT=" + redir)
+    
+            except:
+                model.Title = "Error"
+                model.Header = "Something went wrong."
+    
+                print "<p>Please email the following error message to <b>" + model.Setting("AdminMail", "the church staff") + "</b>.</p><pre>"
+                print(response)
+                print "</pre>"
 
 Data.a = Data.a.split(',')
+apiCalled = False
 
 if ("Divisions" in Data.a):
+    apiCalled = True
     divSql = '''
     SELECT d.id,
         CONCAT(p.name, ' : ', d.name) as name,
@@ -80,21 +174,25 @@ if ("Divisions" in Data.a):
     Data.divs = q.QuerySql(divSql, {})
 
 if ("ResCodes" in Data.a):
+    apiCalled = True
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.ResidentCode'''
     Data.Title = "All Resident Codes"
     Data.resCodes = q.QuerySql(rcSql, {})
 
 if ("Genders" in Data.a):
+    apiCalled = True
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.Gender'''
     Data.Title = "All Genders"
     Data.genders = q.QuerySql(rcSql, {})
 
 if ("Keywords" in Data.a):
+    apiCalled = True
     kwSql = '''SELECT KeywordId as Id, Code, Description as Name FROM Keyword ORDER BY Code'''
     Data.Title = "All Keywords"
     Data.keywords = q.QuerySql(kwSql, {})
 
 if ("PersonEvFields" in Data.a):
+    apiCalled = True
     pevSql = '''SELECT Field, [Type], count(*) as Count,
                 CONCAT('pev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM PeopleExtra WHERE [Field] NOT LIKE '%_mv'
@@ -103,6 +201,7 @@ if ("PersonEvFields" in Data.a):
     Data.personEvFields = q.QuerySql(pevSql, {})
 
 if ("FamilyEvFields" in Data.a):
+    apiCalled = True
     fevSql = '''SELECT Field, [Type], count(*) as Count,
                 CONCAT('fev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM FamilyExtra WHERE [Field] NOT LIKE '%_mv'
@@ -111,6 +210,7 @@ if ("FamilyEvFields" in Data.a):
     Data.familyEvFields = q.QuerySql(fevSql, {})
 
 if ("SavedSearches" in Data.a):
+    apiCalled = True
     Data.savedSearches = model.DynamicData()
 
     if Data.PeopleId == '':
@@ -140,6 +240,8 @@ if ("SavedSearches" in Data.a):
     Data.Title = "Saved Searches"
 
 if ("InvsForDivs" in Data.a):
+    apiCalled = True
+
     regex = re.compile('[^0-9\,]')
     divs = regex.sub('', Data.divs)
 
@@ -154,7 +256,7 @@ if ("InvsForDivs" in Data.a):
 
     invSql = '''
         WITH cteTargetOrgs as
-        (	
+        (    
         SELECT 
                 o.OrganizationId,
                 o.ParentOrgId as parentInvId,
@@ -285,7 +387,7 @@ if ("InvsForDivs" in Data.a):
         -- join all our ctes together
         SELECT 
             o.[OrganizationId]               AS [involvementId]
-			, o.[parentInvId] 				 AS [parentInvId]
+            , o.[parentInvId]                  AS [parentInvId]
             , o.[LeaderMemberTypeId]         AS [leaderMemberTypeId]
             , o.[Location]                   AS [location]
             , o.[name]                       AS [name]
@@ -364,6 +466,8 @@ if ("InvsForDivs" in Data.a):
     Data.invev = model.SqlListDynamicData(invEvSql) # TODO move to separate request
 
 if ("MemTypes" in Data.a):
+    apiCalled = True
+
     divs = Data.divs or ""
 
     regex = re.compile('[^0-9\,]')
@@ -379,6 +483,7 @@ if ("MemTypes" in Data.a):
     Data.memTypes = model.SqlListDynamicData(memTypeSql)
 
 if ("src" in Data.a and Data.q is not None):
+    apiCalled = True
     if len(Data.q) < 1:
         Data.people = []
 
@@ -485,6 +590,8 @@ else:
 
 
 if ("updateScripts" in Data.a and model.HttpMethod == "post"):
+    apiCalled = True
+
     Data.Title = 'Updating Scripts'
     Data.scriptsUpdated = 0
     for filename, content in inData.items():
@@ -493,6 +600,8 @@ if ("updateScripts" in Data.a and model.HttpMethod == "post"):
     Data.data = None
 
 if ("ident" in Data.a and model.HttpMethod == "post"):
+    apiCalled = True
+
     Data.Title = 'Matching People'
 
     if inData.has_key('firstName') and inData.has_key('lastName') and inData['firstName'] is not None and inData['lastName'] is not None:
@@ -605,6 +714,8 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
         Data.a.append("people_get")
 
 if ("inv_join" in Data.a and model.HttpMethod == "post"):
+    apiCalled = True
+
     Data.Title = 'Adding people to Involvement'
 
     oid = inData['invId']
@@ -650,6 +761,8 @@ They have also been added to your roster as prospective members.  Please move th
             None, False, text, None, None, keywords)
 
 if ("inv_contact" in Data.a and model.HttpMethod == "post"):
+    apiCalled = True
+
     # TODO potentially merge with Join function.  Much of the code is duplicated.
     Data.Title = 'Contacting Involvement Leaders'
 
@@ -690,6 +803,8 @@ if ("inv_contact" in Data.a and model.HttpMethod == "post"):
 
 
 if ("person_wpIds" in Data.a and model.HttpMethod == "post"):
+    apiCalled = True
+
     Data.Title = 'Updating WordPress IDs.'
     Data.success = 0
 
@@ -701,6 +816,8 @@ if ("person_wpIds" in Data.a and model.HttpMethod == "post"):
 
 
 if ("person_contact" in Data.a and model.HttpMethod == "post"):
+    apiCalled = True
+
     # TODO potentially merge with Join function.  Much of the code is duplicated.
     Data.Title = 'Contacting Person'
     inData = model.JsonDeserialize(Data.data).inputData
@@ -725,6 +842,8 @@ if ("person_contact" in Data.a and model.HttpMethod == "post"):
 
 
 if ("mtg" in Data.a and model.HttpMethod == "post"):
+    apiCalled = True
+
     Data.Title = 'Getting Meeting Info'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -752,6 +871,8 @@ if ("mtg" in Data.a and model.HttpMethod == "post"):
 
 
 if ("mtg_rsvp" in Data.a and model.HttpMethod == "post"):
+    apiCalled = True
+
     Data.Title = 'Recording RSVPs'
     inData = model.JsonDeserialize(Data.data).inputData
 
@@ -769,6 +890,8 @@ if ("mtg_rsvp" in Data.a and model.HttpMethod == "post"):
 
 
 if ("people_get" in Data.a and model.HttpMethod == "post"):
+    apiCalled = True
+
     Data.Title = 'People Query'
 
     rules = []
@@ -931,8 +1054,28 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
 
     Data.inData = inData
 
-    Data.rules = rules  # handy for debugging TODO remove, probably.
+    Data.rules = rules  # handy for debugging
 
     Data.success = True
+
+#  Begin login logic
+
+if ("logout" in Data.a and model.HttpMethod == "get"):
+    redir = ""
+    if (hasattr(Data, "r")):
+        redir = Data.r
+
+    model.Title = "Logging out..."
+    model.Header = "Logging out..."
+    model.Script = "<script>document.getElementById('logoutIFrame').onload = function() { window.location = \"" + redir + "\"; }</script>"
+    print "<iframe id=\"logoutIFrame\" src=\"/Account/LogOff/\" style=\"position:absolute; top:-1000px; left:-10000px; width:2px; height:2px;\" ></iframe>"
+
+elif ("login" in Data.a or Data.r != '') and model.HttpMethod == "get" :  # r parameter implies desired redirect after a login.
+    handleLogin()
+
+elif (apiCalled == False):
+    model.Title = "Invalid Request"
+    model.Header = "Invalid Request"
+    print "<p>This script can only be called with specific parameters.</p>"
 
 Data.VERSION = VERSION

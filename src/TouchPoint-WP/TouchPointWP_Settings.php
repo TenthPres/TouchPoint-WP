@@ -19,7 +19,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string enable_rsvp        Whether the RSVP module is included.
  * @property-read string enable_global      Whether to import Global partners.
  *
- * @property-read string host               The domain for the TouchPoint instance
+ * @property-read string|float host         The domain for the TouchPoint instance
  * @property-read string host_deeplink      The domain for mobile deep linking to the Custom Mobile App
  * @property-read string system_name        What the church calls TouchPoint
  * @property-read string api_user           Username of a user account with API access
@@ -50,7 +50,7 @@ if ( ! defined('ABSPATH')) {
  *
  * @property-read int|false global_cron_last_run Timestamp of the last time the Partner syncing task ran.  (No setting UI.)
  *
- * @property-read string auth_script_name   The name of the Python script within TouchPoint
+ * @property-read string auth_script_name   DEPRECATED The name of the Python script within TouchPoint
  * @property-read string auth_default       Enabled when TouchPoint should be used as the primary authentication method
  * @property-read string auth_change_profile_urls Enabled to indicate the profiles should be located on TouchPoint
  * @property-read string auth_auto_provision Enabled to indicate that new users should be created automatically.
@@ -524,7 +524,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                             }
 
                             ob_start();
-                            /** @noinspection PhpIncludeInspection */
                             include TouchPointWP::$dir . "/src/templates/admin/invKoForm.php";
                             return ob_get_clean();
                         },

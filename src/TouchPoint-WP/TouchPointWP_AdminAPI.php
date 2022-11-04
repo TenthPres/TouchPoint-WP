@@ -7,6 +7,10 @@ namespace tp\TouchPointWP;
 use WP_Post;
 use ZipArchive;
 
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'api.php';
+}
+
 if ( ! defined('ABSPATH')) {
     exit;
 }
@@ -505,7 +509,7 @@ class TouchPointWP_AdminAPI implements api {
         add_action('admin_notices',
             function() use ($message) {
                 $class = 'notice notice-error';
-                printf( '<div class="%1$s"><p><b>TouchPoint-WP:</b> %2$s</p></div>', esc_attr($class), esc_html($message));
+                printf( '<div class="%1$s"><p><b>TouchPoint-WP:</b> %2$s</p></div>', esc_attr($class), $message);
             }, 10, 2
         );
 

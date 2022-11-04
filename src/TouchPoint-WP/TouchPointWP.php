@@ -26,7 +26,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.16";
+    public const VERSION = "0.0.17";
 
     /**
      * The Token
@@ -48,6 +48,7 @@ class TouchPointWP
     public const API_ENDPOINT_PERSON = "person";
     public const API_ENDPOINT_MEETING = "mtg";
     public const API_ENDPOINT_ADMIN = "admin";
+    public const API_ENDPOINT_AUTH = "auth";
     public const API_ENDPOINT_ADMIN_SCRIPTZIP = "admin/scriptzip";
     public const API_ENDPOINT_CLEANUP = "cleanup";
     public const API_ENDPOINT_GEOLOCATE = "geolocate";
@@ -360,7 +361,6 @@ class TouchPointWP
             if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_APP_EVENTS &&
                 TouchPointWP::useTribeCalendar()
             ) {
-
                 if (!EventsCalendar::api($reqUri)) {
                     return $continue;
                 }
@@ -394,6 +394,15 @@ class TouchPointWP
             // Meeting endpoints
             if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_MEETING) {
                 if (!Meeting::api($reqUri)) {
+                    return $continue;
+                }
+            }
+            
+            // Auth endpoints
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_AUTH &&
+                $this->settings->enable_authentication === "on"
+            ) {
+                if (!Auth::api($reqUri)) {
                     return $continue;
                 }
             }
@@ -571,7 +580,7 @@ class TouchPointWP
             if (!TOUCHPOINT_COMPOSER_ENABLED) {
                 require_once 'Auth.php';
             }
-            $instance->auth = Auth::load($instance);
+            $instance->auth = Auth::load();
         }
 
         // Load RSVP tool if enabled.
@@ -1506,32 +1515,6 @@ class TouchPointWP
     }
 
     /**
-     * Get a random string with a timestamp on the end.
-     *
-     * @param int $timeout How long the token should last.
-     *
-     * @return string
-     */
-    public static function generateAntiForgeryId(int $timeout): string
-    {
-        return strtolower(substr(com_create_guid(), 1, 36) . "-" . dechex(time() + $timeout));
-    }
-
-    /**
-     * @param string $afId Anti-forgery ID.
-     *
-     * @param int    $timeout
-     *
-     * @return bool True if the timestamp hasn't expired yet.
-     */
-    public static function AntiForgeryTimestampIsValid(string $afId, int $timeout): bool
-    {
-        $afIdTime = hexdec(substr($afId, 37));
-
-        return ($afIdTime <= time() + $timeout) && $afIdTime >= time();
-    }
-
-    /**
      * Load plugin localisation
      */
     public function load_localisation()
@@ -1745,7 +1728,7 @@ class TouchPointWP
      */
     public function replaceApiKey(): string
     {
-        return $this->settings->set('api_secret_key', com_create_guid());
+        return $this->settings->set('api_secret_key', Utilities::createGuid());
     }
 
     /**

@@ -14,7 +14,7 @@ Plugin Name:        TouchPoint WP
 Plugin URI:         https://github.com/tenthpres/touchpoint-wp
 GitHub Plugin URI:  https://github.com/tenthpres/touchpoint-wp
 Description:        A WordPress Plugin for integrating with TouchPoint Church Management Software.
-Version:            0.0.16
+Version:            0.0.17
 Author:             James K
 Author URI:         https://github.com/jkrrv
 License:            AGPLv3+
@@ -28,47 +28,6 @@ namespace tp\TouchPointWP;
 // die if called directly.
 if ( ! defined('WPINC')) {
     die;
-}
-
-/*** Utility functions ***/
-
-if ( ! function_exists('com_create_guid')) {
-    /**
-     * Generates a Microsoft-friendly globally unique identifier ( Guid ).
-     *
-     * @deprecated TODO at least move to Utils
-     *
-     * @return string A new random globally unique identifier.
-     */
-    function com_create_guid(): string
-    {
-        mt_srand(( double )microtime() * 10000);
-        $char   = strtoupper(md5(uniqid(rand(), true)));
-        $hyphen = chr(45); // "-"
-
-        return chr(123) // "{"
-               . substr($char, 0, 8) . $hyphen
-               . substr($char, 8, 4) . $hyphen
-               . substr($char, 12, 4) . $hyphen
-               . substr($char, 16, 4) . $hyphen
-               . substr($char, 20, 12)
-               . chr(125); // "}"
-    }
-}
-
-
-if ( ! function_exists('getallheaders')) {
-    function getallheaders(): array
-    {
-        $headers = [];
-        foreach ($_SERVER as $name => $value) {
-            if (substr($name, 0, 5) == 'HTTP_') {
-                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
-            }
-        }
-
-        return $headers;
-    }
 }
 
 define("TOUCHPOINT_COMPOSER_ENABLED", file_exists(__DIR__ . '/vendor/autoload.php'));

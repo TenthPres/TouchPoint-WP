@@ -321,4 +321,38 @@ abstract class Utilities
         }
         return $r;
     }
+
+    /**
+     * Generates a Microsoft-friendly globally unique identifier (Guid).
+     *
+     * @return string A new random globally unique identifier.
+     */
+    public static function createGuid(): string
+    {
+        mt_srand(( double )microtime() * 10000);
+        $char   = strtoupper(md5(uniqid(rand(), true)));
+        $hyphen = chr(45); // "-"
+
+        return substr($char, 0, 8) . $hyphen
+               . substr($char, 8, 4) . $hyphen
+               . substr($char, 12, 4) . $hyphen
+               . substr($char, 16, 4) . $hyphen
+               . substr($char, 20, 12);
+    }
+
+    /**
+     * Get all HTTP request headers.
+     *
+     * @return array
+     */
+    public static function getAllHeaders(): array
+    {
+        $headers = [];
+        foreach ($_SERVER as $name => $value) {
+            if (substr($name, 0, 5) == 'HTTP_') {
+                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+            }
+        }
+        return $headers;
+    }
 }
