@@ -422,9 +422,6 @@ class TouchPointWP_AdminAPI implements api {
             if (!in_array('*', $filenames) && !in_array($fn, $filenames)) {
                 continue;
             }
-            if ($fn === 'WebAuth' && in_array('*', $filenames)) {
-                continue;
-            }
 
             $outFn = self::getTpFilenameForRepoFilename($fn);
 

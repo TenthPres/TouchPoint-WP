@@ -7,7 +7,7 @@ VERSION = "0.0.19"
 
 sgContactEvName = "Contact"
 
-ALLOW_UNSECURE = True  # TODO Should always be False in production, because https should be required.
+ALLOW_UNSECURE = (model.Setting('wp_allow_insecure', 'False') == 'True')
 
 def getPersonInfoSql(tableAbbrev):
     return "SELECT DISTINCT {0}.PeopleId AS peopleId, {0}.FamilyId as familyId, {0}.LastName as lastName, COALESCE({0}.NickName, {0}.FirstName) as goesBy, SUBSTRING({0}.LastName, 1, 1) as lastInitial".format(tableAbbrev)
@@ -117,8 +117,6 @@ def handleLogin():
         else:
             if (Data.sToken is not ''):
                 body["sToken"] = Data.sToken  # Note that this key is absent if no value is available.
-    
-            body["linkedRequest"] = True  # TODO CURRENT remove?
 
             http = "https://" if useSsl else "http://"
     
@@ -1057,6 +1055,23 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
     Data.rules = rules  # handy for debugging
 
     Data.success = True
+
+
+if ("auth_key_set" in Data.a and model.HttpMethod == "post"):
+    apiCalled = True
+
+    Data.success = 0
+    
+    if (inData.has_key('apiKey') and inData['apiKey'] != '' and inData.has_key('host') and inData['host'] != ''):
+        Data.Title = 'Updating API Keys'
+        
+        host = inData['host']
+        apiSettingKey = "wp_api_" + host.replace(".", "_")
+        apiKey = model.Setting(apiSettingKey, "")
+        model.SetSetting(apiSettingKey, inData["apiKey"])
+        
+        Data.success += 1
+
 
 #  Begin login logic
 

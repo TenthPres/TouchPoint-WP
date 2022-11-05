@@ -20,6 +20,8 @@ if ( ! defined('ABSPATH')) {
  */
 class TouchPointWP_Exception extends Exception
 {
+    static ?bool $_debugMode = null;
+
     /**
      * Create an exception, and log it where it can be reported to the TouchPoint-WP Developers.
      *
@@ -30,9 +32,9 @@ class TouchPointWP_Exception extends Exception
     public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
-        if (is_admin() && TouchPointWP::currentUserIsAdmin()) { // TODO add a limit to only show under debug conditions
+        if (is_admin() && TouchPointWP::currentUserIsAdmin()) {
             $message = $this->getMessage();
-            if (current_user_can('manage_options')) {
+            if (current_user_can('manage_options') && self::debugMode()) {
                 $message .= "<br />" . $this->getFile() . " @ " . $this->getLine() . "<br />";
                 $message .= str_replace("\n", "<br />", $this->getTraceAsString());
             }
@@ -52,13 +54,27 @@ class TouchPointWP_Exception extends Exception
      */
     public static function debugLog($code, $file, $line, $message): void
     {
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true") {
+        if (self::debugMode()) {
+            $message = str_replace("\n", "<br />", $message);
             file_put_contents(
                 TouchPointWP::$dir . '/TouchPointWP_ErrorLog.txt',
                 time() . "\t" . TouchPointWP::VERSION . "\t" . $code . "\t" . $file . "#" . $line . "\t" . $message . "\n",
                 FILE_APPEND | LOCK_EX
             );
         }
+    }
+
+    /**
+     * Let us know whether we're in debug mode.
+     *
+     * @return bool
+     */
+    protected static function debugMode(): bool
+    {
+        if (self::$_debugMode === null) {
+            self::$_debugMode = get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true";
+        }
+        return self::$_debugMode;
     }
 
     /**

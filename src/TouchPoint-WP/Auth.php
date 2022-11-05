@@ -18,7 +18,7 @@ if ( ! defined('ABSPATH')) {
 abstract class Auth implements api
 {
     protected const LOGIN_TIMEOUT_STANDARD = 30;    // number of seconds during which the user login tokens are valid.
-    protected const LOGIN_TIMEOUT_LINK = 10;        // number of seconds during which the user link tokens are valid.  TODO CURRENT remove?
+    protected const API_KEY_TIMEOUT = 86400;        // How long until an API key needs to be replaced.
     protected const SESSION_TIMEOUT = 600;          // number of seconds during which the login link is valid (amount of time
                                                     // before the login page (silently) expires).
     private static bool $_isLoaded = false;
@@ -72,6 +72,12 @@ abstract class Auth implements api
         ///////////////
         /// Syncing ///
         ///////////////
+
+        if (is_admin()) {
+            try {
+                self::createApiKeyIfNeeded();
+            } catch (TouchPointWP_Exception $e) {}
+        }
 
         return true;
     }
@@ -145,6 +151,8 @@ abstract class Auth implements api
      */
     public static function getLoginUrl(): string
     {
+        self::createApiKeyIfNeeded();
+
         $antiforgeryId = self::generateAntiForgeryId();
 
         $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'auth_sessionToken'] = $antiforgeryId;
@@ -168,6 +176,74 @@ abstract class Auth implements api
     public static function generateAntiForgeryId(): string
     {
         return strtolower(substr(Utilities::createGuid(), 0, 36) . "-" . dechex(time()));
+    }
+
+    /**
+     * @param ?string $key   The api key to test against.  If no key is provided, validates the saved key.
+     * @param ?string $host  The http hostname to use for this key. Will use $_SERVER['HTTP_HOST'] if no value is provided.
+     *
+     * @return string|bool
+     * Returns true if the key is valid.
+     * Returns false is the key is invalid.
+     * Returns a new key if the provided key is valid, but expired. (Does not send it to the server -- that needs to be handled separately.)
+     */
+    public static function validateApiKey(string $key = null, string $host = null)
+    {
+        if ($host === null) {
+            $host = $_SERVER['HTTP_HOST'];
+        }
+
+        $host = str_replace('.', '_', $host);
+        $tpwp = TouchPointWP::instance();
+
+        $k = $tpwp->settings->get('api_key_' . $host);
+        if ($k === false) {
+            return self::replaceApiKey($host);
+        }
+
+        if ($key !== null && $key !== $k) {
+            return false;
+        }
+
+        if (! self::AntiForgeryTimestampIsValid($k, self::API_KEY_TIMEOUT)) {
+            return self::replaceApiKey($host);
+        }
+
+        return true;
+    }
+
+    /**
+     * Generates a key and saves it.
+     *
+     * @param $host
+     *
+     * @return string
+     */
+    public static function replaceApiKey($host): string
+    {
+        $tpwp = TouchPointWP::instance();
+        $host = str_replace('.', '_', $host);
+
+        $key = Auth::generateAntiForgeryId();
+        $tpwp->settings->set('api_key_' . $host, $key);
+        return $key;
+    }
+
+    /**
+     * @return void
+     * @throws TouchPointWP_Exception
+     */
+    private static function createApiKeyIfNeeded(): void
+    {
+        $host = $_SERVER['HTTP_HOST'];
+        $k = self::validateApiKey(null, $host); // will return true or a new key.
+
+        if ($k !== true) { // Only if the saved key is unset or invalid.  (
+            TouchPointWP::instance()->apiPost("auth_key_set", [
+                'apiKey' => $k,
+                'host' => $host
+            ]);
+        }
     }
 
     /**
@@ -371,7 +447,8 @@ abstract class Auth implements api
      */
     protected static function handlePostFromTouchPoint() {
         // Check that the application secret is valid.
-        if (Utilities::getAllHeaders()['X-Api-Key'] !== TouchPointWP::instance()->getApiKey()) {
+        $apiKeyValidation = self::validateApiKey(Utilities::getAllHeaders()['X-Api-Key']);
+        if ($apiKeyValidation === false) {
             $e = new TouchPointWP_Exception(
                 'Access denied.  API Key is not valid.',
                 177005
@@ -385,13 +462,8 @@ abstract class Auth implements api
         $data = json_decode($data);
 
         // Make sure session token is valid
-        if ( ! isset($data->sToken) ||
-             ! self::AntiForgeryTimestampIsValid($data->sToken, self::SESSION_TIMEOUT)) {
-            // invalid or missing.
-
-            if (!isset($data->linkedRequest) || $data->linkedRequest !== true) {
-                throw new TouchPointWP_Exception("No Session Exists", 177006);
-            }
+        if ( ! isset($data->sToken) || ! self::AntiForgeryTimestampIsValid($data->sToken, self::SESSION_TIMEOUT)) {
+            throw new TouchPointWP_Exception("No Session Exists", 177006);
         }
 
         // Get user.  Returns WP_User if one is found or created, false otherwise.
@@ -416,7 +488,9 @@ abstract class Auth implements api
             'wpevk'          => $tpwp->settings->people_ev_wpId
         ];
 
-        // TODO periodically send an updated API Key.
+        if ($apiKeyValidation !== true) {
+            $resp['apiKey'] = $apiKeyValidation;
+        }
 
         $person->setLoginTokens($data->sToken, $userLoginToken);
 

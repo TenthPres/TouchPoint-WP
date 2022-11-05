@@ -25,7 +25,6 @@ if ( ! defined('ABSPATH')) {
  * @property-read string api_user           Username of a user account with API access
  * @property-read string api_pass           Password for a user account with API access
  * @property-read string api_script_name    The name of the script loaded into TouchPoint for API Interfacing
- * @property-read string api_secret_key     The secret key used for the Auth API
  * @property-read string google_maps_api_key Google Maps API Key for embedded maps
  * @property-read string google_geo_api_key Google Maps API Key for geocoding
  *
@@ -1100,6 +1099,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     }
 
     /**
+     * Returns the setting, including default values.  Returns false if the value is undefined.
+     *
      * @param string $what
      *
      * @return false|string|array
@@ -1122,7 +1123,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
      * @param string $what The field to get a value for
      * @param mixed  $default Default value to use.  Defaults to UNDEFINED_PLACEHOLDER
      *
-     * @return mixed  The value, if set.  False if not set.
+     * @return mixed  The value, if set.  UNDEFINED_PLACEHOLDER if not set.
      */
     protected function getWithoutDefault(string $what, $default = self::UNDEFINED_PLACEHOLDER)
     {
@@ -1237,6 +1238,14 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             WHERE post_content LIKE '%$oldShortcode%'
         ");
 
+
+        // 0.0.19 - Rebuilding Authentication
+        // Remove old API key
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . "api_secret_key", self::UNDEFINED_PLACEHOLDER)
+            !== self::UNDEFINED_PLACEHOLDER) {
+            delete_option(TouchPointWP::SETTINGS_PREFIX . 'api_secret_key');
+        }
+
         // Update version string
         $this->set('version', TouchPointWP::VERSION);
     }
@@ -1250,9 +1259,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     public function updateDeployedScripts(): void
     {
         $scripts = ["WebApi"];
-        if (TouchPointWP::instance()->settings->enable_authentication === 'on') {
-            $scripts[] = "WebAuth";
-        }
 
         $scriptContent = TouchPointWP::instance()->admin()->generatePython(false, $scripts);
         $data = TouchPointWP::instance()->apiPost('updateScripts', $scriptContent, 60);

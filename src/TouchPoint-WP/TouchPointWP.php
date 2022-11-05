@@ -571,7 +571,9 @@ class TouchPointWP
 
         if (is_null($instance->settings)) {
             $instance->settings = TouchPointWP_Settings::instance($instance);
-            $instance->checkMigrations();
+            if (is_admin()) {
+                $instance->checkMigrations();
+            }
         }
 
         // Load Auth tool if enabled.
@@ -1702,32 +1704,11 @@ class TouchPointWP
     public function host(): string
     {
         $host = $this->settings->host;
-        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER || $host === '')
+        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER || $host === '') {
             return TouchPointWP_Settings::UNDEFINED_PLACEHOLDER;
-        return "https://" . $host;
-    }
-
-    /**
-     * Get or generate an API key for use with TouchPoint
-     *
-     * @return string
-     */
-    public function getApiKey(): string
-    {
-        $k = $this->settings->get('api_secret_key');
-        if ($k === false) {
-            $k = $this->replaceApiKey();
         }
 
-        return $k;
-    }
-
-    /**
-     * @return string
-     */
-    public function replaceApiKey(): string
-    {
-        return $this->settings->set('api_secret_key', Utilities::createGuid());
+        return "https://" . $host;
     }
 
     /**
