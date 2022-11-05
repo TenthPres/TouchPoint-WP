@@ -3,7 +3,7 @@
 import re
 import json
 
-VERSION = "0.0.18"
+VERSION = "0.0.19"
 
 sgContactEvName = "Contact"
 
@@ -97,7 +97,7 @@ def handleLogin():
         
         if not r.__contains__('/'):
             r = r + "/"
-        [host, path] = r.split('/', 2)
+        [host, path] = r.split('/', 1)
         host = host.lower()
         
         apiSettingKey = "wp_api_" + host.replace(".", "_")
