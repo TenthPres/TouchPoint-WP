@@ -695,7 +695,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
      * @param bool  $verbose
      * @param bool  $deferTPUpdate
      *
-     * @return ?Person The updated person
+     * @return ?Person The updated person, or null if no user was found/updated.
      */
     public static function updatePersonFromApiData($pData, bool $verbose = false, bool $deferTPUpdate = false): ?Person
     {
@@ -740,16 +740,14 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         }
 
         // Create new person
-        if ($person === null) {
-            if (self::createUsers()) {
-                // Provision a new user, since we were unsuccessful in finding one.
-                set_time_limit(60);
-                $uid = wp_create_user(self::generateUserName($pData), Utilities::createGuid()); // Email addresses are imported/updated later, which prevents notification emails.
-                if (is_numeric($uid)) { // user was successfully generated.
-                    update_user_option($uid, 'created_by', 'TouchPoint-WP', true);
-                    update_user_option($uid, self::META_PEOPLEID, $pData->PeopleId, true);
-                    $person = new Person($uid);
-                }
+        if ($person === null && self::createUsers()) {
+            // Provision a new user, since we were unsuccessful in finding one.
+            set_time_limit(60);
+            $uid = wp_create_user(self::generateUserName($pData), Utilities::createGuid()); // Email addresses are imported/updated later, which prevents notification emails.
+            if (is_numeric($uid)) { // user was successfully generated.
+                update_user_option($uid, 'created_by', 'TouchPoint-WP', true);
+                update_user_option($uid, self::META_PEOPLEID, $pData->PeopleId, true);
+                $person = new Person($uid);
             }
         }
 

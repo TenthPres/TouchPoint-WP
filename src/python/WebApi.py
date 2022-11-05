@@ -2,12 +2,23 @@
 
 import re
 import json
+import linecache
+import sys
 
 VERSION = "0.0.19"
 
 sgContactEvName = "Contact"
 
-ALLOW_UNSECURE = (model.Setting('wp_allow_insecure', 'False') == 'True')
+ALLOW_UNSECURE = (model.Setting('wp_allow_insecure', 'false').lower() == 'true')
+
+def PrintException():  # From https://stackoverflow.com/a/20264059/2339939
+    exc_type, exc_obj, tb = sys.exc_info()
+    f = tb.tb_frame
+    lineno = tb.tb_lineno
+    filename = f.f_code.co_filename
+    linecache.checkcache(filename)
+    line = linecache.getline(filename, lineno, f.f_globals)
+    print 'EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj)
 
 def getPersonInfoSql(tableAbbrev):
     return "SELECT DISTINCT {0}.PeopleId AS peopleId, {0}.FamilyId as familyId, {0}.LastName as lastName, COALESCE({0}.NickName, {0}.FirstName) as goesBy, SUBSTRING({0}.LastName, 1, 1) as lastInitial".format(tableAbbrev)
@@ -99,7 +110,7 @@ def handleLogin():
                     useSsl = False
                 else:
                     response = "This request was made for http.  Https is required."
-                    raise Exception()
+                    raise Exception("This request was made for http.  Https is required.")
                 r = r[7:]
 
             if not r.__contains__('/'):
@@ -128,36 +139,48 @@ def handleLogin():
                 http = "https://" if useSsl else "http://"
 
                 response = model.RestPostJson(http + host + "/touchpoint-api/auth/token", headers, body)
+                response = response.replace('﻿', '').strip()  # because apparently whitespaces are inserted on some servers
 
                 model.Title = "Login"
                 model.Header = "Processing..."
 
                 response = json.loads(response)
-    
-                if ("apiKey" in response) and (model.Setting(apiKey, "") != response["apiKey"]):
-                    model.SetSetting(apiSettingKey, response["apiKey"])
-    
-                if ("wpid" in response and
-                    "wpevk" in response and
-                    model.ExtraValueInt(pid, response["wpevk"]) != response["wpid"]):
-                    model.AddExtraValueInt(pid, response["wpevk"], response["wpid"])
 
-                loginPathSettingKey = "wp_loginPath_" + host.replace(".", "_")
-                loginPath = model.Setting(loginPathSettingKey, "/wp-login.php")
-                redir = http + host + loginPath + '?loginToken=' + response["userLoginToken"]
+                if ("error" in response):
+                    if (response['error']['code'] == 177006):
+                        print "Your login session has expired.  Try again."
+                        model.Header = "Session Expired"
+                    else:
+                        raise Exception(response['error']['message'])
+                    
+                else:
+                    if ("apiKey" in response) and (model.Setting(apiKey, "") != response["apiKey"]):
+                        model.SetSetting(apiSettingKey, response["apiKey"])
+        
+                    if ("wpid" in response and
+                        "wpevk" in response and
+                        model.ExtraValueInt(pid, response["wpevk"]) != response["wpid"]):
+                        model.AddExtraValueInt(pid, response["wpevk"], response["wpid"])
     
-                if (path is not ''):
-                    redir += "&redirect_to=" + path
-    
-                print("REDIRECT=" + redir)
+                    loginPathSettingKey = "wp_loginPath_" + host.replace(".", "_")
+                    loginPath = model.Setting(loginPathSettingKey, "/wp-login.php")
+                    redir = http + host + loginPath + '?loginToken=' + response["userLoginToken"]
+        
+                    if (path is not ''):
+                        redir += "&redirect_to=" + path
+        
+                    print("REDIRECT=" + redir)
 
-        except:
+        except Exception as e:
             model.Title = "Error"
             model.Header = "Something went wrong."
 
             print "<p>Please email the following error message to <b>" + model.Setting("AdminMail", "the church staff") + "</b>.</p><pre>"
             print(response)
             print "</pre>"
+            print "<!-- Exception Raised: "
+            PrintException()
+            print " -->"
 
 Data.a = Data.a.split(',')
 apiCalled = False
