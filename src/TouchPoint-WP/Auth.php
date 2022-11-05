@@ -442,60 +442,62 @@ abstract class Auth implements api
      * Handles the data POSTed by TouchPoint at the start of a login transaction
      *
      * @return void
-     *
-     * @throws TouchPointWP_Exception
      */
     protected static function handlePostFromTouchPoint() {
-        // Check that the application secret is valid.
-        $apiKeyValidation = self::validateApiKey(Utilities::getAllHeaders()['X-Api-Key']);
-        if ($apiKeyValidation === false) {
-            $e = new TouchPointWP_Exception(
-                'Access denied.  API Key is not valid.',
-                177005
-            );
+        try {
+            // Check that the application secret is valid.
+            $apiKeyValidation = self::validateApiKey(Utilities::getAllHeaders()['X-Api-Key']);
+            if ($apiKeyValidation === false) {
+                throw new TouchPointWP_Exception(
+                    'Access denied.  API Key is not valid.',
+                    177005
+                );
+            }
+
+            // Get data POSTed by TouchPoint
+            $data = file_get_contents('php://input');
+            $data = json_decode($data);
+
+            // Make sure session token is valid
+            if ( ! isset($data->sToken) || ! self::AntiForgeryTimestampIsValid($data->sToken, self::SESSION_TIMEOUT)) {
+                throw new TouchPointWP_Exception("No Session Exists", 177006);
+            }
+
+            // Get user.  Returns WP_User if one is found or created, false otherwise.
+            $person = Person::updatePersonFromApiData($data->p);
+
+            if ($person === null) {
+                throw new TouchPointWP_Exception(
+                    'No user account found.  If you\'re a site administrator, consider enabling auto-provisioning.',
+                    177007
+                );
+            }
+
+            // Generate login token and response.
+            $userLoginToken = self::generateAntiForgeryId();
+            $tpwp           = TouchPointWP::instance();
+
+            /** @noinspection SpellCheckingInspection */
+            $resp = [
+                'status'         => 'success',
+                'userLoginToken' => $userLoginToken,
+                'wpid'           => $person->ID,
+                'wpevk'          => $tpwp->settings->people_ev_wpId
+            ];
+
+            if ($apiKeyValidation !== true) {
+                $resp['apiKey'] = $apiKeyValidation;
+            }
+
+            $person->setLoginTokens($data->sToken, $userLoginToken);
+
+            echo json_encode($resp);
+
+            exit(0);
+
+        } catch (TouchPointWP_Exception $e) {
             echo $e->toJson();
-            die();
+            exit(1);
         }
-
-        // Get data POSTed by TouchPoint
-        $data = file_get_contents('php://input');
-        $data = json_decode($data);
-
-        // Make sure session token is valid
-        if ( ! isset($data->sToken) || ! self::AntiForgeryTimestampIsValid($data->sToken, self::SESSION_TIMEOUT)) {
-            throw new TouchPointWP_Exception("No Session Exists", 177006);
-        }
-
-        // Get user.  Returns WP_User if one is found or created, false otherwise.
-        $person = Person::updatePersonFromApiData($data->p);
-
-        if ($person === null) {
-            throw new TouchPointWP_Exception(
-                'No user account found.  If you\'re a site administrator, consider enabling auto-provisioning.',
-                177007
-            );
-        }
-
-        // Generate login token and response.
-        $userLoginToken = self::generateAntiForgeryId();
-        $tpwp = TouchPointWP::instance();
-
-        /** @noinspection SpellCheckingInspection */
-        $resp = [
-            'status'         => 'success',
-            'userLoginToken' => $userLoginToken,
-            'wpid'           => $person->ID,
-            'wpevk'          => $tpwp->settings->people_ev_wpId
-        ];
-
-        if ($apiKeyValidation !== true) {
-            $resp['apiKey'] = $apiKeyValidation;
-        }
-
-        $person->setLoginTokens($data->sToken, $userLoginToken);
-
-        echo json_encode($resp);
-
-        exit(0);
     }
 }

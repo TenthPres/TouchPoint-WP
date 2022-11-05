@@ -83,49 +83,55 @@ def handleLogin():
             "p": p
         }
 
-        # separate method / host / path
-        useSsl = True
-        defaultHost = model.Setting("wp_defaultHost", "")
-        r = Data.r if Data.r != '' else (defaultHost + '/')
-        path = ""
-        if r[0:8].lower() == "https://":
-            r = r[8:]
-        elif r[0:7].lower() == "http://":
-            if ALLOW_UNSECURE:
-                useSsl = False
-            r = r[7:]
-        
-        if not r.__contains__('/'):
-            r = r + "/"
-        [host, path] = r.split('/', 1)
-        host = host.lower()
-        
-        apiSettingKey = "wp_api_" + host.replace(".", "_")
-        apiKey = model.Setting(apiSettingKey, "")
-        
-        headers = {
-            "X-API-KEY": apiKey,
-            "content-type": "application/json"
-        }
-        
-        if apiKey == '':
-            model.Title = "Error"
-            model.Header = "Site not authorized"
+        response = ""
 
-            print "<p><b>This site is not authorized to use authentication.</b> (Error 177001)</p>"
+        try:
+            # separate method / host / path
+            useSsl = True
+            error = False
+            defaultHost = model.Setting("wp_defaultHost", "")
+            r = Data.r if Data.r != '' else (defaultHost + '/')
+            path = ""
+            if r[0:8].lower() == "https://":
+                r = r[8:]
+            elif r[0:7].lower() == "http://":
+                if ALLOW_UNSECURE:
+                    useSsl = False
+                else:
+                    response = "This request was made for http.  Https is required."
+                    raise Exception()
+                r = r[7:]
 
-        else:
-            if (Data.sToken is not ''):
-                body["sToken"] = Data.sToken  # Note that this key is absent if no value is available.
+            if not r.__contains__('/'):
+                r = r + "/"
+            [host, path] = r.split('/', 1)
+            host = host.lower()
 
-            http = "https://" if useSsl else "http://"
-    
-            response = model.RestPostJson(http + host + "/touchpoint-api/auth/token", headers, body)
-    
-            model.Title = "Login"
-            model.Header = "Processing..."
-    
-            try:
+            apiSettingKey = "wp_api_" + host.replace(".", "_")
+            apiKey = model.Setting(apiSettingKey, "")
+
+            headers = {
+                "X-API-KEY": apiKey,
+                "content-type": "application/json"
+            }
+
+            if apiKey == '':
+                model.Title = "Error"
+                model.Header = "Site not authorized"
+
+                print "<p><b>This site is not authorized to use authentication.</b> (Error 177001)</p>"
+
+            else:
+                if (Data.sToken is not ''):
+                    body["sToken"] = Data.sToken  # Note that this key is absent if no value is available.
+
+                http = "https://" if useSsl else "http://"
+
+                response = model.RestPostJson(http + host + "/touchpoint-api/auth/token", headers, body)
+
+                model.Title = "Login"
+                model.Header = "Processing..."
+
                 response = json.loads(response)
     
                 if ("apiKey" in response) and (model.Setting(apiKey, "") != response["apiKey"]):
@@ -144,14 +150,14 @@ def handleLogin():
                     redir += "&redirect_to=" + path
     
                 print("REDIRECT=" + redir)
-    
-            except:
-                model.Title = "Error"
-                model.Header = "Something went wrong."
-    
-                print "<p>Please email the following error message to <b>" + model.Setting("AdminMail", "the church staff") + "</b>.</p><pre>"
-                print(response)
-                print "</pre>"
+
+        except:
+            model.Title = "Error"
+            model.Header = "Something went wrong."
+
+            print "<p>Please email the following error message to <b>" + model.Setting("AdminMail", "the church staff") + "</b>.</p><pre>"
+            print(response)
+            print "</pre>"
 
 Data.a = Data.a.split(',')
 apiCalled = False
