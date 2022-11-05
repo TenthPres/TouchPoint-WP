@@ -110,7 +110,7 @@ abstract class Auth implements api
     /**
      * Placeholder for automatic login.
      */
-    public function footer()
+    public static function footer()
     {
         // echo to print in footer
     }
@@ -201,7 +201,7 @@ abstract class Auth implements api
     /**
      * Prevents the admin bar from being displayed for users who can't edit or change anything.
      */
-    public function removeAdminBarMaybe()
+    public static function removeAdminBarMaybe()
     {
         $removeBar = apply_filters(
             TouchPointWP::HOOK_PREFIX . 'prevent_admin_bar',
@@ -247,7 +247,7 @@ abstract class Auth implements api
      *
      * @return string
      */
-    public function overwriteProfileUrl(string $url): string
+    public static function overwriteProfileUrl(string $url): string
     {
         $tpwp = TouchPointWP::instance();
         if ($tpwp->settings->auth_change_profile_urls === 'on') {
