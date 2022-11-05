@@ -22,11 +22,10 @@ if ( ! defined('ABSPATH')) {
  */
 class TouchPointWP
 {
-
     /**
      * Version number
      */
-    public const VERSION = "0.0.17";
+    public const VERSION = "0.0.18";
 
     /**
      * The Token
