@@ -674,7 +674,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         $peopleUpdated = 0;
 
         foreach ($people as $pData) {
-            $peopleUpdated += self::updatePersonFromApiData($pData, $verbose, true);
+            $peopleUpdated += (self::updatePersonFromApiData($pData, $verbose, true) !== null);
 
             set_time_limit(30);
         }
@@ -695,7 +695,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
      * @param bool  $verbose
      * @param bool  $deferTPUpdate
      *
-     * @return ?Person Roughly the number of people records updated in some form.
+     * @return ?Person The updated person
      */
     public static function updatePersonFromApiData($pData, bool $verbose = false, bool $deferTPUpdate = false): ?Person
     {
