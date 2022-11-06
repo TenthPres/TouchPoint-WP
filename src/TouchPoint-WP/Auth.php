@@ -268,7 +268,7 @@ abstract class Auth implements api
             $redirect = false;
         }
 
-        if (self::wantsToLogin() && $redirect) {
+        if (self::wantsToLogin() && $redirect && $_SERVER['REQUEST_METHOD'] === "GET") {
             wp_redirect(self::getLoginUrl());
             die();
         }
