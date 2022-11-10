@@ -22,20 +22,10 @@ def print_exception():  # From https://stackoverflow.com/a/20264059/2339939
     print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj))
 
 
-def get_person_info_sql(table_abbrev):
-    return """SELECT DISTINCT 
-            {0}.PeopleId AS peopleId, 
-            {0}.FamilyId as familyId, 
-            {0}.LastName as lastName, 
-            COALESCE({0}.NickName, {0}.FirstName) as goesBy, 
-            SUBSTRING({0}.LastName, 1, 1) as lastInitial""".format(table_abbrev)
-
-
-def get_person_sort_sql(table_abbrev):
-    return " SUBSTRING({0}.LastName, 1, 1) ASC, COALESCE({0}.NickName, {0}.FirstName) ASC ".format(table_abbrev)
-
-
 def get_person_info_for_sync(person_obj):
+    if person_obj is None:
+        return None
+
     p = model.DynamicData()
     p.Exclude = False
     p.LastName = person_obj.LastName
@@ -89,6 +79,7 @@ def get_person_info_for_sync(person_obj):
 Data.a = Data.a.split(',')
 apiCalled = False
 
+
 if "Divisions" in Data.a:
     apiCalled = True
     divSql = '''
@@ -104,11 +95,13 @@ if "Divisions" in Data.a:
     Data.Title = "All Divisions"
     Data.divs = q.QuerySql(divSql, {})
 
+
 if "ResCodes" in Data.a:
     apiCalled = True
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.ResidentCode'''
     Data.Title = "All Resident Codes"
     Data.resCodes = q.QuerySql(rcSql, {})
+
 
 if "Genders" in Data.a:
     apiCalled = True
@@ -116,11 +109,13 @@ if "Genders" in Data.a:
     Data.Title = "All Genders"
     Data.genders = q.QuerySql(rcSql, {})
 
+
 if "Keywords" in Data.a:
     apiCalled = True
     kwSql = '''SELECT KeywordId as Id, Code, Description as Name FROM Keyword ORDER BY Code'''
     Data.Title = "All Keywords"
     Data.keywords = q.QuerySql(kwSql, {})
+
 
 if "PersonEvFields" in Data.a:
     apiCalled = True
@@ -131,6 +126,7 @@ if "PersonEvFields" in Data.a:
     Data.Title = "Person Extra Value Fields"
     Data.personEvFields = q.QuerySql(pevSql, {})
 
+
 if "FamilyEvFields" in Data.a:
     apiCalled = True
     fevSql = '''SELECT Field, [Type], count(*) as Count,
@@ -139,6 +135,7 @@ if "FamilyEvFields" in Data.a:
                 GROUP BY [Field], [Type] ORDER BY count(*) DESC'''
     Data.Title = "Family Extra Value Fields"
     Data.familyEvFields = q.QuerySql(fevSql, {})
+
 
 if "SavedSearches" in Data.a:
     apiCalled = True
@@ -171,6 +168,7 @@ if "SavedSearches" in Data.a:
     """)
 
     Data.Title = "Saved Searches"
+
 
 if "InvsForDivs" in Data.a:
     apiCalled = True
@@ -399,6 +397,7 @@ if "InvsForDivs" in Data.a:
 
     Data.invev = model.SqlListDynamicData(invEvSql)  # TODO move to separate request
 
+
 if "MemTypes" in Data.a:
     apiCalled = True
 
@@ -416,6 +415,7 @@ if "MemTypes" in Data.a:
     memTypeSql += " ORDER BY description ASC"
 
     Data.memTypes = model.SqlListDynamicData(memTypeSql)
+
 
 if "src" in Data.a and Data.q is not None:
     apiCalled = True
@@ -571,9 +571,9 @@ if "ident" in Data.a and model.HttpMethod == "post":
         # Update Zip code.  Assumes US Zip codes for comparison
         if inData.has_key('zip') and inData['zip'] is not None and len(inData['zip']) > 4:
             if p.Family.ZipCode is not None and len(p.Family.ZipCode) > 0 and "{}".format(p.Family.ZipCode[0:5]) == "{}".format(inData['zip'][0:5]):
-                pass # Family Address already has zip code
+                pass  # Family Address already has zip code
             elif p.ZipCode is not None and len(p.ZipCode) > 0 and "{}".format(p.ZipCode[0:5]) == "{}".format(inData['zip'][0:5]):
-                pass # Person Address already has zip code
+                pass  # Person Address already has zip code
             else:
                 updates['ZipCode'] = "{}".format(inData['zip'])
                 updates['AddressLineOne'] = ""
@@ -585,17 +585,17 @@ if "ident" in Data.a and model.HttpMethod == "post":
         if inData.has_key('phone') and inData['phone'] is not None and len(inData['phone']) > 9:
             cleanPhone = re.sub('[^0-9]', '', inData['phone'])
             if (p.HomePhone == cleanPhone or
-                p.CellPhone == cleanPhone or
-                p.WorkPhone == cleanPhone):
-                pass # Phone already exists somewhere
+                    p.CellPhone == cleanPhone or
+                    p.WorkPhone == cleanPhone):
+                pass  # Phone already exists somewhere
             else:
                 updates['CellPhone'] = cleanPhone
 
         # Update Email
         if inData.has_key('email') and inData['email'] is not None and len(inData['email']) > 5:
             if (p.EmailAddress.lower() == inData['email'].lower() or
-                p.EmailAddress2.lower() == inData['email'].lower()):
-                pass # Email already exists somewhere
+                    p.EmailAddress2.lower() == inData['email'].lower()):
+                pass  # Email already exists somewhere
             elif p.EmailAddress is None or p.EmailAddress == "" or p.SendEmailAddress1 == False:
                 updates['EmailAddress'] = "{}".format(inData['email'])
                 updates['SendEmailAddress1'] = True
@@ -617,7 +617,7 @@ if "ident" in Data.a and model.HttpMethod == "post":
                 JOIN Families f ON p1.FamilyId = f.FamilyId
             WHERE (p1.EmailAddress = '{0}' OR p1.EmailAddress2 = '{0}')
                 AND (p1.ZipCode LIKE '{1}%' OR f.ZipCode LIKE '{1}%')""".format(inData['email'], inData['zip'])
-# TODO add EV Email archive
+        # TODO add EV Email archive
 
         inData['fid'] = q.QuerySqlInts(sql)
 
@@ -802,8 +802,7 @@ if "mtg" in Data.a and model.HttpMethod == "post":
             o.organizationName as invName
     FROM Meetings m LEFT JOIN Organizations o ON m.organizationId = o.organizationId
     WHERE MeetingId IN ({})
-    '''.format(inData.mtgRefs)
-    ):
+    '''.format(inData.mtgRefs)):
         mtg.description = mtg.description.strip()
         if mtg.description == "":
             mtg.description = None
@@ -995,11 +994,8 @@ if "people_get" in Data.a and model.HttpMethod == "post":
             outPeople[grpId]["People"].append(pr)
 
     Data.people = outPeople
-
     Data.inData = inData
-
     Data.rules = rules  # handy for debugging
-
     Data.success = True
 
 
@@ -1043,10 +1039,9 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
 
     else:
         po = model.GetPerson(pid)
-        p = get_person_info_for_sync(po)
 
         body = {
-            "p": p
+            "p": get_person_info_for_sync(po)
         }
 
         response = ""
@@ -1114,9 +1109,8 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
                     if ("apiKey" in response) and (model.Setting(apiKey, "") != response["apiKey"]):
                         model.SetSetting(apiSettingKey, response["apiKey"])
 
-                    if ("wpid" in response and
-                        "wpevk" in response and
-                        model.ExtraValueInt(pid, response["wpevk"]) != response["wpid"]):
+                    if ("wpid" in response and "wpevk" in response and
+                            model.ExtraValueInt(pid, response["wpevk"]) != response["wpid"]):
                         model.AddExtraValueInt(pid, response["wpevk"], response["wpid"])
 
                     loginPathSettingKey = "wp_loginPath_" + host.replace(".", "_")
