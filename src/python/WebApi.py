@@ -9,53 +9,62 @@ VERSION = "0.0.19"
 
 sgContactEvName = "Contact"
 
-ALLOW_UNSECURE = (model.Setting('wp_allow_insecure', 'false').lower() == 'true')
+global model, Data, q
 
-def PrintException():  # From https://stackoverflow.com/a/20264059/2339939
+
+def print_exception():  # From https://stackoverflow.com/a/20264059/2339939
     exc_type, exc_obj, tb = sys.exc_info()
     f = tb.tb_frame
     lineno = tb.tb_lineno
     filename = f.f_code.co_filename
     linecache.checkcache(filename)
     line = linecache.getline(filename, lineno, f.f_globals)
-    print 'EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj)
+    print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj))
 
-def getPersonInfoSql(tableAbbrev):
-    return "SELECT DISTINCT {0}.PeopleId AS peopleId, {0}.FamilyId as familyId, {0}.LastName as lastName, COALESCE({0}.NickName, {0}.FirstName) as goesBy, SUBSTRING({0}.LastName, 1, 1) as lastInitial".format(tableAbbrev)
 
-def getPersonSortSql(tableAbbrev):
-    return " SUBSTRING({0}.LastName, 1, 1) ASC, COALESCE({0}.NickName, {0}.FirstName) ASC ".format(tableAbbrev)
+def get_person_info_sql(table_abbrev):
+    return """SELECT DISTINCT 
+            {0}.PeopleId AS peopleId, 
+            {0}.FamilyId as familyId, 
+            {0}.LastName as lastName, 
+            COALESCE({0}.NickName, {0}.FirstName) as goesBy, 
+            SUBSTRING({0}.LastName, 1, 1) as lastInitial""".format(table_abbrev)
 
-def getPersonInfoForSync(PersonObj):
+
+def get_person_sort_sql(table_abbrev):
+    return " SUBSTRING({0}.LastName, 1, 1) ASC, COALESCE({0}.NickName, {0}.FirstName) ASC ".format(table_abbrev)
+
+
+def get_person_info_for_sync(person_obj):
     p = model.DynamicData()
     p.Exclude = False
-    p.LastName = PersonObj.LastName
-    p.GoesBy = PersonObj.NickName if PersonObj.NickName is not None else PersonObj.FirstName
+    p.LastName = person_obj.LastName
+    p.GoesBy = person_obj.NickName if person_obj.NickName is not None else person_obj.FirstName
     p.DisplayName = " "
     p.DecoupleLocation = False
 
     # Person's Picture
-    if PersonObj.Picture is None:
+    if person_obj.Picture is None:
         p.Picture = None
     else:
         p.Picture = {
-            'large': PersonObj.Picture.LargeUrl,
-            'medium': PersonObj.Picture.MediumUrl,
-            'small': PersonObj.Picture.SmallUrl,
-            'thumb': PersonObj.Picture.ThumbUrl,
-            'x': PersonObj.Picture.X,
-            'y': PersonObj.Picture.Y
+            'large': person_obj.Picture.LargeUrl,
+            'medium': person_obj.Picture.MediumUrl,
+            'small': person_obj.Picture.SmallUrl,
+            'thumb': person_obj.Picture.ThumbUrl,
+            'x': person_obj.Picture.X,
+            'y': person_obj.Picture.Y
         }
 
     # Email addresses
     p.Emails = []
-    if PersonObj.EmailAddress is not None:
-        p.Emails.append(PersonObj.EmailAddress)
-    if PersonObj.EmailAddress2 is not None:
-        p.Emails.append(PersonObj.EmailAddress2)
+    if person_obj.EmailAddress is not None:
+        p.Emails.append(person_obj.EmailAddress)
+    if person_obj.EmailAddress2 is not None:
+        p.Emails.append(person_obj.EmailAddress2)
 
     # Send to WebPublicPerson script
-    model.Data.Person = PersonObj
+    model.Data.Person = person_obj
     model.Data.Info = p
     model.CallScript('WebPublicPerson')
     p = model.Data.Info
@@ -66,126 +75,21 @@ def getPersonInfoForSync(PersonObj):
     if p.Exclude is True:
         return None
 
-    if p.DisplayName == " ": # default DisplayName
+    if p.DisplayName == " ":  # default DisplayName
         p.DisplayName = (p.GoesBy + " " + p.LastName).strip()
 
-    p.Usernames = map(lambda u: u.Username, PersonObj.Users)
+    p.Usernames = map(lambda u: u.Username, person_obj.Users)
 
-    p.PeopleId = PersonObj.PeopleId
-    p.FamilyId = PersonObj.FamilyId
-    p.GenderId = PersonObj.GenderId
+    p.PeopleId = person_obj.PeopleId
+    p.FamilyId = person_obj.FamilyId
+    p.GenderId = person_obj.GenderId
     return p
-    
-def handleLogin():
-    pid = 0
-    if (hasattr(model, "UserPeopleId")):
-        pid = model.UserPeopleId
 
-    if pid < 1:
-        model.Title = "Error"
-        model.Header = "Something went wrong."
-        print "<p>User not found.  If you receive this error message again, please email <b>" + model.Setting("AdminMail", "the church staff") + "</b>.</p>"
-
-    else:
-        po = model.GetPerson(pid)
-        p = getPersonInfoForSync(po)
-
-        body = {
-            "p": p
-        }
-
-        response = ""
-
-        try:
-            # separate method / host / path
-            useSsl = True
-            error = False
-            defaultHost = model.Setting("wp_defaultHost", "")
-            r = Data.r if Data.r != '' else (defaultHost + '/')
-            path = ""
-            if r[0:8].lower() == "https://":
-                r = r[8:]
-            elif r[0:7].lower() == "http://":
-                if ALLOW_UNSECURE:
-                    useSsl = False
-                else:
-                    response = "This request was made for http.  Https is required."
-                    raise Exception("This request was made for http.  Https is required.")
-                r = r[7:]
-
-            if not r.__contains__('/'):
-                r = r + "/"
-            [host, path] = r.split('/', 1)
-            host = host.lower()
-
-            apiSettingKey = "wp_api_" + host.replace(".", "_")
-            apiKey = model.Setting(apiSettingKey, "")
-
-            headers = {
-                "X-API-KEY": apiKey,
-                "content-type": "application/json"
-            }
-
-            if apiKey == '':
-                model.Title = "Error"
-                model.Header = "Site not authorized"
-
-                print "<p><b>This site is not authorized to use authentication.</b> (Error 177001)</p>"
-
-            else:
-                if (Data.sToken is not ''):
-                    body["sToken"] = Data.sToken  # Note that this key is absent if no value is available.
-
-                http = "https://" if useSsl else "http://"
-
-                response = model.RestPostJson(http + host + "/touchpoint-api/auth/token", headers, body)
-                response = response.replace('﻿', '').strip()  # because apparently whitespaces are inserted on some servers
-
-                model.Title = "Login"
-                model.Header = "Processing..."
-
-                response = json.loads(response)
-
-                if ("error" in response):
-                    if (response['error']['code'] == 177006):
-                        print "Your login session has expired.  Try again."
-                        model.Header = "Session Expired"
-                    else:
-                        raise Exception(response['error']['message'])
-                    
-                else:
-                    if ("apiKey" in response) and (model.Setting(apiKey, "") != response["apiKey"]):
-                        model.SetSetting(apiSettingKey, response["apiKey"])
-        
-                    if ("wpid" in response and
-                        "wpevk" in response and
-                        model.ExtraValueInt(pid, response["wpevk"]) != response["wpid"]):
-                        model.AddExtraValueInt(pid, response["wpevk"], response["wpid"])
-    
-                    loginPathSettingKey = "wp_loginPath_" + host.replace(".", "_")
-                    loginPath = model.Setting(loginPathSettingKey, "/wp-login.php")
-                    redir = http + host + loginPath + '?loginToken=' + response["userLoginToken"]
-        
-                    if (path is not ''):
-                        redir += "&redirect_to=" + path
-        
-                    print("REDIRECT=" + redir)
-
-        except Exception as e:
-            model.Title = "Error"
-            model.Header = "Something went wrong."
-
-            print "<p>Please email the following error message to <b>" + model.Setting("AdminMail", "the church staff") + "</b>.</p><pre>"
-            print(response)
-            print "</pre>"
-            print "<!-- Exception Raised: "
-            PrintException()
-            print " -->"
 
 Data.a = Data.a.split(',')
 apiCalled = False
 
-if ("Divisions" in Data.a):
+if "Divisions" in Data.a:
     apiCalled = True
     divSql = '''
     SELECT d.id,
@@ -200,25 +104,25 @@ if ("Divisions" in Data.a):
     Data.Title = "All Divisions"
     Data.divs = q.QuerySql(divSql, {})
 
-if ("ResCodes" in Data.a):
+if "ResCodes" in Data.a:
     apiCalled = True
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.ResidentCode'''
     Data.Title = "All Resident Codes"
     Data.resCodes = q.QuerySql(rcSql, {})
 
-if ("Genders" in Data.a):
+if "Genders" in Data.a:
     apiCalled = True
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.Gender'''
     Data.Title = "All Genders"
     Data.genders = q.QuerySql(rcSql, {})
 
-if ("Keywords" in Data.a):
+if "Keywords" in Data.a:
     apiCalled = True
     kwSql = '''SELECT KeywordId as Id, Code, Description as Name FROM Keyword ORDER BY Code'''
     Data.Title = "All Keywords"
     Data.keywords = q.QuerySql(kwSql, {})
 
-if ("PersonEvFields" in Data.a):
+if "PersonEvFields" in Data.a:
     apiCalled = True
     pevSql = '''SELECT Field, [Type], count(*) as Count,
                 CONCAT('pev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
@@ -227,7 +131,7 @@ if ("PersonEvFields" in Data.a):
     Data.Title = "Person Extra Value Fields"
     Data.personEvFields = q.QuerySql(pevSql, {})
 
-if ("FamilyEvFields" in Data.a):
+if "FamilyEvFields" in Data.a:
     apiCalled = True
     fevSql = '''SELECT Field, [Type], count(*) as Count,
                 CONCAT('fev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
@@ -236,7 +140,7 @@ if ("FamilyEvFields" in Data.a):
     Data.Title = "Family Extra Value Fields"
     Data.familyEvFields = q.QuerySql(fevSql, {})
 
-if ("SavedSearches" in Data.a):
+if "SavedSearches" in Data.a:
     apiCalled = True
     Data.savedSearches = model.DynamicData()
 
@@ -254,7 +158,9 @@ if ("SavedSearches" in Data.a):
         """.format(Data.PeopleId))
         Data.savedSearches.public = model.SqlListDynamicData("""
             SELECT TOP 100 q.Name, q.QueryId FROM Query q JOIN Users u ON LOWER(q.Owner) = LOWER(u.Username)
-            WHERE (q.IsPublic = 1 AND u.PeopleId <> {0}) AND q.LastRun > DATEADD(DAY, -90, GETDATE()) AND q.Name <> 'Draft'
+            WHERE (q.IsPublic = 1 AND u.PeopleId <> {0}) 
+                AND q.LastRun > DATEADD(DAY, -90, GETDATE()) 
+                AND q.Name <> 'Draft'
             ORDER BY q.Name
         """.format(Data.PeopleId))
 
@@ -266,10 +172,10 @@ if ("SavedSearches" in Data.a):
 
     Data.Title = "Saved Searches"
 
-if ("InvsForDivs" in Data.a):
+if "InvsForDivs" in Data.a:
     apiCalled = True
 
-    regex = re.compile('[^0-9\,]')
+    regex = re.compile('[^0-9,]')
     divs = regex.sub('', Data.divs)
 
     leadMemTypes = Data.leadMemTypes or ""
@@ -306,7 +212,7 @@ if ("InvsForDivs" in Data.a):
                 FORMAT(o.LastMeetingDate, 'yyyy-MM-ddTHH:mm:ss') AS lastMeeting
         FROM dbo.Organizations o
             WHERE o.OrganizationId = (
-                    SELECT MIN(OrgId)
+                    SELECT MIN(OrgId) min
                     FROM dbo.DivOrg do
                     WHERE do.OrgId = o.OrganizationId
                     AND do.DivId IN ({})
@@ -414,7 +320,7 @@ if ("InvsForDivs" in Data.a):
         -- join all our ctes together
         SELECT 
             o.[OrganizationId]               AS [involvementId]
-            , o.[parentInvId]                  AS [parentInvId]
+            , o.[parentInvId]                AS [parentInvId]
             , o.[LeaderMemberTypeId]         AS [leaderMemberTypeId]
             , o.[Location]                   AS [location]
             , o.[name]                       AS [name]
@@ -457,17 +363,18 @@ if ("InvsForDivs" in Data.a):
     groups = model.SqlListDynamicData(invSql)
 
     for g in groups:
-        if g.age_groups != None:
+        if g.age_groups is not None:
             g.age_groups = g.age_groups.split(',')
 
-        if g.divs != None:
+        if g.divs is not None:
             g.divs = g.divs.split(',')
 
-        if g.occurrences != None:
+        if g.occurrences is not None:
+            # noinspection PyUnresolvedReferences
             g.occurrences = g.occurrences.split(' | ')
             uniqueOccurrences = []
             for i, s in enumerate(g.occurrences):
-                if s[0:19] not in uniqueOccurrences: # filter out occurrences provided by both Meetings and Schedules
+                if s[0:19] not in uniqueOccurrences:  # filter out occurrences provided by both Meetings and Schedules
                     uniqueOccurrences.append(s[0:19])
                     g.occurrences[i] = {'dt': s[0:19], 'type': s[20:]}
                 else:
@@ -490,17 +397,18 @@ if ("InvsForDivs" in Data.a):
     invEvSql = '''SELECT DISTINCT [Field], [Type] FROM OrganizationExtra oe
                   LEFT JOIN DivOrg do ON oe.OrganizationId = do.OrgId WHERE DivId IN ({})'''.format(divs)
 
-    Data.invev = model.SqlListDynamicData(invEvSql) # TODO move to separate request
+    Data.invev = model.SqlListDynamicData(invEvSql)  # TODO move to separate request
 
-if ("MemTypes" in Data.a):
+if "MemTypes" in Data.a:
     apiCalled = True
 
     divs = Data.divs or ""
 
-    regex = re.compile('[^0-9\,]')
+    regex = re.compile('[^0-9,]')
     divs = regex.sub('', divs)
 
-    memTypeSql = '''SELECT DISTINCT om.[MemberTypeId] as id, mt.[Code] as code, mt.[Description] as description FROM OrganizationMembers om
+    memTypeSql = '''SELECT DISTINCT om.[MemberTypeId] as id, mt.[Code] as code, mt.[Description] as description 
+                    FROM OrganizationMembers om
                     JOIN DivOrg do ON om.OrganizationId = do.OrgId
                     JOIN lookup.MemberType mt ON om.[MemberTypeId] = mt.[Id]'''
     if divs != "":
@@ -509,8 +417,9 @@ if ("MemTypes" in Data.a):
 
     Data.memTypes = model.SqlListDynamicData(memTypeSql)
 
-if ("src" in Data.a and Data.q is not None):
+if "src" in Data.a and Data.q is not None:
     apiCalled = True
+    sql = None
     if len(Data.q) < 1:
         Data.people = []
 
@@ -520,12 +429,13 @@ if ("src" in Data.a and Data.q is not None):
                  p1.PeopleId,
                  COALESCE(p1.NickName, p1.FirstName) GoesBy,
                  p1.LastName,
-                 SUM(score),
+                 SUM(score) sc,
                  -- logins + attendance
-                 (SELECT COUNT(*) FROM Attend a
+                 (SELECT COUNT(*) sc FROM Attend a
                      WHERE a.PeopleId = p1.PeopleId AND a.MeetingDate > DATEADD(month, -3, GETDATE())) +
-                 (SELECT COUNT(*) FROM ActivityLog al
-                     WHERE ActivityDate > DATEADD(month, -3, GETDATE()) AND LEN(Activity) > 9 AND SUBSTRING(Activity, LEN(Activity) - 8, 9) = 'logged in' AND PeopleId = p1.PeopleId) as partic
+                 (SELECT COUNT(*) sc FROM ActivityLog al
+                     WHERE ActivityDate > DATEADD(month, -3, GETDATE()) AND LEN(Activity) > 9 
+                       AND SUBSTRING(Activity, LEN(Activity) - 8, 9) = 'logged in' AND PeopleId = p1.PeopleId) as partic
              FROM (
                  SELECT p.*, 10 as score FROM People p WHERE CAST(p.PeopleId as CHAR) = '{0}'
                  UNION
@@ -548,12 +458,13 @@ if ("src" in Data.a and Data.q is not None):
                  p1.PeopleId,
                  COALESCE(p1.NickName, p1.FirstName) GoesBy,
                  p1.LastName,
-                 SUM(score),
+                 SUM(score) sc,
                  -- logins + attendance
-                 (SELECT COUNT(*) FROM Attend a 
+                 (SELECT COUNT(*) s1 FROM Attend a 
                      WHERE a.PeopleId = p1.PeopleId AND a.MeetingDate > DATEADD(month, -3, GETDATE())) +
-                 (SELECT COUNT(*) FROM ActivityLog al 
-                     WHERE ActivityDate > DATEADD(month, -3, GETDATE()) AND LEN(Activity) > 9 AND SUBSTRING(Activity, LEN(Activity) - 8, 9) = 'logged in' AND PeopleId = p1.PeopleId) as partic
+                 (SELECT COUNT(*) s2 FROM ActivityLog al 
+                     WHERE ActivityDate > DATEADD(month, -3, GETDATE()) AND LEN(Activity) > 9 
+                       AND SUBSTRING(Activity, LEN(Activity) - 8, 9) = 'logged in' AND PeopleId = p1.PeopleId) as partic
              FROM (
                  SELECT p.*, 10 as score FROM Users u JOIN People p ON u.PeopleId = p.PeopleId WHERE u.Username LIKE '{0}%'
                  UNION
@@ -583,20 +494,25 @@ if ("src" in Data.a and Data.q is not None):
                  p1.PeopleId,
                  COALESCE(p1.NickName, p1.FirstName) GoesBy,
                  p1.LastName,
-                 SUM(score),
+                 SUM(score) sc,
                  -- logins + attendance
-                 (SELECT COUNT(*) FROM Attend a
+                 (SELECT COUNT(*) s1 FROM Attend a
                      WHERE a.PeopleId = p1.PeopleId AND a.MeetingDate > DATEADD(month, -3, GETDATE())) +
-                 (SELECT COUNT(*) FROM ActivityLog al
-                     WHERE ActivityDate > DATEADD(month, -3, GETDATE()) AND LEN(Activity) > 9 AND SUBSTRING(Activity, LEN(Activity) - 8, 9) = 'logged in' AND PeopleId = p1.PeopleId) as partic
+                 (SELECT COUNT(*) s2 FROM ActivityLog al
+                     WHERE ActivityDate > DATEADD(month, -3, GETDATE()) AND LEN(Activity) > 9 
+                       AND SUBSTRING(Activity, LEN(Activity) - 8, 9) = 'logged in' AND PeopleId = p1.PeopleId) as partic
              FROM (
-                 SELECT p.*, 10 as score FROM People p WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') AND p.LastName LIKE '{1}%'
+                 SELECT p.*, 10 as score FROM People p 
+                    WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') AND p.LastName LIKE '{1}%'
                  UNION
-                 SELECT p.*, 8 as score FROM People p WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') AND (p.AltName LIKE '{1}%' OR p.MaidenName LIKE '{1}%')
+                 SELECT p.*, 8 as score FROM People p 
+                    WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') AND (p.AltName LIKE '{1}%' OR p.MaidenName LIKE '{1}%')
                  UNION
-                 SELECT p.*, 5 as score FROM People p WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') OR p.LastName LIKE '{1}%'
+                 SELECT p.*, 5 as score FROM People p 
+                    WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') OR p.LastName LIKE '{1}%'
                  UNION
-                 SELECT p.*, 4 as score FROM People p WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') OR (p.AltName LIKE '{1}%' OR p.MaidenName LIKE '{1}')
+                 SELECT p.*, 4 as score FROM People p 
+                    WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') OR (p.AltName LIKE '{1}%' OR p.MaidenName LIKE '{1}')
              ) p1
              GROUP BY
                  p1.PeopleId,
@@ -605,7 +521,8 @@ if ("src" in Data.a and Data.q is not None):
              ORDER BY SUM(score) DESC, partic DESC
              """.format(first, second)
 
-    Data.people = q.QuerySql(sql)
+    if sql is not None:
+        Data.people = q.QuerySql(sql)
 
 
 # Start POST requests
@@ -616,7 +533,7 @@ else:
     inData = {}
 
 
-if ("updateScripts" in Data.a and model.HttpMethod == "post"):
+if "updateScripts" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
     Data.Title = 'Updating Scripts'
@@ -626,23 +543,23 @@ if ("updateScripts" in Data.a and model.HttpMethod == "post"):
         Data.scriptsUpdated = Data.scriptsUpdated + 1
     Data.data = None
 
-if ("ident" in Data.a and model.HttpMethod == "post"):
+if "ident" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
     Data.Title = 'Matching People'
 
     if inData.has_key('firstName') and inData.has_key('lastName') and inData['firstName'] is not None and inData['lastName'] is not None:
         # more than email and zip
-        
+
         # coalescing.
         dob = None
         if inData.has_key('dob'):
             dob = inData['dob']
-        
+
         email = None
         if inData.has_key('email'):
             email = inData['email']
-        
+
         phone = None
         if inData.has_key('phone'):
             phone = inData['phone']
@@ -700,7 +617,7 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
                 JOIN Families f ON p1.FamilyId = f.FamilyId
             WHERE (p1.EmailAddress = '{0}' OR p1.EmailAddress2 = '{0}')
                 AND (p1.ZipCode LIKE '{1}%' OR f.ZipCode LIKE '{1}%')""".format(inData['email'], inData['zip'])
-            # TODO add EV Email archive
+# TODO add EV Email archive
 
         inData['fid'] = q.QuerySqlInts(sql)
 
@@ -721,7 +638,7 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
         WHERE rf2.rid IN ({})""".format(",".join(map(str, inData['fid'])))
 
         inData['fid'] = q.QuerySqlInts(sql)
-        
+
     elif degreesOfSep == 1 and len(inData['fid']) > 0:
         sql = """SELECT DISTINCT rf1.fid FROM (
             SELECT rf1a.FamilyId fid, rf1a.RelatedFamilyId rid FROM RelatedFamilies rf1a UNION
@@ -740,7 +657,7 @@ if ("ident" in Data.a and model.HttpMethod == "post"):
     if len(inData['fid']) > 0:
         Data.a.append("people_get")
 
-if ("inv_join" in Data.a and model.HttpMethod == "post"):
+if "inv_join" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
     Data.Title = 'Adding people to Involvement'
@@ -762,7 +679,7 @@ if ("inv_join" in Data.a and model.HttpMethod == "post"):
     SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
     '''.format(oid, sgContactEvName, memTypes)
     orgContact = q.QuerySqlTop1(orgContactSql)
-    orgContactPid = orgContact.contactId if orgContact is not None else None  # May be None if not found.  Falls back to Owner
+    orgContactPid = orgContact.contactId if orgContact is not None else None  # None if not found.  Falls back to Owner
 
     Data.success = []
 
@@ -787,7 +704,7 @@ They have also been added to your roster as prospective members.  Please move th
         model.CreateTaskNote(owner, addPeople[0].PeopleId, orgContactPid,
             None, False, text, None, None, keywords)
 
-if ("inv_contact" in Data.a and model.HttpMethod == "post"):
+if "inv_contact" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
     # TODO potentially merge with Join function.  Much of the code is duplicated.
@@ -802,7 +719,7 @@ if ("inv_contact" in Data.a and model.HttpMethod == "post"):
         owner = 1
     else:
         owner = int(owner)
-    
+
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
@@ -811,7 +728,7 @@ if ("inv_contact" in Data.a and model.HttpMethod == "post"):
     SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
     '''.format(oid, sgContactEvName, memTypes)
     orgContact = q.QuerySqlTop1(orgContactSql)
-    orgContactPid = orgContact.contactId if orgContact is not None else None  # May be None if not found.  Falls back to Owner
+    orgContactPid = orgContact.contactId if orgContact is not None else None  # None if not found. Fall back to Owner
 
     Data.success = []
 
@@ -829,7 +746,7 @@ if ("inv_contact" in Data.a and model.HttpMethod == "post"):
     Data.success.append({'pid': p['peopleId'], 'invId': oid, 'cpid': orgContactPid})
 
 
-if ("person_wpIds" in Data.a and model.HttpMethod == "post"):
+if "person_wpIds" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
     Data.Title = 'Updating WordPress IDs.'
@@ -842,7 +759,7 @@ if ("person_wpIds" in Data.a and model.HttpMethod == "post"):
         Data.success += 1
 
 
-if ("person_contact" in Data.a and model.HttpMethod == "post"):
+if "person_contact" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
     # TODO potentially merge with Join function.  Much of the code is duplicated.
@@ -868,15 +785,14 @@ if ("person_contact" in Data.a and model.HttpMethod == "post"):
     Data.success.append({'pid': p.peopleId, 'to': t})
 
 
-if ("mtg" in Data.a and model.HttpMethod == "post"):
+if "mtg" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
     Data.Title = 'Getting Meeting Info'
     inData = model.JsonDeserialize(Data.data).inputData
 
     Data.success = []
-    for mtg in q.QuerySql(
-    '''
+    for mtg in q.QuerySql('''
     SELECT  m.meetingId as mtgId,
             m.organizationId as invId,
             m.location,
@@ -897,7 +813,7 @@ if ("mtg" in Data.a and model.HttpMethod == "post"):
         Data.success.append(mtg)
 
 
-if ("mtg_rsvp" in Data.a and model.HttpMethod == "post"):
+if "mtg_rsvp" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
     Data.Title = 'Recording RSVPs'
@@ -916,7 +832,7 @@ if ("mtg_rsvp" in Data.a and model.HttpMethod == "post"):
             Data.success.append(pid)
 
 
-if ("people_get" in Data.a and model.HttpMethod == "post"):
+if "people_get" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
     Data.Title = 'People Query'
@@ -926,7 +842,7 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
     invsMemSubGroupsToImport = {}
     joiner = "OR"
     if inData.has_key('groupBy'):
-        sort = str(inData['groupBy']) # hypothetically should help speed grouping
+        sort = str(inData['groupBy'])  # hypothetically should help speed grouping
     else:
         sort = ""
 
@@ -943,12 +859,12 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
     # Involvements
     if inData.has_key('inv'):
         for iid in inData['inv']:
-            if inData['inv'][iid]['memTypes'] == None:
+            if inData['inv'][iid]['memTypes'] is None:
                 rules.append("IsMemberOf( Org={} ) = 1".format(iid))
-    
-            if not iid in invsMembershipsToImport:
+
+            if iid not in invsMembershipsToImport:
                 invsMembershipsToImport.append(iid)
-    
+
                 # if inData['inv'][iid]['with_memTypes'] == True:
                 #    invsMemSubGroupsToImport[iid] = inData['inv'][iid]['memTypes']
 
@@ -995,14 +911,15 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
 
     invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
 
-    famGeoSql = """SELECT geo.Longitude, geo.Latitude FROM AddressInfo ai LEFT JOIN Geocodes geo ON ai.FullAddress = geo.Address WHERE ai.FamilyId = {}"""
+    famGeoSql = """SELECT geo.Longitude, geo.Latitude 
+    FROM AddressInfo ai LEFT JOIN Geocodes geo ON ai.FullAddress = geo.Address WHERE ai.FamilyId = {}"""
 
     Data.Context = inData['context']
 
     for po in q.QueryList(rules, sort.lower()):
-        pr = getPersonInfoForSync(po)
+        pr = get_person_info_for_sync(po)
 
-        if pr is None: # Make sure person should not be excluded
+        if pr is None:  # Make sure person should not be excluded
             continue
         if pr.Exclude is True:  # Make sure person should not be excluded if PersonInfo didn't go right.
             continue
@@ -1032,7 +949,7 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
             grpId = getattr(po, inData['groupBy'])
             if not outPeople.has_key(grpId):  # group key does not yet exist.
 
-                if fevSql != '':  # If grouped by family and we have Family EVs to return
+                if fevSql != '':  # If grouped by family, and we have Family EVs to return
                     fevOut = {}
                     for fev in q.QuerySql(fevSql.format(po.FamilyId)):
                         if fev.Type == 'Int':
@@ -1055,7 +972,7 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
                         "FamilyEV": fevOut,
                         "Picture": None
                     }
-                        
+
                     # Family's Picture
                     if po.Family.Picture is not None:
                         outPeople[grpId]['Picture'] = {
@@ -1086,40 +1003,145 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
     Data.success = True
 
 
-if ("auth_key_set" in Data.a and model.HttpMethod == "post"):
+if "auth_key_set" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
     Data.success = 0
-    
-    if (inData.has_key('apiKey') and inData['apiKey'] != '' and inData.has_key('host') and inData['host'] != ''):
+
+    if inData.has_key('apiKey') and inData['apiKey'] != '' and inData.has_key('host') and inData['host'] != '':
         Data.Title = 'Updating API Keys'
-        
+
         host = inData['host']
         apiSettingKey = "wp_api_" + host.replace(".", "_")
         apiKey = model.Setting(apiSettingKey, "")
         model.SetSetting(apiSettingKey, inData["apiKey"])
-        
+
         Data.success += 1
 
-
-#  Begin login logic
-
-if ("logout" in Data.a and model.HttpMethod == "get"):
+if "logout" in Data.a and model.HttpMethod == "get":
+    apiCalled = True
     redir = ""
-    if (hasattr(Data, "r")):
+    if hasattr(Data, "r"):
         redir = Data.r
 
     model.Title = "Logging out..."
     model.Header = "Logging out..."
     model.Script = "<script>document.getElementById('logoutIFrame').onload = function() { window.location = \"" + redir + "\"; }</script>"
-    print "<iframe id=\"logoutIFrame\" src=\"/Account/LogOff/\" style=\"position:absolute; top:-1000px; left:-10000px; width:2px; height:2px;\" ></iframe>"
+    print("<iframe id=\"logoutIFrame\" src=\"/Account/LogOff/\" style=\"position:absolute; top:-1000px; left:-10000px; width:2px; height:2px;\" ></iframe>")
+    apiCalled = True
 
-elif ("login" in Data.a or Data.r != '') and model.HttpMethod == "get" :  # r parameter implies desired redirect after a login.
-    handleLogin()
+if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r parameter implies desired redir after login.
+    apiCalled = True
+    pid = 0
+    if hasattr(model, "UserPeopleId"):
+        pid = model.UserPeopleId
 
-elif (apiCalled == False):
+    if pid < 1:
+        model.Title = "Error"
+        model.Header = "Something went wrong."
+        print("<p>User not found.  If you receive this error message again, please email <b>" + model.Setting("AdminMail", "the church staff") + "</b>.</p>")
+
+    else:
+        po = model.GetPerson(pid)
+        p = get_person_info_for_sync(po)
+
+        body = {
+            "p": p
+        }
+
+        response = ""
+
+        try:
+            # separate method / host / path
+            useSsl = True
+            error = False
+            defaultHost = model.Setting("wp_defaultHost", "")
+            r = Data.r if Data.r != '' else (defaultHost + '/')
+            path = ""
+            # noinspection HttpUrlsUsage
+            if r[0:8].lower() == "https://":
+                r = r[8:]
+            elif r[0:7].lower() == "http://":
+                if model.Setting('wp_allow_insecure', 'false').lower() == 'true':
+                    useSsl = False
+                else:
+                    response = "This request was made for http.  Https is required."
+                    raise Exception("This request was made for http.  Https is required.")
+                r = r[7:]
+
+            if not r.__contains__('/'):
+                r = r + "/"
+            [host, path] = r.split('/', 1)
+            host = host.lower()
+
+            apiSettingKey = "wp_api_" + host.replace(".", "_")
+            apiKey = model.Setting(apiSettingKey, "")
+
+            headers = {
+                "X-API-KEY": apiKey,
+                "content-type": "application/json"
+            }
+
+            if apiKey == '':
+                model.Title = "Error"
+                model.Header = "Site not authorized"
+
+                print("<p><b>This site is not authorized to use authentication.</b> (Error 177001)</p>")
+
+            else:
+                if Data.sToken is not '':
+                    body["sToken"] = Data.sToken  # Note that this key is absent if no value is available.
+
+                # noinspection HttpUrlsUsage
+                http = "https://" if useSsl else "http://"
+
+                response = model.RestPostJson(http + host + "/touchpoint-api/auth/token", headers, body)
+                response = response.replace('﻿', '').strip()  # because apparently whitespaces are inserted on some servers
+
+                model.Title = "Login"
+                model.Header = "Processing..."
+
+                response = json.loads(response)
+
+                if "error" in response:
+                    if response['error']['code'] == 177006:
+                        print("Your login session has expired.  Try again.")
+                        model.Header = "Session Expired"
+                    else:
+                        raise Exception(response['error']['message'])
+
+                else:
+                    if ("apiKey" in response) and (model.Setting(apiKey, "") != response["apiKey"]):
+                        model.SetSetting(apiSettingKey, response["apiKey"])
+
+                    if ("wpid" in response and
+                        "wpevk" in response and
+                        model.ExtraValueInt(pid, response["wpevk"]) != response["wpid"]):
+                        model.AddExtraValueInt(pid, response["wpevk"], response["wpid"])
+
+                    loginPathSettingKey = "wp_loginPath_" + host.replace(".", "_")
+                    loginPath = model.Setting(loginPathSettingKey, "/wp-login.php")
+                    redir = http + host + loginPath + '?loginToken=' + response["userLoginToken"]
+
+                    if path is not '':
+                        redir += "&redirect_to=" + path
+
+                    print("REDIRECT=" + redir)
+
+        except Exception as e:
+            model.Title = "Error"
+            model.Header = "Something went wrong."
+
+            print("<p>Please email the following error message to <b>" + model.Setting("AdminMail", "the church staff") + "</b>.</p><pre>")
+            print(response)
+            print("</pre>")
+            print("<!-- Exception Raised: ")
+            print_exception()
+            print(" -->")
+
+if not apiCalled:
     model.Title = "Invalid Request"
     model.Header = "Invalid Request"
-    print "<p>This script can only be called with specific parameters.</p>"
+    print("<p>This script can only be called with specific parameters.</p>")
 
 Data.VERSION = VERSION
