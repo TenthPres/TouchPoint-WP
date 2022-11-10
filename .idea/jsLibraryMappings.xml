@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JavaScriptLibraryMappings">
+    <file url="PROJECT" libraries="{@googlemaps/markerclustererplus, @types/google-maps, googlemaps-DefinitelyTyped, knockout-3.5.0, sweetalert2}" />
+  </component>
+</project>

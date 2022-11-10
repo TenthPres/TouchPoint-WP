@@ -1,6 +1,13 @@
 /vendor/
+/vendorX/
 composer.lock
 /assets/images/people
 /TouchPointWP_ErrorLog.txt
 /.phpdoc/
 /phpDocumentor.phar
+
+/.idea/workspace.xml
+/.idea/usage.statistics.xml
+/.idea/shelf
+/.idea/deployment.xml
+/.idea/dataSources.xml
