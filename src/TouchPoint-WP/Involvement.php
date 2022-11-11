@@ -2192,6 +2192,7 @@ class Involvement implements api, updatesViaCron
         TouchPointWP::requireScript('swal2-defer');
         TouchPointWP::requireScript('base-defer');
         $this->enqueueForJsInstantiation();
+        Person::enqueueUsersForJsInstantiation();
 
         if ($btnClass !== "") {
             $btnClass = " class=\"$btnClass\"";

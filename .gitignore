@@ -11,3 +11,4 @@ composer.lock
 /.idea/shelf
 /.idea/deployment.xml
 /.idea/dataSources.xml
+/.idea/webServers.xml

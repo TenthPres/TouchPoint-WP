@@ -15,12 +15,14 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
     require_once "updatesViaCron.php";
     require_once "InvolvementMembership.php";
     require_once "Utilities/PersonQuery.php";
+    require_once "Utilities/Session.php";
 }
 
 use Exception;
 use JsonSerializable;
 use stdClass;
 use tp\TouchPointWP\Utilities\PersonQuery;
+use tp\TouchPointWP\Utilities\Session;
 use WP_User;
 
 /**
@@ -42,6 +44,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     public const BACKUP_USER_PREFIX = "touchpoint-";
 
     public const META_PEOPLEID = TouchPointWP::SETTINGS_PREFIX . 'peopleId';
+    public const META_FAMILYID = TouchPointWP::SETTINGS_PREFIX . 'familyId';
     public const META_CUSTOM_PREFIX = 'c_'; // setters and getters also insert standard setting prefix
     public const META_INV_MEMBER_PREFIX = TouchPointWP::SETTINGS_PREFIX . "inv_mem_";
     public const META_INV_ATTEND_PREFIX = TouchPointWP::SETTINGS_PREFIX . "inv_att_";
@@ -57,12 +60,15 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     private static array $_peopleWhoNeedWpIdUpdatedInTouchPoint = [];
 
     public int $peopleId;
+    public int $familyId;
 
     private array $_userFieldsToUpdate = [];
     private array $_userMetaToUpdate = [];
     private array $_meta = [];
     private array $_invs;
     private bool $_invsAllFetched = false;
+
+    private static bool $_enqueueUsersForJsInstantiation = false;
 
     private const FIELDS_FOR_USER_UPDATE = [
         'user_pass',
@@ -106,6 +112,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         parent::__construct($id, $name, $site_id);
 
         $this->peopleId = intval($this->get(self::META_PEOPLEID));
+        $this->familyId = intval($this->get(self::META_FAMILYID));
 
         self::$_instances[$this->ID] = $this;
     }
@@ -251,6 +258,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         switch (strtolower($key)) {
             /** @noinspection SpellCheckingInspection */
             case "peopleid":
+            case "familyid":
             case "id":
                 _doing_it_wrong(__FUNCTION__, "IDs can only be updated within the Person class.", TouchPointWP::VERSION);
                 return;
@@ -284,7 +292,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     /**
      * @param int $peopleId Update the PeopleId Meta field if it's somehow missing.
      *
-     * @return bool False is the update is not completed properly.  True if the value is unchanged or updated.
+     * @return bool False if the update is not completed properly.  True if the value is unchanged or updated.
      */
     protected function updatePeopleId(int $peopleId): bool
     {
@@ -295,6 +303,24 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         $result = !!update_user_option($this->ID, self::META_PEOPLEID, $peopleId, true);
 
         $this->peopleId = $this->get(self::META_PEOPLEID);
+
+        return $result;
+    }
+
+    /**
+     * @param int $familyId Update the familyId Meta field if it's somehow missing.
+     *
+     * @return bool False if the update is not completed properly.  True if the value is unchanged or updated.
+     */
+    protected function updateFamilyId(int $familyId): bool
+    {
+        if ($familyId === $this->familyId) {
+            return true;
+        }
+
+        $result = !!update_user_option($this->ID, self::META_FAMILYID, $familyId, true);
+
+        $this->familyId = $this->get(self::META_FAMILYID);
 
         return $result;
     }
@@ -720,7 +746,6 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             );
             if ($q->get_total() > 0) { // Will only be 0 or 1, unless something has gone disastrously wrong.
                 $person = $q->get_first_result();
-                update_user_option($person->ID, self::META_PEOPLEID, $pData->PeopleId, true);
                 $updateWpIdInTouchPoint = false;
             }
         }
@@ -746,7 +771,6 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             $uid = wp_create_user(self::generateUserName($pData), Utilities::createGuid()); // Email addresses are imported/updated later, which prevents notification emails.
             if (is_numeric($uid)) { // user was successfully generated.
                 update_user_option($uid, 'created_by', 'TouchPoint-WP', true);
-                update_user_option($uid, self::META_PEOPLEID, $pData->PeopleId, true);
                 $person = new Person($uid);
             }
         }
@@ -765,6 +789,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         // Make sure the PeopleId is correct, just in case.
         $person->updatePeopleId($pData->PeopleId);
+        $person->updateFamilyId($pData->FamilyId);
 
         $person->first_name = $pData->GoesBy;
         $person->last_name = $pData->LastName;
@@ -941,6 +966,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         $text = __("Contact", TouchPointWP::TEXT_DOMAIN);
         TouchPointWP::enqueueActionsStyle('person-contact');
+        self::enqueueUsersForJsInstantiation();
         $ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
 
         return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context, $btnClass);
@@ -963,6 +989,41 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     }
 
     /**
+     * Call this function if users (and immediate family members, probably) should be automatically instantiated in JS
+     * on page load.  (e.g. if the page contains an RSVP button)
+     *
+     * @return void
+     */
+    public static function enqueueUsersForJsInstantiation(): void
+    {
+        self::$_enqueueUsersForJsInstantiation = true;
+    }
+
+    /**
+     * Return the instances to be used for instantiation.
+     *
+     * @return object[]
+     */
+    protected static function getQueueForJsInstantiation(): array
+    {
+        if (self::$requireAllObjectsInJs) {
+            $list = self::$constructedObjects;
+        } else {
+            $list = self::$queueForJsInstantiation;
+        }
+
+        if (self::$_enqueueUsersForJsInstantiation) {
+            $s = Session::instance();
+            $list = array_merge($list, $s->people);
+        }
+
+        // Remove duplicates.  (array_unique won't handle objects cleanly)
+        $ids     = array_map(fn($item) => $item->peopleId, $list);
+        $uniqIds = array_unique($ids);
+        return array_values(array_intersect_key($list, $uniqIds));
+    }
+
+    /**
      * Controls the information that's actually serialized for jsInstantiation
      *
      * @return array
@@ -971,7 +1032,10 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     {
         return [
             'peopleId' => $this->peopleId,
+            'familyId' => $this->familyId,
             'displayName' => $this->display_name,
+            'goesBy' => $this->first_name,
+            'lastName' => $this->last_name
         ];
     }
 
@@ -990,8 +1054,19 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         $listStr = json_encode($queue);
 
-        return "\ttpvm.addOrTriggerEventListener('Person_class_loaded', function() {
-        TP_Person.fromObjArray($listStr);\n\t});\n";
+		$out = "\ttpvm.addOrTriggerEventListener('Person_class_loaded', function() {\n";
+	    $out .= "\t\tTP_Person.fromObjArray($listStr);\n";
+
+	    if (self::$_enqueueUsersForJsInstantiation) {
+			$s = Session::instance();
+			$pFids = json_encode($s->primaryFam);
+			$sFids = json_encode($s->secondaryFam);
+		    $out .= "\t\tTP_Person.identByFamily($pFids, $sFids);\n";
+		}
+
+		$out .= "\t});\n";
+
+		return $out;
     }
 
     /**
@@ -1160,6 +1235,11 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         return str_replace(" & ", ", ", substr($string, 0, $lastAmpPos)) . substr($string, $lastAmpPos);
     }
 
+    /**
+     * Functionally convert this Person object to a WP_User object for working with the WP API.
+     *
+     * @return WP_User
+     */
     public function toNewWpUser(): WP_User
     {
         return new WP_User($this);
@@ -1168,9 +1248,9 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     /**
      * Take an array of Person-like objects and group them by family.  It is assumed that the object has a FamilyId field.
      *
-     * @param Person[] $people
+     * @param Person[]|object[] $people
      *
-     * @return array
+     * @return Person[][]|object[][]
      */
     public static function groupByFamily(array $people): array
     {
@@ -1205,18 +1285,36 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         $people = $data->people ?? [];
 
-        // TODO consider adding person as a user and/or authenticating user.
+        $data->primaryFam = $data->primaryFam ?? [];
+
+        $s = Session::instance();
 
         $ret = [];
+        $primaryFam = $s->primaryFam ?? [];
+        $secondaryFam = $s->secondaryFam ?? [];
         foreach ($people as $p) {
-            $ret[] = [
+            $ret[] = (object)[
                 'goesBy' => $p->GoesBy,
                 'lastName' => strlen($p->LastName) > 0 ? $p->LastName[0] . "." : "",
                 'displayName' => trim($p->GoesBy . " " . (strlen($p->LastName) > 0 ? $p->LastName[0] . "." : "")),
                 'familyId' => $p->FamilyId,
                 'peopleId' => $p->PeopleId
             ];
+            if (in_array($p->FamilyId, $data->primaryFam) && !in_array($p->FamilyId, $primaryFam)) {
+                $primaryFam[] = $p->FamilyId;
+            } elseif (!in_array($p->FamilyId, $data->primaryFam) && !in_array($p->FamilyId, $secondaryFam)) {
+                $secondaryFam[] = $p->FamilyId;
+            }
         }
+
+        // Merge list of people and restrict to uniques
+        $sPeople = array_merge($s->people, $ret);
+        $ids     = array_map(fn($p) => $p->peopleId, $sPeople);
+        $uniqIds = array_unique($ids);
+        $s->people = array_values(array_intersect_key($sPeople, $uniqIds));
+
+        $s->primaryFam = $primaryFam;
+        $s->secondaryFam = $secondaryFam;
 
         echo json_encode([
             'people' => $ret,

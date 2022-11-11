@@ -1,4 +1,5 @@
 const tpvm = {
+    DEBUG: false,
     involvements: [],
     partners: [],
     meetings: [],
@@ -28,7 +29,9 @@ const tpvm = {
         }
     },
     trigger: function(name, arg1 = null) {
-        // console.log("Firing " + name); // For debugging.
+        if (tpvm.DEBUG) {
+            console.log("Firing " + name);
+        }
         for (const ei in this._events[name]) {
             if (!this._events[name].hasOwnProperty(ei)) continue;
 

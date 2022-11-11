@@ -5,6 +5,7 @@
 namespace tp\TouchPointWP;
 
 use tp\TouchPointWP\Utilities\PersonQuery;
+use tp\TouchPointWP\Utilities\Session;
 use WP_Error;
 use WP_User;
 
@@ -87,19 +88,17 @@ abstract class Auth implements api
      */
     public static function startSession()
     {
-        if ( ! session_id()) {
-            session_start();
-        }
+        Session::startSession();
     }
 
     /**
      * Clear variables and potentially create a flag for the logout of TouchPoint.
      *
-     * Does NOT actually log out of WordPress as this should be called by wp_logout, which accomplished that.
+     * Does NOT actually log out of WordPress as this should be called by wp_logout, which accomplishes that.
      */
     public static function logout()
     {
-        session_destroy(); // clear all existing variables
+        Session::sessionDestroy();
         $tpwp = TouchPointWP::instance();
         if ($tpwp->settings->auth_full_logout === "on") {
             $redir = $tpwp->host() . '/PyScript/' . $tpwp->settings->api_script_name . '?' . http_build_query(
@@ -151,11 +150,14 @@ abstract class Auth implements api
      */
     public static function getLoginUrl(): string
     {
-        self::createApiKeyIfNeeded();
+        try {
+            self::createApiKeyIfNeeded();
+        } catch (TouchPointWP_Exception $e) {}
 
         $antiforgeryId = self::generateAntiForgeryId();
 
-        $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'auth_sessionToken'] = $antiforgeryId;
+        $s = Session::instance();
+        $s->auth_sessionToken = $antiforgeryId;
 
         $tpwp = TouchPointWP::instance();
 
@@ -238,7 +240,7 @@ abstract class Auth implements api
         $host = $_SERVER['HTTP_HOST'];
         $k = self::validateApiKey(null, $host); // will return true or a new key.
 
-        if ($k !== true) { // Only if the saved key is unset or invalid.  (
+        if ($k !== true) {  // Only if the saved key is unset or invalid.  (
             TouchPointWP::instance()->apiPost("auth_key_set", [
                 'apiKey' => $k,
                 'host' => $host
@@ -279,10 +281,11 @@ abstract class Auth implements api
      */
     public static function removeAdminBarMaybe()
     {
-        $removeBar = apply_filters(
-            TouchPointWP::HOOK_PREFIX . 'prevent_admin_bar',
-            (TouchPointWP::instance()->settings->auth_prevent_admin_bar === 'on') && current_user_can('subscriber') && ! is_admin()
-        );
+        $removeBar = (TouchPointWP::instance()->settings->auth_prevent_admin_bar === 'on')
+                     && !is_admin()
+                     && current_user_can('subscriber');
+
+        $removeBar = apply_filters(TouchPointWP::HOOK_PREFIX . 'prevent_admin_bar', $removeBar );
 
         if ($removeBar) {
             show_admin_bar(false);
@@ -342,7 +345,6 @@ abstract class Auth implements api
      * @param array $uri The request URI already parsed by parse_url()
      *
      * @return bool False if endpoint is not found.  Should print the result.
-     * @throws TouchPointWP_Exception
      */
     public static function api(array $uri): bool
     {
@@ -352,7 +354,7 @@ abstract class Auth implements api
 
         switch (strtolower($uri['path'][2])) {
             case "token":
-                if ($_SERVER['REQUEST_METHOD'] != "POST") {
+                if ($_SERVER['REQUEST_METHOD'] !== "POST") {
                     return false;
                 }
                 self::handlePostFromTouchPoint();
@@ -391,7 +393,6 @@ abstract class Auth implements api
             }
 
             // Find the user with the loginToken in their meta.
-//            $q = new WP_User_Query(
             $q = new PersonQuery(
                 [
                     'meta_key'     => TouchPointWP::SETTINGS_PREFIX . 'loginToken',
@@ -408,15 +409,18 @@ abstract class Auth implements api
 
             $p = $q->get_results()[0];
             $lst = $p->loginSessionToken;
-            $p->setLoginTokens(null, null);
 
             // Verify that LST from Meta (from TouchPoint) matches Session.  Prevents login by link sharing.
-            if ( ! $lst === $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'auth_sessionToken']) {
+	        $s = Session::instance();
+            if ( ! $lst === $s->auth_sessionToken) {
                 return new WP_Error([
                     177004,
                     __('Session could not be validated.', 'TouchPoint-WP')
                 ]);
             }
+
+            $p->setLoginTokens(null, null);
+			$s->auth_sessionToken = null;
 
             $user = $p->toNewWpUser();
         }
@@ -465,6 +469,8 @@ abstract class Auth implements api
 
             // Get user.  Returns WP_User if one is found or created, false otherwise.
             $person = Person::updatePersonFromApiData($data->p);
+
+            // Get user's relatives. They don't need to be users--they can just be objects.  TODO
 
             if ($person === null) {
                 throw new TouchPointWP_Exception(

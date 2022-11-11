@@ -11,6 +11,7 @@ use WP_Http;
 use WP_Term;
 
 use tp\TouchPointWP\Utilities\Cleanup;
+use tp\TouchPointWP\Utilities\Session;
 
 if ( ! defined('ABSPATH')) {
     exit;
@@ -181,6 +182,8 @@ class TouchPointWP
     /** @var string Used to denote requests made in special circumstances, such as through the TouchPoint-WP API */
     protected static string $context = "";
 
+	public bool $debug;
+
     /**
      * Indicates that the current request is being processed through the API.
      *
@@ -204,8 +207,8 @@ class TouchPointWP
         $this->assets_dir = trailingslashit(self::$dir) . 'assets';
         $this->assets_url = esc_url(trailingslashit(plugins_url('/assets/', $this->file)));
 
-        $debug = get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true";
-        $this->script_suffix = $debug ? '' : '.min';
+        $this->debug = get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true";
+        $this->script_suffix = $this->debug ? '' : '.min';
 
         register_activation_hook($this->file, [$this, 'activation']);
         register_deactivation_hook($this->file, [$this, 'deactivation']);
@@ -492,6 +495,9 @@ class TouchPointWP
             return;
 
         echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
+		if ($this->debug) {
+			echo "\ttpvm.DEBUG = true;\n";
+		}
         if (Person::useJsInstantiation()) {
             echo Person::getJsInstantiationString();
         }
@@ -1699,13 +1705,13 @@ class TouchPointWP
     }
 
     /**
-     * @return string The URL of the TouchPoint instance.
+     * @return ?string The URL of the TouchPoint instance.  Null if not set.
      */
-    public function host(): string
+    public function host(): ?string
     {
         $host = $this->settings->host;
-        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER || $host === '') {
-            return TouchPointWP_Settings::UNDEFINED_PLACEHOLDER;
+        if ($host === false || $host === '') {
+            return null;
         }
 
         return "https://" . $host;
@@ -2379,7 +2385,7 @@ class TouchPointWP
 
         $host = $this->host();
 
-        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER) {
+        if (!$host) {
             throw new TouchPointWP_Exception(
                 __('Host appears to be missing from TouchPoint-WP configuration.', TouchPointWP::TEXT_DOMAIN), 170002
             );
@@ -2393,9 +2399,7 @@ class TouchPointWP
             [
                 'method'  => 'POST',
                 'headers' => [
-                    'Authorization' => 'Basic ' . base64_encode(
-                            $this->settings->api_user . ':' . $this->settings->api_pass
-                        )
+                    'Authorization' => 'Basic ' . base64_encode($this->settings->api_user . ':' . $this->settings->api_pass)
                 ],
                 'body' => ['data' => $data],
                 'timeout' => $timeout
@@ -2532,7 +2536,8 @@ class TouchPointWP
      */
     public static function queueUpdateDeployedScripts(): void
     {
-        $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'updateDeployedScriptsOnNextLoad'] = true;
+        $s = Session::instance();
+		$s->updateDeployedScriptsOnNextLoad = true;
     }
 
     /**
@@ -2543,13 +2548,14 @@ class TouchPointWP
      */
     public function updateDeployedScripts(bool $force = false): void
     {
-        if ( isset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'updateDeployedScriptsOnNextLoad']) || $force) {
+	    $s = Session::instance();
+	    if ($s->updateDeployedScriptsOnNextLoad || $force) {
             try {
                 $this->settings->updateDeployedScripts();
             } catch (TouchPointWP_Exception $e) {
                 TouchPointWP_AdminAPI::showError($e->getMessage());
             }
-            unset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'updateDeployedScriptsOnNextLoad']);
+            $s->updateDeployedScriptsOnNextLoad = null;
         }
     }
 
@@ -2558,7 +2564,8 @@ class TouchPointWP
      */
     public static function queueFlushRewriteRules(): void
     {
-        $_SESSION[TouchPointWP::SETTINGS_PREFIX . 'flushRewriteOnNextLoad'] = true;
+		$s = Session::instance();
+		$s->flushRewriteOnNextLoad = true;
     }
 
     /**
@@ -2569,9 +2576,10 @@ class TouchPointWP
      */
     public function flushRewriteRules(bool $force = false): void
     {
-        if ( isset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'flushRewriteOnNextLoad']) || $force) {
+	    $s = Session::instance();
+        if ($s->flushRewriteOnNextLoad || $force) {
             flush_rewrite_rules();
-            unset($_SESSION[TouchPointWP::SETTINGS_PREFIX . 'flushRewriteOnNextLoad']);
+	        $s->flushRewriteOnNextLoad = null;
         }
     }
 

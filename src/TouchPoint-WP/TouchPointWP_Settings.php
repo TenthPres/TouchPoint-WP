@@ -12,6 +12,7 @@ if ( ! defined('ABSPATH')) {
  * The Settings class - most settings are available through the default getter.
  *
  * @property-read string version            The plugin version.  Used for tracking updates.
+ * @property-read ?bool  DEBUG              Used to make some debugging stuff more obvious
  *
  * @property-read string enable_authentication  Whether the Authentication module is included.
  * @property-read string enable_involvements  Whether the Involvement module is included.
@@ -19,7 +20,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string enable_rsvp        Whether the RSVP module is included.
  * @property-read string enable_global      Whether to import Global partners.
  *
- * @property-read string|float host         The domain for the TouchPoint instance
+ * @property-read string|false host         The domain for the TouchPoint instance
  * @property-read string host_deeplink      The domain for mobile deep linking to the Custom Mobile App
  * @property-read string system_name        What the church calls TouchPoint
  * @property-read string api_user           Username of a user account with API access

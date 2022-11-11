@@ -1194,8 +1194,15 @@ class TP_Person {
             if (!peopleArray.hasOwnProperty(pi)) continue;
             ret.push(TP_Person.fromObj(peopleArray[pi]));
         }
+        tpvm.trigger("Person_fromObjArray");
 
         return ret;
+    }
+
+    // noinspection JSUnusedGlobalSymbols  Called in Person.php
+    static identByFamily(primaryFamIds = [], secondaryFamIds = []) {
+        tpvm._plausibleUsers = Object.entries(tpvm.people).filter(([,p]) => primaryFamIds.indexOf(p.familyId) > -1).map(([,p]) => p);
+        tpvm._secondaryUsers = Object.entries(tpvm.people).filter(([,p]) => secondaryFamIds.indexOf(p.familyId) > -1).map(([,p]) => p);
     }
 
     static init() {
