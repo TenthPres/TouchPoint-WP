@@ -1014,7 +1014,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         if (self::$_enqueueUsersForJsInstantiation) {
             $s = Session::instance();
-            $list = array_merge($list, $s->people);
+            $list = array_merge($list, $s->people ?? []);
         }
 
         // Remove duplicates.  (array_unique won't handle objects cleanly)
@@ -1059,8 +1059,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
 	    if (self::$_enqueueUsersForJsInstantiation) {
 			$s = Session::instance();
-			$pFids = json_encode($s->primaryFam);
-			$sFids = json_encode($s->secondaryFam);
+			$pFids = json_encode($s->primaryFam ?? []);
+			$sFids = json_encode($s->secondaryFam ?? []);
 		    $out .= "\t\tTP_Person.identByFamily($pFids, $sFids);\n";
 		}
 
@@ -1270,12 +1270,35 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         return $families;
     }
 
+	/**
+	 * Handler for Informal Auth calls.
+	 *
+	 * @return void
+	 */
     private static function ajaxIdent(): void
     {
-        $inputData = TouchPointWP::postHeadersAndFiltering();
+	    $inputData = TouchPointWP::postHeadersAndFiltering();
+	    $inputData = json_decode($inputData);
+		if (property_exists($inputData, 'pid')) {
+			unset($inputData->pid);
+		}
 
+		$r = self::ident($inputData);
+
+	    echo json_encode($r);
+	    exit;
+    }
+
+	/**
+	 * Make the API call to get family members, store the results to the Session, and return them.
+	 *
+	 * @param $inputData
+	 *
+	 * @return array
+	 */
+	public static function ident($inputData): array
+	{
         try {
-            $inputData = json_decode($inputData);
             $inputData->context = "ident";
             $data = TouchPointWP::instance()->apiPost('ident', $inputData, 30);
         } catch (Exception $ex) {
@@ -1308,7 +1331,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         }
 
         // Merge list of people and restrict to uniques
-        $sPeople = array_merge($s->people, $ret);
+        $sPeople = array_merge($s->people ?? [], $ret);
         $ids     = array_map(fn($p) => $p->peopleId, $sPeople);
         $uniqIds = array_unique($ids);
         $s->people = array_values(array_intersect_key($sPeople, $uniqIds));
@@ -1316,11 +1339,10 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         $s->primaryFam = $primaryFam;
         $s->secondaryFam = $secondaryFam;
 
-        echo json_encode([
-            'people' => $ret,
-            'primaryFam' => $data->primaryFam ?? []
-        ]);
-        exit;
+		return [
+			'people' => $ret,
+			'primaryFam' => $data->primaryFam ?? []
+		];
     }
 
     private static function ajaxSrc(): void

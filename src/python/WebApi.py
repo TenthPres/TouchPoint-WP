@@ -548,7 +548,10 @@ if "ident" in Data.a and model.HttpMethod == "post":
 
     Data.Title = 'Matching People'
 
-    if inData.has_key('firstName') and inData.has_key('lastName') and inData['firstName'] is not None and inData['lastName'] is not None:
+    if inData.has_key('fid'):
+        pass
+
+    elif inData.has_key('firstName') and inData.has_key('lastName') and inData['firstName'] is not None and inData['lastName'] is not None:
         # more than email and zip
 
         # coalescing.

@@ -423,6 +423,10 @@ abstract class Auth implements api
 			$s->auth_sessionToken = null;
 
             $user = $p->toNewWpUser();
+
+			Person::ident((object)[
+				'fid' => [$p->familyId]
+			]);
         }
 
         return $user;
@@ -469,8 +473,6 @@ abstract class Auth implements api
 
             // Get user.  Returns WP_User if one is found or created, false otherwise.
             $person = Person::updatePersonFromApiData($data->p);
-
-            // Get user's relatives. They don't need to be users--they can just be objects.  TODO
 
             if ($person === null) {
                 throw new TouchPointWP_Exception(
