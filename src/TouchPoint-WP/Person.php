@@ -1328,7 +1328,6 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         $q['q'] = $_GET['q'] ?? '';
         $q['context'] = 'src';
 
-
         if ($q['q'] !== '') {
             try {
                 $data = TouchPointWP::instance()->apiGet('src', $q, 30);
