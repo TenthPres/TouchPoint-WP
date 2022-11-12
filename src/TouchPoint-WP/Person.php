@@ -1271,7 +1271,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     }
 
 	/**
-	 * Handler for Informal Auth calls.
+	 * Handler for Informal Auth calls.  Print the output.
 	 *
 	 * @return void
 	 */

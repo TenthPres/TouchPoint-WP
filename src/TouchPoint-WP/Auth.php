@@ -161,9 +161,11 @@ abstract class Auth implements api
 
         $tpwp = TouchPointWP::instance();
 
+		$redirectTo = $_GET['redirect_to'] ?? get_site_url();
+
         return $tpwp->host() . '/PyScript/' . $tpwp->settings->api_script_name . '?' . http_build_query(
             [
-                'r'  => $_GET['redirect_to'] ?? get_site_url(),
+                'r'  => $redirectTo,
                 'sToken' => $antiforgeryId,
                 'a' => "login"
             ]
@@ -424,9 +426,12 @@ abstract class Auth implements api
 
             $user = $p->toNewWpUser();
 
-			Person::ident((object)[
-				'fid' => [$p->familyId]
-			]);
+			// Preload Ident people for potential use with InformalAuth.  Skip if family is already loaded.
+			if (!in_array($p->familyId, $s->primaryFam ?? [])) {
+				Person::ident((object)[
+					'fid' => [$p->familyId]
+				]);
+			}
         }
 
         return $user;
@@ -466,8 +471,8 @@ abstract class Auth implements api
             $data = file_get_contents('php://input');
             $data = json_decode($data);
 
-            // Make sure session token is valid
-            if ( ! isset($data->sToken) || ! self::AntiForgeryTimestampIsValid($data->sToken, self::SESSION_TIMEOUT)) {
+            // Make sure session token is valid if present.
+            if (isset($data->sToken) && ! self::AntiForgeryTimestampIsValid($data->sToken, self::SESSION_TIMEOUT)) {
                 throw new TouchPointWP_Exception("No Session Exists", 177006);
             }
 

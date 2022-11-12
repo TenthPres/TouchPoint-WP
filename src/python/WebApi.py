@@ -1053,9 +1053,17 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
             # separate method / host / path
             useSsl = True
             error = False
-            defaultHost = model.Setting("wp_defaultHost", "")
+            defaultHost = model.Setting('wp_host', "https://www.tenth.org")
             r = Data.r if Data.r != '' else (defaultHost + '/')
             path = ""
+
+            # add host if missing
+            if not r[0:8].lower() == "https://" and not r[0:7].lower() == "http://" and not r.split('/', 1)[0].__contains__('.'):
+                if r[0] == '/':
+                    r = defaultHost + r
+                else:
+                    r = defaultHost + '/' + r
+
             # noinspection HttpUrlsUsage
             if r[0:8].lower() == "https://":
                 r = r[8:]
@@ -1094,7 +1102,7 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
                 http = "https://" if useSsl else "http://"
 
                 response = model.RestPostJson(http + host + "/touchpoint-api/auth/token", headers, body)
-                response = response.replace('﻿', '').strip()  # because apparently whitespaces are inserted on some servers
+                response = response.replace('﻿', '').strip()  # deal with inserted whitespaces by some plugins
 
                 model.Title = "Login"
                 model.Header = "Processing..."
