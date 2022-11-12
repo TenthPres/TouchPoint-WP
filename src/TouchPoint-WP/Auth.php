@@ -106,7 +106,7 @@ abstract class Auth implements api
                 'a' => "logout"
             ]);
 
-            wp_redirect($redir);
+            wp_redirect($redir, 307);
             exit;
         }
     }
@@ -131,13 +131,9 @@ abstract class Auth implements api
             __('Sign in with your %s account', 'TouchPoint-WP'),
             htmlentities(TouchPointWP::instance()->settings->system_name)
         );
-        /** @noinspection HtmlUnknownTarget */
-        $html .= '</a><br /><a class="dim" href="%s">'
-                 . __('Sign out', 'TouchPoint-WP') . '</a></p>';
         printf(
             $html,
-            self::getLoginUrl(),
-            self::getLogoutUrl()
+            self::getLoginUrl()
         );
     }
 
@@ -250,14 +246,6 @@ abstract class Auth implements api
     }
 
     /**
-     * Generates the URL for logging out of TouchPoint. (Does not log out of WordPress.)
-     */
-    public static function getLogoutUrl(): string
-    {
-        return TouchPointWP::instance()->host() . "/Account/LogOff/";
-    }
-
-    /**
      * Determines whether to redirect to the TouchPoint login automatically, and does so if appropriate.
      */
     public static function redirectLoginFormMaybe()
@@ -272,7 +260,7 @@ abstract class Auth implements api
         }
 
         if (self::wantsToLogin() && $redirect && $_SERVER['REQUEST_METHOD'] === "GET") {
-            wp_redirect(self::getLoginUrl());
+            wp_redirect(self::getLoginUrl(), 307);
             die();
         }
     }
@@ -360,6 +348,10 @@ abstract class Auth implements api
                 }
                 self::handlePostFromTouchPoint();
                 exit;
+
+			case "login.js";
+				wp_redirect(content_url('/plugins/touchpoint-wp/ext/login.js'), 307);
+				exit;
         }
 
         return false;
