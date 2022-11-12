@@ -678,7 +678,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         $people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, 50);
 
         // Parse the API results
-        $count = self::updatePeopleFromApiData($people->people, $verbose);
+	    $allowCreation = TouchPointWP::instance()->settings->enable_people_lists === "on";
+        $count = self::updatePeopleFromApiData($people->people, $allowCreation, $verbose);
 
         if ($count !== 0) {
             TouchPointWP::instance()->settings->set('person_cron_last_run', time());
@@ -689,18 +690,19 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         return $count;
     }
 
-    /**
-     * @param stdClass[] $people An array of objects from TouchPoint that each corresponds with a Person.
-     * @param bool       $verbose
-     *
-     * @return int  False on failure.  Otherwise, the number of updates.
-     */
-    protected static function updatePeopleFromApiData(array $people, bool $verbose = false): int
+	/**
+	 * @param stdClass[] $people An array of objects from TouchPoint that each corresponds with a Person.
+	 * @param bool       $allowCreation
+	 * @param bool       $verbose
+	 *
+	 * @return int  False on failure.  Otherwise, the number of updates.
+	 */
+    protected static function updatePeopleFromApiData(array $people, bool $allowCreation, bool $verbose = false): int
     {
         $peopleUpdated = 0;
 
         foreach ($people as $pData) {
-            $peopleUpdated += (self::updatePersonFromApiData($pData, $verbose, true) !== null);
+            $peopleUpdated += (self::updatePersonFromApiData($pData, $allowCreation, $verbose, true) !== null);
 
             set_time_limit(30);
         }
@@ -714,16 +716,17 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         return $peopleUpdated;
     }
 
-    /**
-     * Update a single person's information on WordPress, and WP User ID TouchPoint.
-     *
-     * @param mixed $pData
-     * @param bool  $verbose
-     * @param bool  $deferTPUpdate
-     *
-     * @return ?Person The updated person, or null if no user was found/updated.
-     */
-    public static function updatePersonFromApiData($pData, bool $verbose = false, bool $deferTPUpdate = false): ?Person
+	/**
+	 * Update a single person's information on WordPress, and WP User ID TouchPoint.
+	 *
+	 * @param mixed $pData
+	 * @param bool  $allowCreation
+	 * @param bool  $verbose
+	 * @param bool  $deferTPUpdate
+	 *
+	 * @return ?Person The updated person, or null if no user was found/updated.
+	 */
+    public static function updatePersonFromApiData($pData, bool $allowCreation, bool $verbose = false, bool $deferTPUpdate = false): ?Person
     {
         $person = null;
         $updateWpIdInTouchPoint = true;
@@ -765,7 +768,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         }
 
         // Create new person
-        if ($person === null && self::createUsers()) {
+        if ($person === null && $allowCreation) {
             // Provision a new user, since we were unsuccessful in finding one.
             set_time_limit(60);
             $uid = wp_create_user(self::generateUserName($pData), Utilities::createGuid()); // Email addresses are imported/updated later, which prevents notification emails.
@@ -1494,16 +1497,6 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             } catch (Exception $ex) {
             }
         }
-    }
-
-    /**
-     * Determines whether users should be imported when presented through a sync process.
-     *
-     * @return bool
-     */
-    protected static function createUsers(): bool
-    {
-        return TouchPointWP::instance()->settings->enable_people_lists === "on";
     }
 
     /**

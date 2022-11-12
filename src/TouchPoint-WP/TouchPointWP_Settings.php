@@ -446,16 +446,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'default'     => 'on',
                     ],
                     [
-                        'id'          => 'auth_background', // TODO this.
-                        'label'       => __('Enable Auto-Sign in', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __(
-                            'Automatically sign in WordPress users when already signed into TouchPoint.',
-                            TouchPointWP::TEXT_DOMAIN
-                        ),
-                        'type'        => 'checkbox',
-                        'default'     => 'on',
-                    ],
-                    [
                         'id'          => 'auth_change_profile_urls',
                         'label'       => __('Change \'Edit Profile\' links', TouchPointWP::TEXT_DOMAIN),
                         'description' => __(
@@ -466,7 +456,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                         'default'     => 'on',
                     ],
                     [
-                        'id'          => 'auth_full_logout', // TODO this.
+                        'id'          => 'auth_full_logout',
                         'label'       => __('Enable full logout', TouchPointWP::TEXT_DOMAIN),
                         'description' => __('Logout of TouchPoint when logging out of WordPress.', TouchPointWP::TEXT_DOMAIN),
                         'type'        => 'checkbox',
@@ -1215,9 +1205,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 }
             }
 
-//            delete_network_option(null, TouchPointWP::SETTINGS_PREFIX . 'enable_courses'); // TODO MULTI
             delete_option(TouchPointWP::SETTINGS_PREFIX . 'enable_courses');
-//            delete_network_option(null, TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups'); // TODO MULTI
             delete_option(TouchPointWP::SETTINGS_PREFIX . 'enable_small_groups');
         }
 
@@ -1239,13 +1227,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             WHERE post_content LIKE '%$oldShortcode%'
         ");
 
-
         // 0.0.19 - Rebuilding Authentication
-        // Remove old API key
-        if (get_option(TouchPointWP::SETTINGS_PREFIX . "api_secret_key", self::UNDEFINED_PLACEHOLDER)
-            !== self::UNDEFINED_PLACEHOLDER) {
-            delete_option(TouchPointWP::SETTINGS_PREFIX . 'api_secret_key');
-        }
+        // Remove settings no longer relevant
+        delete_option(TouchPointWP::SETTINGS_PREFIX . 'api_secret_key');
+        delete_option(TouchPointWP::SETTINGS_PREFIX . 'auth_background');
 
         // Update version string
         $this->set('version', TouchPointWP::VERSION);

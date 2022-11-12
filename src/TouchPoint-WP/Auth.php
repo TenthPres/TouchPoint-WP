@@ -39,10 +39,10 @@ abstract class Auth implements api
         add_filter('edit_profile_url', [self::class, 'overwriteProfileUrl']);
 
         // Clear session variables when logging out
-        add_action( 'wp_logout', [self::class, 'logout'] );
+        add_action('wp_logout', [self::class, 'logout']);
 
         // Auto Login content, when appropriate.
-        add_action( 'wp_footer', [self::class, 'footer'] );
+        add_action('wp_footer', [self::class, 'footer']);
 
         // If configured, bypass the login form and redirect straight to TouchPoint
         add_action('login_init', [self::class, 'redirectLoginFormMaybe'], 20);
@@ -101,14 +101,13 @@ abstract class Auth implements api
         Session::sessionDestroy();
         $tpwp = TouchPointWP::instance();
         if ($tpwp->settings->auth_full_logout === "on") {
-            $redir = $tpwp->host() . '/PyScript/' . $tpwp->settings->api_script_name . '?' . http_build_query(
-                    [
-                        'r' => $_GET['redirect_to'] ?? get_site_url(),
-                        'a' => "logout"
-                    ]
-                );
+            $redir = $tpwp->host() . '/PyScript/' . $tpwp->settings->api_script_name . '?' . http_build_query([
+                'r' => $_GET['redirect_to'] ?? get_site_url(),
+                'a' => "logout"
+            ]);
+
             wp_redirect($redir);
-            die;
+            exit;
         }
     }
 
@@ -287,7 +286,7 @@ abstract class Auth implements api
                      && !is_admin()
                      && current_user_can('subscriber');
 
-        $removeBar = apply_filters(TouchPointWP::HOOK_PREFIX . 'prevent_admin_bar', $removeBar );
+        $removeBar = apply_filters(TouchPointWP::HOOK_PREFIX . 'prevent_admin_bar', $removeBar);
 
         if ($removeBar) {
             show_admin_bar(false);
@@ -477,7 +476,8 @@ abstract class Auth implements api
             }
 
             // Get user.  Returns WP_User if one is found or created, false otherwise.
-            $person = Person::updatePersonFromApiData($data->p);
+	        $allowCreation = TouchPointWP::instance()->settings->auth_auto_provision === 'on';
+            $person = Person::updatePersonFromApiData($data->p, $allowCreation);
 
             if ($person === null) {
                 throw new TouchPointWP_Exception(

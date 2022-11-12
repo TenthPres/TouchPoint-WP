@@ -507,7 +507,7 @@ class TouchPointWP
         if ($this->global !== null) {
             echo Partner::getJsInstantiationString();
         }
-        echo "\n</script>";
+        echo "\n</script>\n";
     }
 
     /**
