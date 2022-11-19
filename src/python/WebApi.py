@@ -596,8 +596,8 @@ if "ident" in Data.a and model.HttpMethod == "post":
 
         # Update Email
         if inData.has_key('email') and inData['email'] is not None and len(inData['email']) > 5:
-            if (p.EmailAddress.lower() == inData['email'].lower() or
-                    p.EmailAddress2.lower() == inData['email'].lower()):
+            if ((p.EmailAddress or "").lower() == inData['email'].lower() or
+                    (p.EmailAddress2 or "").lower() == inData['email'].lower()):
                 pass  # Email already exists somewhere
             elif p.EmailAddress is None or p.EmailAddress == "" or p.SendEmailAddress1 == False:
                 updates['EmailAddress'] = "{}".format(inData['email'])
@@ -742,7 +742,7 @@ if "inv_contact" in Data.a and model.HttpMethod == "post":
 
 {1} sent the following message.  Please reach out to them and mark the task as complete.
 
-    {2}""".format(org.name, p['goesBy'], str(m).replace("\n", "\n    "))  # being indented causes section to be treated like code
+    {2}""".format(org.name, p['goesBy'], str(m).replace("\n", "\n    "))  # being indented improves formatting
 
     model.CreateTaskNote(owner, p['peopleId'], orgContactPid, None, False, text, None, None, keywords)
 
