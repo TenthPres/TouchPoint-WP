@@ -69,12 +69,12 @@ abstract class Rsvp
                 'class'     => 'TouchPoint-RSVP',
                 'btnclass'  => 'btn button',
                 'meetingid' => null,
-                'preload'   => __("Loading...", TouchPointWP::TEXT_DOMAIN)
+                'preload'   => __("Loading...", "TouchPoint-WP")
             ],
             $params,
             self::SHORTCODE
         );
-        $content = $content === '' ? __("RSVP", TouchPointWP::TEXT_DOMAIN) : $content;
+        $content = $content === '' ? __("RSVP", "TouchPoint-WP") : $content;
 
         // Verify that meeting ID is provided
         if ( ! isset($params['meetingid']) || ! is_numeric($params['meetingid'])) {

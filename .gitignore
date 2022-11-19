@@ -5,6 +5,7 @@ composer.lock
 /TouchPointWP_ErrorLog.txt
 /.phpdoc/
 /phpDocumentor.phar
+/wp-cli.phar
 
 /.idea/workspace.xml
 /.idea/usage.statistics.xml

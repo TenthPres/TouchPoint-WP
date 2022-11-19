@@ -55,10 +55,10 @@ abstract class EventsCalendar implements api
                 $locationContent[] = $location;
             }
             if ($usePro && tribe_is_recurring_event($eQ->ID)) {
-                $locationContent[] = __("Recurring", TouchPointWP::TEXT_DOMAIN);
+                $locationContent[] = __("Recurring", "TouchPoint-WP");
             }
             if ($usePro && tribe_event_is_multiday($eQ->ID)) {
-                $locationContent[] = __("Multi-Day", TouchPointWP::TEXT_DOMAIN);
+                $locationContent[] = __("Multi-Day", "TouchPoint-WP");
             }
             $locationContent = implode(" • ", $locationContent);
 

@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP\Utilities;
 
 use tp\TouchPointWP\TouchPointWP;

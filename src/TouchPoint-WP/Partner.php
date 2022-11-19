@@ -736,7 +736,7 @@ class Partner implements api, JsonSerializable, updatesViaCron
 
 
     /**
-     * @param string|array                        $params
+     * @param string|array $params
      *
      * @return string
      */
@@ -767,7 +767,7 @@ class Partner implements api, JsonSerializable, updatesViaCron
 
         $content = "<div class=\"$class\" id=\"$filterBarId\">";
 
-        $any = __("Any", TouchPointWP::TEXT_DOMAIN);
+        $any = __("Any", "TouchPoint-WP");
 
         // Partner Category
         if (in_array('partner_category', $filters)) {
@@ -786,26 +786,26 @@ class Partner implements api, JsonSerializable, updatesViaCron
             $content .= "<p class=\"TouchPointWP-map-warnings\">";
             $content .= sprintf(
                 "<span class=\"TouchPointWP-map-warning-visibleOnly\" style=\"display:none;\">%s  </span>",
-                sprintf( // i18n: %s is for the user-provided "Global Partner" term
-                    __("The %s listed are only those shown on the map.", TouchPointWP::TEXT_DOMAIN),
+                sprintf(  // translators: %s is for the user-provided term for the items on the map (e.g. Small Group or Partner)
+                    __("The %s listed are only those shown on the map.", "TouchPoint-WP"),
                     TouchPointWP::instance()->settings->global_name_plural
                 )
             );
             $content .= sprintf(
                 "<span class=\"TouchPointWP-map-warning-visibleAndInvisible\" style=\"display:none;\">%s  </span>",
-                sprintf( // i18n: %s is for the user-provided "Global Partner" and "Secure Partner" terms.
-                    __("The %s listed are only those shown on the map, as well as all %s.", TouchPointWP::TEXT_DOMAIN),
+                sprintf(  // translators: %s is for the user-provided "Global Partner" and "Secure Partner" terms.
+                    __('The %1$s listed are only those shown on the map, as well as all %2$s.', 'TouchPoint-WP'),
                     TouchPointWP::instance()->settings->global_name_plural,
                     TouchPointWP::instance()->settings->global_name_plural_decoupled
                 )
             );
             $content .= sprintf(
                 "<span class=\"TouchPointWP-map-warning-zoomOrReset\" style=\"display:none;\">%s  </span>",
-                sprintf( // i18n: %s is the link to reset the map
-                    __("Zoom out or %s to see more.", TouchPointWP::TEXT_DOMAIN),
-                    sprintf( // i18n: %s is the link to reset the map
+                sprintf(  // translators: %s is the link to "reset the map"
+                    __("Zoom out or %s to see more.", "TouchPoint-WP"),
+                    sprintf(
                         "<a href=\"#\" class=\"TouchPointWP-map-resetLink\">%s</a>",
-                        __("reset the map", TouchPointWP::TEXT_DOMAIN)
+                        __("reset the map", "TouchPoint-WP")
                     )
                 )
             );
@@ -1190,7 +1190,7 @@ class Partner implements api, JsonSerializable, updatesViaCron
 
         // Not shown on map (only if there is a map, and the partner isn't on it because they lack geo.)
         if (self::$_hasArchiveMap && $this->geo === null && !$this->decoupleLocation) {
-            $r[] = __("Not Shown on Map", TouchPointWP::TEXT_DOMAIN);
+            $r[] = __("Not Shown on Map", "TouchPoint-WP");
             TouchPointWP::requireScript("fontAwesome");  // For map icons
         }
 
@@ -1231,7 +1231,7 @@ class Partner implements api, JsonSerializable, updatesViaCron
 
         // Show on map button.  (Only works if map is called before this is.)
         if (self::$_hasArchiveMap && !$this->decoupleLocation && $this->geo !== null) {
-            $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
+            $text = __("Show on Map", "TouchPoint-WP");
             $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  ";
         }
 

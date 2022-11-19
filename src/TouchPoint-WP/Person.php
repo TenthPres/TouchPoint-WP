@@ -129,7 +129,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         }
 
         if (! property_exists($queryResult, "ID")) {
-            return new TouchPointWP_Exception(__("No WordPress User ID provided for initializing a person object.", TouchPointWP::TEXT_DOMAIN));
+            return new TouchPointWP_Exception(__("No WordPress User ID provided for initializing a person object.", "TouchPoint-WP"));
         }
 
         return new Person($queryResult->ID);
@@ -589,7 +589,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     public static function userContactMethods(array $methods): array
     {
         if (TouchPointWP::currentUserIsAdmin()) {
-            $methods[self::META_PEOPLEID] = __("TouchPoint People ID", TouchPointWP::TEXT_DOMAIN);
+            $methods[self::META_PEOPLEID] = __("TouchPoint People ID", "TouchPoint-WP");
         }
 
         return $methods;
@@ -967,7 +967,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             $btnClass = " class=\"$btnClass\"";
         }
 
-        $text = __("Contact", TouchPointWP::TEXT_DOMAIN);
+        $text = __("Contact", "TouchPoint-WP");
         TouchPointWP::enqueueActionsStyle('person-contact');
         self::enqueueUsersForJsInstantiation();
         $ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
@@ -1070,16 +1070,6 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 		$out .= "\t});\n";
 
 		return $out;
-    }
-
-    /**
-     * Determines whether JS Instantiation should be used.
-     *
-     * @return bool
-     */
-    public static function useJsInstantiation(): bool
-    {
-        return count(static::$queueForJsInstantiation) > 0;
     }
 
     /**

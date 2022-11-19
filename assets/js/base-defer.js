@@ -1,5 +1,8 @@
 "use strict";
 
+// noinspection JSUnresolvedVariable
+const { __, _x, _n, _nx } = wp.i18n;
+
 function utilInit() {
     tpvm._utils.stringArrayToListString = function(strings) {
         let concat = strings.join(''),
@@ -12,7 +15,7 @@ function utilInit() {
             useOxford = true;
         }
         if (concat.indexOf(' & ') !== -1) {
-            and = ' and '; // i18n
+            and = ' ' + __('and', 'TouchPoint-WP') + ' ';
             useOxford = true;
         }
 
@@ -175,7 +178,7 @@ class TP_DataGeo {
         "lat": null,
         "lng": null,
         "type": null,
-        "human": "Loading..." // i18n
+        "human": __('Loading...', 'TouchPoint-WP')
     };
 
     get shortClass() {
@@ -195,7 +198,7 @@ class TP_DataGeo {
                 "lng": pos.coords.longitude,
                 "type": "nav",
                 "permission": null,
-                "human": "Your Location" // i18n
+                "human": __('Your Location', 'TouchPoint-WP')
             }
 
             if (then !== null) {
@@ -206,7 +209,7 @@ class TP_DataGeo {
         }
 
         function err(e) {
-            let userFacingMessage = "";
+            let userFacingMessage;
 
             if (error !== null) {
                 error(e)
@@ -216,16 +219,19 @@ class TP_DataGeo {
 
             switch(e.code) {
                 case e.PERMISSION_DENIED:
-                    userFacingMessage = "User denied the request for Geolocation." // i18n
+                    userFacingMessage = __("User denied the request for Geolocation.", 'TouchPoint-WP');
                     break;
+
                 case e.POSITION_UNAVAILABLE:
-                    userFacingMessage = "Location information is unavailable."  // i18n
+                    userFacingMessage = __("Location information is unavailable.", 'TouchPoint-WP');
                     break;
+
                 case e.TIMEOUT:
-                    userFacingMessage = "The request to get user location timed out."  // i18n
+                    userFacingMessage = __("The request to get user location timed out.", 'TouchPoint-WP');
                     break;
-                case e.UNKNOWN_ERROR:
-                    userFacingMessage = "An unknown error occurred."  // i18n
+
+                default:
+                    userFacingMessage = __("An unknown error occurred.", 'TouchPoint-WP');
                     break;
             }
 
@@ -261,7 +267,7 @@ class TP_DataGeo {
                         if (type.indexOf("ip") > -1) {
                             return TP_DataGeo.geoByServer(null, error);
                         } else {
-                            error({error: true, message: "No geolocation option available"});
+                            error({error: true, message: __("No geolocation option available.", 'TouchPoint-WP')});
                         }
                     }
                 }
@@ -271,7 +277,7 @@ class TP_DataGeo {
             if (type.indexOf("ip") > -1) {
                 return TP_DataGeo.geoByServer(null, error);
             } else {
-                error({error: true, message: "No geolocation option available"});
+                error({error: true, message: __("No geolocation option available.", 'TouchPoint-WP')});
             }
         }
     }
@@ -889,7 +895,7 @@ class TP_Involvement extends TP_Mappable {
             if (showConfirm) {
                 Swal.fire({
                     icon: 'success',
-                    title: `Added to ${inv.name}`,
+                    title: `Added to ${inv.name}`, // i18n
                     timer: 3000,
                     customClass: tpvm._utils.defaultSwalClasses()
                 });
@@ -899,7 +905,7 @@ class TP_Involvement extends TP_Mappable {
             if (showConfirm) {
                 Swal.fire({
                     icon: 'error',
-                    title: `Something strange happened.`,
+                    title: __('Something strange happened.', 'TouchPoint-WP'),
                     timer: 3000,
                     customClass: tpvm._utils.defaultSwalClasses()
                 });
@@ -918,7 +924,7 @@ class TP_Involvement extends TP_Mappable {
             if (showConfirm) {
                 Swal.fire({
                     icon: 'success',
-                    title: `Your message has been sent.`,
+                    title: __('Your message has been sent.', 'TouchPoint-WP'),
                     timer: 3000,
                     customClass: tpvm._utils.defaultSwalClasses()
                 });
@@ -928,7 +934,7 @@ class TP_Involvement extends TP_Mappable {
             if (showConfirm) {
                 Swal.fire({
                     icon: 'error',
-                    title: `Something strange happened.`,
+                    title: __('Something strange happened.', 'TouchPoint-WP'),
                     timer: 3000,
                     customClass: tpvm._utils.defaultSwalClasses()
                 });
@@ -939,7 +945,7 @@ class TP_Involvement extends TP_Mappable {
     // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
     joinAction() {
         let inv = this,
-            title = `Join ${inv.name}`;
+            title = `Join ${inv.name}`; // i18n
 
         tpvm._utils.ga('send', 'event', inv.invType, 'join btn click', inv.name);
 
@@ -955,11 +961,12 @@ class TP_Involvement extends TP_Mappable {
 
             return Swal.fire({
                 title: title,
-                html: "<p id=\"swal-tp-text\">Who is joining the group?</p>" + TP_Person.peopleArrayToCheckboxes(people),
+                html: `<p id=\"swal-tp-text\">${__('Who is joining the group?', 'TouchPoint-WP')}</p>` + TP_Person.peopleArrayToCheckboxes(people),
                 customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,
-                confirmButtonText: 'Join',
+                confirmButtonText: __('Join', 'TouchPoint-WP'),
+                cancelButtonText: __('Cancel', 'TouchPoint-WP'),
                 focusConfirm: false,
                 preConfirm: () => {
                     let form = document.getElementById('tp_people_list_checkboxes'),
@@ -972,7 +979,7 @@ class TP_Involvement extends TP_Mappable {
 
                     if (data.length < 1) {
                         let prompt = document.getElementById('swal-tp-text');
-                        prompt.innerText = "Select who should be added to the group.";
+                        prompt.innerText = __("Select who should be added to the group.", 'TouchPoint-WP');
                         prompt.classList.add('error')
                         return false;
                     }
@@ -1009,8 +1016,8 @@ class TP_Involvement extends TP_Mappable {
             return Swal.fire({
                 title: title,
                 html: '<form id="tp_inv_contact_form">' +
-                    '<div class="form-group"><label for="tp_inv_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_inv_contact_fromPid", "fromPid") + '</div>' +
-                    '<div class="form-group"><label for="tp_inv_contact_body">Message</label><textarea name="body" id="tp_inv_contact_body"></textarea></div>' +
+                    `<div class="form-group"><label for="tp_inv_contact_fromPid">${__('From', 'TouchPoint-WP')}</label>` + TP_Person.peopleArrayToSelect(people, "tp_inv_contact_fromPid", "fromPid") + '</div>' +
+                    `<div class="form-group"><label for="tp_inv_contact_body">${__('Message', 'TouchPoint-WP')}</label><textarea name="body" id="tp_inv_contact_body"></textarea></div>` +
                     '</form>',
                 customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
@@ -1024,7 +1031,7 @@ class TP_Involvement extends TP_Mappable {
 
                     if (message.length < 5) {
                         let prompt = document.getElementById('swal-tp-text');
-                        prompt.innerText = "Please provide a message.";
+                        prompt.innerText = __("Please provide a message.", 'TouchPoint-WP');
                         prompt.classList.add('error')
                         return false;
                     }
@@ -1085,7 +1092,7 @@ class TP_Involvement extends TP_Mappable {
 
         let target = document.getElementById(targetId);
         tpvm._invNear.nearby = ko.observableArray([]);
-        tpvm._invNear.labelStr = ko.observable("Loading..."); // i18n
+        tpvm._invNear.labelStr = ko.observable(__("Loading...", 'TouchPoint-WP'));
         ko.applyBindings(tpvm._invNear, target);
 
         // continue to next action for either success or failure.
@@ -1105,9 +1112,9 @@ class TP_Involvement extends TP_Mappable {
             if (response.error !== undefined) {
                 if (response.geo === false) {
                     if (navigator.geolocation) {
-                        tpvm._invNear.labelStr("We don't know where you are.<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'sgf', 'permission', 'Device Location');\">Click here to use your actual location.</a>"); // i18n
+                        tpvm._invNear.labelStr(__("We don't know where you are.", 'TouchPoint-WP') + "<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'sgf', 'permission', 'Device Location');\">" + __("Click here to use your actual location.", 'TouchPoint-WP') + "</a>");
                     } else {
-                        tpvm._invNear.labelStr("We don't know where you are."); // i18n
+                        tpvm._invNear.labelStr(__("We don't know where you are.", 'TouchPoint-WP'));
                     }
                 } else {
                     tpvm._invNear.labelStr(response.error);
@@ -1115,11 +1122,11 @@ class TP_Involvement extends TP_Mappable {
             } else if (response.geo?.human !== undefined) {
                 let label = response.geo.human;
                 if (response.geo.type === "ip" && navigator.geolocation) {
-                    label += "<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'sgf', 'permission', 'Device Location');\">Click here to use your actual location.</a>"; // i18n
+                    label += "<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'sgf', 'permission', 'Device Location');\">" + __("Click here to use your actual location.", 'TouchPoint-WP') + "</a>";
                 }
                 tpvm._invNear.labelStr(label);
             } else {
-                tpvm._invNear.labelStr("Your Location"); // i18n
+                tpvm._invNear.labelStr(__("Your Location", 'TouchPoint-WP'));
             }
         }
     }
@@ -1265,13 +1272,13 @@ class TP_Person {
                 if (!options.hasOwnProperty(oi)) continue;
                 out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${options[oi]}" value="${options[oi]}" /></td>`
             }
-            out += `<td><a href="#" class="swal-tp-clear-item" onclick="TP_Person.clearRadio('${p.peopleId}'); return false;">clear</a></td>`
+            out += `<td><a href="#" class="swal-tp-clear-item" onclick="TP_Person.clearRadio('${p.peopleId}'); return false;">${__('clear', 'TouchPoint-WP')}</a></td>`
             out += `<td style="text-align:left; width:50%;">${p.goesBy} ${p.lastName}</td></tr>`
         }
 
         // people -- secondary array
         if (secondaryArray !== null && secondaryArray.length > 0) {
-            out += `</tbody><tbody id="tp_people_list_othersOption" onclick="document.getElementById('tp_people_list_others').style.display = ''; document.getElementById('tp_people_list_othersOption').style.display = 'none';"><tr><th colspan="${options.length + 2}"><a>Other Relatives...</a></th></tr>`;
+            out += `</tbody><tbody id="tp_people_list_othersOption" onclick="document.getElementById('tp_people_list_others').style.display = ''; document.getElementById('tp_people_list_othersOption').style.display = 'none';"><tr><th colspan="${options.length + 2}"><a>${__('Other Relatives...', 'TouchPoint-WP')}</a></th></tr>`;
             out += `</tbody><tbody id="tp_people_list_others" style="display:none;">`;
             for (const pi in secondaryArray) {
                 if (!secondaryArray.hasOwnProperty(pi)) continue;
@@ -1282,8 +1289,8 @@ class TP_Person {
                     if (!options.hasOwnProperty(oi)) continue;
                     out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${options[oi]}" value="${options[oi]}" /></td>`
                 }
-                out += `<td><a href="#" class="swal-tp-clear-item" onclick="TP_Person.clearRadio('${p.peopleId}'); return false;">clear</a></td>`
-                out += `<td style="text-align:left; width:50%;">${p.goesBy} ${p.lastName}</td></tr>`
+                out += `<td><a href="#" class="swal-tp-clear-item" onclick="TP_Person.clearRadio('${p.peopleId}'); return false;">${__('clear', 'TouchPoint-WP')}</a></td>`;
+                out += `<td style="text-align:left; width:50%;">${p.goesBy} ${p.lastName}</td></tr>`;
             }
         }
 
@@ -1301,7 +1308,7 @@ class TP_Person {
     // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
     contactAction() {
         let psn = this,
-            title = `Contact ${psn.displayName}`;
+            title = `Contact ${psn.displayName}`; // i18n
 
         tpvm._utils.ga('send', 'event', 'Person', 'contact btn click', psn.peopleId);
 
@@ -1318,8 +1325,8 @@ class TP_Person {
             return Swal.fire({
                 title: title,
                 html: '<form id="tp_person_contact_form">' +
-                    '<div class="form-group"><label for="tp_person_contact_fromPid">From</label>' + TP_Person.peopleArrayToSelect(people, "tp_person_contact_fromPid", "fromPid") + '</div>' +
-                    '<div class="form-group"><label for="tp_person_contact_body">Message</label><textarea name="body" id="tp_person_contact_body"></textarea></div>' +
+                    `<div class="form-group"><label for="tp_person_contact_fromPid">${__('From', 'TouchPoint-WP')}</label>` + TP_Person.peopleArrayToSelect(people, "tp_person_contact_fromPid", "fromPid") + '</div>' +
+                    `<div class="form-group"><label for="tp_person_contact_body">${__('Message', 'TouchPoint-WP')}</label><textarea name="body" id="tp_person_contact_body"></textarea></div>` +
                     '</form>',
                 customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
@@ -1333,7 +1340,7 @@ class TP_Person {
 
                     if (message.length < 5) {
                         let prompt = document.getElementById('swal2-title');
-                        prompt.innerText = "Please Provide a Message.";
+                        prompt.innerText = __("Please Provide a Message.", 'TouchPoint-WP');
                         prompt.classList.add('error')
                         return false;
                     }
@@ -1357,7 +1364,7 @@ class TP_Person {
             if (showConfirm) {
                 Swal.fire({
                     icon: 'success',
-                    title: `Your message has been sent.`,
+                    title: __('Your message has been sent.', 'TouchPoint-WP'),
                     timer: 3000,
                     customClass: tpvm._utils.defaultSwalClasses()
                 });
@@ -1367,7 +1374,7 @@ class TP_Person {
             if (showConfirm) {
                 Swal.fire({
                     icon: 'error',
-                    title: `Something strange happened.`,
+                    title: __('Something strange happened.', 'TouchPoint-WP'),
                     timer: 3000,
                     customClass: tpvm._utils.defaultSwalClasses()
                 });
@@ -1400,10 +1407,10 @@ class TP_Person {
                 resolve(tpvm._plausibleUsers);
             } else {
                 Swal.fire({
-                    html: `<p id=\"swal-tp-text\">Tell us about yourself.</p>` +
+                    html: `<p id=\"swal-tp-text\">${__('Tell us about yourself.', 'TouchPoint-WP')}</p>` +
                         '<form id="tp_ident_form">' +
-                        '<div class="form-group"><label for="tp_ident_email">Email Address</label><input type="email" name="email" id="tp_ident_email" required /></div>' +
-                        '<div class="form-group"><label for="tp_ident_zip">Zip Code</label><input type="text" name="zip" id="tp_ident_zip" pattern="[0-9]{5}" maxlength="5" required /></div>' +
+                        `<div class="form-group"><label for="tp_ident_email">${__('Email Address', 'TouchPoint-WP')}</label><input type="email" name="email" id="tp_ident_email" required /></div>` +
+                        `<div class="form-group"><label for="tp_ident_zip">${__('Zip Code', 'TouchPoint-WP')}</label><input type="text" name="zip" id="tp_ident_zip" pattern="[0-9]{5}" maxlength="5" required /></div>` +
                         '<input type="submit" hidden style="display:none;" /></form>',
                     customClass: tpvm._utils.defaultSwalClasses(),
                     showConfirmButton: true,
@@ -1440,14 +1447,14 @@ class TP_Person {
                         } else {
                             Swal.hideLoading();
                             Swal.update({
-                                html: "<p>Our system doesn't recognize you,<br />so we need a little more info.</p>" +
+                                html: `<p>${__("Our system doesn't recognize you,<br />so we need a little more info.", 'TouchPoint-WP')}</p>` +
                                     '<form id="tp_ident_form">' +
-                                    '<div class="form-group"><label for="tp_ident_email">Email Address</label><input type="email" name="email" id="tp_ident_email" value="' + data.email + '" required /></div>' +
-                                    '<div class="form-group"><label for="tp_ident_zip">Zip Code</label><input type="text" name="zip" id="tp_ident_zip" pattern="[0-9]{5}" maxlength="5" value="' + data.zip + '" required /></div>' +
-                                    '<div class="form-group"><label for="tp_ident_first">First Name</label><input type="text" name="firstName" id="tp_ident_first" required /></div>' +
-                                    '<div class="form-group"><label for="tp_ident_last">Last Name</label><input type="text" name="lastName" id="tp_ident_last" required /></div>' +
-                                    // '<div class="form-group"><label for="tp_ident_dob">Birthdate</label><input type="date" name="dob" id="tp_ident_dob" /></div>' +
-                                    '<div class="form-group"><label for="tp_ident_phone">Phone</label><input type="tel" name="phone" id="tp_ident_phone" /></div>' +
+                                    '<div class="form-group"><label for="tp_ident_email">' + __('Email Address', 'TouchPoint-WP') + '</label><input type="email" name="email" id="tp_ident_email" value="' + data.email + '" required /></div>' +
+                                    '<div class="form-group"><label for="tp_ident_zip">' + __('Zip Code', 'TouchPoint-WP') + '</label><input type="text" name="zip" id="tp_ident_zip" pattern="[0-9]{5}" maxlength="5" value="' + data.zip + '" required /></div>' +
+                                    '<div class="form-group"><label for="tp_ident_first">' + __('First Name', 'TouchPoint-WP') + '</label><input type="text" name="firstName" id="tp_ident_first" required /></div>' +
+                                    '<div class="form-group"><label for="tp_ident_last">' + __('Last Name', 'TouchPoint-WP') + '</label><input type="text" name="lastName" id="tp_ident_last" required /></div>' +
+                                    // '<div class="form-group"><label for="tp_ident_dob">' + __('Birthdate', 'TouchPoint-WP') + '</label><input type="date" name="dob" id="tp_ident_dob" /></div>' +
+                                    '<div class="form-group"><label for="tp_ident_phone">' + __('Phone', 'TouchPoint-WP') + '</label><input type="tel" name="phone" id="tp_ident_phone" /></div>' +
                                     '<input type="submit" hidden style="display:none;" /></form>'
                             });
                             document.getElementById('tp_ident_form').addEventListener('submit', (e) => {

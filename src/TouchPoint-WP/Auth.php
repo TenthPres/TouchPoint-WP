@@ -128,6 +128,7 @@ abstract class Auth implements api
         /** @noinspection HtmlUnknownTarget */
         $html .= '<a href="%s">';
         $html .= sprintf(
+            // translators: %s is "what you call TouchPoint at your church", which is a setting
             __('Sign in with your %s account', 'TouchPoint-WP'),
             htmlentities(TouchPointWP::instance()->settings->system_name)
         );

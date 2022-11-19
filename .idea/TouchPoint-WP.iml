@@ -6,13 +6,12 @@
       <sourceFolder url="file://$MODULE_DIR$/src/TouchPoint-WP/Utilities" isTestSource="false" packagePrefix="tp\TouchPointWP\Utilities\" />
       <excludeFolder url="file://$MODULE_DIR$/docs/phpApi" />
       <excludeFolder url="file://$MODULE_DIR$/vendorX" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/composer" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="sweetalert2" level="application" />
-    <orderEntry type="library" name="googlemaps-DefinitelyTyped" level="application" />
     <orderEntry type="library" name="@types/google-maps" level="application" />
     <orderEntry type="library" name="knockout-3.5.0" level="application" />
-    <orderEntry type="library" name="@googlemaps/markerclustererplus" level="application" />
   </component>
 </module>

@@ -202,7 +202,7 @@ class TouchPointWP_Settings
                     'label'       => __('Enable Authentication', 'TouchPoint-WP'),
                     'description' => __(
                         'Allow TouchPoint users to sign into this website with TouchPoint.',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
@@ -220,7 +220,7 @@ class TouchPointWP_Settings
                     'label'       => __('Enable Involvements', 'TouchPoint-WP'),
                     'description' => __(
                         'Load Involvements from TouchPoint for involvement listings and entries native in your website.',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
@@ -230,7 +230,7 @@ class TouchPointWP_Settings
                     'label'       => __('Enable Public People Lists', 'TouchPoint-WP'),
                     'description' => __(
                         'Import public people listings from TouchPoint (e.g. staff or elders)',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
@@ -240,17 +240,17 @@ class TouchPointWP_Settings
                     'label'       => __('Enable Global Partner Listings', 'TouchPoint-WP'),
                     'description' => __(
                         'Import ministry partners from TouchPoint to list publicly.',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
                 ],
                 [
                     'id'          => 'system_name',
-                    'label'       => __('Display Name', TouchPointWP::TEXT_DOMAIN),
+                    'label'       => __('Display Name', 'TouchPoint-WP'),
                     'description' => __(
                         'What your church calls your TouchPoint database.',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => 'TouchPoint',
@@ -261,7 +261,7 @@ class TouchPointWP_Settings
                     'label'       => __('TouchPoint Host Name', 'TouchPoint-WP'),
                     'description' => __(
                         'The domain for your TouchPoint database, without the https or any slashes.',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => '',
@@ -274,7 +274,7 @@ class TouchPointWP_Settings
                     'description' => __(
                         "The domain for your mobile app deeplinks, without the https or any slashes.  If you aren't 
                         using the custom mobile app, leave this blank.",
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => '',
@@ -286,7 +286,7 @@ class TouchPointWP_Settings
                     'label'       => __('TouchPoint API Username', 'TouchPoint-WP'),
                     'description' => __(
                         'The username of a user account in TouchPoint with API permissions.  Required for all tools except Authentication.',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => '',
@@ -297,7 +297,7 @@ class TouchPointWP_Settings
                     'label'       => __('TouchPoint API User Password', 'TouchPoint-WP'),
                     'description' => __(
                         'The password of a user account in TouchPoint with API permissions.',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text_secret',
                     'default'     => '',
@@ -309,7 +309,7 @@ class TouchPointWP_Settings
                     'label'       => __('TouchPoint API Script Name', 'TouchPoint-WP'),
                     'description' => __(
                         'The name of the Python script loaded into TouchPoint.  Don\'t change this unless you know what you\'re doing.',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => 'WebApi',
@@ -320,7 +320,7 @@ class TouchPointWP_Settings
                     'label'       => __('Google Maps Javascript API Key', 'TouchPoint-WP'),
                     'description' => __(
                         'Required for embedding maps.',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => '',
@@ -331,7 +331,7 @@ class TouchPointWP_Settings
                     'label'       => __('Google Maps Geocoding API Key', 'TouchPoint-WP'),
                     'description' => __(
                         'Optional.  Allows for reverse geocoding of user locations.',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => '',
@@ -350,9 +350,9 @@ class TouchPointWP_Settings
                 'type'    => 'instructions',
                 'description' => strtr(
                     '<p>' . __('Once your settings on this page are set and saved, use this tool to generate
-the scripts needed for TouchPoint in a convenient installation package.  ', TouchPointWP::TEXT_DOMAIN) .
-'<a href="{uploadUrl}">' . __('Upload the package to {tpName} here', TouchPointWP::TEXT_DOMAIN) . '</a>.</p>
-<p><a href="{apiUrl}" class="button-secondary" target="tp_zipIfr">' . __('Generate Scripts', TouchPointWP::TEXT_DOMAIN) . '</a></p>
+the scripts needed for TouchPoint in a convenient installation package.  ', 'TouchPoint-WP') .
+'<a href="{uploadUrl}">' . __('Upload the package to {tpName} here', 'TouchPoint-WP') . '</a>.</p>
+<p><a href="{apiUrl}" class="button-secondary" target="tp_zipIfr">' . __('Generate Scripts', 'TouchPoint-WP') . '</a></p>
 <iframe name="tp_zipIfr" style="width:0; height:0; opacity:0;"></iframe>',
                     [
                         '{apiUrl}'    => "/" . TouchPointWP::API_ENDPOINT . "/" . TouchPointWP::API_ENDPOINT_ADMIN_SCRIPTZIP,
@@ -366,15 +366,15 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on") { // TODO MULTI
             $includeThis = $includeDetail === true || $includeDetail === 'people';
             $this->settings['people'] = [
-                'title'       => __('People', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Manage how people are synchronized between TouchPoint and WordPress.', TouchPointWP::TEXT_DOMAIN),
+                'title'       => __('People', 'TouchPoint-WP'),
+                'description' => __('Manage how people are synchronized between TouchPoint and WordPress.', 'TouchPoint-WP'),
                 'fields'      => [
                     [
                         'id'          => 'people_contact_keywords',
-                        'label'       => __('Contact Keywords', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Contact Keywords', 'TouchPoint-WP'),
                         'description' => __(
                             'These keywords will be used when someone clicks the "Contact" button on a Person\'s listing or profile.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'checkbox_multi',
                         'formClass'   => 'column-wrap',
@@ -383,10 +383,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'people_ev_wpId',
-                        'label'       => __('Extra Value for WordPress User ID', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Extra Value for WordPress User ID', 'TouchPoint-WP'),
                         'description' => __(
                             'The name of the extra value to use for the WordPress User ID.  If you are using multiple WordPress instances with one TouchPoint database, you will need these values to be unique between WordPress instances.  In most cases, the default is fine.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'text',
                         'default'     => 'WordPress User ID',
@@ -394,10 +394,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'people_ev_bio',
-                        'label'       => __('Extra Value: Biography', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Extra Value: Biography', 'TouchPoint-WP'),
                         'description' => __(
                             'Import a Bio from a Person Extra Value field.  Can be an HTML or Text Extra Value.  This will overwrite any values set by WordPress.  Leave blank to not import.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'select',
                         'options'     => $includeThis ? $this->parent->getPersonEvFieldsAsKVArray('text', true) : [],
@@ -405,10 +405,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'people_ev_custom',
-                        'label'       => __('Extra Values to Import', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Extra Values to Import', 'TouchPoint-WP'),
                         'description' => __(
                             'Import People Extra Value fields as User Meta data.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'checkbox_multi',
                         'formClass'   => 'column-wrap',
@@ -422,52 +422,52 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on") { // TODO MULTI
 //            $includeThis = $includeDetail === true || $includeDetail === 'authentication';
             $this->settings['authentication'] = [
-                'title'       => __('Authentication', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Allow users to log into WordPress using TouchPoint.', TouchPointWP::TEXT_DOMAIN),
+                'title'       => __('Authentication', 'TouchPoint-WP'),
+                'description' => __('Allow users to log into WordPress using TouchPoint.', 'TouchPoint-WP'),
                 'fields'      => [
                     [
                         'id'          => 'auth_default',
-                        'label'       => __('Make TouchPoint the default authentication method.', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Make TouchPoint the default authentication method.', 'TouchPoint-WP'),
                         'description' => __(
                             'By checking this box, the TouchPoint login page will become the default.  To prevent the redirect and reach the standard TouchPoint login page, add \'' . TouchPointWP::HOOK_PREFIX . 'no_redirect\' as a URL parameter.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'checkbox',
                         'default'     => '',
                     ],
                     [
                         'id'          => 'auth_auto_provision',
-                        'label'       => __('Enable Auto-Provisioning', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Enable Auto-Provisioning', 'TouchPoint-WP'),
                         'description' => __(
                             'Automatically create WordPress users, if needed, to match authenticated TouchPoint users.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'checkbox',
                         'default'     => 'on',
                     ],
                     [
                         'id'          => 'auth_change_profile_urls',
-                        'label'       => __('Change \'Edit Profile\' links', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Change \'Edit Profile\' links', 'TouchPoint-WP'),
                         'description' => __(
                             '"Edit Profile" links will take the user to their TouchPoint profile, instead of their WordPress profile.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'checkbox',
                         'default'     => 'on',
                     ],
                     [
                         'id'          => 'auth_full_logout',
-                        'label'       => __('Enable full logout', TouchPointWP::TEXT_DOMAIN),
-                        'description' => __('Logout of TouchPoint when logging out of WordPress.', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Enable full logout', 'TouchPoint-WP'),
+                        'description' => __('Logout of TouchPoint when logging out of WordPress.', 'TouchPoint-WP'),
                         'type'        => 'checkbox',
                         'default'     => 'on',
                     ],
                     [
                         'id'          => 'auth_prevent_admin_bar',
-                        'label'       => __('Prevent Subscriber Admin Bar', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Prevent Subscriber Admin Bar', 'TouchPoint-WP'),
                         'description' => __(
                             'By enabling this option, users who can\'t edit anything won\'t see the Admin bar.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'checkbox',
                         'default'     => '',
@@ -479,8 +479,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {  // TODO MULTI
             $includeThis = $includeDetail === true || $includeDetail === 'involvements';
             $this->settings['involvements'] = [
-                'title'       => __('Involvements', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Import Involvements from TouchPoint to list them on your website, for Small Groups, Classes, and more.  Select the division(s) that immediately correspond to the type of Involvement you want to list.  For example, if you want a Small Group list and have a Small Group Division, only select the Small Group Division.  If you want Involvements to be filterable by additional Divisions, select those Divisions on the Divisions tab, not here.', TouchPointWP::TEXT_DOMAIN),
+                'title'       => __('Involvements', 'TouchPoint-WP'),
+                'description' => __('Import Involvements from TouchPoint to list them on your website, for Small Groups, Classes, and more.  Select the division(s) that immediately correspond to the type of Involvement you want to list.  For example, if you want a Small Group list and have a Small Group Division, only select the Small Group Division.  If you want Involvements to be filterable by additional Divisions, select those Divisions on the Divisions tab, not here.', 'TouchPoint-WP'),
                 'fields'      => [
                     [
                         'id'          => 'inv_json', // involvement settings json (stored as a json string)
@@ -513,15 +513,15 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on") { // TODO MULTI
             $includeThis = $includeDetail === true || $includeDetail === 'global';
             $this->settings['global'] = [
-                'title'       => __('Global Partners', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners are grouped by family, and content is provided through Family Extra Values.  This works for both People and Business records.', TouchPointWP::TEXT_DOMAIN),
+                'title'       => __('Global Partners', 'TouchPoint-WP'),
+                'description' => __('Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners are grouped by family, and content is provided through Family Extra Values.  This works for both People and Business records.', 'TouchPoint-WP'),
                 'fields'      => [
                     [
                         'id'          => 'global_name_plural',
-                        'label'       => __('Global Partner Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Global Partner Name (Plural)', 'TouchPoint-WP'),
                         'description' => __(
                             'What you call Global Partners at your church',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'text',
                         'default'     => 'Partners',
@@ -529,10 +529,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_name_singular',
-                        'label'       => __('Global Partner Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Global Partner Name (Singular)', 'TouchPoint-WP'),
                         'description' => __(
                             'What you call a Global Partner at your church',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'text',
                         'default'     => 'Partner',
@@ -540,10 +540,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_name_plural_decoupled',
-                        'label'       => __('Global Partner Name for Secure Places (Plural)', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Global Partner Name for Secure Places (Plural)', 'TouchPoint-WP'),
                         'description' => __(
                             'What you call Secure Global Partners at your church',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'text',
                         'default'     => 'Secure Partners',
@@ -551,10 +551,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_name_singular_decoupled',
-                        'label'       => __('Global Partner Name for Secure Places (Singular)', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Global Partner Name for Secure Places (Singular)', 'TouchPoint-WP'),
                         'description' => __(
                             'What you call a Secure Global Partner at your church',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'text',
                         'default'     => 'Secure Partner',
@@ -562,10 +562,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_slug',
-                        'label'       => __('Global Partner Slug', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Global Partner Slug', 'TouchPoint-WP'),
                         'description' => __(
                             'The root path for Global Partner posts',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'text',
                         'default'     => 'partners',
@@ -574,10 +574,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_search',
-                        'label'       => __('Saved Search', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Saved Search', 'TouchPoint-WP'),
                         'description' => __(
                             'Anyone who is included in this saved search will be included in the listing.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'select_grouped',
                         'options'     => $includeThis ? $this->parent->getSavedSearches(null, $this->global_search) : [],
@@ -585,10 +585,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_description',
-                        'label'       => __('Extra Value: Description', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Extra Value: Description', 'TouchPoint-WP'),
                         'description' => __(
                             'Import a description from a Family Extra Value field.  Can be an HTML or Text Extra Value.  This becomes the body of the Global Partner post.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'select',
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
@@ -596,10 +596,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_summary',
-                        'label'       => __('Extra Value: Summary', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Extra Value: Summary', 'TouchPoint-WP'),
                         'description' => __(
                             'Optional. Import a short description from a Family Extra Value field.  Can be an HTML or Text Extra Value.  If not provided, the full bio will be truncated.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'select',
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
@@ -607,10 +607,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_geo_lat',
-                        'label'       => __('Latitude Override', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Latitude Override', 'TouchPoint-WP'),
                         'description' => __(
                             'Designate a text Family Extra Value that will contain a latitude that overrides any locations on the partner\'s profile for the partner map.  Both latitude and longitude must be provided for an override to take place.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'select',
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
@@ -618,10 +618,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_geo_lng',
-                        'label'       => __('Longitude Override', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Longitude Override', 'TouchPoint-WP'),
                         'description' => __(
                             'Designate a text Family Extra Value that will contain a longitude that overrides any locations on the partner\'s profile for the partner map.  Both latitude and longitude must be provided for an override to take place.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'select',
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
@@ -629,10 +629,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_location',
-                        'label'       => __('Public Location', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Public Location', 'TouchPoint-WP'),
                         'description' => __(
                             'Designate a text Family Extra Value that will contain the partner\'s location, as you want listed publicly.  For partners who have DecoupleLocation enabled, this field will be associated with the map point, not the list entry.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'select',
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('text', true) : [],
@@ -640,10 +640,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_fev_custom',
-                        'label'       => __('Extra Values to Import', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Extra Values to Import', 'TouchPoint-WP'),
                         'description' => __(
                             'Import Family Extra Value fields as Meta data on the partner\'s post.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'checkbox_multi',
                         'formClass'   => 'column-wrap',
@@ -652,10 +652,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'global_primary_tax',
-                        'label'       => __('Primary Taxonomy', TouchPointWP::TEXT_DOMAIN),
+                        'label'       => __('Primary Taxonomy', 'TouchPoint-WP'),
                         'description' => __(
                             'Import a Family Extra Value as the primary means by which partners are organized.',
-                            TouchPointWP::TEXT_DOMAIN
+                            'TouchPoint-WP'
                         ),
                         'type'        => 'select',
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('code', true) : [],
@@ -668,17 +668,17 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         if (TouchPointWP::useTribeCalendar()) {
             /** @noinspection HtmlUnknownTarget */
             $this->settings['events_calendar'] = [
-                'title'       => __('Events Calendar', TouchPointWP::TEXT_DOMAIN),
-                'description' => __('Integrate with The Events Calendar from ModernTribe.', TouchPointWP::TEXT_DOMAIN),
+                'title'       => __('Events Calendar', 'TouchPoint-WP'),
+                'description' => __('Integrate with The Events Calendar from ModernTribe.', 'TouchPoint-WP'),
                 'fields'      => [
                     [
                         'id'          => 'ec_app_cal_url',
                         'label'       => __('Events for Custom Mobile App', 'TouchPoint-WP'),
                         'type'    => 'instructions',
                         'description' => strtr(
-                            '<p>' . __('To use your Events Calendar events in the Custom mobile app, set the Provider to <code>Wordpress Plugin - Modern Tribe</code> and use this url:', TouchPointWP::TEXT_DOMAIN) . '</p>' .
+                            '<p>' . __('To use your Events Calendar events in the Custom mobile app, set the Provider to <code>Wordpress Plugin - Modern Tribe</code> and use this url:', 'TouchPoint-WP') . '</p>' .
                             '<input type="url" value="{apiUrl}" readonly style="width: 100%;" />' .
-                            '<a href="{previewUrl}" class="btn">' . __('Preview', TouchPointWP::TEXT_DOMAIN) . '</a>',
+                            '<a href="{previewUrl}" class="btn">' . __('Preview', 'TouchPoint-WP') . '</a>',
                             [
                                 '{apiUrl}'    => get_site_url() . "/" .
                                                  TouchPointWP::API_ENDPOINT . "/" .
@@ -693,8 +693,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'ec_use_standardizing_style',
-                        'label'       => __( 'Use Standardizing Stylesheet', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'Inserts some basic CSS into the events feed to clean up display', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'Use Standardizing Stylesheet', 'TouchPoint-WP' ),
+                        'description' => __( 'Inserts some basic CSS into the events feed to clean up display', 'TouchPoint-WP' ),
                         'type'        => 'checkbox',
                         'default'     => 'on',
                     ],
@@ -704,15 +704,15 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
 
         $includeThis = $includeDetail === true || $includeDetail === 'divisions';
         $this->settings['divisions'] = [
-            'title'       => __('Divisions', TouchPointWP::TEXT_DOMAIN),
-            'description' => __('Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', TouchPointWP::TEXT_DOMAIN),
+            'title'       => __('Divisions', 'TouchPoint-WP'),
+            'description' => __('Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', 'TouchPoint-WP'),
             'fields'      => [
                 [
                     'id'          => 'dv_name_plural',
-                    'label'       => __('Division Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                    'label'       => __('Division Name (Plural)', 'TouchPoint-WP'),
                     'description' => __(
                         'What you call Divisions at your church',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => 'Divisions',
@@ -720,10 +720,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ],
                 [
                     'id'          => 'dv_name_singular',
-                    'label'       => __('Division Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                    'label'       => __('Division Name (Singular)', 'TouchPoint-WP'),
                     'description' => __(
                         'What you call a Division at your church',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => 'Division',
@@ -731,10 +731,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ],
                 [
                     'id'          => 'dv_slug',
-                    'label'       => __('Division Slug', TouchPointWP::TEXT_DOMAIN),
+                    'label'       => __('Division Slug', 'TouchPoint-WP'),
                     'description' => __(
                         'The root path for the Division Taxonomy',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => 'div',
@@ -743,10 +743,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ],
                 [
                     'id'          => 'dv_divisions',
-                    'label'       => __('Divisions to Import', TouchPointWP::TEXT_DOMAIN),
+                    'label'       => __('Divisions to Import', 'TouchPoint-WP'),
                     'description' => __(
                         'These divisions will be imported for the taxonomy.',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'checkbox_multi',
                     'options'     => $includeThis ? $this->parent->getDivisionsAsKVArray() : [],
@@ -757,15 +757,15 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         ];
 
         $this->settings['campuses'] = [
-            'title'       => __('Campuses', TouchPointWP::TEXT_DOMAIN),
-            'description' => __('Import Campuses from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', TouchPointWP::TEXT_DOMAIN),
+            'title'       => __('Campuses', 'TouchPoint-WP'),
+            'description' => __('Import Campuses from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', 'TouchPoint-WP'),
             'fields'      => [
                 [
                     'id'          => 'camp_name_plural',
-                    'label'       => __('Campus Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                    'label'       => __('Campus Name (Plural)', 'TouchPoint-WP'),
                     'description' => __(
                         'What you call Campuses at your church',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => 'Campuses',
@@ -773,10 +773,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ],
                 [
                     'id'          => 'camp_name_singular',
-                    'label'       => __('Campus Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                    'label'       => __('Campus Name (Singular)', 'TouchPoint-WP'),
                     'description' => __(
                         'What you call a Campus at your church',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => 'Campus',
@@ -784,10 +784,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ],
                 [
                     'id'          => 'camp_slug',
-                    'label'       => __('Campus Slug', TouchPointWP::TEXT_DOMAIN),
+                    'label'       => __('Campus Slug', 'TouchPoint-WP'),
                     'description' => __(
                         'The root path for the Campus Taxonomy',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => 'campus',
@@ -798,15 +798,15 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         ];
 
         $this->settings['resident_codes'] = [
-            'title'       => __('Resident Codes', TouchPointWP::TEXT_DOMAIN),
-            'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements that have locations.', TouchPointWP::TEXT_DOMAIN),
+            'title'       => __('Resident Codes', 'TouchPoint-WP'),
+            'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements that have locations.', 'TouchPoint-WP'),
             'fields'      => [
                 [
                     'id'          => 'rc_name_plural',
-                    'label'       => __('Resident Code Name (Plural)', TouchPointWP::TEXT_DOMAIN),
+                    'label'       => __('Resident Code Name (Plural)', 'TouchPoint-WP'),
                     'description' => __(
                         'What you call Resident Codes at your church',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => 'Resident Codes',
@@ -814,10 +814,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ],
                 [
                     'id'          => 'rc_name_singular',
-                    'label'       => __('Resident Code Name (Singular)', TouchPointWP::TEXT_DOMAIN),
+                    'label'       => __('Resident Code Name (Singular)', 'TouchPoint-WP'),
                     'description' => __(
-                        'What you call a resident code at your church',
-                        TouchPointWP::TEXT_DOMAIN
+                        'What you call a Resident Code at your church',
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => 'Resident Code',
@@ -825,10 +825,10 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                 ],
                 [
                     'id'          => 'rc_slug',
-                    'label'       => __('Resident Code Slug', TouchPointWP::TEXT_DOMAIN),
+                    'label'       => __('Resident Code Slug', 'TouchPoint-WP'),
                     'description' => __(
                         'The root path for the Resident Code Taxonomy',
-                        TouchPointWP::TEXT_DOMAIN
+                        'TouchPoint-WP'
                     ),
                     'type'        => 'text',
                     'default'     => 'rescodes',
@@ -839,52 +839,52 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         ];
 
         /*	$settings['general'] = [
-                'title'       => __( 'Standard', TouchPointWP::TEXT_DOMAIN ),
-                'description' => __( 'These are fairly standard form input fields.', TouchPointWP::TEXT_DOMAIN ),
+                'title'       => __( 'Standard', 'TouchPoint-WP' ),
+                'description' => __( 'These are fairly standard form input fields.', 'TouchPoint-WP' ),
                 'fields'      => [
                     [
                         'id'          => 'text_field',
-                        'label'       => __( 'Some Text', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'This is a standard text field.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'Some Text', 'TouchPoint-WP' ),
+                        'description' => __( 'This is a standard text field.', 'TouchPoint-WP' ),
                         'type'        => 'text',
                         'default'     => '',
-                        'placeholder' => __( 'Placeholder text', TouchPointWP::TEXT_DOMAIN ),
+                        'placeholder' => __( 'Placeholder text', 'TouchPoint-WP' ),
                     ],
                     [
                         'id'          => 'password_field',
-                        'label'       => __( 'A Password', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'This is a standard password field.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'A Password', 'TouchPoint-WP' ),
+                        'description' => __( 'This is a standard password field.', 'TouchPoint-WP' ),
                         'type'        => 'password',
                         'default'     => '',
-                        'placeholder' => __( 'Placeholder text', TouchPointWP::TEXT_DOMAIN ),
+                        'placeholder' => __( 'Placeholder text', 'TouchPoint-WP' ),
                     ],
                     [
                         'id'          => 'secret_text_field',
-                        'label'       => __( 'Some Secret Text', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'This is a secret text field - any data saved here will not be displayed after the page has reloaded, but it will be saved.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'Some Secret Text', 'TouchPoint-WP' ),
+                        'description' => __( 'This is a secret text field - any data saved here will not be displayed after the page has reloaded, but it will be saved.', 'TouchPoint-WP' ),
                         'type'        => 'text_secret',
                         'default'     => '',
-                        'placeholder' => __( 'Placeholder text', TouchPointWP::TEXT_DOMAIN ),
+                        'placeholder' => __( 'Placeholder text', 'TouchPoint-WP' ),
                     ],
                     [
                         'id'          => 'text_block',
-                        'label'       => __( 'A Text Block', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'This is a standard text area.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'A Text Block', 'TouchPoint-WP' ),
+                        'description' => __( 'This is a standard text area.', 'TouchPoint-WP' ),
                         'type'        => 'textarea',
                         'default'     => '',
-                        'placeholder' => __( 'Placeholder text for this textarea', TouchPointWP::TEXT_DOMAIN ),
+                        'placeholder' => __( 'Placeholder text for this textarea', 'TouchPoint-WP' ),
                     ],
                     [
                         'id'          => 'single_checkbox',
-                        'label'       => __( 'An Option', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'A standard checkbox - if you save this option as checked then it will store the option as \'on\', otherwise it will be an empty string.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'An Option', 'TouchPoint-WP' ),
+                        'description' => __( 'A standard checkbox - if you save this option as checked then it will store the option as \'on\', otherwise it will be an empty string.', 'TouchPoint-WP' ),
                         'type'        => 'checkbox',
                         'default'     => '',
                     ],
                     [
                         'id'          => 'select_box',
-                        'label'       => __( 'A Select Box', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'A standard select box.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'A Select Box', 'TouchPoint-WP' ),
+                        'description' => __( 'A standard select box.', 'TouchPoint-WP' ),
                         'type'        => 'select',
                         'options'     => [
                             'drupal'    => 'Drupal',
@@ -895,8 +895,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'radio_buttons',
-                        'label'       => __( 'Some Options', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'A standard set of radio buttons.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'Some Options', 'TouchPoint-WP' ),
+                        'description' => __( 'A standard set of radio buttons.', 'TouchPoint-WP' ),
                         'type'        => 'radio',
                         'options'     => [
                             'superman' => 'Superman',
@@ -907,8 +907,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
                     ],
                     [
                         'id'          => 'multiple_checkboxes',
-                        'label'       => __( 'Some Items', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'You can select multiple items and they will be stored as an array.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'Some Items', 'TouchPoint-WP' ),
+                        'description' => __( 'You can select multiple items and they will be stored as an array.', 'TouchPoint-WP' ),
                         'type'        => 'checkbox_multi',
                         'options'     => [
                             'square'    => 'Square',
@@ -922,36 +922,36 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             ];
 
             $settings['extra'] = array(
-                'title'       => __( 'Extra', TouchPointWP::TEXT_DOMAIN ),
-                'description' => __( "These are some extra input fields that maybe aren't as common as the others.", TouchPointWP::TEXT_DOMAIN ),
+                'title'       => __( 'Extra', 'TouchPoint-WP' ),
+                'description' => __( "These are some extra input fields that maybe aren't as common as the others.", 'TouchPoint-WP' ),
                 'fields'      => array(
                     array(
                         'id'          => 'number_field',
-                        'label'       => __( 'A Number', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'This is a standard number field - if this field contains anything other than numbers then the form will not be submitted.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'A Number', 'TouchPoint-WP' ),
+                        'description' => __( 'This is a standard number field - if this field contains anything other than numbers then the form will not be submitted.', 'TouchPoint-WP' ),
                         'type'        => 'number',
                         'default'     => '',
-                        'placeholder' => __( '42', TouchPointWP::TEXT_DOMAIN ),
+                        'placeholder' => __( '42', 'TouchPoint-WP' ),
                     ),
                     array(
                         'id'          => 'colour_picker',
-                        'label'       => __( 'Pick a colour', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'This uses WordPress\' built-in colour picker - the option is stored as the colour\'s hex code.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'Pick a colour', 'TouchPoint-WP' ),
+                        'description' => __( 'This uses WordPress\' built-in colour picker - the option is stored as the colour\'s hex code.', 'TouchPoint-WP' ),
                         'type'        => 'color',
                         'default'     => '#21759B',
                     ),
                     array(
                         'id'          => 'an_image',
-                        'label'       => __( 'An Image', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'This will upload an image to your media library and store the attachment ID in the option field. Once you have uploaded an image the thumbnail will display above these buttons.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'An Image', 'TouchPoint-WP' ),
+                        'description' => __( 'This will upload an image to your media library and store the attachment ID in the option field. Once you have uploaded an image the thumbnail will display above these buttons.', 'TouchPoint-WP' ),
                         'type'        => 'image',
                         'default'     => '',
                         'placeholder' => '',
                     ),
                     array(
                         'id'          => 'multi_select_box',
-                        'label'       => __( 'A Multi-Select Box', TouchPointWP::TEXT_DOMAIN ),
-                        'description' => __( 'A standard multi-select box - the saved data is stored as an array.', TouchPointWP::TEXT_DOMAIN ),
+                        'label'       => __( 'A Multi-Select Box', 'TouchPoint-WP' ),
+                        'description' => __( 'A standard multi-select box - the saved data is stored as an array.', 'TouchPoint-WP' ),
                         'type'        => 'select_multi',
                         'options'     => array(
                             'linux'   => 'Linux',
@@ -982,7 +982,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         if ($pass === '' || $pass === self::UNDEFINED_PLACEHOLDER) {
             return '';
         }
-        return __('password saved', TouchPointWP::TEXT_DOMAIN);
+        return __('password saved', 'TouchPoint-WP');
     }
 
     /**
@@ -1038,8 +1038,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
             [
                 'location'    => 'options', // Possible settings: options, menu, submenu.
                 'parent_slug' => 'options-general.php',
-                'page_title'  => __('TouchPoint-WP', TouchPointWP::TEXT_DOMAIN),
-                'menu_title'  => __('TouchPoint-WP', TouchPointWP::TEXT_DOMAIN),
+                'page_title'  => __('TouchPoint-WP', 'TouchPoint-WP'),
+                'menu_title'  => __('TouchPoint-WP', 'TouchPoint-WP'),
                 'capability'  => 'manage_options',
                 'menu_slug'   => $this->parent::TOKEN . '_Settings',
                 'function'    => [$this, 'settingsPage'],
@@ -1072,7 +1072,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     {
         $settings_link = '<a href="options-general.php?page=' . $this->parent::TOKEN . '_Settings">' . __(
                 'Settings',
-                TouchPointWP::TEXT_DOMAIN
+                'TouchPoint-WP'
             ) . '</a>';
         $links[]       = $settings_link;
 
@@ -1251,7 +1251,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         $updates = $data->scriptsUpdated ?? 0;
 
         if (count($scriptContent) !== $updates) {
-            throw new TouchPointWP_Exception(__("Script Update Failed", TouchPointWP::TEXT_DOMAIN), 170004);
+            throw new TouchPointWP_Exception(__("Script Update Failed", "TouchPoint-WP"), 170004);
         }
     }
 
@@ -1366,7 +1366,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
     {
         // Build page HTML.
         $html = '<div class="wrap" id="' . $this->parent::TOKEN . '_Settings">' . "\n";
-        $html .= '<h2>' . __('TouchPoint-WP Settings', TouchPointWP::TEXT_DOMAIN) . '</h2>' . "\n";
+        $html .= '<h2>' . __('TouchPoint-WP Settings', 'TouchPoint-WP') . '</h2>' . "\n";
 
         $tab = '';
 
@@ -1417,7 +1417,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', Touc
         $html .= '<p class="submit">' . "\n";
         $html .= '<input type="hidden" name="tab" value="' . esc_attr($tab) . '" />' . "\n";
         $html .= '<input name="Submit" type="submit" class="button-primary" value="' . esc_attr(
-                __('Save Settings', TouchPointWP::TEXT_DOMAIN)
+                __('Save Settings', 'TouchPoint-WP')
             ) . '" />' . "\n";
         $html .= '</p>' . "\n";
         $html .= '</form>' . "\n";
