@@ -4,35 +4,37 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TouchPoint WP 0.0.21\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/TouchPoint-WP\n"
+"POT-Creation-Date: 2022-11-24T23:10:35+00:00\n"
+"PO-Revision-Date: 2022-11-24 18:20-0500\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2022-11-24T23:10:35+00:00\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"X-Generator: WP-CLI 2.7.1\n"
+"Plural-Forms: \n"
+"X-Generator: Eazy Po 1.0.0.0\n"
 "X-Domain: TouchPoint-WP\n"
 
-#. Plugin Name of the plugin
+#.  Plugin Name of the plugin
 msgid "TouchPoint WP"
-msgstr ""
+msgstr "TouchPoint WP"
 
-#. Plugin URI of the plugin
+#.  Plugin URI of the plugin
 msgid "https://github.com/tenthpres/touchpoint-wp"
-msgstr ""
+msgstr "https://github.com/tenthpres/touchpoint-wp"
 
-#. Description of the plugin
+#.  Description of the plugin
 msgid "A WordPress Plugin for integrating with TouchPoint Church Management Software."
 msgstr ""
 
-#. Author of the plugin
+#.  Author of the plugin
 msgid "James K"
-msgstr ""
+msgstr "James K"
 
-#. Author URI of the plugin
+#.  Author URI of the plugin
 msgid "https://github.com/jkrrv"
-msgstr ""
+msgstr "https://github.com/jkrrv"
 
 #: src/templates/admin/invKoForm.php:17
 msgid "Delete"
@@ -164,17 +166,17 @@ msgstr ""
 msgid "Select..."
 msgstr ""
 
-#. translators: %s will the plural post type (e.g. Small Groups)
+#.  translators: %s will the plural post type (e.g. Small Groups)
 #: src/templates/parts/involvement-list-none.php:16
 msgid "No %s Found."
 msgstr ""
 
-#. translators: %s will the plural post type (e.g. Small Groups)
+#.  translators: %s will the plural post type (e.g. Small Groups)
 #: src/templates/parts/involvement-list-none.php:20
 msgid "%s will be imported overnight for the first time."
 msgstr ""
 
-#. translators: %s is "what you call TouchPoint at your church", which is a setting
+#.  translators: %s is "what you call TouchPoint at your church", which is a setting
 #: src/TouchPoint-WP/Auth.php:132
 msgid "Sign in with your %s account"
 msgstr ""
@@ -228,13 +230,13 @@ msgstr ""
 msgid "Mostly Married"
 msgstr ""
 
-#. translators: %s is for the user-provided term for the items on the map (e.g. Small Group or Partner)
+#.  translators: %s is for the user-provided term for the items on the map (e.g. Small Group or Partner)
 #: src/TouchPoint-WP/Involvement.php:1093
 #: src/TouchPoint-WP/Partner.php:790
 msgid "The %s listed are only those shown on the map."
 msgstr ""
 
-#. translators: %s is the link to "reset the map"
+#.  translators: %s is the link to "reset the map"
 #: src/TouchPoint-WP/Involvement.php:1100
 #: src/TouchPoint-WP/Partner.php:805
 msgid "Zoom out or %s to see more."
@@ -245,12 +247,12 @@ msgstr ""
 msgid "reset the map"
 msgstr ""
 
-#. translators: %s is the plural involvement type (e.g. Small Groups)
+#.  translators: %s is the plural involvement type (e.g. Small Groups)
 #: src/TouchPoint-WP/Involvement.php:1222
 msgid "No %s found."
 msgstr ""
 
-#. translators: "at" comes before the time of day/week.  e.g. *at* 7pm on Monday
+#.  translators: "at" comes before the time of day/week.  e.g. *at* 7pm on Monday
 #: src/TouchPoint-WP/Involvement.php:1892
 #: src/TouchPoint-WP/Involvement.php:1916
 msgid "at"
@@ -306,7 +308,7 @@ msgstr ""
 msgid "Show on Map"
 msgstr ""
 
-#. translators: %s is for the user-provided "Global Partner" and "Secure Partner" terms.
+#.  translators: %s is for the user-provided "Global Partner" and "Secure Partner" terms.
 #: src/TouchPoint-WP/Partner.php:797
 msgid "The %1$s listed are only those shown on the map, as well as all %2$s."
 msgstr ""
@@ -329,7 +331,7 @@ msgstr ""
 
 #: src/TouchPoint-WP/Rsvp.php:77
 msgid "RSVP"
-msgstr ""
+msgstr "Registro"
 
 #: src/TouchPoint-WP/TouchPointWP.php:2148
 msgid "Unknown Type"
@@ -843,7 +845,7 @@ msgstr ""
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:1041
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:1042
 msgid "TouchPoint-WP"
-msgstr ""
+msgstr "TouchPoint-WP"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:1073
 msgid "Settings"
@@ -863,7 +865,7 @@ msgstr ""
 
 #: assets/js/base-defer.js:18
 msgid "and"
-msgstr ""
+msgstr "y"
 
 #: assets/js/base-defer.js:201
 #: assets/js/base-defer.js:1129
@@ -929,93 +931,93 @@ msgstr ""
 #: assets/js/base-defer.js:1034
 #: assets/js/base-defer.js:1343
 msgid "Please provide a message."
-msgstr ""
+msgstr "Proporcione un mensaje."
 
 #: assets/js/base-defer.js:1115
 #: assets/js/base-defer.js:1117
 msgid "We don't know where you are."
-msgstr ""
+msgstr "No sabemos dónde estás."
 
 #: assets/js/base-defer.js:1115
 #: assets/js/base-defer.js:1125
 msgid "Click here to use your actual location."
-msgstr ""
+msgstr "Haga clic aquí para usar su ubicación real."
 
 #: assets/js/base-defer.js:1275
 #: assets/js/base-defer.js:1292
 msgid "clear"
-msgstr ""
+msgstr "despejar"
 
 #: assets/js/base-defer.js:1281
 msgid "Other Relatives..."
-msgstr ""
+msgstr "otros familiares..."
 
 #: assets/js/base-defer.js:1410
 msgid "Tell us about yourself."
-msgstr ""
+msgstr "Dinos sobre ti."
 
 #: assets/js/base-defer.js:1412
 #: assets/js/base-defer.js:1452
 msgid "Email Address"
-msgstr ""
+msgstr "correo electrónico"
 
 #: assets/js/base-defer.js:1413
 #: assets/js/base-defer.js:1453
 msgid "Zip Code"
-msgstr ""
+msgstr "condigo postal"
 
 #: assets/js/base-defer.js:1450
 msgid "Our system doesn't recognize you,<br />so we need a little more info."
-msgstr ""
+msgstr "Nuestro sistema no te reconoce. <br />Necesitamos un poco más de información."
 
 #: assets/js/base-defer.js:1454
 msgid "First Name"
-msgstr ""
+msgstr "primer nombre"
 
 #: assets/js/base-defer.js:1455
 msgid "Last Name"
-msgstr ""
+msgstr "apellido"
 
 #: assets/js/base-defer.js:1457
 msgid "Phone"
-msgstr ""
+msgstr "teléfono"
 
 #: assets/js/meeting-defer.js:43
 msgid "Event Past"
-msgstr ""
+msgstr "Evento pasado"
 
 #: assets/js/meeting-defer.js:215
 msgid "Who is coming?"
-msgstr ""
+msgstr "¿Quien viene?"
 
 #: assets/js/meeting-defer.js:215
 msgid "Indicate who is or is not coming.  This will overwrite any existing RSVP."
-msgstr ""
+msgstr "Indica quien viene. Esto va a duplicar a una persona que ya está escrita. "
 
 #: assets/js/meeting-defer.js:215
 msgid "To avoid overwriting an existing RSVP, leave that person blank."
-msgstr ""
+msgstr "Para evadir duplicar una persona que ya está escrita, de ja el espacio de la persona vacío."
 
 #: assets/js/meeting-defer.js:215
 msgid "To protect privacy, we won't show existing RSVPs here."
-msgstr ""
+msgstr "Para proteger tu privacidad, nosotros no mostraremos las personas que están registradas aquí."
 
 #: assets/js/meeting-defer.js:215
 msgid "Yes"
-msgstr ""
+msgstr "Sí"
 
 #: assets/js/meeting-defer.js:215
 msgid "No"
-msgstr ""
+msgstr "No"
 
 #: assets/js/meeting-defer.js:221
 msgid "Add Someone Else"
-msgstr ""
+msgstr "Agregar a alguien más"
 
 #: assets/js/meeting-defer.js:222
 msgid "Submit"
-msgstr ""
+msgstr "Enviar"
 
 #: assets/js/meeting-defer.js:241
 msgid "Nothing to submit."
-msgstr ""
+msgstr "Nada para enviar."

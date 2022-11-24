@@ -1340,7 +1340,7 @@ class TP_Person {
 
                     if (message.length < 5) {
                         let prompt = document.getElementById('swal2-title');
-                        prompt.innerText = __("Please Provide a Message.", 'TouchPoint-WP');
+                        prompt.innerText = __("Please provide a message.", 'TouchPoint-WP');
                         prompt.classList.add('error')
                         return false;
                     }
