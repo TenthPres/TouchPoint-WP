@@ -204,7 +204,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         let self = this;
         this.nameSingular = ko.observable(data.nameSingular ?? "<?php _e("Small Group", "TouchPoint-WP"); ?>");
         this.namePlural = ko.observable(data.namePlural ?? "<?php _e("Small Groups", "TouchPoint-WP"); ?>");
-        this.slug = ko.observable(data.slug ?? "<?php _e("smallgroup", "TouchPoint-WP"); ?>").extend({slug: 0});
+        this.slug = ko.observable(data.slug ?? "smallgroup").extend({slug: 0});
         this.importDivs = ko.observable(data.importDivs ?? []);
         this.useGeo = ko.observable(data.useGeo ?? false);
         this.excludeIf = ko.observable(data.excludeIf ?? []);

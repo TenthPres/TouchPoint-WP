@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2022-11-25T04:09:51+00:00\n"
+"POT-Creation-Date: 2022-11-25T22:17:01+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.7.1\n"
 "X-Domain: TouchPoint-WP\n"
@@ -154,10 +154,6 @@ msgstr ""
 
 #: src/templates/admin/invKoForm.php:206
 msgid "Small Groups"
-msgstr ""
-
-#: src/templates/admin/invKoForm.php:207
-msgid "smallgroup"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:334
@@ -331,42 +327,42 @@ msgstr ""
 msgid "RSVP"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2151
+#: src/TouchPoint-WP/TouchPointWP.php:2149
 msgid "Unknown Type"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2205
+#: src/TouchPoint-WP/TouchPointWP.php:2203
 msgid "Your Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2208
+#: src/TouchPoint-WP/TouchPointWP.php:2206
 msgid "Public Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2211
+#: src/TouchPoint-WP/TouchPointWP.php:2209
 msgid "Status Flags"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2216
-#: src/TouchPoint-WP/TouchPointWP.php:2217
+#: src/TouchPoint-WP/TouchPointWP.php:2214
+#: src/TouchPoint-WP/TouchPointWP.php:2215
 msgid "Current Value"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2344
-#: src/TouchPoint-WP/TouchPointWP.php:2382
+#: src/TouchPoint-WP/TouchPointWP.php:2342
+#: src/TouchPoint-WP/TouchPointWP.php:2380
 msgid "Invalid or incomplete API Settings."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2352
-#: src/TouchPoint-WP/TouchPointWP.php:2389
+#: src/TouchPoint-WP/TouchPointWP.php:2350
+#: src/TouchPoint-WP/TouchPointWP.php:2387
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2450
+#: src/TouchPoint-WP/TouchPointWP.php:2448
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2508
+#: src/TouchPoint-WP/TouchPointWP.php:2506
 msgid "People Query Failed"
 msgstr ""
 

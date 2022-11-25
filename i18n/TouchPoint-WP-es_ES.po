@@ -153,10 +153,6 @@ msgstr ""
 msgid "Small Groups"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:207
-msgid "smallgroup"
-msgstr ""
-
 #: src/templates/admin/invKoForm.php:334
 msgid "Select..."
 msgstr "Seleccione..."
@@ -328,38 +324,38 @@ msgstr ""
 msgid "RSVP"
 msgstr "RSVP"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2151
+#: src/TouchPoint-WP/TouchPointWP.php:2149
 msgid "Unknown Type"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2205
+#: src/TouchPoint-WP/TouchPointWP.php:2203
 msgid "Your Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2208
+#: src/TouchPoint-WP/TouchPointWP.php:2206
 msgid "Public Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2211
+#: src/TouchPoint-WP/TouchPointWP.php:2209
 msgid "Status Flags"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2216
-#: src/TouchPoint-WP/TouchPointWP.php:2217
+#: src/TouchPoint-WP/TouchPointWP.php:2214
+#: src/TouchPoint-WP/TouchPointWP.php:2215
 msgid "Current Value"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2344
-#: src/TouchPoint-WP/TouchPointWP.php:2382
+#: src/TouchPoint-WP/TouchPointWP.php:2342
+#: src/TouchPoint-WP/TouchPointWP.php:2380
 msgid "Invalid or incomplete API Settings."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2352
-#: src/TouchPoint-WP/TouchPointWP.php:2389
+#: src/TouchPoint-WP/TouchPointWP.php:2350
+#: src/TouchPoint-WP/TouchPointWP.php:2387
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2508
+#: src/TouchPoint-WP/TouchPointWP.php:2506
 msgid "People Query Failed"
 msgstr ""
 
@@ -1014,7 +1010,7 @@ msgstr "Enviar"
 msgid "Nothing to submit."
 msgstr "Nada que enviar."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2450
+#: src/TouchPoint-WP/TouchPointWP.php:2448
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr ""
 
