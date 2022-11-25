@@ -1,7 +1,7 @@
 "use strict";
 
 // noinspection JSUnresolvedVariable
-const { __, _x, _n, _nx } = wp.i18n;
+const { __, _x, _n, _nx, sprintf } = wp.i18n;
 
 function utilInit() {
     tpvm._utils.stringArrayToListString = function(strings) {
@@ -895,7 +895,8 @@ class TP_Involvement extends TP_Mappable {
             if (showConfirm) {
                 Swal.fire({
                     icon: 'success',
-                    title: `Added to ${inv.name}`, // i18n
+                    // translators: %s is the name of an involvement, like a particular small group
+                    title: sprintf(__('Added to %s', 'TouchPoint-WP'), inv.name),
                     timer: 3000,
                     customClass: tpvm._utils.defaultSwalClasses()
                 });
@@ -945,7 +946,8 @@ class TP_Involvement extends TP_Mappable {
     // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
     joinAction() {
         let inv = this,
-            title = `Join ${inv.name}`; // i18n
+            // translators: %s is the name of an Involvement
+            title = sprintf(__('Join %s', 'TouchPoint-WP'), inv.name);
 
         tpvm._utils.ga('send', 'event', inv.invType, 'join btn click', inv.name);
 
@@ -999,7 +1001,8 @@ class TP_Involvement extends TP_Mappable {
     // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
     contactAction() {
         let inv = this,
-            title = `<span class="no-wrap">Contact the leaders</span> of <span class="no-wrap">${inv.name}</span>`;
+            // translators: %s is the name of an involvement.  This is a heading for a modal.
+            title = sprintf(__("Contact the Leaders of %s", 'TouchPoint-WP'), `<span class="no-wrap">${inv.name}</span>`);
 
         tpvm._utils.ga('send', 'event', inv.invType, 'contact btn click', inv.name);
 
@@ -1022,7 +1025,8 @@ class TP_Involvement extends TP_Mappable {
                 customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,
-                confirmButtonText: 'Send',
+                confirmButtonText: __('Send', 'TouchPoint-WP'),
+                cancelButtonText: __('Cancel', 'TouchPoint-WP'),
                 focusConfirm: false,
                 preConfirm: () => {
                     let form = document.getElementById('tp_inv_contact_form'),
@@ -1247,7 +1251,7 @@ class TP_Person {
     /**
      * Take an array of TP_Person objects and make a list of radio buttons out of them.
      *
-     * @param options string[]
+     * @param options object - an object that is a key-value map of data-value: translated-label
      * @param array TP_Person[]
      * @param secondaryArray TP_Person[]
      */
@@ -1270,7 +1274,7 @@ class TP_Person {
             out += '<tr>'
             for (const oi in options) {
                 if (!options.hasOwnProperty(oi)) continue;
-                out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${options[oi]}" value="${options[oi]}" /></td>`
+                out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${oi}" value="${oi}" /></td>`
             }
             out += `<td><a href="#" class="swal-tp-clear-item" onclick="TP_Person.clearRadio('${p.peopleId}'); return false;">${__('clear', 'TouchPoint-WP')}</a></td>`
             out += `<td style="text-align:left; width:50%;">${p.goesBy} ${p.lastName}</td></tr>`
@@ -1278,7 +1282,7 @@ class TP_Person {
 
         // people -- secondary array
         if (secondaryArray !== null && secondaryArray.length > 0) {
-            out += `</tbody><tbody id="tp_people_list_othersOption" onclick="document.getElementById('tp_people_list_others').style.display = ''; document.getElementById('tp_people_list_othersOption').style.display = 'none';"><tr><th colspan="${options.length + 2}"><a>${__('Other Relatives...', 'TouchPoint-WP')}</a></th></tr>`;
+            out += `</tbody><tbody id="tp_people_list_othersOption" onclick="document.getElementById('tp_people_list_others').style.display = ''; document.getElementById('tp_people_list_othersOption').style.display = 'none';"><tr><th colspan="${Object.keys(options).length + 2}"><a>${__('Other Relatives...', 'TouchPoint-WP')}</a></th></tr>`;
             out += `</tbody><tbody id="tp_people_list_others" style="display:none;">`;
             for (const pi in secondaryArray) {
                 if (!secondaryArray.hasOwnProperty(pi)) continue;
@@ -1287,7 +1291,7 @@ class TP_Person {
                 out += '<tr>'
                 for (const oi in options) {
                     if (!options.hasOwnProperty(oi)) continue;
-                    out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${options[oi]}" value="${options[oi]}" /></td>`
+                    out += `<td><input type="radio" name="${p.peopleId}" id="tp_people_list_checks_${p.peopleId}_${oi}" value="${oi}" /></td>`
                 }
                 out += `<td><a href="#" class="swal-tp-clear-item" onclick="TP_Person.clearRadio('${p.peopleId}'); return false;">${__('clear', 'TouchPoint-WP')}</a></td>`;
                 out += `<td style="text-align:left; width:50%;">${p.goesBy} ${p.lastName}</td></tr>`;
@@ -1308,7 +1312,8 @@ class TP_Person {
     // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
     contactAction() {
         let psn = this,
-            title = `Contact ${psn.displayName}`; // i18n
+            // translators: %s is a person's name.  This is a heading for a contact modal.
+            title = sprintf(__('Contact %s', 'TouchPoint-WP'), psn.displayName);
 
         tpvm._utils.ga('send', 'event', 'Person', 'contact btn click', psn.peopleId);
 

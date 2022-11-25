@@ -26,7 +26,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.21";
+    public const VERSION = "0.0.22";
 
     /**
      * The Token
@@ -197,7 +197,7 @@ class TouchPointWP
     protected function __construct(string $file = '')
     {
         // Load plugin environment variables.
-        $this->file       = $file;
+        $this->file       = $file ?? __FILE__;
         self::$dir        = dirname($this->file);
         $this->assets_dir = trailingslashit(self::$dir) . 'assets';
         $this->assets_url = esc_url(trailingslashit(plugins_url('/assets/', $this->file)));
@@ -227,10 +227,6 @@ class TouchPointWP
 //        }
 
         add_filter('do_parse_request', [$this, 'parseRequest'], 10, 3);
-
-        // Handle localisation.
-        $this->load_plugin_textdomain();
-        add_action('init', [$this, 'load_localisation'], 0);
 
         // Start session if not started already.
         if (session_status() === PHP_SESSION_NONE)
@@ -536,18 +532,30 @@ class TouchPointWP
         }
     }
 
+	/**
+	 * @return string
+	 */
+	public function getJsLocalizationDir(): string
+	{
+		$dir = dirname(plugin_basename($this->file));
+		return path_join(WP_PLUGIN_DIR, $dir) . '/i18n/';
+	}
+
     /**
      * Load plugin textdomain
      */
-    public function load_plugin_textdomain()
+    public function loadLocalizations()
     {
         $locale = apply_filters('plugin_locale', get_locale(), 'TouchPoint-WP');
 
+		$dir = dirname(plugin_basename($this->file));
+
         load_textdomain(
             'TouchPoint-WP',
-            WP_LANG_DIR . '/' . 'TouchPoint-WP' . '/' . 'TouchPoint-WP' . '-' . $locale . '.mo'
+            path_join(WP_PLUGIN_DIR, $dir) . '/i18n/TouchPoint-WP-' . $locale . '.mo'
         );
-        load_plugin_textdomain('TouchPoint-WP', false, dirname(plugin_basename($this->file)) . '/lang/');
+
+	    load_plugin_textdomain('TouchPoint-WP', false, $dir . '/i18n/');
     }
 
     /**
@@ -633,6 +641,8 @@ class TouchPointWP
 
     public static function init(): void
     {
+	    self::instance()->loadLocalizations();
+
         self::instance()->registerTaxonomies();
 
         // If any slugs have changed, flush.  Only executes if already enqueued.
@@ -648,9 +658,7 @@ class TouchPointWP
 
     public static function renderBaseInlineScript(): void
     {
-        echo "<script type=\"text/javascript\" id=\"base-inline\">";
-        echo file_get_contents(self::instance()->assets_dir . '/js/base-inline.js');
-        echo "</script>";
+		include self::instance()->assets_dir . '/js/base-inline.php';
     }
 
     public function registerScriptsAndStyles(): void
@@ -671,8 +679,9 @@ class TouchPointWP
             self::VERSION,
             true
         );
+	    wp_set_script_translations(self::SHORTCODE_PREFIX . 'base-defer', 'TouchPoint-WP', $this->getJsLocalizationDir());
 
-        wp_register_script(
+	    wp_register_script(
             self::SHORTCODE_PREFIX . 'swal2-defer',
             "//cdn.jsdelivr.net/npm/sweetalert2@10",
             [],
@@ -1515,14 +1524,6 @@ class TouchPointWP
         }
 
         return self::$_instance;
-    }
-
-    /**
-     * Load plugin localisation
-     */
-    public function load_localisation()
-    {
-        load_plugin_textdomain('TouchPoint-WP', false, dirname(plugin_basename($this->file)) . '/lang/');
     }
 
     /**
@@ -2445,7 +2446,7 @@ class TouchPointWP
                 if (class_exists("TouchPointWP_AdminAPI")) {
                     TouchPointWP_AdminAPI::showError(
                         __(
-                            "The script on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed.",
+                            "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed.",
                             "TouchPoint-WP"
                         )
                     );

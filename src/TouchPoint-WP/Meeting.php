@@ -24,13 +24,15 @@ abstract class Meeting implements api
      */
     public static function registerScriptsAndStyles(): void
     {
+		$i = TouchPointWP::instance();
         wp_register_script(
             TouchPointWP::SHORTCODE_PREFIX . 'meeting-defer',
-            TouchPointWP::instance()->assets_url . 'js/meeting-defer.js',
-            [TouchPointWP::SHORTCODE_PREFIX . 'base-defer'],
+            $i->assets_url . 'js/meeting-defer.js',
+            [TouchPointWP::SHORTCODE_PREFIX . 'base-defer', 'wp-i18n'],
             TouchPointWP::VERSION,
             true
         );
+	    wp_set_script_translations(TouchPointWP::SHORTCODE_PREFIX . 'meeting-defer', 'TouchPoint-WP', $i->getJsLocalizationDir());
     }
 
     /**

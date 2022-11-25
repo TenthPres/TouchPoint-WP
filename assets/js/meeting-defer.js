@@ -166,15 +166,13 @@ class TP_Meeting {
 
         let res = await tpvm.postData('mtg/rsvp', {mtgId: meeting.mtgId, responses: data});
         if (res.success.length > 0) {
-            let s = res.success.length === 1 ? "" : "s";
             if (showConfirm) {
                 Swal.fire({
                     icon: 'success',
-                    title: `Response${s} Recorded`, // i18n
+                    title: _n('Response Recorded', 'Responses Recorded', res.success.length, 'TouchPoint-WP'),
                     timer: 3000,
                     customClass: tpvm._utils.defaultSwalClasses()
                 });
-                // tpvm._utils.clearHash();  TODO remove
             }
         } else {
             console.error(res);
@@ -201,7 +199,9 @@ class TP_Meeting {
 
         tpvm._utils.applyHashForAction("rsvp", this);
 
-        let title = "RSVP for " + (meeting.description ?? meeting.inv.name) + "<br /><small>" + this.dateTimeString() + "</small>"; // i18n
+        // translators: "RSVP for {Event Name}"  This is the heading on the RSVP modal.  The event name isn't translated because it comes from TouchPoint.
+        let title = sprintf(__('RSVP for %s', 'TouchPoint-WP'),  (meeting.description ?? meeting.inv.name))
+             + "<br /><small>" + this.dateTimeString() + "</small>";
 
         TP_Person.DoInformalAuth(title, forceAsk).then(
             (res) => rsvpUi(meeting, res).then(tpvm._utils.clearHash),
@@ -212,7 +212,7 @@ class TP_Meeting {
             tpvm._utils.ga('send', 'event', 'rsvp', 'rsvp userIdentified', meeting.mtgId);
 
             return Swal.fire({
-                html: `<p id="swal-tp-text">${__('Who is coming?', 'TouchPoint-WP')}</p><p class="small swal-tp-instruction">${__('Indicate who is or is not coming.  This will overwrite any existing RSVP.', 'TouchPoint-WP')}<br />${__('To avoid overwriting an existing RSVP, leave that person blank.', 'TouchPoint-WP')}<br />${__("To protect privacy, we won't show existing RSVPs here.", 'TouchPoint-WP')}</p></i>` + TP_Person.peopleArrayToRadio([__('Yes', 'TouchPoint-WP'), __('No', 'TouchPoint-WP')], people, tpvm._secondaryUsers),
+                html: `<p id="swal-tp-text">${__('Who is coming?', 'TouchPoint-WP')}</p><p class="small swal-tp-instruction">${__('Indicate who is or is not coming.  This will overwrite any existing RSVP.', 'TouchPoint-WP')}<br />${__('To avoid overwriting an existing RSVP, leave that person blank.', 'TouchPoint-WP')}<br />${__("To protect privacy, we won't show existing RSVPs here.", 'TouchPoint-WP')}</p></i>` + TP_Person.peopleArrayToRadio({Yes: __('Yes', 'TouchPoint-WP'), No: __('No', 'TouchPoint-WP')}, people, tpvm._secondaryUsers),
                 customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,
@@ -267,7 +267,7 @@ class TP_Meeting {
         let ret;
 
         if (this.mtgDateTime.getFullYear() !== (new Date()).getFullYear()) {
-            ret = this.mtgDateTime.toLocaleString('en-US', {  // i18n
+            ret = this.mtgDateTime.toLocaleString(tpvm.locale, {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric',
@@ -275,7 +275,7 @@ class TP_Meeting {
                 minute: 'numeric'
             });
         } else {
-            ret = this.mtgDateTime.toLocaleString('en-US', {  // i18n
+            ret = this.mtgDateTime.toLocaleString(tpvm.locale, {
                 day: 'numeric',
                 month: 'long',
                 // year: 'numeric', // current year isn't needed.
