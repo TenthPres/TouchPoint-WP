@@ -898,7 +898,8 @@ class TP_Involvement extends TP_Mappable {
                     // translators: %s is the name of an involvement, like a particular small group
                     title: sprintf(__('Added to %s', 'TouchPoint-WP'), inv.name),
                     timer: 3000,
-                    customClass: tpvm._utils.defaultSwalClasses()
+                    customClass: tpvm._utils.defaultSwalClasses(),
+                    confirmButtonText: __('OK', 'TouchPoint-WP')
                 });
             }
         } else {
@@ -908,7 +909,8 @@ class TP_Involvement extends TP_Mappable {
                     icon: 'error',
                     title: __('Something strange happened.', 'TouchPoint-WP'),
                     timer: 3000,
-                    customClass: tpvm._utils.defaultSwalClasses()
+                    customClass: tpvm._utils.defaultSwalClasses(),
+                    confirmButtonText: __('OK', 'TouchPoint-WP')
                 });
             }
         }
@@ -927,7 +929,8 @@ class TP_Involvement extends TP_Mappable {
                     icon: 'success',
                     title: __('Your message has been sent.', 'TouchPoint-WP'),
                     timer: 3000,
-                    customClass: tpvm._utils.defaultSwalClasses()
+                    customClass: tpvm._utils.defaultSwalClasses(),
+                    confirmButtonText: __('OK', 'TouchPoint-WP')
                 });
             }
         } else {
@@ -937,7 +940,8 @@ class TP_Involvement extends TP_Mappable {
                     icon: 'error',
                     title: __('Something strange happened.', 'TouchPoint-WP'),
                     timer: 3000,
-                    customClass: tpvm._utils.defaultSwalClasses()
+                    customClass: tpvm._utils.defaultSwalClasses(),
+                    confirmButtonText: __('OK', 'TouchPoint-WP')
                 });
             }
         }
@@ -1336,7 +1340,8 @@ class TP_Person {
                 customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,
-                confirmButtonText: 'Send',
+                confirmButtonText: __('Send', 'TouchPoint-WP'),
+                cancelButtonText: __('Cancel', 'TouchPoint-WP'),
                 focusConfirm: false,
                 preConfirm: () => {
                     let form = document.getElementById('tp_person_contact_form'),
@@ -1371,7 +1376,8 @@ class TP_Person {
                     icon: 'success',
                     title: __('Your message has been sent.', 'TouchPoint-WP'),
                     timer: 3000,
-                    customClass: tpvm._utils.defaultSwalClasses()
+                    customClass: tpvm._utils.defaultSwalClasses(),
+                    confirmButtonText: __('OK', 'TouchPoint-WP')
                 });
             }
         } else {
@@ -1381,7 +1387,8 @@ class TP_Person {
                     icon: 'error',
                     title: __('Something strange happened.', 'TouchPoint-WP'),
                     timer: 3000,
-                    customClass: tpvm._utils.defaultSwalClasses()
+                    customClass: tpvm._utils.defaultSwalClasses(),
+                    confirmButtonText: __('OK', 'TouchPoint-WP')
                 });
             }
         }
@@ -1421,7 +1428,8 @@ class TP_Person {
                     showConfirmButton: true,
                     showCancelButton: true,
                     title: title,
-                    confirmButtonText: 'Next',
+                    confirmButtonText: __('Next', 'TouchPoint-WP'),
+                    cancelButtonText: __('Cancel', 'TouchPoint-WP'),
                     focusConfirm: false,
                     didOpen: () => {
                         document.getElementById('tp_ident_form').addEventListener('submit', (e) => {

@@ -81,7 +81,7 @@ msgstr ""
 #: src/templates/admin/invKoForm.php:225
 #: src/TouchPoint-WP/Rsvp.php:72
 #: assets/js/base-defer.js:181
-#: assets/js/base-defer.js:1099
+#: assets/js/base-defer.js:1103
 msgid "Loading..."
 msgstr "Cargando..."
 
@@ -290,7 +290,7 @@ msgid "Get Tickets"
 msgstr ""
 
 #: src/TouchPoint-WP/Involvement.php:2250
-#: assets/js/base-defer.js:970
+#: assets/js/base-defer.js:974
 msgid "Join"
 msgstr "Únete"
 
@@ -324,38 +324,38 @@ msgstr ""
 msgid "RSVP"
 msgstr "RSVP"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2149
+#: src/TouchPoint-WP/TouchPointWP.php:2162
 msgid "Unknown Type"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2203
+#: src/TouchPoint-WP/TouchPointWP.php:2216
 msgid "Your Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2206
+#: src/TouchPoint-WP/TouchPointWP.php:2219
 msgid "Public Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2209
+#: src/TouchPoint-WP/TouchPointWP.php:2222
 msgid "Status Flags"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2214
-#: src/TouchPoint-WP/TouchPointWP.php:2215
+#: src/TouchPoint-WP/TouchPointWP.php:2227
+#: src/TouchPoint-WP/TouchPointWP.php:2228
 msgid "Current Value"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2342
-#: src/TouchPoint-WP/TouchPointWP.php:2380
+#: src/TouchPoint-WP/TouchPointWP.php:2355
+#: src/TouchPoint-WP/TouchPointWP.php:2393
 msgid "Invalid or incomplete API Settings."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2350
-#: src/TouchPoint-WP/TouchPointWP.php:2387
+#: src/TouchPoint-WP/TouchPointWP.php:2363
+#: src/TouchPoint-WP/TouchPointWP.php:2400
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2506
+#: src/TouchPoint-WP/TouchPointWP.php:2519
 msgid "People Query Failed"
 msgstr ""
 
@@ -855,7 +855,7 @@ msgid "and"
 msgstr "y"
 
 #: assets/js/base-defer.js:201
-#: assets/js/base-defer.js:1133
+#: assets/js/base-defer.js:1137
 msgid "Your Location"
 msgstr ""
 
@@ -880,93 +880,95 @@ msgstr "Un error desconocido ocurrió."
 msgid "No geolocation option available."
 msgstr "No hay opción de geolocalización disponible."
 
-#: assets/js/base-defer.js:909
-#: assets/js/base-defer.js:938
-#: assets/js/base-defer.js:1382
-#: assets/js/meeting-defer.js:182
+#: assets/js/base-defer.js:910
+#: assets/js/base-defer.js:941
+#: assets/js/base-defer.js:1388
+#: assets/js/meeting-defer.js:183
 msgid "Something strange happened."
 msgstr "Algo extraño sucedió."
 
-#: assets/js/base-defer.js:928
-#: assets/js/base-defer.js:1372
+#: assets/js/base-defer.js:930
+#: assets/js/base-defer.js:1377
 msgid "Your message has been sent."
 msgstr ""
 
-#: assets/js/base-defer.js:966
+#: assets/js/base-defer.js:970
 msgid "Who is joining the group?"
 msgstr ""
 
-#: assets/js/base-defer.js:971
-#: assets/js/base-defer.js:1029
-#: assets/js/meeting-defer.js:223
+#: assets/js/base-defer.js:975
+#: assets/js/base-defer.js:1033
+#: assets/js/base-defer.js:1344
+#: assets/js/base-defer.js:1432
+#: assets/js/meeting-defer.js:225
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: assets/js/base-defer.js:984
+#: assets/js/base-defer.js:988
 msgid "Select who should be added to the group."
 msgstr ""
 
-#: assets/js/base-defer.js:1022
-#: assets/js/base-defer.js:1333
+#: assets/js/base-defer.js:1026
+#: assets/js/base-defer.js:1337
 msgid "From"
 msgstr "De"
 
-#: assets/js/base-defer.js:1023
-#: assets/js/base-defer.js:1334
+#: assets/js/base-defer.js:1027
+#: assets/js/base-defer.js:1338
 msgid "Message"
 msgstr "Mensaje"
 
-#: assets/js/base-defer.js:1038
-#: assets/js/base-defer.js:1348
+#: assets/js/base-defer.js:1042
+#: assets/js/base-defer.js:1353
 msgid "Please provide a message."
 msgstr "Proporcione un mensaje."
 
-#: assets/js/base-defer.js:1119
-#: assets/js/base-defer.js:1121
+#: assets/js/base-defer.js:1123
+#: assets/js/base-defer.js:1125
 msgid "We don't know where you are."
 msgstr "No sabemos dónde estás."
 
-#: assets/js/base-defer.js:1119
-#: assets/js/base-defer.js:1129
+#: assets/js/base-defer.js:1123
+#: assets/js/base-defer.js:1133
 msgid "Click here to use your actual location."
 msgstr "Haga clic aquí para usar su ubicación real."
 
-#: assets/js/base-defer.js:1279
-#: assets/js/base-defer.js:1296
+#: assets/js/base-defer.js:1283
+#: assets/js/base-defer.js:1300
 msgid "clear"
 msgstr "borrar"
 
-#: assets/js/base-defer.js:1285
+#: assets/js/base-defer.js:1289
 msgid "Other Relatives..."
 msgstr "Otros familiares..."
 
-#: assets/js/base-defer.js:1415
+#: assets/js/base-defer.js:1422
 msgid "Tell us about yourself."
 msgstr "Dinos sobre ti."
 
-#: assets/js/base-defer.js:1417
-#: assets/js/base-defer.js:1457
+#: assets/js/base-defer.js:1424
+#: assets/js/base-defer.js:1465
 msgid "Email Address"
 msgstr "Correo electrónico"
 
-#: assets/js/base-defer.js:1418
-#: assets/js/base-defer.js:1458
+#: assets/js/base-defer.js:1425
+#: assets/js/base-defer.js:1466
 msgid "Zip Code"
 msgstr "Condigo postal"
 
-#: assets/js/base-defer.js:1455
+#: assets/js/base-defer.js:1463
 msgid "Our system doesn't recognize you,<br />so we need a little more info."
 msgstr "Nuestro sistema no te reconoce.<br />Necesitamos un poco más de información."
 
-#: assets/js/base-defer.js:1459
+#: assets/js/base-defer.js:1467
 msgid "First Name"
 msgstr "Primer nombre"
 
-#: assets/js/base-defer.js:1460
+#: assets/js/base-defer.js:1468
 msgid "Last Name"
 msgstr "Apellido"
 
-#: assets/js/base-defer.js:1462
+#: assets/js/base-defer.js:1470
 msgid "Phone"
 msgstr "Teléfono"
 
@@ -974,48 +976,48 @@ msgstr "Teléfono"
 msgid "Event Past"
 msgstr "Evento pasado"
 
-#: assets/js/meeting-defer.js:215
+#: assets/js/meeting-defer.js:217
 msgid "Who is coming?"
 msgstr "¿Quien viene?"
 
-#: assets/js/meeting-defer.js:215
+#: assets/js/meeting-defer.js:217
 msgid "Indicate who is or is not coming.  This will overwrite any existing RSVP."
 msgstr "Indica quien viene. Esto va a duplicar a una persona que ya está escrita."
 
-#: assets/js/meeting-defer.js:215
+#: assets/js/meeting-defer.js:217
 msgid "To avoid overwriting an existing RSVP, leave that person blank."
 msgstr "Para evadir duplicar una persona que ya está escrita, de ja el espacio de la persona vacío."
 
-#: assets/js/meeting-defer.js:215
+#: assets/js/meeting-defer.js:217
 msgid "To protect privacy, we won't show existing RSVPs here."
 msgstr "Para proteger tu privacidad, nosotros no mostraremos las personas que están registradas aquí."
 
-#: assets/js/meeting-defer.js:215
+#: assets/js/meeting-defer.js:217
 msgid "Yes"
 msgstr "Sí"
 
-#: assets/js/meeting-defer.js:215
+#: assets/js/meeting-defer.js:217
 msgid "No"
 msgstr "No"
 
-#: assets/js/meeting-defer.js:221
+#: assets/js/meeting-defer.js:223
 msgid "Add Someone Else"
 msgstr "Agregar a alguien más"
 
-#: assets/js/meeting-defer.js:222
+#: assets/js/meeting-defer.js:224
 msgid "Submit"
 msgstr "Enviar"
 
-#: assets/js/meeting-defer.js:241
+#: assets/js/meeting-defer.js:243
 msgid "Nothing to submit."
 msgstr "Nada que enviar."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2448
+#: src/TouchPoint-WP/TouchPointWP.php:2461
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr ""
 
 #. translators: "RSVP for {Event Name}"  This is the heading on the RSVP modal.  The event name isn't translated because it comes from TouchPoint.
-#: assets/js/meeting-defer.js:203
+#: assets/js/meeting-defer.js:205
 msgid "RSVP for %s"
 msgstr "RSVP para %s"
 
@@ -1031,20 +1033,36 @@ msgid "Added to %s"
 msgstr "Añadido a %s"
 
 #. translators: %s is the name of an Involvement
-#: assets/js/base-defer.js:950
+#: assets/js/base-defer.js:954
 msgid "Join %s"
 msgstr "Únete %s"
 
 #. translators: %s is a person's name.  This is a heading for a contact modal.
-#: assets/js/base-defer.js:1316
+#: assets/js/base-defer.js:1320
 msgid "Contact %s"
 msgstr "Contactar a %s"
 
 #. translators: %s is the name of an involvement.  This is a heading for a modal.
-#: assets/js/base-defer.js:1005
+#: assets/js/base-defer.js:1009
 msgid "Contact the Leaders of %s"
 msgstr ""
 
-#: assets/js/base-defer.js:1028
+#: assets/js/base-defer.js:1032
+#: assets/js/base-defer.js:1343
 msgid "Send"
+msgstr ""
+
+#: assets/js/base-defer.js:902
+#: assets/js/base-defer.js:913
+#: assets/js/base-defer.js:933
+#: assets/js/base-defer.js:944
+#: assets/js/base-defer.js:1380
+#: assets/js/base-defer.js:1391
+#: assets/js/meeting-defer.js:175
+#: assets/js/meeting-defer.js:186
+msgid "OK"
+msgstr ""
+
+#: assets/js/base-defer.js:1431
+msgid "Next"
 msgstr ""

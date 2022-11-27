@@ -171,7 +171,8 @@ class TP_Meeting {
                     icon: 'success',
                     title: _n('Response Recorded', 'Responses Recorded', res.success.length, 'TouchPoint-WP'),
                     timer: 3000,
-                    customClass: tpvm._utils.defaultSwalClasses()
+                    customClass: tpvm._utils.defaultSwalClasses(),
+                    confirmButtonText: __('OK', 'TouchPoint-WP')
                 });
             }
         } else {
@@ -181,7 +182,8 @@ class TP_Meeting {
                     icon: 'error',
                     title: __('Something strange happened.', 'TouchPoint-WP'),
                     timer: 3000,
-                    customClass: tpvm._utils.defaultSwalClasses()
+                    customClass: tpvm._utils.defaultSwalClasses(),
+                    confirmButtonText: __('OK', 'TouchPoint-WP')
                 });
             }
         }
