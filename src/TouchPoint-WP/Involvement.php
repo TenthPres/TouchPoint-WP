@@ -397,22 +397,22 @@ class Involvement implements api, updatesViaCron
     public function acceptingNewMembers()
     {
         if (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "groupFull", true) === '1') {
-            return __("Currently Full", TouchPointWP::TEXT_DOMAIN);
+            return __("Currently Full", 'TouchPoint-WP');
         }
 
         if (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "groupClosed", true) === '1') {
-            return __("Currently Closed", TouchPointWP::TEXT_DOMAIN);
+            return __("Currently Closed", 'TouchPoint-WP');
         }
 
         $now = current_datetime();
         $regStart = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regStart", true);
         if ($regStart !== false && $regStart !== '' && $regStart > $now) {
-            return __("Registration Not Open Yet", TouchPointWP::TEXT_DOMAIN);
+            return __("Registration Not Open Yet", 'TouchPoint-WP');
         }
 
         $regEnd = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regEnd", true);
         if ($regEnd !== false && $regEnd !== '' && $regEnd < $now) {
-            return __("Registration Closed", TouchPointWP::TEXT_DOMAIN);
+            return __("Registration Closed", 'TouchPoint-WP');
         }
 
         if (intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) === 0) {
@@ -916,7 +916,7 @@ class Involvement implements api, updatesViaCron
 
         $content = "<div class=\"$class\" id=\"$filterBarId\">";
 
-        $any = __("Any", TouchPointWP::TEXT_DOMAIN);
+        $any = __("Any", 'TouchPoint-WP');
 
         $postType = $settings->postType;
 
@@ -1056,8 +1056,8 @@ class Involvement implements api, updatesViaCron
 
         // Marital Status
         if (in_array('inv_marital', $filters)) {
-            $single = __("Mostly Single", TouchPointWP::TEXT_DOMAIN);
-            $married = __("Mostly Married", TouchPointWP::TEXT_DOMAIN);
+            $single = __("Mostly Single", 'TouchPoint-WP');
+            $married = __("Mostly Married", 'TouchPoint-WP');
             $content .= "<select class=\"$class-filter\" data-involvement-filter=\"inv_marital\">";
             $content .= "<option disabled selected>Marital Status</option>";
             $content .= "<option value=\"\">$any</option>";
@@ -1089,18 +1089,18 @@ class Involvement implements api, updatesViaCron
             $content .= "<p class=\"TouchPointWP-map-warnings\">";
             $content .= sprintf(
                 "<span class=\"TouchPointWP-map-warning-visibleOnly\" style=\"display:none;\">%s  </span>",
-                sprintf( // i18n: %s is for the user-provided "Involvement" term
-                    __("The %s listed are only those shown on the map.", TouchPointWP::TEXT_DOMAIN),
+                sprintf(  // translators: %s is for the user-provided term for the items on the map (e.g. Small Group or Partner)
+                    __("The %s listed are only those shown on the map.", 'TouchPoint-WP'),
                     $settings->namePlural
                 )
             );
             $content .= sprintf(
                 "<span class=\"TouchPointWP-map-warning-zoomOrReset\" style=\"display:none;\">%s  </span>",
-                sprintf( // i18n: %s is the link to reset the map
-                    __("Zoom out or %s to see more.", TouchPointWP::TEXT_DOMAIN),
-                    sprintf( // i18n: %s is the link to reset the map
+                sprintf(  // translators: %s is the link to "reset the map"
+                    __("Zoom out or %s to see more.", 'TouchPoint-WP'),
+                    sprintf(
                         "<a href=\"#\" class=\"TouchPointWP-map-resetLink\">%s</a>",
-                        __("reset the map", TouchPointWP::TEXT_DOMAIN)
+                        __("reset the map", 'TouchPoint-WP')
                     )
                 )
             );
@@ -1218,7 +1218,8 @@ class Involvement implements api, updatesViaCron
         if ($invs === null) {
             json_encode([
                 "invList" => [],
-                "error" => sprintf(esc_html__("No %s found.", TouchPointWP::TEXT_DOMAIN), $settings->namePlural)
+                // translators: %s is the plural involvement type (e.g. Small Groups)
+                "error" => sprintf(esc_html__("No %s found.", 'TouchPoint-WP'), $settings->namePlural)
             ]);
         }
 
@@ -1887,7 +1888,8 @@ class Involvement implements api, updatesViaCron
                         /** @var $dt DateTimeImmutable */
                         $timeStr[] = $dt->format($timeFormat);
                     }
-                    $timeStr = __('at', TouchPointWP::TEXT_DOMAIN) . " " . Utilities::stringArrayToListString($timeStr);
+					// translators: "at" comes before the time of day/week.  e.g. *at* 7pm on Monday
+                    $timeStr = __('at', 'TouchPoint-WP') . " " . Utilities::stringArrayToListString($timeStr);
 
                     if (count($days) > 1) {
                         $dayStr[] = Utilities::getDayOfWeekShortForNumber(intval($dk[1])) . ' ' . $timeStr;
@@ -1911,7 +1913,7 @@ class Involvement implements api, updatesViaCron
                     $k = array_key_first($days);
                     $dayStr = Utilities::getPluralDayOfWeekNameForNumber(intval($k[1]));
                 }
-                $dayStr .= ' ' . __('at', TouchPointWP::TEXT_DOMAIN) . " " . $uniqueTimeStrings[0];
+                $dayStr .= ' ' . __('at', 'TouchPoint-WP') . " " . $uniqueTimeStrings[0];
             } else {
                 $dayStr = null;
             }
@@ -2148,10 +2150,10 @@ class Involvement implements api, updatesViaCron
         if ($this->attributes->genderId != 0) {
             switch($this->attributes->genderId) {
                 case 1:
-                    $r[] = __('Men Only', TouchPointWP::TEXT_DOMAIN);
+                    $r[] = __('Men Only', 'TouchPoint-WP');
                     break;
                 case 2:
-                    $r[] = __('Women Only', TouchPointWP::TEXT_DOMAIN);
+                    $r[] = __('Women Only', 'TouchPoint-WP');
                     break;
             }
         }
@@ -2164,7 +2166,7 @@ class Involvement implements api, updatesViaCron
         // Not shown on map (only if there is a map, and the involvement has geo)
         // Excluded because it doesn't seem helpful.
 //        if (self::$_hasArchiveMap && $this->geo === null) {
-//            $r[] = __("Not Shown on Map", TouchPointWP::TEXT_DOMAIN);
+//            $r[] = __("Not Shown on Map", 'TouchPoint-WP');
 //            TouchPointWP::requireScript("fontAwesome");  // For map icons
 //        }
 
@@ -2198,44 +2200,44 @@ class Involvement implements api, updatesViaCron
             $btnClass = " class=\"$btnClass\"";
         }
 
-        $text = __("Contact Leaders", TouchPointWP::TEXT_DOMAIN);
+        $text = __("Contact Leaders", 'TouchPoint-WP');
         $ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button> ";
         TouchPointWP::enqueueActionsStyle('inv-contact');
         $count = 1;
 
         if ($this->acceptingNewMembers() === true) {
             if ($this->useRegistrationForm()) {
-                $text = __('Register', TouchPointWP::TEXT_DOMAIN);
+                $text = __('Register', 'TouchPoint-WP');
                 switch (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) {
                     case 1:  // Join Involvement (skip other options because this option is common)
                         break;
                     case 5:  // Create Account
-                        $text = __('Create Account', TouchPointWP::TEXT_DOMAIN);
+                        $text = __('Create Account', 'TouchPoint-WP');
                         break;
                     case 6:  // Choose Volunteer Times (legacy)
                     case 22: // Scheduler
-                        $text = __('Schedule', TouchPointWP::TEXT_DOMAIN);
+                        $text = __('Schedule', 'TouchPoint-WP');
                         break;
                     case 8:  // Online Giving (legacy)
                     case 9:  // Online Pledge (legacy)
                     case 14: // Manage Recurring Giving (legacy)
-                        $text = __('Give', TouchPointWP::TEXT_DOMAIN);
+                        $text = __('Give', 'TouchPoint-WP');
                         break;
                     case 15: // Manage Subscriptions
-                        $text = __('Manage Subscriptions', TouchPointWP::TEXT_DOMAIN);
+                        $text = __('Manage Subscriptions', 'TouchPoint-WP');
                         break;
                     case 18: // Record Family Attendance
-                        $text = __('Record Attendance', TouchPointWP::TEXT_DOMAIN);
+                        $text = __('Record Attendance', 'TouchPoint-WP');
                         break;
                     case 21: // Ticketing
-                        $text = __('Get Tickets', TouchPointWP::TEXT_DOMAIN);
+                        $text = __('Get Tickets', 'TouchPoint-WP');
                         break;
                 }
                 $link = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
                 $ret  .= "<a class=\"btn button\" href=\"$link\" $btnClass>$text</a>  ";
                 TouchPointWP::enqueueActionsStyle('inv-register');
             } else {
-                $text = __('Join', TouchPointWP::TEXT_DOMAIN);
+                $text = __('Join', 'TouchPoint-WP');
                 $ret  .= "<button type=\"button\" data-tp-action=\"join\" $btnClass>$text</button>  ";
                 TouchPointWP::enqueueActionsStyle('inv-join');
             }
@@ -2244,7 +2246,7 @@ class Involvement implements api, updatesViaCron
 
         // Show on map button.  (Only works if map is called before this is.)
         if (self::$_hasArchiveMap && $this->geo !== null) {
-            $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
+            $text = __("Show on Map", 'TouchPoint-WP');
             if ($count > 1) {
                 TouchPointWP::requireScript("fontAwesome");
                 $ret = "<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\" $btnClass><i class=\"fa-solid fa-location-pin\"></i></button>  " . $ret;
