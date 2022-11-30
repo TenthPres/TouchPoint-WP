@@ -1099,6 +1099,9 @@ class TP_Involvement extends TP_Mappable {
             return;
 
         let target = document.getElementById(targetId);
+        if (!target) // make sure element actually exists (it may not if shortcode was within a tease)
+            return;
+
         tpvm._invNear.nearby = ko.observableArray([]);
         tpvm._invNear.labelStr = ko.observable(__("Loading...", 'TouchPoint-WP'));
         ko.applyBindings(tpvm._invNear, target);

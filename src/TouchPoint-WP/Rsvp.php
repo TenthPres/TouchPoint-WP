@@ -101,7 +101,7 @@ abstract class Rsvp
         }
 
         // create the link
-        if (TouchPointWP::isApi()) {
+        if (TouchPointWP::isApi() || is_feed()) {
             global $post;
             $link = get_permalink($post);
             return "<a href=\"$link#tp-rsvp-m$meetingId\" $class><span class=\"rsvp-btn-content\">$content</span></a>";
