@@ -13,7 +13,7 @@ use WP_Error;
 abstract class Utilities
 {
     /**
-     * @param numeric $numeric
+     * @param mixed $numeric
      *
      * @return float|null
      */
@@ -39,13 +39,13 @@ abstract class Utilities
     public static function getPluralDayOfWeekNameForNumber(int $dayNum): string
     {
         $names = [
-            __('Sundays'),
-            __('Mondays'),
-            __('Tuesdays'),
-            __('Wednesdays'),
-            __('Thursdays'),
-            __('Fridays'),
-            __('Saturdays'),
+            _x('Sundays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Mondays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Tuesdays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Wednesdays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Thursdays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Fridays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Saturdays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
         ];
 
         return $names[$dayNum % 7];
@@ -86,19 +86,19 @@ abstract class Utilities
         $timeInt = intval($dt->format('Hi'));
 
         if ($timeInt < 300 || $timeInt >= 2200) {
-            return __('Late Night');
+            return __('Late Night', 'Time of Day', 'TouchPoint-WP');
         } elseif ($timeInt < 800) {
-            return __('Early Morning');
+            return __('Early Morning', 'Time of Day', 'TouchPoint-WP');
         } elseif ($timeInt < 1115) {
-            return __('Morning');
+            return __('Morning', 'Time of Day', 'TouchPoint-WP');
         } elseif ($timeInt < 1300) {
-            return __('Midday');
+            return __('Midday', 'Time of Day', 'TouchPoint-WP');
         } elseif ($timeInt < 1700) {
-            return __('Afternoon');
+            return __('Afternoon', 'Time of Day', 'TouchPoint-WP');
         } elseif ($timeInt < 2015) {
-            return __('Evening');
+            return __('Evening', 'Time of Day', 'TouchPoint-WP');
         } else {
-            return __('Night');
+            return __('Night', 'Time of Day', 'TouchPoint-WP');
         }
     }
 
@@ -125,7 +125,7 @@ abstract class Utilities
             $useOxford = true;
         }
         if (strpos($concat, ' & ') !== false) {
-            $and = ' ' . __('and') . ' ';
+            $and = ' ' . __('and', 'TouchPoint-WP') . ' ';
             $useOxford = true;
         }
 

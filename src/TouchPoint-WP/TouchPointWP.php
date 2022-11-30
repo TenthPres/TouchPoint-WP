@@ -500,6 +500,12 @@ class TouchPointWP
             echo Partner::getJsInstantiationString();
         }
         echo "\n</script>\n";
+
+	    if ($this->involvements !== null) {
+		    echo "<script type=\"application/ld+json\">";
+		    Involvement::printJsonLd();
+			echo "</script>";
+	    }
     }
 
     /**
