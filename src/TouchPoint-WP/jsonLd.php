@@ -50,7 +50,7 @@ trait jsonLd {
 	 *
 	 * @return ?object
 	 */
-    public abstract function toJsonLD(): ?object;
+    public abstract function toJsonLD(): ?array;
 
     /**
      * Get the JS for instantiation.
