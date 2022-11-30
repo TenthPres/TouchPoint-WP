@@ -11,6 +11,7 @@ if ( ! defined('ABSPATH')) {
 if (!TOUCHPOINT_COMPOSER_ENABLED) {
     require_once "api.php";
     require_once "jsInstantiation.php";
+    require_once "jsonLd.php";
     require_once "updatesViaCron.php";
     require_once "Utilities.php";
     require_once "Involvement_PostTypeSettings.php";
