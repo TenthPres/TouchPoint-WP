@@ -12,6 +12,7 @@ help you with this.
 - Publish a list and map of involvements, with dynamic filtering based on actual data, such as demographics and location.
 - Suggest Small Groups physically nearby based on geolocation.
 - Allow website guests to easily contact leaders or join a group, without exposing leaders' contact info publicly.
+- Includes Search Engine metadata that allows small groups and other involvements to appear as events in search results. 
 
 [Small Groups Example.](https://www.tenth.org/smallgroups)
 [Classes Example.](https://www.tenth.org/abs)
@@ -33,16 +34,11 @@ appropriate care for their security.
 Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by
 ModernTribe](https://theeventscalendar.com/).  This is compatible with both the free and "Pro" versions.
 
-<!--
 ### Authentication (Beta)
-Authenticate TouchPoint users to WordPress, so you can know your website users.  Optionally, this authentication can
-happen silently in the background, so that if a user is logged into TouchPoint, they are automatically logged into your
-website.
--->
+Authenticate TouchPoint users to WordPress, so you can know your website users. 
 
 ## Future Features
 - Authenticate
-    - Unify your public web properties with a single login. 
     - Track viewership of webpages and web resources non-anonymously.  (Know who attended your virtual worship service.)
     - Sync WordPress Permissions with TouchPoint involvements or roles.
 - Events (Requires [The Events Calendar from ModernTribe](https://theeventscalendar.com/))
@@ -79,7 +75,7 @@ you're interested in using this plugin in a multisite environment, [please get i
 This plugin uses PSR-12 coding standards, which are significantly different from the WordPress standards, but are easier
 for working in [OOP](https://en.wikipedia.org/wiki/Object-oriented_programming).  This plugin heavily uses OOP.
 
-Several plugins have lended structure or code snippets to this plugin:
+Several plugins have lended structure, code, or inspiration to this plugin:
 - [Plugin Template from hlashbrooke](https://github.com/hlashbrooke/WordPress-Plugin-Template) (GPLv2)
 - [AAD SSO from psignoret](https://github.com/psignoret/aad-sso-wordpress) (MIT)
 
