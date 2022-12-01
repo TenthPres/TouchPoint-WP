@@ -18,8 +18,10 @@ echo $(npm install -g uglify-js)
 uglifyjs -o build/assets/js/base-defer.min.js -- assets/js/base-defer.js
 uglifyjs -o build/assets/js/meeting-defer.min.js -- assets/js/meeting-defer.js
 uglifyjs -o build/assets/js/partner-defer.min.js -- assets/js/partner-defer.js
-cp -r assets build/assets
-zip -r TouchPoint-WP.zip ./build/assets
+cp -r assets build
+cd ./build || exit
+zip -r ../TouchPoint-WP.zip assets
+cd ..
 
 
 # compile translations
@@ -29,7 +31,9 @@ cp -r i18n build/i18n
 
 php ./wp-cli.phar i18n make-json build/i18n
 php ./wp-cli.phar i18n make-mo build/i18n
-find . -maxdepth 1 -iname "build/i18n/*.php" -exec zip TouchPoint-WP.zip {} \;
+cd ./build || exit
+zip -r ../TouchPoint-WP.zip i18n
+cd ..
 
 zip -r TouchPoint-WP.zip ./ext
 zip -r TouchPoint-WP.zip ./src
