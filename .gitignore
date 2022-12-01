@@ -13,3 +13,11 @@ composer.lock
 /.idea/deployment.xml
 /.idea/dataSources.xml
 /.idea/webServers.xml
+
+*.min.js
+node_modules
+
+package-lock.json
+
+/build/
+/TouchPoint-WP.zip
