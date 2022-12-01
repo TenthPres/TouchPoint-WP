@@ -12,8 +12,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: Display the path
+        run: echo $PATH && dir
+        shell: bash
       - name: Build
         run: build.sh
+        shell: bash
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
