@@ -32,7 +32,9 @@ jobs:
           draft: true
           prerelease: false
       - name: Publish Build Files
-        uses: AButler/upload-release-assets@v2.0
+        uses: actions/upload-release-asset@v1
         with:
-          files: 'TouchPoint-WP.zip'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./TouchPoint-WP.zip
+          asset_name: TouchPoint-WP.zip
+          asset_content_type: application/zip
