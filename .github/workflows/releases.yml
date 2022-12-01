@@ -12,10 +12,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Display the path
-        run: echo $PATH && dir
-        shell: bash
-      - name: make Build Script executable
+      - name: Permissions
         run: chmod +x build.sh
         shell: bash
       - name: Build
@@ -31,7 +28,7 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: true
           prerelease: false
-      - name: Publish Build Files
+      - name: Publish Built zip
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
