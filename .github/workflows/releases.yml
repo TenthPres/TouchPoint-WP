@@ -15,8 +15,11 @@ jobs:
       - name: Display the path
         run: echo $PATH && dir
         shell: bash
+      - name: make Build Script executable
+        run: chmod +x build.sh
+        shell: bash
       - name: Build
-        run: build.sh
+        run: ./build.sh
         shell: bash
       - name: Create Release
         id: create_release
