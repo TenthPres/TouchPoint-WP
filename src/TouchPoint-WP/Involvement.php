@@ -1704,12 +1704,36 @@ class Involvement implements api, updatesViaCron
                 }
                 continue;
             }
+
             if (in_array("child", $typeSets->excludeIf) && $inv->parentInvId > 0) {
                 if ($verbose) {
                     echo "<p>Stopping processing because Involvements with parents are excluded.  Involvement will be deleted from WordPress.</p>";
                 }
                 continue;
             }
+
+	        if (in_array("notWeekly", $typeSets->excludeIf) && $inv->notWeekly) {
+		        if ($verbose) {
+			        echo "<p>Stopping processing because Not-Weekly Involvements are excluded.  Involvement will be deleted from WordPress.</p>";
+		        }
+		        continue;
+	        }
+
+	        if (in_array("unscheduled", $typeSets->excludeIf) && count($inv->occurrences) > 0) {
+				$hasSchedule = false;
+				foreach ($inv->occurrences as $o) {
+					if ($o->type === 'S') {
+						$hasSchedule = true;
+						break;
+					}
+				}
+		        if (!$hasSchedule) {
+			        if ($verbose) {
+				        echo "<p>Stopping processing because Involvements without schedules are excluded.  Involvement will be deleted from WordPress.</p>";
+			        }
+			        continue;
+		        }
+	        }
 
 
             /////////////////////////
@@ -1782,7 +1806,7 @@ class Involvement implements api, updatesViaCron
             $post->post_status = 'publish';
             wp_update_post($post);
 
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "locationName", $inv->locationName);
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "locationName", $inv->location);
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "memberCount", $inv->memberCount);
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "genderId", $inv->genderId);
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupFull", ! ! $inv->groupFull);

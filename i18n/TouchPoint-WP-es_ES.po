@@ -72,90 +72,90 @@ msgstr ""
 msgid "Involvement is a Child Involvement"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:87
+#: src/templates/admin/invKoForm.php:95
 msgid "Leader Member Types"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:90
-#: src/templates/admin/invKoForm.php:106
-#: src/templates/admin/invKoForm.php:225
+#: src/templates/admin/invKoForm.php:98
+#: src/templates/admin/invKoForm.php:114
+#: src/templates/admin/invKoForm.php:233
 #: src/TouchPoint-WP/Rsvp.php:72
 #: assets/js/base-defer.js:181
 #: assets/js/base-defer.js:1106
 msgid "Loading..."
 msgstr "Cargando..."
 
-#: src/templates/admin/invKoForm.php:102
+#: src/templates/admin/invKoForm.php:110
 msgid "Host Member Types"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:118
+#: src/templates/admin/invKoForm.php:126
 msgid "Default Grouping"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:122
+#: src/templates/admin/invKoForm.php:130
 msgid "No Grouping"
 msgstr "Sin agrupar"
 
-#: src/templates/admin/invKoForm.php:123
+#: src/templates/admin/invKoForm.php:131
 msgid "Upcoming / Current"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:124
+#: src/templates/admin/invKoForm.php:132
 msgid "Current / Upcoming"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:130
+#: src/templates/admin/invKoForm.php:138
 msgid "Default Filters"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:139
+#: src/templates/admin/invKoForm.php:147
 msgid "Gender"
 msgstr "Género"
 
-#: src/templates/admin/invKoForm.php:147
-#: src/TouchPoint-WP/Involvement.php:1024
+#: src/templates/admin/invKoForm.php:155
+#: src/TouchPoint-WP/Involvement.php:1025
 msgid "Weekday"
 msgstr "Día laborable"
 
-#: src/templates/admin/invKoForm.php:151
-#: src/TouchPoint-WP/Involvement.php:1046
+#: src/templates/admin/invKoForm.php:159
+#: src/TouchPoint-WP/Involvement.php:1047
 msgid "Time of Day"
 msgstr "Hora del día"
 
-#: src/templates/admin/invKoForm.php:155
+#: src/templates/admin/invKoForm.php:163
 msgid "Prevailing Marital Status"
 msgstr "Estado civil prevaleciente"
 
-#: src/templates/admin/invKoForm.php:159
+#: src/templates/admin/invKoForm.php:167
 msgid "Age Group"
 msgstr "Grupo de edad"
 
-#: src/templates/admin/invKoForm.php:164
+#: src/templates/admin/invKoForm.php:172
 msgid "Task Owner"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:171
+#: src/templates/admin/invKoForm.php:179
 msgid "Contact Leader Task Keywords"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:182
+#: src/templates/admin/invKoForm.php:190
 msgid "Join Task Keywords"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:198
+#: src/templates/admin/invKoForm.php:206
 msgid "Add Involvement Post Type"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:205
+#: src/templates/admin/invKoForm.php:213
 msgid "Small Group"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:206
+#: src/templates/admin/invKoForm.php:214
 msgid "Small Groups"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:334
+#: src/templates/admin/invKoForm.php:342
 msgid "Select..."
 msgstr "Seleccione..."
 
@@ -194,109 +194,109 @@ msgstr "Periódico"
 msgid "Multi-Day"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:407
+#: src/TouchPoint-WP/Involvement.php:408
 msgid "Currently Full"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:411
+#: src/TouchPoint-WP/Involvement.php:412
 msgid "Currently Closed"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:417
+#: src/TouchPoint-WP/Involvement.php:418
 msgid "Registration Not Open Yet"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:422
+#: src/TouchPoint-WP/Involvement.php:423
 msgid "Registration Closed"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:926
+#: src/TouchPoint-WP/Involvement.php:927
 #: src/TouchPoint-WP/Partner.php:770
 msgid "Any"
 msgstr "Cualquier"
 
-#: src/TouchPoint-WP/Involvement.php:1068
+#: src/TouchPoint-WP/Involvement.php:1069
 msgid "Mostly Single"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1069
+#: src/TouchPoint-WP/Involvement.php:1070
 msgid "Mostly Married"
 msgstr ""
 
 #. translators: %s is for the user-provided term for the items on the map (e.g. Small Group or Partner)
-#: src/TouchPoint-WP/Involvement.php:1102
+#: src/TouchPoint-WP/Involvement.php:1103
 #: src/TouchPoint-WP/Partner.php:790
 msgid "The %s listed are only those shown on the map."
 msgstr ""
 
 #. translators: %s is the link to "reset the map"
-#: src/TouchPoint-WP/Involvement.php:1109
+#: src/TouchPoint-WP/Involvement.php:1110
 #: src/TouchPoint-WP/Partner.php:805
 msgid "Zoom out or %s to see more."
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1112
+#: src/TouchPoint-WP/Involvement.php:1113
 #: src/TouchPoint-WP/Partner.php:808
 msgid "reset the map"
 msgstr ""
 
 #. translators: %s is the plural involvement type (e.g. Small Groups)
-#: src/TouchPoint-WP/Involvement.php:1231
+#: src/TouchPoint-WP/Involvement.php:1232
 msgid "No %s found."
 msgstr ""
 
 #. translators: "at" comes before the time of day/week.  e.g. *at* 7pm on Monday
-#: src/TouchPoint-WP/Involvement.php:1901
-#: src/TouchPoint-WP/Involvement.php:1925
+#: src/TouchPoint-WP/Involvement.php:1926
+#: src/TouchPoint-WP/Involvement.php:1950
 msgid "at"
 msgstr "a las"
 
-#: src/TouchPoint-WP/Involvement.php:2198
+#: src/TouchPoint-WP/Involvement.php:2223
 msgid "Men Only"
 msgstr "Solo hombres"
 
-#: src/TouchPoint-WP/Involvement.php:2201
+#: src/TouchPoint-WP/Involvement.php:2226
 msgid "Women Only"
 msgstr "Solo mujeres"
 
-#: src/TouchPoint-WP/Involvement.php:2249
+#: src/TouchPoint-WP/Involvement.php:2274
 msgid "Contact Leaders"
 msgstr "Contacta con las líderes"
 
-#: src/TouchPoint-WP/Involvement.php:2256
+#: src/TouchPoint-WP/Involvement.php:2281
 msgid "Register"
 msgstr "Regístrate ahora"
 
-#: src/TouchPoint-WP/Involvement.php:2261
+#: src/TouchPoint-WP/Involvement.php:2286
 msgid "Create Account"
 msgstr "Crear cuenta"
 
-#: src/TouchPoint-WP/Involvement.php:2265
+#: src/TouchPoint-WP/Involvement.php:2290
 msgid "Schedule"
 msgstr "Programe"
 
-#: src/TouchPoint-WP/Involvement.php:2270
+#: src/TouchPoint-WP/Involvement.php:2295
 msgid "Give"
 msgstr "Dar"
 
-#: src/TouchPoint-WP/Involvement.php:2273
+#: src/TouchPoint-WP/Involvement.php:2298
 msgid "Manage Subscriptions"
 msgstr "Administrar suscripciones"
 
-#: src/TouchPoint-WP/Involvement.php:2276
+#: src/TouchPoint-WP/Involvement.php:2301
 msgid "Record Attendance"
 msgstr "Registre su asistencia"
 
-#: src/TouchPoint-WP/Involvement.php:2279
+#: src/TouchPoint-WP/Involvement.php:2304
 msgid "Get Tickets"
 msgstr "Obtener boletos"
 
-#: src/TouchPoint-WP/Involvement.php:2286
+#: src/TouchPoint-WP/Involvement.php:2311
 #: assets/js/base-defer.js:974
 msgid "Join"
 msgstr "Únete"
 
-#: src/TouchPoint-WP/Involvement.php:2295
+#: src/TouchPoint-WP/Involvement.php:2320
 #: src/TouchPoint-WP/Partner.php:1234
 msgid "Show on Map"
 msgstr "Muestra en el mapa"
@@ -1070,15 +1070,15 @@ msgstr "OK"
 msgid "Next"
 msgstr "Siguiente"
 
-#: src/TouchPoint-WP/Involvement.php:1067
+#: src/TouchPoint-WP/Involvement.php:1068
 msgid "Marital Status"
 msgstr "Estado civil"
 
-#: src/TouchPoint-WP/Involvement.php:1080
+#: src/TouchPoint-WP/Involvement.php:1081
 msgid "Age"
 msgstr "Años"
 
-#: src/TouchPoint-WP/Involvement.php:983
+#: src/TouchPoint-WP/Involvement.php:984
 msgid "Genders"
 msgstr "Géneros"
 
@@ -1115,4 +1115,16 @@ msgstr ""
 #: src/TouchPoint-WP/Utilities.php:48
 msgctxt "e.g. event happens weekly on..."
 msgid "Saturdays"
+msgstr ""
+
+#: src/templates/admin/invKoForm.php:85
+msgid "Based on Involvement setting in TouchPoint"
+msgstr ""
+
+#: src/templates/admin/invKoForm.php:85
+msgid "Involvement does not meet weekly"
+msgstr ""
+
+#: src/templates/admin/invKoForm.php:89
+msgid "Involvement does not have a Schedule"
 msgstr ""

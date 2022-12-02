@@ -17,6 +17,9 @@ composer.lock
 *.min.js
 node_modules
 
+/i18n/*.json
+/i18n/*.mo
+
 package-lock.json
 
 /build/

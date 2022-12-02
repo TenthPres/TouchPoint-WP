@@ -1239,7 +1239,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     }
 
     /**
-     * Take an array of Person-like objects and group them by family.  It is assumed that the object has a FamilyId field.
+     * Take an array of Person-like objects and group them by family id.
+     * Objects must have a FamilyId or familyId field.
      *
      * @param Person[]|object[] $people
      *
@@ -1253,7 +1254,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 continue;
             }
 
-            $fid = intval($p->familyId);
+            $fid = intval($p->familyId ?? $p->FamilyId ?? 0);
 
             if (!array_key_exists($fid, $families))
                 $families[$fid] = [];

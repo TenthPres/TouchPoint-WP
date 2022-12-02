@@ -80,6 +80,14 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                     <input id="it-excludeIf-child" type="checkbox" value="child" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-child'}" />
                     <label for="it-excludeIf-child" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-child'}"><?php _e("Involvement is a Child Involvement", "TouchPoint-WP"); ?></label>
                 </p>
+                <p>
+                    <input id="it-excludeIf-notWeekly" type="checkbox" value="notWeekly" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-notWeekly'}" />
+                    <label for="it-excludeIf-notWeekly" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-notWeekly'}" title="<?php _e("Based on Involvement setting in TouchPoint", "TouchPoint-WP"); ?>"><?php _e("Involvement does not meet weekly", "TouchPoint-WP"); ?></label>
+                </p>
+                <p>
+                    <input id="it-excludeIf-unscheduled" type="checkbox" value="unscheduled" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-unscheduled'}" />
+                    <label for="it-excludeIf-unscheduled" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-unscheduled'}"><?php _e("Involvement does not have a Schedule", "TouchPoint-WP"); ?></label>
+                </p>
             </td>
         </tr>
 
