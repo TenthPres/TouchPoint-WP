@@ -665,8 +665,8 @@ class TouchPointWP
 
         add_action('init', [self::class, 'init']);
 
-	    add_filter('the_content', [self::class, 'capitalPyScript']);
-	    add_filter('widget_text_content', [self::class, 'capitalPyScript']);
+	    add_filter('the_content', [self::class, 'capitalPyScript'], 11);
+	    add_filter('widget_text_content', [self::class, 'capitalPyScript'], 11);
 
         return $instance;
     }
