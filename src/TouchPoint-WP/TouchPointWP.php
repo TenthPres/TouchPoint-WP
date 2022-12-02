@@ -228,7 +228,7 @@ class TouchPointWP
 
         add_filter('do_parse_request', [$this, 'parseRequest'], 10, 3);
 
-        // Start session if not started already.
+        // Start session if not started already.  TODO this should only happen if there's a reason for it.
         if (session_status() === PHP_SESSION_NONE)
             session_start();
 
@@ -239,6 +239,29 @@ class TouchPointWP
 
         self::scheduleCleanup();
     }
+
+	/**
+	 * FInd and replace links to /pyscript with their more functional brother, /PyScript.  Because that small typo makes
+	 * bad things happen.
+	 *
+	 * @param string|mixed $text The text to be modified. (should be a string, but this is WordPress, so maybe not.)
+	 *
+	 * @return string The modified text.
+	 * @noinspection SpellCheckingInspection
+	 * @since 0.0.23
+	 *
+	 */
+	public static function capitalPyScript($text): string
+	{
+		if (!self::instance()->settings->hasValidApiSettings()) {
+			return $text;
+		}
+		return str_ireplace(
+			self::instance()->settings->host . "/pyscript/",
+			self::instance()->settings->host . "/PyScript/",
+			$text
+		);
+	}
 
 
     public function admin(): TouchPointWP_AdminAPI
@@ -641,6 +664,9 @@ class TouchPointWP
         }
 
         add_action('init', [self::class, 'init']);
+
+	    add_filter('the_content', [self::class, 'capitalPyScript']);
+	    add_filter('widget_text_content', [self::class, 'capitalPyScript']);
 
         return $instance;
     }
