@@ -1021,9 +1021,10 @@ class Partner implements api, JsonSerializable, updatesViaCron
      */
     public static function registerScriptsAndStyles(): void
     {
+		$i = TouchPointWP::instance();
         wp_register_script(
             TouchPointWP::SHORTCODE_PREFIX . 'partner-defer',
-            TouchPointWP::instance()->assets_url . 'js/partner-defer.js',
+            $i->assets_url . 'js/partner-defer' . $i->script_ext,
             [TouchPointWP::SHORTCODE_PREFIX . 'base-defer'],
             TouchPointWP::VERSION,
             true

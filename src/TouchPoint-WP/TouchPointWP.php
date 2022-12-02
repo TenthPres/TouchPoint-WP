@@ -141,7 +141,7 @@ class TouchPointWP
     /**
      * Suffix for JavaScripts.
      */
-    public string $script_suffix;
+    public string $script_ext;
 
     /**
      * @var ?bool True after the RSVP feature is loaded.
@@ -202,8 +202,8 @@ class TouchPointWP
         $this->assets_dir = trailingslashit(self::$dir) . 'assets';
         $this->assets_url = esc_url(trailingslashit(plugins_url('/assets/', $this->file)));
 
-        $this->debug = get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true";
-        $this->script_suffix = $this->debug ? '' : '.min';
+        $this->debug      = get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true";
+        $this->script_ext = ($this->debug || !file_exists($this->assets_dir . "/js/base-defer.min.js")) ? '.js' : '.min.js';
 
         register_activation_hook($this->file, [$this, 'activation']);
         register_deactivation_hook($this->file, [$this, 'deactivation']);
@@ -706,7 +706,7 @@ class TouchPointWP
 
         wp_register_script(
             self::SHORTCODE_PREFIX . 'base-defer',
-            $this->assets_url . 'js/base-defer.js',
+            $this->assets_url . 'js/base-defer' . $this->script_ext,
             [self::SHORTCODE_PREFIX . 'base', 'wp-i18n'],
             self::VERSION,
             true

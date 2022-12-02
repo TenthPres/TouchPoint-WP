@@ -27,7 +27,7 @@ abstract class Meeting implements api
 		$i = TouchPointWP::instance();
         wp_register_script(
             TouchPointWP::SHORTCODE_PREFIX . 'meeting-defer',
-            $i->assets_url . 'js/meeting-defer.js',
+            $i->assets_url . 'js/meeting-defer' . $i->script_ext,
             [TouchPointWP::SHORTCODE_PREFIX . 'base-defer', 'wp-i18n'],
             TouchPointWP::VERSION,
             true
