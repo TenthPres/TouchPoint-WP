@@ -11,8 +11,8 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 <form>
 <div data-bind="foreach: invTypes, visible: invTypes().length > 0" style="display:none;">
     <div data-bind="click: toggleVisibility">
-        <span style="padding: .1em .5em 0 0" class="dashicons dashicons dashicons-arrow-up" data-bind="visible: _visible" aria-hidden="true"></span>
-        <span style="padding: .1em .5em 0 0" class="dashicons dashicons dashicons-arrow-down" data-bind="hidden: _visible" aria-hidden="true"></span>
+        <span style="padding: .1em .5em 0 0" class="dashicons dashicons dashicons-arrow-down" data-bind="visible: _visible" aria-hidden="true"></span>
+        <span style="padding: .1em .5em 0 0" class="dashicons dashicons dashicons-arrow-up" data-bind="hidden: _visible" aria-hidden="true"></span>
         <span style="font-size: 1.5em; padding-right:2em; text-decoration: none;" data-bind="text: namePlural"></span>
         <a href="#" class="button" data-bind="click: $parent.removeInvType"><?php _e("Delete", "TouchPoint-WP"); ?></a>
     </div>
@@ -265,6 +265,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         // Operations
         self.addInvType = function() {
             let newT = new InvType({})
+            newT._visible = true;
             self.invTypes.push(newT);
             applySelect2ForData('#it-' + newT.slug() + '-taskOwner');
         };

@@ -905,17 +905,29 @@ class TouchPointWP
             return false;
         }
 
-        try {
-            $return = $this->getIpData($ip, $useApi);
-        } catch (TouchPointWP_WPError|TouchPointWP_Exception $ex) {
-            return false;
-        }
+		$return = Location::getLocationForIP($ip);
 
-        if ($return === false || !is_string($return)) {
-            return false;
-        }
+		if ($return !== null && $return->lat !== null && $return->lng !== null) {
+			return (object)[
+				'lat' => $return->lat,
+				'lng' => $return->lng,
+				'human' => $return->name,
+				'type' => 'ip'
+			];
+		}
 
-        $d = json_decode($return);
+		try {
+			$return = $this->getIpData($ip, $useApi);
+		} catch (TouchPointWP_WPError|TouchPointWP_Exception $ex) {
+			return false;
+		}
+
+		if ($return === false || !is_string($return)) {
+			return false;
+		}
+
+		$d = json_decode($return);
+
         if (!is_object($d)) {
             new TouchPointWP_Exception("Geolocation Object is Invalid", 178004);
             return false;
@@ -938,12 +950,17 @@ class TouchPointWP
             $human = $d->city . ", " . $d->country_name;
         }
 
-        return (object)['lat' => $d->latitude, 'lng' => $d->longitude, 'human' => $human, 'type' => 'ip'];
+        return (object)[
+			'lat' => $d->latitude,
+			'lng' => $d->longitude,
+			'human' => $human,
+			'type' => 'ip'
+        ];
     }
 
     /**
-     * @param float lat Latitude
-     * @param float lng Longitude
+     * @param float $lat Latitude
+     * @param float $lng Longitude
      *
      * @return stdClass|false An object with a 'human' attribute, if a location could be identified. Or, false if not available.
      */

@@ -61,6 +61,8 @@ if ( ! defined('ABSPATH')) {
  * @property-read int|false inv_cron_last_run Timestamp of the last time the Involvement syncing task ran.  (No setting UI.)
  * @property-read string inv_json           JSON string describing how Involvements should be handled.  (No direct setting UI.)
  *
+ * @property-read string locations_json     JSON string describing fixed locations.
+ *
  * @property-read string ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.
  *
  * @property-read string rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
@@ -756,46 +758,69 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
             ],
         ];
 
-        $this->settings['campuses'] = [
-            'title'       => __('Campuses', 'TouchPoint-WP'),
-            'description' => __('Import Campuses from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', 'TouchPoint-WP'),
-            'fields'      => [
-                [
-                    'id'          => 'camp_name_plural',
-                    'label'       => __('Campus Name (Plural)', 'TouchPoint-WP'),
-                    'description' => __(
-                        'What you call Campuses at your church',
-                        'TouchPoint-WP'
-                    ),
-                    'type'        => 'text',
-                    'default'     => 'Campuses',
-                    'placeholder' => 'Campuses'
-                ],
-                [
-                    'id'          => 'camp_name_singular',
-                    'label'       => __('Campus Name (Singular)', 'TouchPoint-WP'),
-                    'description' => __(
-                        'What you call a Campus at your church',
-                        'TouchPoint-WP'
-                    ),
-                    'type'        => 'text',
-                    'default'     => 'Campus',
-                    'placeholder' => 'Campus'
-                ],
-                [
-                    'id'          => 'camp_slug',
-                    'label'       => __('Campus Slug', 'TouchPoint-WP'),
-                    'description' => __(
-                        'The root path for the Campus Taxonomy',
-                        'TouchPoint-WP'
-                    ),
-                    'type'        => 'text',
-                    'default'     => 'campus',
-                    'placeholder' => 'campus',
-                    'callback'    => fn($new) => $this->validation_slug($new, 'camp_slug')
-                ]
-            ],
-        ];
+	    $this->settings['locations'] = [
+		    'title'       => __('Locations', 'TouchPoint-WP'),
+		    'description' => __('Locations are physical places, probably campuses.  None are required, but they can help present geographic information clearly.', 'TouchPoint-WP'),
+		    'fields'      => [
+			    [
+				    'id'          => 'locations_json', // involvement settings json (stored as a json string)
+				    'type'        => 'textarea',
+				    'label'       => __('Locations', 'TouchPoint-WP'),
+				    'default'     => '[]',
+				    'hidden'      => true,
+				    'description' => function() {
+					    TouchPointWP::requireScript("base");
+					    TouchPointWP::requireScript("knockout-defer");
+
+					    ob_start();
+					    include TouchPointWP::$dir . "/src/templates/admin/locationsKoForm.php";
+					    return ob_get_clean();
+				    },
+				    'callback'    => fn($new) => Location::validateSetting($new)
+			    ],
+		    ],
+	    ];
+
+	    $this->settings['campuses'] = [
+		    'title'       => __('Campuses', 'TouchPoint-WP'),
+		    'description' => __('Import Campuses from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', 'TouchPoint-WP'),
+		    'fields'      => [
+			    [
+				    'id'          => 'camp_name_plural',
+				    'label'       => __('Campus Name (Plural)', 'TouchPoint-WP'),
+				    'description' => __(
+					    'What you call Campuses at your church',
+					    'TouchPoint-WP'
+				    ),
+				    'type'        => 'text',
+				    'default'     => 'Campuses',
+				    'placeholder' => 'Campuses'
+			    ],
+			    [
+				    'id'          => 'camp_name_singular',
+				    'label'       => __('Campus Name (Singular)', 'TouchPoint-WP'),
+				    'description' => __(
+					    'What you call a Campus at your church',
+					    'TouchPoint-WP'
+				    ),
+				    'type'        => 'text',
+				    'default'     => 'Campus',
+				    'placeholder' => 'Campus'
+			    ],
+			    [
+				    'id'          => 'camp_slug',
+				    'label'       => __('Campus Slug', 'TouchPoint-WP'),
+				    'description' => __(
+					    'The root path for the Campus Taxonomy',
+					    'TouchPoint-WP'
+				    ),
+				    'type'        => 'text',
+				    'default'     => 'campus',
+				    'placeholder' => 'campus',
+				    'callback'    => fn($new) => $this->validation_slug($new, 'camp_slug')
+			    ]
+		    ],
+	    ];
 
         $this->settings['resident_codes'] = [
             'title'       => __('Resident Codes', 'TouchPoint-WP'),

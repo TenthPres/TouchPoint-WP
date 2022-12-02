@@ -1122,7 +1122,7 @@ class TP_Involvement extends TP_Mappable {
             tpvm._invNear.nearby(response.invList);
             if (response.error !== undefined) {
                 if (response.geo === false) {
-                    if (navigator.geolocation) {
+                    if (navigator.geolocation && location.protocol === 'https:') {
                         tpvm._invNear.labelStr(__("We don't know where you are.", 'TouchPoint-WP') + "<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'sgf', 'permission', 'Device Location');\">" + __("Click here to use your actual location.", 'TouchPoint-WP') + "</a>");
                     } else {
                         tpvm._invNear.labelStr(__("We don't know where you are.", 'TouchPoint-WP'));
@@ -1132,7 +1132,7 @@ class TP_Involvement extends TP_Mappable {
                 }
             } else if (response.geo?.human !== undefined) {
                 let label = response.geo.human;
-                if (response.geo.type === "ip" && navigator.geolocation) {
+                if (response.geo.type === "ip" && navigator.geolocation && location.protocol === 'https:') {
                     label += "<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'sgf', 'permission', 'Device Location');\">" + __("Click here to use your actual location.", 'TouchPoint-WP') + "</a>";
                 }
                 tpvm._invNear.labelStr(label);

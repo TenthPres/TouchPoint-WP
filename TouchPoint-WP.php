@@ -49,6 +49,7 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 
     require_once __DIR__ . "/src/TouchPoint-WP/Person.php";
     require_once __DIR__ . "/src/TouchPoint-WP/Involvement.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Location.php";
 }
 
 /*** Load (set action hooks, etc.) ***/
