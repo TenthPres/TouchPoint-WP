@@ -799,16 +799,17 @@ class Partner implements api, JsonSerializable, updatesViaCron
                     TouchPointWP::instance()->settings->global_name_plural_decoupled
                 )
             );
-            $content .= sprintf(
-                "<span class=\"TouchPointWP-map-warning-zoomOrReset\" style=\"display:none;\">%s  </span>",
-                sprintf(  // translators: %s is the link to "reset the map"
-                    __("Zoom out or %s to see more.", "TouchPoint-WP"),
-                    sprintf(
-                        "<a href=\"#\" class=\"TouchPointWP-map-resetLink\">%s</a>",
-                        __("reset the map", "TouchPoint-WP")
-                    )
-                )
-            );
+	        $content .= sprintf(
+		        "<span class=\"TouchPointWP-map-warning-zoomOrReset\" style=\"display:none;\">%s  </span>",
+		        sprintf(
+		            // translators: %s is the link to "reset the map"
+			        __("Zoom out or %s to see more.", 'TouchPoint-WP'),
+			        sprintf(
+				        "<a href=\"#\" class=\"TouchPointWP-map-resetLink\">%s</a>",
+				        _x("reset the map", "Zoom out or reset the map to see more.", 'TouchPoint-WP')
+			        )
+		        )
+	        );
             $content .= "</p>";
         }
 

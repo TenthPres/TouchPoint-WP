@@ -29,9 +29,6 @@ abstract class Utilities
     /**
      * Gets the plural form of a weekday name.
      *
-     * Translation: These are deliberately not scoped to TouchPoint-WP, so if the translation exists globally, it should
-     * work here.
-     *
      * @param int $dayNum
      *
      * @return string Plural weekday (e.g. Mondays)
@@ -51,6 +48,28 @@ abstract class Utilities
         return $names[$dayNum % 7];
     }
 
+	/**
+	 * Gets the plural form of a weekday name, but without translation for use in places like slugs.
+	 *
+	 * @param int $dayNum
+	 *
+	 * @return string Plural weekday (e.g. Mondays)
+	 */
+	public static function getPluralDayOfWeekNameForNumber_noI18n(int $dayNum): string
+	{
+		$names = [
+			'Sundays',
+			'Mondays',
+			'Tuesdays',
+			'Wednesdays',
+			'Thursdays',
+			'Fridays',
+			'Saturdays',
+		];
+
+		return $names[$dayNum % 7];
+	}
+
     /**
      * @param int $dayNum
      *
@@ -59,48 +78,76 @@ abstract class Utilities
     public static function getDayOfWeekShortForNumber(int $dayNum): string
     {
         $names = [
-            'Sun',
-            'Mon',
-            'Tue',
-            'Wed',
-            'Thu',
-            'Fri',
-            'Sat',
+	        _x('Sun', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Mon', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Tue', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Wed', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Thu', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Fri', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Sat', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
         ];
 
         return $names[$dayNum % 7];
     }
 
-    /**
-     * Gets the non-specific time of day in words.
-     *
-     * Translation: These are deliberately not scoped to TouchPoint-WP, so if the translation exists globally, it should
-     * work here.
-     *
-     * @param DateTimeInterface $dt
-     *
-     * @return string
-     */
-    public static function getTimeOfDayTermForTime(DateTimeInterface $dt): string
+	/**
+	 * NOT internationalized, such as for slugs
+	 *
+	 * @param int $dayNum
+	 *
+	 * @return string
+	 */
+	public static function getDayOfWeekShortForNumber_noI18n(int $dayNum): string
+	{
+		$names = [
+			'Sun',
+			'Mon',
+			'Tue',
+			'Wed',
+			'Thu',
+			'Fri',
+			'Sat',
+		];
+
+		return $names[$dayNum % 7];
+	}
+
+	/**
+	 * Gets the non-specific time of day in words.
+	 *
+	 * Translation: These are deliberately not scoped to TouchPoint-WP, so if the translation exists globally, it should
+	 * work here.
+	 *
+	 * @param DateTimeInterface $dt
+	 * @param bool              $i18n
+	 *
+	 * @return string
+	 */
+    public static function getTimeOfDayTermForTime(DateTimeInterface $dt, bool $i18n = true): string
     {
         $timeInt = intval($dt->format('Hi'));
 
         if ($timeInt < 300 || $timeInt >= 2200) {
-            return __('Late Night', 'Time of Day', 'TouchPoint-WP');
+            return $i18n ? _x('Late Night', 'Time of Day', 'TouchPoint-WP') : "Late Night";
         } elseif ($timeInt < 800) {
-            return __('Early Morning', 'Time of Day', 'TouchPoint-WP');
+            return $i18n ? _x('Early Morning', 'Time of Day', 'TouchPoint-WP') : "Early Morning";
         } elseif ($timeInt < 1115) {
-            return __('Morning', 'Time of Day', 'TouchPoint-WP');
+            return $i18n ? _x('Morning', 'Time of Day', 'TouchPoint-WP') : "Morning";
         } elseif ($timeInt < 1300) {
-            return __('Midday', 'Time of Day', 'TouchPoint-WP');
+            return $i18n ? _x('Midday', 'Time of Day', 'TouchPoint-WP') : "Midday";
         } elseif ($timeInt < 1700) {
-            return __('Afternoon', 'Time of Day', 'TouchPoint-WP');
+            return $i18n ? _x('Afternoon', 'Time of Day', 'TouchPoint-WP') : "Afternoon";
         } elseif ($timeInt < 2015) {
-            return __('Evening', 'Time of Day', 'TouchPoint-WP');
+            return $i18n ? _x('Evening', 'Time of Day', 'TouchPoint-WP') : "Evening";
         } else {
-            return __('Night', 'Time of Day', 'TouchPoint-WP');
+            return $i18n ? _x('Night', 'Time of Day', 'TouchPoint-WP') : "Night";
         }
     }
+
+	public static function getTimeOfDayTermForTime_noI18n(DateTimeInterface $dt): string
+	{
+		return self::getTimeOfDayTermForTime($dt, false);
+	}
 
     /**
      * Join an array of strings into a properly-formatted (English-style) list. Uses commas and ampersands by default.

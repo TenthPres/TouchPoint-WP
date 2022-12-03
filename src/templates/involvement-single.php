@@ -57,7 +57,7 @@ TouchPointWP::enqueuePartialsStyle();
 
 <?php if ($settings->hierarchical) {
     $children = get_children([
-                                 'post_parent' => $post->ID,
+                                 'post_parent' => $inv->post_id,
                                  'orderby' => 'title',
                                  'order' => 'ASC'
                              ]);

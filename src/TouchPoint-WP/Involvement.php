@@ -368,7 +368,7 @@ class Involvement implements api, updatesViaCron
      */
     public static function templateFilter(string $template): string
     {
-        if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
+	    if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
             $postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
             $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
 
@@ -1035,7 +1035,7 @@ class Involvement implements api, updatesViaCron
                 $content .= "<select class=\"$class-filter\" data-involvement-filter=\"weekday\">";
                 $content .= "<option disabled selected>$wdName</option><option value=\"\">$any</option>";
                 foreach ($wdList as $d) {
-                    $content .= "<option value=\"$d->slug\">" . __($d->name, 'e.g. event happens weekly on...', 'TouchPoint-WP') . "</option>";
+                    $content .= "<option value=\"$d->slug\">" . _x($d->name, 'e.g. event happens weekly on...', 'TouchPoint-WP') . "</option>";
                 }
                 $content .= "</select>";
             }
@@ -1057,7 +1057,8 @@ class Involvement implements api, updatesViaCron
                 $content .= "<select class=\"$class-filter\" data-involvement-filter=\"timeOfDay\">";
                 $content .= "<option disabled selected>$todName</option><option value=\"\">$any</option>";
                 foreach ($todList as $t) {
-                    $content .= "<option value=\"$t->slug\">$t->name</option>";
+					$label = _x($t->name, 'Time of Day', 'TouchPoint-WP');
+                    $content .= "<option value=\"$t->slug\">$label</option>";
                 }
                 $content .= "</select>";
             }
@@ -1066,8 +1067,8 @@ class Involvement implements api, updatesViaCron
         // Marital Status
         if (in_array('inv_marital', $filters)) {
 			$status = __("Marital Status", 'TouchPoint-WP');
-            $single = __("Mostly Single", 'TouchPoint-WP');
-            $married = __("Mostly Married", 'TouchPoint-WP');
+            $single = _x("Mostly Single", "Marital status for a group of people", 'TouchPoint-WP');
+            $married = _x("Mostly Married", "Marital status for a group of people", 'TouchPoint-WP');
             $content .= "<select class=\"$class-filter\" data-involvement-filter=\"inv_marital\">";
             $content .= "<option disabled selected>$status</option>";
             $content .= "<option value=\"\">$any</option>";
@@ -1099,18 +1100,19 @@ class Involvement implements api, updatesViaCron
             $content .= "<p class=\"TouchPointWP-map-warnings\">";
             $content .= sprintf(
                 "<span class=\"TouchPointWP-map-warning-visibleOnly\" style=\"display:none;\">%s  </span>",
-                sprintf(  // translators: %s is for the user-provided term for the items on the map (e.g. Small Group or Partner)
+                sprintf(
                     __("The %s listed are only those shown on the map.", 'TouchPoint-WP'),
                     $settings->namePlural
                 )
             );
             $content .= sprintf(
                 "<span class=\"TouchPointWP-map-warning-zoomOrReset\" style=\"display:none;\">%s  </span>",
-                sprintf(  // translators: %s is the link to "reset the map"
+                sprintf(
+					// translators: %s is the link to "reset the map"
                     __("Zoom out or %s to see more.", 'TouchPoint-WP'),
                     sprintf(
                         "<a href=\"#\" class=\"TouchPointWP-map-resetLink\">%s</a>",
-                        __("reset the map", 'TouchPoint-WP')
+                        _x("reset the map", "Zoom out or reset the map to see more.", 'TouchPoint-WP')
                     )
                 )
             );
@@ -1228,7 +1230,7 @@ class Involvement implements api, updatesViaCron
         if ($invs === null) {
             json_encode([
                 "invList" => [],
-                // translators: %s is the plural involvement type (e.g. Small Groups)
+				// translators: %s is the plural involvement type (e.g. Small Groups)
                 "error" => sprintf(esc_html__("No %s found.", 'TouchPoint-WP'), $settings->namePlural)
             ]);
         }
@@ -1905,7 +1907,7 @@ class Involvement implements api, updatesViaCron
                 $timeStr = $dt->format($timeFormat);
                 if (!in_array($timeStr, $uniqueTimeStrings)) {
                     $uniqueTimeStrings[] = $timeStr;
-                    $timeTerm = Utilities::getTimeOfDayTermForTime($dt);
+                    $timeTerm = Utilities::getTimeOfDayTermForTime_noI18n($dt);
                     if (! in_array($timeTerm, $timeTerms)) {
                         $timeTerms[] = $timeTerm;
                     }
@@ -1993,7 +1995,7 @@ class Involvement implements api, updatesViaCron
             // Day of week taxonomy
             $dayTerms = [];
             foreach ($days as $k => $d) {
-                $dayTerms[] = Utilities::getDayOfWeekShortForNumber(intval($k[1]));
+                $dayTerms[] = Utilities::getDayOfWeekShortForNumber_noI18n(intval($k[1]));
             }
             wp_set_post_terms($post->ID, $dayTerms, TouchPointWP::TAX_WEEKDAY, false);
 
@@ -2195,9 +2197,11 @@ class Involvement implements api, updatesViaCron
     /**
      * Get notable attributes, such as gender restrictions, as strings.
      *
+     * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent inv, not needed here.)
+     *
      * @return string[]
      */
-    public function notableAttributes(): array
+    public function notableAttributes(array $exclude = []): array
     {
         $r = [];
 
@@ -2233,6 +2237,8 @@ class Involvement implements api, updatesViaCron
             $r[] = $canJoin;
         }
 
+		$r = array_filter($r, fn($i) => !in_array($i, $exclude));
+
         // Not shown on map (only if there is a map, and the involvement has geo)
         // Excluded because it doesn't seem helpful.
 //        if (self::$_hasArchiveMap && $this->geo === null) {
@@ -2240,7 +2246,17 @@ class Involvement implements api, updatesViaCron
 //            TouchPointWP::requireScript("fontAwesome");  // For map icons
 //        }
 
-        if ($this->settings() && $this->settings()->useGeo) {
+        if ($this->settings() &&
+            $this->settings()->useGeo &&
+            (
+				$exclude === [] ||
+				(
+					$this->locationName !== null &&
+					!in_array($this->locationName, $exclude
+					)
+				)
+            )
+        ) {
             $dist = $this->getDistance();
             if ($dist !== false) {
                 $r[] = $dist . " mi"; // i18n

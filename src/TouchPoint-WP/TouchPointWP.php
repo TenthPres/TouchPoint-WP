@@ -241,8 +241,8 @@ class TouchPointWP
     }
 
 	/**
-	 * FInd and replace links to /pyscript with their more functional brother, /PyScript.  Because that small typo makes
-	 * bad things happen.
+	 * Find and replace links to /pyscript with their more functional brother, /PyScript.  That small typo makes bad
+	 * things happen.
 	 *
 	 * @param string|mixed $text The text to be modified. (should be a string, but this is WordPress, so maybe not.)
 	 *
@@ -1053,6 +1053,11 @@ class TouchPointWP
             return false;
         }
 
+		// Private or reserved IP.  Don't bother with API lookup.
+		if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+			return false;
+		}
+
         $return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/"); // Exceptions thrown here.
 
         $return = $return['body'];
@@ -1250,14 +1255,14 @@ class TouchPointWP
                 ]
             );
             for ($di = 0; $di < 7; $di++) {
-                $name = Utilities::getPluralDayOfWeekNameForNumber($di);
+                $name = Utilities::getPluralDayOfWeekNameForNumber_noI18n($di);
                 if (!Utilities::termExists($name, self::TAX_WEEKDAY)) {
                     Utilities::insertTerm(
                         $name,
                         self::TAX_WEEKDAY,
                         [
                             'description' => $name,
-                            'slug'        => Utilities::getDayOfWeekShortForNumber($di)
+                            'slug'        => Utilities::getDayOfWeekShortForNumber_noI18n($di)
                         ]
                     );
                     self::queueFlushRewriteRules();
@@ -1312,10 +1317,8 @@ class TouchPointWP
                     self::queueFlushRewriteRules();
                 }
             }
-        }
 
-        // Time of Day
-        if ($this->settings->enable_involvements === "on") {
+            // Time of Day
             /** @noinspection SpellCheckingInspection */
             register_taxonomy(
                 self::TAX_DAYTIME,
@@ -1348,13 +1351,13 @@ class TouchPointWP
                 ]
             );
             $timesOfDay = [
-                __('Late Night'),
-                __('Early Morning'),
-                __('Morning'),
-                __('Midday'),
-                __('Afternoon'),
-                __('Evening'),
-                __('Night')
+                'Late Night',
+                'Early Morning',
+                'Morning',
+                'Midday',
+                'Afternoon',
+                'Evening',
+                'Night'
             ];
             foreach ($timesOfDay as $tod) {
                 if (!Utilities::termExists($tod, self::TAX_WEEKDAY)) {
@@ -1371,22 +1374,7 @@ class TouchPointWP
                     self::queueFlushRewriteRules();
                 }
             }
-            for ($di = 0; $di < 7; $di++) {
-                $name = Utilities::getPluralDayOfWeekNameForNumber($di);
-                if (!Utilities::termExists($name, self::TAX_WEEKDAY)) {
-                    Utilities::insertTerm(
-                        $name,
-                        self::TAX_WEEKDAY,
-                        [
-                            'description' => $name,
-                            'slug'        => Utilities::getDayOfWeekShortForNumber($di)
-                        ]
-                    );
-                    self::queueFlushRewriteRules();
-                }
-            }
         }
-
 
         // Age Groups
         $ageGroupTypesToApply = [];

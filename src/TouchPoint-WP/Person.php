@@ -1171,7 +1171,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 $useOxford = true;
             }
             if (strpos($fn, ' & ') !== false) {
-                $and = ' and ';
+	            $and = ' ' . __('and', 'TouchPoint-WP') . ' ';
                 $useOxford = true;
             }
             $familyNames[] = $fn;

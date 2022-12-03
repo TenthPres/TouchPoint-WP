@@ -75,9 +75,9 @@ relationships with several firms who could help with the setup and technical mai
 Making this work requires notable configuration of your TouchPoint database.  We've scripted what we can, and the
 remainder is in [the Installation Instructions](https://github.com/TenthPres/TouchPoint-WP/wiki/Installation).
 
-Some features require other plugins, which may or may not be free.
+Some features require other plugins, which may have fees attached.
 
-You will need a TouchPoint user account with API-level access.  New TouchPoint databases do not have one by default.  
+You will need a TouchPoint user account with API-level access. New TouchPoint databases do not have one by default. 
 If your church doesn't have one, open a support ticket with TouchPoint to create one, referencing this plugin.
 
 If you're using the Authentication component, your WordPress site **MUST** use HTTPS with a valid certificate.
