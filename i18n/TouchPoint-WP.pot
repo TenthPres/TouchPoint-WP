@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2022-12-03T07:30:09+00:00\n"
+"POT-Creation-Date: 2022-12-04T04:44:42+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.7.1\n"
 "X-Domain: TouchPoint-WP\n"
@@ -96,6 +96,7 @@ msgstr ""
 #: src/templates/admin/invKoForm.php:98
 #: src/templates/admin/invKoForm.php:114
 #: src/templates/admin/invKoForm.php:233
+#: src/templates/parts/involvement-nearby-list.php:2
 #: src/TouchPoint-WP/Rsvp.php:72
 #: assets/js/base-defer.js:181
 #: assets/js/base-defer.js:1106
@@ -216,6 +217,11 @@ msgstr ""
 #. translators: %s will the plural post type (e.g. Small Groups)
 #: src/templates/parts/involvement-list-none.php:20
 msgid "%s will be imported overnight for the first time."
+msgstr ""
+
+#: src/templates/parts/involvement-nearby-list.php:9
+msgctxt "miles. Unit is appended to a number."
+msgid "mi"
 msgstr ""
 
 #. translators: %s is "what you call TouchPoint at your church", which is a setting

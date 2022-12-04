@@ -81,6 +81,7 @@ msgstr ""
 #: src/templates/admin/invKoForm.php:98
 #: src/templates/admin/invKoForm.php:114
 #: src/templates/admin/invKoForm.php:233
+#: src/templates/parts/involvement-nearby-list.php:2
 #: src/TouchPoint-WP/Rsvp.php:72
 #: assets/js/base-defer.js:181
 #: assets/js/base-defer.js:1106
@@ -1244,4 +1245,9 @@ msgstr ""
 #. translators: %s is the plural involvement type (e.g. Small Groups)
 #: src/TouchPoint-WP/Involvement.php:1412
 msgid "No %s found."
+msgstr ""
+
+#: src/templates/parts/involvement-nearby-list.php:9
+msgctxt "miles. Unit is appended to a number."
+msgid "mi"
 msgstr ""
