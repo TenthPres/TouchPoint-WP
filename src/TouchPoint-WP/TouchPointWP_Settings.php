@@ -1252,10 +1252,20 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
             WHERE post_content LIKE '%$oldShortcode%'
         ");
 
+
         // 0.0.19 - Rebuilding Authentication
         // Remove settings no longer relevant
         delete_option(TouchPointWP::SETTINGS_PREFIX . 'api_secret_key');
         delete_option(TouchPointWP::SETTINGS_PREFIX . 'auth_background');
+
+
+		// 0.0.23 - Changing Involvement Schedule meta structure
+	    $metaKey = TouchPointWP::HOOK_PREFIX . "meetingSchedule";
+	    $wpdb->query("
+            DELETE FROM $wpdb->postmeta
+            WHERE meta_key = '$metaKey'
+        ");
+
 
         // Update version string
         $this->set('version', TouchPointWP::VERSION);

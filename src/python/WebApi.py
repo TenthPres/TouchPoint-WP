@@ -266,14 +266,19 @@ if "InvsForDivs" in Data.a:
             FROM dbo.OrgSchedule os WITH(NOLOCK)
                 INNER JOIN cteTargetOrgs o
                     ON os.OrganizationId = o.OrganizationId
-            UNION
+        ) s_agg
+        GROUP BY s_agg.OrganizationId),
+        -- pull aggregate meetings for all target organizations
+        cteMeetings AS
+        (SELECT OrganizationId, STRING_AGG(sdt, ' | ') WITHIN GROUP (ORDER BY sdt ASC) AS OrgMeetings
+        FROM (
             SELECT o.OrganizationId, CONCAT(FORMAT(m.meetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|M') as sdt 
             FROM dbo.Meetings as m WITH(NOLOCK)
                 INNER JOIN cteTargetOrgs o
                     ON m.OrganizationId = o.OrganizationId
             WHERE m.meetingDate > getdate() 
-        ) s_agg
-        GROUP BY s_agg.OrganizationId),
+        ) m_agg
+        GROUP BY m_agg.OrganizationId),
         -- pull aggregate divisions for all target organizations
         cteDivision AS 
         (SELECT OrganizationId, STRING_AGG(divId, ',') WITHIN GROUP (ORDER BY divId ASC) AS OrgDivision
@@ -340,7 +345,8 @@ if "InvsForDivs" in Data.a:
             , ISNULL(ms.marital_married, 0)  AS [marital_married]
             , ISNULL(ms.marital_single, 0)   AS [marital_single]
             , aa.PeopleAge                   AS [age_groups]
-            , s.OrgSchedule                  AS [occurrences]
+            , s.OrgSchedule                  AS [schedules]
+            , m.OrgMeetings                  AS [meetings]
             , d.OrgDivision                  AS [divs]
             , ol.lat                         AS [lat]
             , ol.lng                         AS [lng]
@@ -352,6 +358,8 @@ if "InvsForDivs" in Data.a:
                 ON o.OrganizationId = aa.OrganizationId
             LEFT JOIN cteSchedule s
                 ON o.OrganizationId = s.OrganizationId
+            LEFT JOIN cteMeetings m
+                ON o.OrganizationId = m.OrganizationId
             LEFT JOIN cteDivision d
                 ON o.OrganizationId = d.OrganizationId
             LEFT JOIN cteOrganizationLocation ol
@@ -367,18 +375,21 @@ if "InvsForDivs" in Data.a:
         if g.divs is not None:
             g.divs = g.divs.split(',')
 
-        if g.occurrences is not None:
+        if g.meetings is not None:
             # noinspection PyUnresolvedReferences
-            g.occurrences = g.occurrences.split(' | ')
-            uniqueOccurrences = []
-            for i, s in enumerate(g.occurrences):
-                if s[0:19] not in uniqueOccurrences:  # filter out occurrences provided by both Meetings and Schedules
-                    uniqueOccurrences.append(s[0:19])
-                    g.occurrences[i] = {'dt': s[0:19], 'type': s[20:]}
-                else:
-                    g.occurrences.remove(s)
+            g.meetings = g.meetings.split(' | ')
+            for i, s in enumerate(g.meetings):
+                g.meetings[i] = {'dt': s[0:19], 'type': s[20:]}
         else:
-            g.occurrences = []
+            g.meetings = []
+
+        if g.schedules is not None:
+            # noinspection PyUnresolvedReferences
+            g.schedules = g.schedules.split(' | ')
+            for i, s in enumerate(g.schedules):
+                g.schedules[i] = {'next': s[0:19], 'type': s[20:]}
+        else:
+            g.schedules = []
 
         if leadMemTypes != "":
             leaderSql = '''

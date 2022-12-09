@@ -54,8 +54,12 @@ class Involvement implements api, updatesViaCron
     static protected object $compareGeo;
 
     protected ?string $locationName = null;
-    protected ?\DateTimeImmutable $nextMeeting = null;
-    protected ?string $meetingSchedule = null;
+    protected ?DateTimeImmutable $nextMeeting = null;
+    protected ?DateTimeImmutable $firstMeeting = null;
+    protected ?DateTimeImmutable $lastMeeting = null;
+    protected ?string $_scheduleString;
+    protected ?array $_meetings = null;
+    protected ?array $_schedules = null;
     protected ?string $leaders = null;
 	protected ?int $genderId = null;
     public ?string $color = "#999999";
@@ -231,7 +235,7 @@ class Involvement implements api, updatesViaCron
     }
 
 
-    /**
+	/**
      * Register stuff
      */
     public static function init(): void
@@ -290,7 +294,8 @@ class Involvement implements api, updatesViaCron
 
         // Fork sync to a different process, if supported. (only some linux systems)
         $forked = false;
-        if (function_exists('pcntl_fork')) {
+	    /** @noinspection SpellCheckingInspection */
+	    if (function_exists('pcntl_fork')) {
             $pid = pcntl_fork();
             if ($pid >= 0) {
                 // Forking successful.
@@ -329,7 +334,7 @@ class Involvement implements api, updatesViaCron
             if (count($type->importDivs) < 1) {
                 // Don't update if there aren't any divisions selected yet.
                 if ($verbose) {
-                    print "Skipping {$type->namePlural} because no divisions are selected.";
+                    print "Skipping $type->namePlural because no divisions are selected.";
                 }
                 continue;
             }
@@ -441,6 +446,232 @@ class Involvement implements api, updatesViaCron
                 intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) !== 1);
     }
 
+	/**
+	 * @return stdClass[]
+	 */
+	protected function meetings(): array
+	{
+		if (!isset($this->_meetings)) {
+			$m = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "meetings", true);
+			$this->_meetings = $m;
+		}
+
+		return $this->_meetings;
+	}
+
+	/**
+	 * @return stdClass[]
+	 */
+	protected function schedules(): array
+	{
+		if (!isset($this->_schedules)) {
+			$s = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "schedules", true);
+			$this->_schedules = $s;
+		}
+
+		return $this->_schedules;
+	}
+
+	/**
+	 * Get a description of the meeting schedule in a human-friendly phrase, e.g. Sundays at 11:00am, starting January 14.
+	 *
+	 * TODO NOW add some kind of caching (needs to be locale-aware).
+	 *
+	 * @return string
+	 */
+	public function scheduleString(): ?string
+	{
+		if (!isset($this->_scheduleString)) {
+			$this->_scheduleString = $this->scheduleString_calc();
+		}
+		return $this->_scheduleString;
+	}
+
+	/**
+	 * @param array $meetings
+	 * @param array $schedules
+	 *
+	 * @return ?array[]
+	 */
+	private static function computeCommonOccurrences(array $meetings = [], array $schedules = []): ?array
+	{
+		try {
+			$siteTz    = wp_timezone();
+			$now       = new DateTimeImmutable(null, $siteTz);
+		} catch (Exception $e) {
+			return null;
+		}
+
+		$commonOccurrences = [];
+
+		// Populate the schedules
+		foreach ($schedules as $s) {
+
+			if (! is_object($s))
+				continue;
+
+			try {
+				$dt = new DateTimeImmutable($s->next, $siteTz);
+			} catch (Exception $e) {
+				continue;
+			}
+
+			$coInx = $dt->format('w-Hi');
+			$commonOccurrences[$coInx] = [
+				'count' => 20,
+				'example' => $dt
+			];
+		}
+		unset($dt, $coInx, $s);
+
+		// If there isn't a schedule, but there are common meeting dates/times, use those.
+		foreach ($meetings as $m) {
+			if (! is_object($m))
+				continue;
+
+			try {
+				$dt = new DateTimeImmutable($m->dt, $siteTz);
+			} catch (Exception $e) {
+				continue;
+			}
+
+			if ($dt < $now)
+				continue;
+
+			$coInx = $dt->format('w-Hi');
+			if (isset($commonOccurrences[$coInx])) {
+				$commonOccurrences[$coInx]['count']++;
+			} else {
+				$commonOccurrences[$coInx] = [
+					'count'   => 1,
+					'example' => $dt
+				];
+			}
+		}
+		unset($dt, $coInx, $m);
+
+		return array_filter($commonOccurrences, fn($co) => $co['count'] > 2);
+	}
+
+	/**
+	 * Calculate the schedule string.
+	 *
+	 * @return string
+	 */
+	protected function scheduleString_calc(): ?string
+	{
+		$commonOccurrences = self::computeCommonOccurrences($this->meetings(), $this->schedules());
+
+		$dayStr = null;
+		$timeFormat = get_option('time_format');
+		$dateFormat = get_option('date_format');
+
+		if (count($commonOccurrences) > 0) {
+			$uniqueTimeStrings = [];
+			$days              = [];
+			if (count($commonOccurrences) > 1) { // this is only needed if there's multiple schedules
+				foreach ($commonOccurrences as $k => $co) {
+					$timeStr = substr($k, 2);
+					if ( ! in_array($timeStr, $uniqueTimeStrings, true)) {
+						$uniqueTimeStrings[] = $timeStr;
+
+						$weekday = "d" . $k[0];
+						if ( ! isset($days[$weekday])) {
+							$days[$weekday] = [];
+						}
+						$days[$weekday][] = $co['example'];
+					}
+				}
+				unset($timeStr, $k, $co, $weekday);
+			} else {
+				$cok                   = array_key_first($commonOccurrences);
+				$days["d" . $cok[0]][] = $commonOccurrences[$cok]['example'];
+			}
+
+			if (count($uniqueTimeStrings) > 1) {  // Multiple different times.  Sun at 9am & 11am, and Sat at 6pm
+				// multiple different times of day
+				$dayStr = [];
+				foreach ($days as $dk => $dta) {
+					$timeStr = [];
+					foreach ($dta as $dt) {
+						/** @var $dt DateTimeImmutable */
+						$ts = $dt->format($timeFormat);
+						$ts = apply_filters(TouchPointWP::HOOK_PREFIX . 'adjust_time_string', $ts, $dt);
+						$timeStr[] = $ts;
+					}
+					$timeStr = Utilities::stringArrayToListString($timeStr);
+
+					if (count($days) > 1) {  // Mon at 7pm & Tue at 8pm
+						$day = Utilities::getDayOfWeekShortForNumber(intval($dk[1]));
+					} else {
+						$day = Utilities::getPluralDayOfWeekNameForNumber(intval($dk[1]));
+					}
+					// translators: "Mon at 7pm"  or  "Sundays at 9am & 11am"
+					$dayStr[] = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $day, $timeStr);
+				}
+				$dayStr = Utilities::stringArrayToListString($dayStr);
+			} else {  // one time of day.  Tue & Thu at 7pm
+				if (count($days) > 1) {
+					// more than one day per week
+					$dayStr = [];
+					foreach ($days as $k => $d) {
+						$dayStr[] = Utilities::getDayOfWeekShortForNumber(intval($k[1]));
+					}
+					$dayStr = Utilities::stringArrayToListString($dayStr);
+				} else {
+					// one day of the week
+					$k      = array_key_first($days);
+					$dayStr = Utilities::getPluralDayOfWeekNameForNumber(intval($k[1]));
+				}
+				$dt      = array_values($days)[0][0];
+				/** @var $dt DateTimeImmutable */
+				$timeStr = $dt->format($timeFormat);
+				$timeStr = apply_filters(TouchPointWP::HOOK_PREFIX . 'adjust_time_string', $timeStr, $dt);
+				$dayStr  = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $dayStr, $timeStr);
+			}
+		}
+
+		// Convert start and end to string.
+		if ($this->firstMeeting !== null && $this->lastMeeting !== null) {
+			if ($dayStr === null) {
+				// translators: {start date} through {end date}  e.g. February 14 through August 12
+				$dayStr = wp_sprintf(__('%1$s through %2$s', 'TouchPoint-WP'),
+				                     $this->firstMeeting->format($dateFormat),
+				                     $this->lastMeeting->format($dateFormat));
+			} else {
+				// translators: {schedule}, {start date} through {end date}  e.g. Sundays at 11am, February 14 through August 12
+				$dayStr = wp_sprintf(__('%1$s, %2$s through %3$s', 'TouchPoint-WP'),
+								     $dayStr,
+				                     $this->firstMeeting->format($dateFormat),
+				                     $this->lastMeeting->format($dateFormat));
+			}
+		} elseif ($this->firstMeeting !== null) {
+			if ($dayStr === null) {
+				// translators: Starts {start date}  e.g. Starts September 15
+				$dayStr = wp_sprintf(__('Starts %1$s', 'TouchPoint-WP'),
+				                     $this->firstMeeting->format($dateFormat));
+			} else {
+				// translators: {schedule}, starting {start date}  e.g. Sundays at 11am, starting February 14
+				$dayStr = wp_sprintf(__('%1$s, starting %2$s', 'TouchPoint-WP'),
+				                     $dayStr,
+				                     $this->firstMeeting->format($dateFormat));
+			}
+		} elseif ($this->lastMeeting !== null) {
+			if ($dayStr === null) {
+				// translators: Through {end date}  e.g. Through September 15
+				$dayStr = wp_sprintf(__('Through %1$s', 'TouchPoint-WP'),
+				                     $this->lastMeeting->format($dateFormat));
+			} else {
+				// translators: {schedule}, through {end date}  e.g. Sundays at 11am, through February 14
+				$dayStr = wp_sprintf(__('%1$s, through %2$s', 'TouchPoint-WP'),
+				                     $dayStr,
+				                     $this->lastMeeting->format($dateFormat));
+			}
+		}
+
+		return $dayStr;
+	}
+
     /**
      * Returns an array of the Involvement's Divisions, excluding those that cause it to be included.
      *
@@ -512,6 +743,7 @@ class Involvement implements api, updatesViaCron
      * @param string $content
      *
      * @return string
+     * @noinspection PhpUnusedParameterInspection
      */
     public static function actionsShortcode($params = [], string $content = ""): string
     {
@@ -519,7 +751,8 @@ class Involvement implements api, updatesViaCron
         if (is_string($params)) {
             $params = explode(",", $params);
         }
-        $params = array_change_key_case($params, CASE_LOWER);
+	    /** @noinspection PhpRedundantOptionalArgumentInspection */
+	    $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
         /** @noinspection SpellCheckingInspection */
@@ -670,7 +903,8 @@ class Involvement implements api, updatesViaCron
         }
 
         // CSS
-        $params['includecss'] = !isset($params['includecss']) ||
+	    /** @noinspection SpellCheckingInspection */
+	    $params['includecss'] = !isset($params['includecss']) ||
                                 $params['includecss'] === true ||
                                 $params['includecss'] === 'true';
 
@@ -744,7 +978,8 @@ class Involvement implements api, updatesViaCron
             $posts = $q->get_posts();
 
             if ($q->post_count > 0) {
-                if ($params['includecss']) {
+	            /** @noinspection SpellCheckingInspection */
+	            if ($params['includecss']) {
                     TouchPointWP::enqueuePartialsStyle();
                 }
 
@@ -790,10 +1025,12 @@ class Involvement implements api, updatesViaCron
         if (is_string($params)) {
             $params = explode(",", $params);
         }
+	    /** @noinspection PhpRedundantOptionalArgumentInspection */
         $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
-        $params = shortcode_atts(
+	    /** @noinspection SpellCheckingInspection */
+	    $params = shortcode_atts(
             [
                 'type'       => null,
                 'div'        => null,
@@ -826,6 +1063,7 @@ class Involvement implements api, updatesViaCron
      * @param string $content
      *
      * @return string
+     * @noinspection PhpUnusedParameterInspection
      */
     public static function nearbyShortcode($params = [], string $content = ""): string
     {
@@ -837,6 +1075,7 @@ class Involvement implements api, updatesViaCron
         }
 
         // standardize parameters
+	    /** @noinspection PhpRedundantOptionalArgumentInspection */
         $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
@@ -903,6 +1142,7 @@ class Involvement implements api, updatesViaCron
     protected static final function filterDropdownHtml(array $params, Involvement_PostTypeSettings $settings): string
     {
         // standardize parameters
+	    /** @noinspection PhpRedundantOptionalArgumentInspection */
         $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
@@ -1317,7 +1557,7 @@ class Involvement implements api, updatesViaCron
                     JOIN $wpdb->postmeta as pmInv ON l.ID = pmInv.post_id AND pmInv.meta_key = '{$settingsPrefix}invId'
                     LEFT JOIN $wpdb->postmeta as pmSch ON l.ID = pmSch.post_id AND pmSch.meta_key = '{$settingsPrefix}meetingSchedule'
             ORDER BY distance LIMIT %d
-            ",
+            ", // TODO NOW update for new schedule methods
             $lat,
             $lng,
             $lat,
@@ -1558,6 +1798,7 @@ class Involvement implements api, updatesViaCron
             self::$_hasUsedMap = true;
 
             // standardize parameters
+	        /** @noinspection PhpRedundantOptionalArgumentInspection */
             $params = array_change_key_case($params, CASE_LOWER);
 
             TouchPointWP::requireScript("googleMaps");
@@ -1816,7 +2057,8 @@ class Involvement implements api, updatesViaCron
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", ! ! $inv->hasRegQuestions);
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regTypeId", intval($inv->regTypeId));
 
-            // Registration start
+
+	        // Registration start
             if ($inv->regStart !== null) {
                 try {
                     $inv->regStart = new DateTimeImmutable($inv->regStart, $siteTz);
@@ -1850,64 +2092,30 @@ class Involvement implements api, updatesViaCron
             ////////////////////
 
             // Establish a container
-            if (!is_array($inv->occurrences)) {
-                $inv->occurrences = [];
+            if (!is_array($inv->meetings)) {
+                $inv->meetings = [];
             }
 
-            // TODO deal with frequency on Schedule dates.  That is, occurrences may include non-meeting days.
-            // These occurrences will have a type of "S" and should be adjusted forward to the next compliant date.
-            // TODO consider removing meeting date/times and only using schedules.
-
-            $upcomingDateTimes = [];
-            foreach ($inv->occurrences as $o) {
-
-                if (! is_object($o))
-                    continue;
-
-                try {
-                    $upcomingDateTimes[] = new DateTimeImmutable($o->dt, $siteTz);
-                } catch (Exception $e) {
-                }
-            }
-
-            // Sort.  Hypothetically, this is already done by the api.
-            sort($upcomingDateTimes); // The next meeting datetime is now in position 0.
-
-            // Save next meeting metadata
-            if (count($upcomingDateTimes) > 0) {
-                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "nextMeeting", $upcomingDateTimes[0]);
-                if ($verbose) {
-                    echo "<p>Next occurrence: " . $upcomingDateTimes[0]->format('c') . "</p>";
-                }
-            } else {
-                // No upcoming dates.  Remove meta key.
-                delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "nextMeeting");
-                if ($verbose) {
-                    echo "<p>No upcoming occurrences</p>";
-                }
-            }
-
-            // Determine schedule characteristics for stringifying.
+            // Determine schedule characteristics for terms
+	        $upcomingDateTimes = self::computeCommonOccurrences($inv->meetings, $inv->schedules);
             $uniqueTimeStrings = [];
             $timeTerms = [];
             $days = [];
-            $timeFormat = get_option('time_format'); // TODO MULTI figure out how to make this work with different settings on different sites
-            foreach ($upcomingDateTimes as $dt) {
-                /** @var $dt DateTimeImmutable */
 
-                $weekday = "d" . $dt->format('w');
+            foreach ($upcomingDateTimes as $dtString => $dt) {
+                $weekday = "d" . $dtString[0];
 
                 // days
                 if (!isset($days[$weekday])) {
                     $days[$weekday] = [];
                 }
-                $days[$weekday][] = $dt;
+                $days[$weekday][] = $dt['example'];
 
                 // times
-                $timeStr = $dt->format($timeFormat);
+                $timeStr = substr($dtString, 2);
                 if (!in_array($timeStr, $uniqueTimeStrings)) {
                     $uniqueTimeStrings[] = $timeStr;
-                    $timeTerm = Utilities::getTimeOfDayTermForTime_noI18n($dt);
+                    $timeTerm = Utilities::getTimeOfDayTermForTime_noI18n($dt['example']);
                     if (! in_array($timeTerm, $timeTerms)) {
                         $timeTerms[] = $timeTerm;
                     }
@@ -1915,99 +2123,53 @@ class Involvement implements api, updatesViaCron
                 unset($timeStr, $weekday);
             }
 
-            if (count($uniqueTimeStrings) > 1) {
-                // multiple different times of day
-                $dayStr = [];
-                foreach ($days as $dk => $dta) {
-                    $timeStr = [];
-                    foreach ($dta as $dt) {
-                        /** @var $dt DateTimeImmutable */
-                        $timeStr[] = $dt->format($timeFormat);
-                    }
-					// translators: "at" comes before the time of day/week.  e.g. *at* 7pm on Monday
-                    $timeStr = __('at', 'TouchPoint-WP') . " " . Utilities::stringArrayToListString($timeStr);
-
-                    if (count($days) > 1) {
-                        $dayStr[] = Utilities::getDayOfWeekShortForNumber(intval($dk[1])) . ' ' . $timeStr;
-                    } else {
-                        $dayStr[] = Utilities::getPluralDayOfWeekNameForNumber(intval($dk[1])) . ' ' . $timeStr;
-                    }
-                }
-                $dayStr = Utilities::stringArrayToListString($dayStr);
-
-            } elseif (count($uniqueTimeStrings) == 1) {
-                // one time of day.
-                if (count($days) > 1) {
-                    // more than one day per week
-                    $dayStr = [];
-                    foreach ($days as $k => $d) {
-                        $dayStr[] = Utilities::getDayOfWeekShortForNumber(intval($k[1]));
-                    }
-                    $dayStr = Utilities::stringArrayToListString($dayStr);
-                } else {
-                    // one day of the week
-                    $k = array_key_first($days);
-                    $dayStr = Utilities::getPluralDayOfWeekNameForNumber(intval($k[1]));
-                }
-                $dayStr .= ' ' . __('at', 'TouchPoint-WP') . " " . $uniqueTimeStrings[0];
-            } else {
-                $dayStr = null;
-            }
-
             // Start and end dates
             $tense = TouchPointWP::TAX_TENSE_PRESENT;
             if ($inv->firstMeeting !== null && $inv->firstMeeting < $now) { // First meeting already happened.
                 $inv->firstMeeting = null; // We don't need to list info from the past.
             }
+			if ($inv->firstMeeting === null) {
+				delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "firstMeeting");
+			} else {
+				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "firstMeeting", $inv->firstMeeting);
+			}
+
             if ($inv->lastMeeting !== null && $inv->lastMeeting > $nowPlus1Y) { // Last mtg is > 1yr away
                 $inv->lastMeeting = null; // For all practical purposes: it's not ending.
             }
-            // Convert start and end to string.
-            $format = get_option('date_format'); // TODO MULTI figure out how to make this work with different settings on different sites
-            if ($inv->firstMeeting !== null && $inv->lastMeeting !== null) {
-                if ($dayStr === null) {
-                    $dayStr = $inv->firstMeeting->format($format) . " " .
-                               __("through") . " " . $inv->lastMeeting->format($format);
-                } else {
-                    $dayStr .= ", " . $inv->firstMeeting->format($format) . " " .
-                               __("through") . " " . $inv->lastMeeting->format($format);
-                }
-            } elseif ($inv->firstMeeting !== null) {
-                if ($dayStr === null) {
-                    $dayStr .= __("Starts") . " " . $inv->firstMeeting->format($format);
-                } else {
-                    $dayStr .= ", " . __("starting") . " " . $inv->firstMeeting->format($format);
-                }
-                $tense = TouchPointWP::TAX_TENSE_FUTURE;
-            } elseif ($inv->lastMeeting !== null) {
-                if ($dayStr === null) {
-                    $dayStr = __("Through") . " " . $inv->lastMeeting->format($format);
-                } else {
-                    $dayStr .= ", " . __("through") . " " . $inv->lastMeeting->format($format);
-                }
-            }
+	        if ($inv->lastMeeting === null) {
+		        delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "lastMeeting");
+	        } else {
+		        update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "lastMeeting", $inv->lastMeeting);
+	        }
 
-            if ($verbose) {
-                echo "<p>Meeting schedule: $dayStr</p>";
+			// Tense
+            if ($inv->firstMeeting !== null) {
+                $tense = TouchPointWP::TAX_TENSE_FUTURE;
             }
-            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", $dayStr);
+	        /** @noinspection PhpRedundantOptionalArgumentInspection */
+	        wp_set_post_terms($post->ID, [$tense], TouchPointWP::TAX_TENSE, false);
+
+			// Update meetings and schedules
+	        update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetings", $inv->meetings);
+	        update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "schedules", $inv->schedules);
 
             // Day of week taxonomy
             $dayTerms = [];
             foreach ($days as $k => $d) {
                 $dayTerms[] = Utilities::getDayOfWeekShortForNumber_noI18n(intval($k[1]));
             }
+	        /** @noinspection PhpRedundantOptionalArgumentInspection */
             wp_set_post_terms($post->ID, $dayTerms, TouchPointWP::TAX_WEEKDAY, false);
 
-            // Tense taxonomy
-            wp_set_post_terms($post->ID, [$tense], TouchPointWP::TAX_TENSE, false);
-
             // Time of day taxonomy
+	        /** @noinspection PhpRedundantOptionalArgumentInspection */
             wp_set_post_terms($post->ID, $timeTerms, TouchPointWP::TAX_DAYTIME, false);
 
-            ////////////////////////
-            //// END SCHEDULING ////
-            ////////////////////////
+
+            ////////////////
+            //// People ////
+            ////////////////
 
             // Handle leaders  TODO make leaders WP Users
             if (array_key_exists('leadMemTypes', $qOpts) && property_exists($inv, "leaders")) {
@@ -2017,6 +2179,11 @@ class Involvement implements api, updatesViaCron
                 }
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders", $nameString);
             }
+
+
+	        ////////////////////
+	        //// Geographic ////
+	        ////////////////////
 
             // Handle locations for involvement types that are geo-enabled
             if ($typeSets->useGeo) {
@@ -2033,11 +2200,18 @@ class Involvement implements api, updatesViaCron
 
                 // Handle Resident Code
                 if (property_exists($inv, "resCodeName") && $inv->resCodeName !== null) {
+	                /** @noinspection PhpRedundantOptionalArgumentInspection */
                     wp_set_post_terms($post->ID, [$inv->resCodeName], TouchPointWP::TAX_RESCODE, false);
                 } else {
+	                /** @noinspection PhpRedundantOptionalArgumentInspection */
                     wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
                 }
             }
+
+
+	        /////////////////////
+	        //// Demographic ////
+	        /////////////////////
 
             // Handle Marital Status
             $maritalTax = [];
@@ -2049,14 +2223,22 @@ class Involvement implements api, updatesViaCron
                     $maritalTax[] = "mostly_single";
                 }
             }
+	        /** @noinspection PhpRedundantOptionalArgumentInspection */
             wp_set_post_terms($post->ID, $maritalTax, TouchPointWP::TAX_INV_MARITAL, false);
 
             // Handle Age Groups
             if ($inv->age_groups === null) {
+	            /** @noinspection PhpRedundantOptionalArgumentInspection */
                 wp_set_post_terms($post->ID, [], TouchPointWP::TAX_AGEGROUP, false);
             } else {
+	            /** @noinspection PhpRedundantOptionalArgumentInspection */
                 wp_set_post_terms($post->ID, $inv->age_groups, TouchPointWP::TAX_AGEGROUP, false);
             }
+
+
+	        ///////////////////
+	        //// Divisions ////
+	        ///////////////////
 
             // Handle divisions
             $divs = [];
@@ -2068,7 +2250,8 @@ class Involvement implements api, updatesViaCron
                     }
                 }
             }
-            wp_set_post_terms($post->ID, $divs, TouchPointWP::TAX_DIV, false);
+	        /** @noinspection PhpRedundantOptionalArgumentInspection */
+	        wp_set_post_terms($post->ID, $divs, TouchPointWP::TAX_DIV, false);
 
             if ($verbose) {
                 echo "<p>Division Terms:</p>";
@@ -2081,6 +2264,11 @@ class Involvement implements api, updatesViaCron
                 echo "<hr />";
             }
         }
+
+
+	    //////////////////
+	    //// Removals ////
+	    //////////////////
 
         // Delete posts that are no longer current
         $q = new WP_Query(
@@ -2108,7 +2296,7 @@ class Involvement implements api, updatesViaCron
      * @param $format
      * @param $post
      *
-     * @return string
+     * @return mixed
      *
      * @noinspection PhpUnusedParameterInspection WordPress API
      */
@@ -2120,9 +2308,16 @@ class Involvement implements api, updatesViaCron
         $invTypes = Involvement_PostTypeSettings::getPostTypes();
 
         if (in_array(get_post_type($post), $invTypes)) {
-            if (!is_numeric($post))
-                $post = $post->ID;
-            $theDate = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "meetingSchedule", true);
+            if (is_numeric($post))
+                $post = get_post($post);
+
+			try {
+				$inv = self::fromPost($post);
+			} catch (TouchPointWP_Exception $e) {
+				return $theDate;
+			}
+
+            $theDate = $inv->scheduleString() ?? "";
         }
         return $theDate;
     }
@@ -2170,17 +2365,19 @@ class Involvement implements api, updatesViaCron
 		    return null;
 	    }
 
+		$startDate = $this->firstMeeting ?? $this->nextMeeting;
+
 		$fields = [
 			"@context"      => "https://schema.org",
 			"@type"         => "Event",
 			"name"          => $this->name,
 			"url"           => get_permalink($this->post_id),
 			"location"      => $this->locationName,
-			"startDate"     => $this->nextMeeting->format('c'),
+			"startDate"     => $startDate->format('c'),
 			"eventSchedule" => [
 				"@type"            => "Schedule",
 				"repeatFrequency"  => "P1W",
-				"byDay"            => "http://schema.org/" . $this->nextMeeting->format('l'),
+				"byDay"            => "https://schema.org/" . $this->nextMeeting->format('l'),
 				"startTime"        => $this->nextMeeting->format('H:i:s'),
 				"scheduleTimezone" => wp_timezone()->getName()
 			]
@@ -2205,8 +2402,8 @@ class Involvement implements api, updatesViaCron
     {
         $r = [];
 
-        if ($this->meetingSchedule) {
-            $r[] = $this->meetingSchedule;
+        if ($this->scheduleString()) {
+            $r[] = $this->scheduleString();
         }
 
         if ($this->locationName) {
@@ -2259,7 +2456,7 @@ class Involvement implements api, updatesViaCron
         ) {
             $dist = $this->getDistance();
             if ($dist !== false) {
-                $r[] = $dist . " mi"; // i18n
+                $r[] = wp_sprintf(_x("%2.1fmi", "miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'", 'TouchPoint-WP'), $dist);
             }
         }
 
@@ -2340,7 +2537,6 @@ class Involvement implements api, updatesViaCron
             } else {
                 $ret = "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  " . $ret;
             }
-            $count++;
         }
 
         return apply_filters(TouchPointWP::HOOK_PREFIX . "involvement_actions", $ret, $this, $context, $btnClass);
