@@ -41,6 +41,10 @@ class Involvement implements api, updatesViaCron
     public const SHORTCODE_ACTIONS = TouchPointWP::SHORTCODE_PREFIX . "Inv-Actions";
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
     public const CRON_OFFSET = 86400 + 3600;
+
+	public const SCHEDULE_STRING_CACHE_EXPIRATION = 3600 * 8; // 8 hours.  Automatically deleted during sync.
+	public const SCHED_STRING_CACHE_KEY = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
+
     protected static bool $_hasUsedMap = false;
     protected static bool $_hasArchiveMap = false;
     private static array $_instances = [];
@@ -475,14 +479,17 @@ class Involvement implements api, updatesViaCron
 	/**
 	 * Get a description of the meeting schedule in a human-friendly phrase, e.g. Sundays at 11:00am, starting January 14.
 	 *
-	 * TODO NOW add some kind of caching (needs to be locale-aware).
-	 *
 	 * @return string
 	 */
 	public function scheduleString(): ?string
 	{
 		if (!isset($this->_scheduleString)) {
-			$this->_scheduleString = $this->scheduleString_calc();
+			$cacheGroup = $this->invId . "_" . get_locale();
+			$this->_scheduleString = wp_cache_get(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
+			if (!$this->_scheduleString) {
+				$this->_scheduleString = $this->scheduleString_calc();
+				wp_cache_set(self::SCHED_STRING_CACHE_KEY, $this->_scheduleString, $cacheGroup, self::SCHEDULE_STRING_CACHE_EXPIRATION);
+			}
 		}
 		return $this->_scheduleString;
 	}
@@ -1539,7 +1546,6 @@ class Involvement implements api, updatesViaCron
                    l.post_title as name,
                    l.post_type as invType,
                    CAST(pmInv.meta_value AS UNSIGNED) as invId,
-                   pmSch.meta_value as schedule,
                    ROUND(3959 * acos(cos(radians(%s)) * cos(radians(lat)) * cos(radians(lng) - radians(%s)) +
                                 sin(radians(%s)) * sin(radians(lat))), 1) AS distance
             FROM (SELECT DISTINCT p.Id,
@@ -1555,9 +1561,8 @@ class Involvement implements api, updatesViaCron
                 WHERE p.post_type = %s
                  ) as l
                     JOIN $wpdb->postmeta as pmInv ON l.ID = pmInv.post_id AND pmInv.meta_key = '{$settingsPrefix}invId'
-                    LEFT JOIN $wpdb->postmeta as pmSch ON l.ID = pmSch.post_id AND pmSch.meta_key = '{$settingsPrefix}meetingSchedule'
             ORDER BY distance LIMIT %d
-            ", // TODO NOW update for new schedule methods
+            ",
             $lat,
             $lng,
             $lat,
@@ -1565,7 +1570,22 @@ class Involvement implements api, updatesViaCron
             $limit
         );
 
-        return $wpdb->get_results($q, 'OBJECT');
+		$r = $wpdb->get_results($q, 'OBJECT');
+		foreach ($r as $iObj) {
+			$cacheGroup = $iObj->invId . "_" . get_locale();
+			$sch = wp_cache_get(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
+			if (!$sch) {
+				try {
+					$i   = self::fromInvId($iObj->invId);
+					$sch = $i->scheduleString();
+				} catch (TouchPointWP_Exception $e) {
+					$sch = null;
+				}
+			}
+			$iObj->schedule = $sch;
+		}
+
+        return $r;
     }
 
 
@@ -2142,6 +2162,10 @@ class Involvement implements api, updatesViaCron
 	        } else {
 		        update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "lastMeeting", $inv->lastMeeting);
 	        }
+
+			// Clear Cached Schedule String
+	        $cacheGroup = $inv->invId . "_" . get_locale();
+			wp_cache_delete(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
 
 			// Tense
             if ($inv->firstMeeting !== null) {
