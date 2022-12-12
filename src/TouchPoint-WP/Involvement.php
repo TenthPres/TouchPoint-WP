@@ -2164,7 +2164,7 @@ class Involvement implements api, updatesViaCron
 	        }
 
 			// Clear Cached Schedule String
-	        $cacheGroup = $inv->invId . "_" . get_locale();
+	        $cacheGroup = $inv->involvementId . "_" . get_locale();
 			wp_cache_delete(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
 
 			// Tense
