@@ -287,7 +287,7 @@ class TouchPointWP_Settings
                     'id'          => 'api_user',
                     'label'       => __('TouchPoint API Username', 'TouchPoint-WP'),
                     'description' => __(
-                        'The username of a user account in TouchPoint with API permissions.  Required for all tools except Authentication.',
+                        'The username of a user account in TouchPoint with API permissions.',
                         'TouchPoint-WP'
                     ),
                     'type'        => 'text',

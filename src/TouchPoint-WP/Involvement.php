@@ -1477,8 +1477,8 @@ class Involvement implements api, updatesViaCron
         if ($invs === null) {
             json_encode([
                 "invList" => [],
-				// translators: %s is the plural involvement type (e.g. Small Groups)
-                "error" => sprintf(esc_html__("No %s found.", 'TouchPoint-WP'), $settings->namePlural)
+	            // translators: %s will the plural post type (e.g. Small Groups)
+                "error" => sprintf(esc_html__("No %s Found.", 'TouchPoint-WP'), $settings->namePlural)
             ]);
         }
 
