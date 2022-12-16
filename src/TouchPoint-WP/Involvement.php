@@ -2014,6 +2014,10 @@ class Involvement implements api, updatesViaCron
             if (count($post) > 0) { // post exists already.
                 $post = $post[0];
             } else {
+				$post = null;
+            }
+
+			if ($post === null) {
                 $post = wp_insert_post(
                     [ // create new
                         'post_type'  => $typeSets->postType,
@@ -2030,6 +2034,11 @@ class Involvement implements api, updatesViaCron
                 new TouchPointWP_WPError($post);
                 continue;
             }
+
+			if ($post === null) {
+				new TouchPointWP_Exception("Post could not be found or created.", 171001);
+				continue;
+			}
 
             /** @var $post WP_Post */
 
