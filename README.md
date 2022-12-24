@@ -11,7 +11,7 @@ help you with this.
 ### Involvement Lists & Small Group Finder
 - Publish a list and map of involvements, with dynamic filtering based on actual data, such as demographics and location.
   - e.g. filter Small Groups by Age and Prevailing Marital Status *based on the people in the involvement*.  You don't 
-  need to change any per-group settings, just keep the 
+  need to change any per-group settings, just keep the roster up to date.
 - Suggest Small Groups physically nearby based on geolocation.
 - Allow website guests to easily contact leaders or join a group, without exposing leaders' contact info publicly.
 - Includes Search Engine optimizing metadata. 
@@ -25,7 +25,7 @@ No login required, just an email address and zip code.
 
 ### People Lists
 Show your Staff members, Elders, or other collections of people, automatically kept in sync with TouchPoint.
-[Example.](https://www.tenth.org/about/staff)
+[Example.](https://www.tenth.org/about/staff)  (This example and others like is are 100% updated from TouchPoint, including the titles and social links.)
 
 ### Outreach Partners
 Automatically import partner bios and info from TouchPoint for display on your public website, with 
@@ -55,7 +55,8 @@ direction:
 - WordPress can be complicated, but we have the technical staff to support and configure it.
 
 If you're not sure whether WordPress is the right tool for you, feel free to get in touch.  We can also have good 
-relationships with several firms who could help with the setup and technical maintenance if you're interested.
+relationships with several firms who could help with the setup and technical maintenance if you're interested.  But,
+it's probably not the right tool for every church.
 
 ## Future Features
 - Authenticate
