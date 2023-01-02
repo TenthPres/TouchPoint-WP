@@ -457,6 +457,8 @@ class Involvement implements api, updatesViaCron
 	{
 		if (!isset($this->_meetings)) {
 			$m = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "meetings", true);
+			if ($m === "")
+				$m = [];
 			$this->_meetings = $m;
 		}
 
@@ -470,6 +472,8 @@ class Involvement implements api, updatesViaCron
 	{
 		if (!isset($this->_schedules)) {
 			$s = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "schedules", true);
+			if ($s === "")
+				$s = [];
 			$this->_schedules = $s;
 		}
 
