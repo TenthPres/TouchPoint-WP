@@ -969,7 +969,8 @@ class TouchPointWP
 
         $reqData = [
             'key' => $this->settings->google_geo_api_key,
-            'latlng' => "$lat,$lng"
+            'latlng' => "$lat,$lng",
+	        'language' => str_replace("_", "-", get_locale())
         ];
 
         try {
