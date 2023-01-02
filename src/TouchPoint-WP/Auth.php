@@ -273,7 +273,7 @@ abstract class Auth implements api
     {
         $removeBar = (TouchPointWP::instance()->settings->auth_prevent_admin_bar === 'on')
                      && !is_admin()
-                     && current_user_can('subscriber');
+                     && !current_user_can('edit_posts');
 
         $removeBar = apply_filters(TouchPointWP::HOOK_PREFIX . 'prevent_admin_bar', $removeBar);
 
