@@ -58,7 +58,7 @@ class Involvement implements api, updatesViaCron
     static protected object $compareGeo;
 
     protected ?string $locationName = null;
-    protected ?DateTimeImmutable $nextMeeting = null;
+    protected ?DateTimeImmutable $_nextMeeting;
     protected ?DateTimeImmutable $firstMeeting = null;
     protected ?DateTimeImmutable $lastMeeting = null;
     protected ?string $_scheduleString;
@@ -495,6 +495,53 @@ class Involvement implements api, updatesViaCron
 	}
 
 	/**
+	 * Get the next meeting date/time from either the meetings or schedules.
+	 *
+	 * @return DateTimeImmutable|null
+	 */
+	public function nextMeeting(): ?\DateTimeImmutable
+	{
+		$now = new DateTimeImmutable();
+		$this->_nextMeeting = null;
+
+		if ($this->_nextMeeting === null) {
+
+			// meetings
+			foreach ($this->meetings() as $m) {
+				$mdt = $m->dt;
+				if ($mdt > $now) {
+					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
+						$this->_nextMeeting = $mdt;
+					}
+				}
+			}
+
+			// schedules
+			foreach ($this->schedules() as $s) {
+				$mdt = $s->next;
+				if ($mdt > $now) {
+					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
+						$this->_nextMeeting = $mdt;
+					}
+				}
+			}
+		}
+
+		// schedules + 1 week (assumes schedules are recurring weekly)
+		if ($this->_nextMeeting === null) { // really only needed if we don't have a date yet.
+			foreach ($this->schedules() as $s) {
+				$mdt = $s->next->modify("+1 week");
+				if ($mdt > $now) {
+					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
+						$this->_nextMeeting = $mdt;
+					}
+				}
+			}
+		}
+		return $this->_nextMeeting;
+	}
+
+	/**
 	 * @param array $meetings
 	 * @param array $schedules
 	 *
@@ -517,11 +564,7 @@ class Involvement implements api, updatesViaCron
 			if (! is_object($s))
 				continue;
 
-			try {
-				$dt = new DateTimeImmutable($s->next, $siteTz);
-			} catch (Exception $e) {
-				continue;
-			}
+			$dt = $s->next;
 
 			$coInx = $dt->format('w-Hi');
 			$commonOccurrences[$coInx] = [
@@ -536,11 +579,7 @@ class Involvement implements api, updatesViaCron
 			if (! is_object($m))
 				continue;
 
-			try {
-				$dt = new DateTimeImmutable($m->dt, $siteTz);
-			} catch (Exception $e) {
-				continue;
-			}
+			$dt = $m->dt;
 
 			if ($dt < $now)
 				continue;
@@ -1946,6 +1985,22 @@ class Involvement implements api, updatesViaCron
                 }
             }
 
+			// Meeting and Schedule date/time strings as DateTimeImmutables
+	        foreach ($inv->schedules as $i => $s) {
+				try {
+					$s->next = new DateTimeImmutable($s->next, $siteTz);
+				} catch (Exception $e) {
+					unset($inv->schedules[$i]);
+				}
+	        }
+	        foreach ($inv->meetings as $i => $m) {
+		        try {
+			        $m->dt = new DateTimeImmutable($m->dt, $siteTz);
+		        } catch (Exception $e) {
+			        unset($inv->meetings[$i]);
+		        }
+	        }
+
 
             ////////////////
             // Exclusions //
@@ -2393,12 +2448,12 @@ class Involvement implements api, updatesViaCron
      */
     public function toJsonLD(): ?array
     {
-	    if ($this->locationName === null || $this->nextMeeting === null) {
+	    if ($this->locationName === null || $this->nextMeeting() === null) {
 			// If either of these are missing, Google considers the markup invalid.
 		    return null;
 	    }
 
-		$startDate = $this->firstMeeting ?? $this->nextMeeting;
+		$startDate = $this->firstMeeting ?? $this->nextMeeting();
 
 		$fields = [
 			"@context"      => "https://schema.org",
@@ -2410,8 +2465,8 @@ class Involvement implements api, updatesViaCron
 			"eventSchedule" => [
 				"@type"            => "Schedule",
 				"repeatFrequency"  => "P1W",
-				"byDay"            => "https://schema.org/" . $this->nextMeeting->format('l'),
-				"startTime"        => $this->nextMeeting->format('H:i:s'),
+				"byDay"            => "https://schema.org/" . $this->nextMeeting()->format('l'),
+				"startTime"        => $this->nextMeeting()->format('H:i:s'),
 				"scheduleTimezone" => wp_timezone()->getName()
 			]
 		];

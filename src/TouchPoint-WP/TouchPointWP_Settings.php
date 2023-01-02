@@ -1260,11 +1260,13 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 
 
 		// 0.0.23 - Changing Involvement Schedule meta structure
-	    $metaKey = TouchPointWP::HOOK_PREFIX . "meetingSchedule";
-	    $wpdb->query("
-            DELETE FROM $wpdb->postmeta
-            WHERE meta_key = '$metaKey'
-        ");
+	    $metaKeys = [
+			TouchPointWP::HOOK_PREFIX . "meetingSchedule",
+		    TouchPointWP::HOOK_PREFIX . "nextMeeting"
+	    ];
+		foreach ($metaKeys as $k) {
+			$wpdb->query("DELETE FROM $wpdb->postmeta WHERE meta_key = '$k'");
+		}
 
 
         // Update version string

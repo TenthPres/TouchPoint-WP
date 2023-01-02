@@ -929,9 +929,9 @@ class Partner implements api, JsonSerializable, updatesViaCron
         // Setup cron for updating Partners daily.
         add_action(self::CRON_HOOK, [self::class, 'updateCron']);
         if ( ! wp_next_scheduled(self::CRON_HOOK)) {
-            // Runs at 6am EST (11am UTC), hypothetically after TouchPoint runs its Morning Batches.
+            // Runs at 6:15am EST (11:15am UTC), hypothetically after TouchPoint runs its Morning Batches.
             wp_schedule_event(
-                date('U', strtotime('tomorrow') + 3600 * 11),
+                date('U', strtotime('tomorrow') + 3600 * 11.25),
                 'daily',
                 self::CRON_HOOK
             );
