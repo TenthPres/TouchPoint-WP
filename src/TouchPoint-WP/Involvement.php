@@ -2099,8 +2099,8 @@ class Involvement implements api, updatesViaCron
 
             $post->post_content = strip_tags($inv->description, ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li']);
 
-            // Title & Slug
-            if ($post->post_title != $inv->name) { // only update if there's a change.  Otherwise, urls increment.
+            // Title & Slug -- slugs should only be updated if there's a reason, like a title change.  Otherwise, they increment.
+            if ($post->post_title != $inv->name || str_contains($post->post_name, "__trashed")) {
                 $post->post_title = $inv->name;
                 $post->post_name = ''; // Slug will regenerate;
             }
