@@ -9,6 +9,8 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 nvm install node
 
+npm update
+
 rm -r build
 rm TouchPoint-WP.zip
 mkdir build
