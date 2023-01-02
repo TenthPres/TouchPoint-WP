@@ -2537,8 +2537,7 @@ class Involvement implements api, updatesViaCron
 				$exclude === [] ||
 				(
 					$this->locationName !== null &&
-					!in_array($this->locationName, $exclude
-					)
+					!in_array($this->locationName, $exclude)
 				)
             )
         ) {

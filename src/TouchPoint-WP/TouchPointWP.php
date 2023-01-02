@@ -228,10 +228,6 @@ class TouchPointWP
 
         add_filter('do_parse_request', [$this, 'parseRequest'], 10, 3);
 
-        // Start session if not started already.  TODO this should only happen if there's a reason for it.
-        if (session_status() === PHP_SESSION_NONE)
-            session_start();
-
         // Adds async and defer attributes to script tags.
         add_filter('script_loader_tag', [$this, 'filterByTag'], 10, 2);
 
