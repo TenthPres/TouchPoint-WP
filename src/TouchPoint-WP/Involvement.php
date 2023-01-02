@@ -2475,7 +2475,7 @@ class Involvement implements api, updatesViaCron
 			]
 		];
 
-		$desc = wp_trim_words(get_the_excerpt(), 20, "...");
+		$desc = wp_trim_words(get_the_excerpt($this->post_id), 20, "...");
 		if (strlen($desc) > 10) {
 			$fields["description"] = $desc;
 		}
