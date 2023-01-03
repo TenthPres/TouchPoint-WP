@@ -117,12 +117,12 @@ msgid "Gender"
 msgstr "Género"
 
 #: src/templates/admin/invKoForm.php:155
-#: src/TouchPoint-WP/Involvement.php:1311
+#: src/TouchPoint-WP/Involvement.php:1315
 msgid "Weekday"
 msgstr "Día laborable"
 
 #: src/templates/admin/invKoForm.php:159
-#: src/TouchPoint-WP/Involvement.php:1333
+#: src/TouchPoint-WP/Involvement.php:1337
 msgid "Time of Day"
 msgstr "Hora del día"
 
@@ -164,7 +164,7 @@ msgstr "Seleccione..."
 
 #. translators: %s will the plural post type (e.g. Small Groups)
 #: src/templates/parts/involvement-list-none.php:16
-#: src/TouchPoint-WP/Involvement.php:1520
+#: src/TouchPoint-WP/Involvement.php:1524
 msgid "No %s Found."
 msgstr "No se encontraron %s"
 
@@ -214,63 +214,63 @@ msgstr ""
 msgid "Registration Closed"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1213
+#: src/TouchPoint-WP/Involvement.php:1217
 #: src/TouchPoint-WP/Partner.php:770
 msgid "Any"
 msgstr "Cualquier"
 
 #. translators: %s is for the user-provided term for the items on the map (e.g. Small Group or Partner)
-#: src/TouchPoint-WP/Involvement.php:1390
+#: src/TouchPoint-WP/Involvement.php:1394
 #: src/TouchPoint-WP/Partner.php:790
 msgid "The %s listed are only those shown on the map."
 msgstr "Los %s enumerados son solo los que se muestran en el mapa."
 
-#: src/TouchPoint-WP/Involvement.php:2512
+#: src/TouchPoint-WP/Involvement.php:2516
 msgid "Men Only"
 msgstr "Solo hombres"
 
-#: src/TouchPoint-WP/Involvement.php:2515
+#: src/TouchPoint-WP/Involvement.php:2519
 msgid "Women Only"
 msgstr "Solo mujeres"
 
-#: src/TouchPoint-WP/Involvement.php:2574
+#: src/TouchPoint-WP/Involvement.php:2578
 msgid "Contact Leaders"
 msgstr "Contacta con las líderes"
 
-#: src/TouchPoint-WP/Involvement.php:2581
+#: src/TouchPoint-WP/Involvement.php:2585
 msgid "Register"
 msgstr "Regístrate ahora"
 
-#: src/TouchPoint-WP/Involvement.php:2586
+#: src/TouchPoint-WP/Involvement.php:2590
 msgid "Create Account"
 msgstr "Crear cuenta"
 
-#: src/TouchPoint-WP/Involvement.php:2590
+#: src/TouchPoint-WP/Involvement.php:2594
 msgid "Schedule"
 msgstr "Programe"
 
-#: src/TouchPoint-WP/Involvement.php:2595
+#: src/TouchPoint-WP/Involvement.php:2599
 msgid "Give"
 msgstr "Dar"
 
-#: src/TouchPoint-WP/Involvement.php:2598
+#: src/TouchPoint-WP/Involvement.php:2602
 msgid "Manage Subscriptions"
 msgstr "Administrar suscripciones"
 
-#: src/TouchPoint-WP/Involvement.php:2601
+#: src/TouchPoint-WP/Involvement.php:2605
 msgid "Record Attendance"
 msgstr "Registre su asistencia"
 
-#: src/TouchPoint-WP/Involvement.php:2604
+#: src/TouchPoint-WP/Involvement.php:2608
 msgid "Get Tickets"
 msgstr "Obtener boletos"
 
-#: src/TouchPoint-WP/Involvement.php:2611
+#: src/TouchPoint-WP/Involvement.php:2615
 #: assets/js/base-defer.js:974
 msgid "Join"
 msgstr "Únete"
 
-#: src/TouchPoint-WP/Involvement.php:2620
+#: src/TouchPoint-WP/Involvement.php:2624
 #: src/TouchPoint-WP/Partner.php:1236
 msgid "Show on Map"
 msgstr "Muestra en el mapa"
@@ -300,40 +300,40 @@ msgstr "Contacta"
 msgid "RSVP"
 msgstr "RSVP"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2180
+#: src/TouchPoint-WP/TouchPointWP.php:2181
 msgid "Unknown Type"
 msgstr "Tipo desconocido"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2234
+#: src/TouchPoint-WP/TouchPointWP.php:2235
 msgid "Your Searches"
 msgstr "Tus búsquedas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2237
+#: src/TouchPoint-WP/TouchPointWP.php:2238
 msgid "Public Searches"
 msgstr "Búsquedas públicas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2240
+#: src/TouchPoint-WP/TouchPointWP.php:2241
 msgid "Status Flags"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2245
 #: src/TouchPoint-WP/TouchPointWP.php:2246
+#: src/TouchPoint-WP/TouchPointWP.php:2247
 msgid "Current Value"
 msgstr "Valor actual"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2373
-#: src/TouchPoint-WP/TouchPointWP.php:2411
+#: src/TouchPoint-WP/TouchPointWP.php:2374
+#: src/TouchPoint-WP/TouchPointWP.php:2412
 msgid "Invalid or incomplete API Settings."
 msgstr "Configuración de API no válida o incompleta."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2381
-#: src/TouchPoint-WP/TouchPointWP.php:2418
+#: src/TouchPoint-WP/TouchPointWP.php:2382
+#: src/TouchPoint-WP/TouchPointWP.php:2419
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2537
+#: src/TouchPoint-WP/TouchPointWP.php:2538
 msgid "People Query Failed"
-msgstr ""
+msgstr "Consulta de registros de personas fallida"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:199
 msgid "Basic Settings"
@@ -551,7 +551,7 @@ msgstr "Al habilitar esta opción, los usuarios que no pueden editar nada no ver
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:484
 msgid "Involvements"
-msgstr ""
+msgstr "Involucramientos"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:485
 msgid "Import Involvements from TouchPoint to list them on your website, for Small Groups, Classes, and more.  Select the division(s) that immediately correspond to the type of Involvement you want to list.  For example, if you want a Small Group list and have a Small Group Division, only select the Small Group Division.  If you want Involvements to be filterable by additional Divisions, select those Divisions on the Divisions tab, not here."
@@ -559,7 +559,7 @@ msgstr ""
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:490
 msgid "Involvement Post Types"
-msgstr ""
+msgstr "Tipos de publicaciones de Involucramientos"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:518
 msgid "Global Partners"
@@ -571,35 +571,35 @@ msgstr ""
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:523
 msgid "Global Partner Name (Plural)"
-msgstr ""
+msgstr "Nombre de los misioneros (plural)"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:524
 msgid "What you call Global Partners at your church"
-msgstr ""
+msgstr "Lo que llamas los Misioneros en tu iglesia"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:534
 msgid "Global Partner Name (Singular)"
-msgstr ""
+msgstr "Nombre de un misionero (singular)"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:535
 msgid "What you call a Global Partner at your church"
-msgstr ""
+msgstr "Lo que llamas un Misionero en tu iglesia"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:545
 msgid "Global Partner Name for Secure Places (Plural)"
-msgstr ""
+msgstr "Nombre de los misioneros para lugares seguros (plural)"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:546
 msgid "What you call Secure Global Partners at your church"
-msgstr ""
+msgstr "Lo que llamas un Misionero seguro en tu iglesia"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:556
 msgid "Global Partner Name for Secure Places (Singular)"
-msgstr ""
+msgstr "Nombre de un misionero para lugares seguros (singular)"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:557
 msgid "What you call a Secure Global Partner at your church"
-msgstr ""
+msgstr "Lo que llamas los Misioneros seguros en tu iglesia"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:567
 msgid "Global Partner Slug"
@@ -611,11 +611,11 @@ msgstr ""
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:579
 msgid "Saved Search"
-msgstr ""
+msgstr "Búsqueda guardada"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:580
 msgid "Anyone who is included in this saved search will be included in the listing."
-msgstr ""
+msgstr "Cualquiera que esté incluido en esta búsqueda guardada se incluirá en la lista."
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:590
 msgid "Extra Value: Description"
@@ -675,19 +675,19 @@ msgstr "Calendario de eventos"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:674
 msgid "Integrate with The Events Calendar from ModernTribe."
-msgstr ""
+msgstr "Integre con el calendario de eventos de ModernTribe."
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:678
 msgid "Events for Custom Mobile App"
-msgstr ""
+msgstr "Eventos para la aplicación móvil personalizada"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:681
 msgid "To use your Events Calendar events in the Custom mobile app, set the Provider to <code>Wordpress Plugin - Modern Tribe</code> and use this url:"
-msgstr ""
+msgstr "Para usar los eventos de su calendario de eventos en la aplicación móvil personalizada, configure el proveedor en <code>Wordpress Plugin - Modern Tribe</code> y use esta URL:"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:683
 msgid "Preview"
-msgstr ""
+msgstr "Preestrena"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:698
 msgid "Use Standardizing Stylesheet"
@@ -699,11 +699,11 @@ msgstr ""
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:709
 msgid "Divisions"
-msgstr ""
+msgstr "Divisiones"
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:710
 msgid "Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements."
-msgstr ""
+msgstr "Importe Divisiones desde TouchPoint a su sitio web como una taxonomía. Estos se utilizan para clasificar a los usuarios y las participaciones."
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:714
 msgid "Division Name (Plural)"
@@ -810,15 +810,15 @@ msgstr "TouchPoint-WP"
 msgid "Settings"
 msgstr "Ajustes"
 
-#: src/TouchPoint-WP/TouchPointWP_Settings.php:1291
+#: src/TouchPoint-WP/TouchPointWP_Settings.php:1296
 msgid "Script Update Failed"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP_Settings.php:1406
+#: src/TouchPoint-WP/TouchPointWP_Settings.php:1412
 msgid "TouchPoint-WP Settings"
 msgstr "Configuración de TouchPoint-WP"
 
-#: src/TouchPoint-WP/TouchPointWP_Settings.php:1457
+#: src/TouchPoint-WP/TouchPointWP_Settings.php:1463
 msgid "Save Settings"
 msgstr "Guardar ajustes"
 
@@ -986,7 +986,7 @@ msgstr "Enviar"
 msgid "Nothing to submit."
 msgstr "Nada que enviar."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2479
+#: src/TouchPoint-WP/TouchPointWP.php:2480
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr ""
 
@@ -1041,15 +1041,15 @@ msgstr "OK"
 msgid "Next"
 msgstr "Siguiente"
 
-#: src/TouchPoint-WP/Involvement.php:1355
+#: src/TouchPoint-WP/Involvement.php:1359
 msgid "Marital Status"
 msgstr "Estado civil"
 
-#: src/TouchPoint-WP/Involvement.php:1368
+#: src/TouchPoint-WP/Involvement.php:1372
 msgid "Age"
 msgstr "Años"
 
-#: src/TouchPoint-WP/Involvement.php:1270
+#: src/TouchPoint-WP/Involvement.php:1274
 msgid "Genders"
 msgstr "Géneros"
 
@@ -1091,37 +1091,37 @@ msgstr "los sábados"
 #: src/TouchPoint-WP/Utilities.php:81
 msgctxt "e.g. event happens weekly on..."
 msgid "Sun"
-msgstr ""
+msgstr "Dom"
 
 #: src/TouchPoint-WP/Utilities.php:82
 msgctxt "e.g. event happens weekly on..."
 msgid "Mon"
-msgstr ""
+msgstr "Lun"
 
 #: src/TouchPoint-WP/Utilities.php:83
 msgctxt "e.g. event happens weekly on..."
 msgid "Tue"
-msgstr ""
+msgstr "Mar"
 
 #: src/TouchPoint-WP/Utilities.php:84
 msgctxt "e.g. event happens weekly on..."
 msgid "Wed"
-msgstr ""
+msgstr "Mié"
 
 #: src/TouchPoint-WP/Utilities.php:85
 msgctxt "e.g. event happens weekly on..."
 msgid "Thu"
-msgstr ""
+msgstr "Jue"
 
 #: src/TouchPoint-WP/Utilities.php:86
 msgctxt "e.g. event happens weekly on..."
 msgid "Fri"
-msgstr ""
+msgstr "Vie"
 
 #: src/TouchPoint-WP/Utilities.php:87
 msgctxt "e.g. event happens weekly on..."
 msgid "Sat"
-msgstr ""
+msgstr "Sáb"
 
 #: src/templates/admin/invKoForm.php:85
 msgid "Based on Involvement setting in TouchPoint"
@@ -1211,67 +1211,67 @@ msgctxt "Time of Day"
 msgid "Night"
 msgstr "Noche"
 
-#: src/TouchPoint-WP/Involvement.php:1356
+#: src/TouchPoint-WP/Involvement.php:1360
 msgctxt "Marital status for a group of people"
 msgid "Mostly Single"
 msgstr "Mayoría solteras"
 
-#: src/TouchPoint-WP/Involvement.php:1357
+#: src/TouchPoint-WP/Involvement.php:1361
 msgctxt "Marital status for a group of people"
 msgid "Mostly Married"
 msgstr "Mayoría casadas"
 
 #. translators: %s is the link to "reset the map"
-#: src/TouchPoint-WP/Involvement.php:1398
+#: src/TouchPoint-WP/Involvement.php:1402
 #: src/TouchPoint-WP/Partner.php:806
 msgid "Zoom out or %s to see more."
 msgstr "Alejar o %s para ver más."
 
-#: src/TouchPoint-WP/Involvement.php:1401
+#: src/TouchPoint-WP/Involvement.php:1405
 #: src/TouchPoint-WP/Partner.php:809
 msgctxt "Zoom out or reset the map to see more."
 msgid "reset the map"
 msgstr "restablecer el mapa"
 
 #. translators: "Mon at 7pm"  or  "Sundays at 9am & 11am"
-#: src/TouchPoint-WP/Involvement.php:656
-#: src/TouchPoint-WP/Involvement.php:676
+#: src/TouchPoint-WP/Involvement.php:660
+#: src/TouchPoint-WP/Involvement.php:680
 msgid "%1$s at %2$s"
 msgstr "%1$s a las %2$s"
 
 #. translators: {start date} through {end date}  e.g. February 14 through August 12
-#: src/TouchPoint-WP/Involvement.php:684
+#: src/TouchPoint-WP/Involvement.php:688
 msgid "%1$s through %2$s"
 msgstr "%1$s al %2$s"
 
 #. translators: {schedule}, {start date} through {end date}  e.g. Sundays at 11am, February 14 through August 12
-#: src/TouchPoint-WP/Involvement.php:689
+#: src/TouchPoint-WP/Involvement.php:693
 msgid "%1$s, %2$s through %3$s"
 msgstr "%1$s, %2$s al %3$s"
 
 #. translators: Starts {start date}  e.g. Starts September 15
-#: src/TouchPoint-WP/Involvement.php:697
+#: src/TouchPoint-WP/Involvement.php:701
 msgid "Starts %1$s"
 msgstr "Comienza el %1$s"
 
 #. translators: {schedule}, starting {start date}  e.g. Sundays at 11am, starting February 14
-#: src/TouchPoint-WP/Involvement.php:701
+#: src/TouchPoint-WP/Involvement.php:705
 msgid "%1$s, starting %2$s"
 msgstr "%1$s, comienza el %2$s"
 
 #. translators: Through {end date}  e.g. Through September 15
-#: src/TouchPoint-WP/Involvement.php:708
+#: src/TouchPoint-WP/Involvement.php:712
 msgid "Through %1$s"
 msgstr "Hasta el %1$s"
 
 #. translators: {schedule}, through {end date}  e.g. Sundays at 11am, through February 14
-#: src/TouchPoint-WP/Involvement.php:712
+#: src/TouchPoint-WP/Involvement.php:716
 msgid "%1$s, through %2$s"
 msgstr "%1$s, hasta el %2$s"
 
 #. translators: number of miles
 #: src/templates/parts/involvement-nearby-list.php:10
-#: src/TouchPoint-WP/Involvement.php:2546
+#: src/TouchPoint-WP/Involvement.php:2550
 msgctxt "miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'"
 msgid "%2.1fmi"
 msgstr ""

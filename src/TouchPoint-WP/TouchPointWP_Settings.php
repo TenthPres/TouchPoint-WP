@@ -1269,6 +1269,11 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 		}
 
 
+		// 0.0.24 - Removing old options (#110)
+	    delete_option('tp_copy-app-endpoint-address');
+	    delete_option('tp_sg_cron_last_run');
+
+
         // Update version string
         $this->set('version', TouchPointWP::VERSION);
     }
@@ -1344,8 +1349,9 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     $this->parent::TOKEN . '_Settings',
                     $section,
                     [
-                        'field'  => $field,
-                        'prefix' => TouchPointWP::SETTINGS_PREFIX,
+                        'field'     => $field,
+                        'prefix'    => TouchPointWP::SETTINGS_PREFIX,
+	                    'label_for' => $field['id']
                     ]
                 );
             }
