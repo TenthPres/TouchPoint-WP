@@ -12,18 +12,25 @@ use WP_Error;
  */
 abstract class Utilities
 {
-    /**
-     * @param mixed $numeric
-     *
-     * @return float|null
-     */
-    public static function toFloatOrNull($numeric): ?float
+	/**
+	 * @param mixed $numeric
+	 * @param bool|int  $round  False to skip rounding. Otherwise, precision passed to round().
+	 *
+	 * @see round()
+	 *
+	 * @return float|null
+	 */
+    public static function toFloatOrNull($numeric, $round = false): ?float
     {
-        if (is_numeric($numeric)) {
-            return (float)$numeric;
+        if (!is_numeric($numeric)) {
+            return null;
         }
 
-        return null;
+		if ($round === false) {
+			return (float)$numeric;
+		} else {
+			return round($numeric, $round);
+		}
     }
 
     /**

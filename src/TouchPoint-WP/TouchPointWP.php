@@ -866,6 +866,30 @@ class TouchPointWP
         exit;
     }
 
+	protected static ?string $_clientIp = null;
+	public static function getClientIp(): ?string
+	{
+		if (self::$_clientIp === null) {
+			$ipHeaderKeys = [
+				'HTTP_CLIENT_IP',
+				'HTTP_X_FORWARDED_FOR',
+				'HTTP_X_FORWARDED',
+				'HTTP_FORWARDED_FOR',
+				'HTTP_FORWARDED',
+				'REMOTE_ADDR'
+			];
+
+			foreach ($ipHeaderKeys as $k) {
+				if ( ! empty($_SERVER[$k]) && filter_var($_SERVER[$k], FILTER_VALIDATE_IP)) {
+					self::$_clientIp = $_SERVER[$k];
+					break;
+				}
+			}
+		}
+
+		return self::$_clientIp;
+	}
+
     /**
      * @param bool $useApi Set false to only use cached data, and not the IP API.
      *
@@ -873,26 +897,7 @@ class TouchPointWP
      */
     public function geolocate(bool $useApi = true)
     {
-        $ip = null; // For future use as a parameter, potentially.
-
-        // Determine IP if one was not provided.
-        if (!is_string($ip) || $ip === '') {
-            /** @noinspection SpellCheckingInspection */
-            $ipHeaderKeys = [
-                'HTTP_CLIENT_IP',
-                'HTTP_X_FORWARDED_FOR',
-                'HTTP_X_FORWARDED',
-                'HTTP_FORWARDED_FOR',
-                'HTTP_FORWARDED',
-                'REMOTE_ADDR'
-            ];
-            foreach ($ipHeaderKeys as $k) {
-                if ( ! empty($_SERVER[$k]) && filter_var($_SERVER[$k], FILTER_VALIDATE_IP)) {
-                    $ip = $_SERVER[$k];
-                    break;
-                }
-            }
-        }
+        $ip = self::getClientIp();
 
         // If no IP, we can't go any further.
         if ($ip === '' || $ip === null) {
@@ -902,12 +907,7 @@ class TouchPointWP
 		$return = Location::getLocationForIP($ip);
 
 		if ($return !== null && $return->lat !== null && $return->lng !== null) {
-			return (object)[
-				'lat' => $return->lat,
-				'lng' => $return->lng,
-				'human' => $return->name,
-				'type' => 'ip'
-			];
+			return $return->asGeoIFace('ip');
 		}
 
 		try {
@@ -956,54 +956,66 @@ class TouchPointWP
      * @param float $lat Latitude
      * @param float $lng Longitude
      *
-     * @return stdClass|false An object with a 'human' attribute, if a location could be identified. Or, false if not available.
+     * @return object|false An object with a 'human' attribute, if a location could be identified. Or, false if not available.
      */
-    public function reverseGeocode(float $lat, float $lng)
+    public function reverseGeocode(float $lat, float $lng, $includeIpLoc = true)
     {
         if ($lat === 0.0 && $lng === 0.0) {
             return false; // avoiding an easy error case.
         }
-        if ($this->settings->google_geo_api_key === "") {
-            return false;
+
+		$r = Location::getLocationForLatLng($lat, $lng);
+		if ($r !== null) {
+			return $r->asGeoIFace('loc');
+		}
+
+        if ($this->settings->google_geo_api_key !== "") {
+	        $reqData = [
+		        'key'      => $this->settings->google_geo_api_key,
+		        'latlng'   => "$lat,$lng",
+		        'language' => str_replace("_", "-", get_locale())
+	        ];
+
+	        try {
+		        $apiData = $this->extGet("https://maps.googleapis.com/maps/api/geocode/json", $reqData);
+	        } catch (TouchPointWP_WPError $e) {
+		        return false;
+	        }
+
+	        $apiData = json_decode($apiData['body']);
+
+	        $leadResult = $apiData->results[0]->address_components ?? false;
+	        if ($leadResult !== false) {
+		        $out = [];
+		        foreach ($leadResult as $r) {
+			        $out[$r->types[0]] = $r->short_name;
+			        if ($r->short_name !== $r->long_name) {
+				        $out[$r->types[0] . "_long"] = $r->long_name;
+			        }
+		        }
+
+		        /** @see self::geolocate  Formatting needs to remain consistent */
+		        $human = "";
+		        if (isset($out['country']) && $out['country'] === "US" && isset($out['locality']) && isset($out['postal_code'])) {
+			        $human = $out['locality'] . ", " . $out['postal_code'];
+		        } elseif (isset($out['locality']) && isset($out['country_long'])) {
+			        $human = $out['locality'] . ", " . $out['country_long'];
+		        }
+
+		        $out['human'] = $human;
+
+		        return (object)$out;
+	        }
         }
 
-        $reqData = [
-            'key' => $this->settings->google_geo_api_key,
-            'latlng' => "$lat,$lng",
-	        'language' => str_replace("_", "-", get_locale())
-        ];
+		if ($includeIpLoc) {
+			$r = Location::getLocationForIP();
+			if ($r !== null) {
+				return $r->asGeoIFace('loc');
+			}
+		}
 
-        try {
-            $apiData = $this->extGet("https://maps.googleapis.com/maps/api/geocode/json", $reqData);
-        } catch (TouchPointWP_WPError $e) {
-            return false;
-        }
-
-        $apiData = json_decode($apiData['body']);
-
-        $leadResult = $apiData->results[0]->address_components ?? false;
-        if ($leadResult === false) {
-            return false;
-        }
-
-        $out = [];
-        foreach ($leadResult as $r) {
-            $out[$r->types[0]] = $r->short_name;
-            if ($r->short_name !== $r->long_name) {
-                $out[$r->types[0] . "_long"] = $r->long_name;
-            }
-        }
-
-        /** @see self::geolocate  Formatting needs to remain consistent */
-        $human = "";
-        if (isset($out['country']) && $out['country'] === "US" && isset($out['locality']) && isset($out['postal_code'])) {
-            $human = $out['locality'] . ", " . $out['postal_code'];
-        } elseif (isset($out['locality']) && isset($out['country_long']) ) {
-            $human = $out['locality'] . ", " . $out['country_long'];
-        }
-
-        $out['human'] = $human;
-        return (object)$out;
+		return false;
     }
 
     /**
@@ -1030,8 +1042,6 @@ class TouchPointWP
         }
 
         $ip_pton = inet_pton($ip);
-
-        // TODO allow admin to define some static IPs and corresponding locations
 
         global $wpdb;
         $tableName = $wpdb->base_prefix . self::TABLE_IP_GEO;

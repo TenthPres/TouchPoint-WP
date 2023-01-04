@@ -14,6 +14,7 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
     require_once "jsonLd.php";
     require_once "updatesViaCron.php";
     require_once "Utilities.php";
+    require_once "Utilities/Geo.php";
     require_once "Involvement_PostTypeSettings.php";
 }
 
@@ -21,6 +22,7 @@ use DateInterval;
 use DateTimeImmutable;
 use Exception;
 use stdClass;
+use tp\TouchPointWP\Utilities\Geo;
 use WP_Error;
 use WP_Post;
 use WP_Query;
@@ -1548,31 +1550,22 @@ class Involvement implements api, updatesViaCron
     }
 
 
-    /**
-     * Gets an array of ID/Distance pairs for a given lat/lng.
-     *
-     * Math from https://stackoverflow.com/a/574736/2339939
-     *
-     * @param float|null $lat Longitude
-     * @param float|null $lng Longitude
-     * @param int        $limit Number of results to return.  0-100 inclusive.
-     *
-     * @return object[]|null  An array of database query result objects, or null if the location isn't provided or
-     *     valid.
-     */
-    private static function getInvsNear(?float $lat = null, ?float $lng = null, string $postType = null, int $limit = 3): ?array
+	/**
+	 * Gets an array of ID/Distance pairs for a given lat/lng.
+	 *
+	 * Math from https://stackoverflow.com/a/574736/2339939
+	 *
+	 * @param float  $lat Longitude
+	 * @param float  $lng Longitude
+	 * @param string $postType The Post Type to return.
+	 * @param int    $limit Number of results to return.  0-100 inclusive.
+	 *
+	 * @return object[]|null  An array of database query result objects, or null if the location isn't provided or
+	 *     valid.
+	 */
+    private static function getInvsNear(float $lat, float $lng, string $postType, int $limit = 3): ?array
     {
-        if ($lat === null || $lng === null) {
-            $geoObj = TouchPointWP::instance()->geolocate();
-
-            if ( ! isset($geoObj->error)) {
-                $lat = $geoObj->lat;
-                $lng = $geoObj->lng;
-            }
-        }
-
-        if ($lat === null || $lng === null ||
-            $lat > 90 || $lat < -90 ||
+        if ($lat > 90 || $lat < -90 ||
             $lng > 180 || $lng < -180
         ) {
             return null;
@@ -1769,14 +1762,7 @@ class Involvement implements api, updatesViaCron
             return $useHiForFalse ? 25000 : false;
         }
 
-        $latA_r = deg2rad($this->geo->lat);
-        $lngA_r = deg2rad($this->geo->lng);
-        $latB_r = deg2rad(self::$compareGeo->lat);
-        $lngB_r = deg2rad(self::$compareGeo->lng);
-
-        return round(3959 * acos(
-                         cos($latA_r) * cos($latB_r) * cos($lngB_r - $lngA_r) + sin($latA_r) * sin($latB_r)
-                     ), 1);
+		return Geo::distance($this->geo->lat, $this->geo->lng, self::$compareGeo->lat, self::$compareGeo->lng);
     }
 
 

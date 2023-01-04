@@ -1,6 +1,8 @@
 <?php
 namespace tp\TouchPointWP;
 
+use tp\TouchPointWP\Utilities\Geo;
+
 class Location
 {
 	protected static ?array $_locations = null;
@@ -8,6 +10,7 @@ class Location
 	public string $name;
 	public ?float $lat;
 	public ?float $lng;
+	public float $radius;
 	public array $ipAddresses;
 
 	protected function __construct($data)
@@ -17,6 +20,8 @@ class Location
 		$this->lng = Utilities::toFloatOrNull($data->lng);
 
 		$this->name = $data->name;
+
+		$this->radius = $data->radius ?? 0.1;
 	}
 
 	/**
@@ -38,8 +43,10 @@ class Location
 		return self::$_locations;
 	}
 
-	public static function getLocationForIP(string $ipAddress): ?Location
+	public static function getLocationForIP(string $ipAddress = null): ?Location
 	{
+		$ipAddress = $ipAddress ?? TouchPointWP::getClientIp();
+
 		$s = TouchPointWP::instance()->settings->locations_json;
 		if (!str_contains($s, "\"" . $ipAddress . "\"")) {
 			return null;
@@ -48,6 +55,28 @@ class Location
 		$locs = self::getLocations();
 		foreach ($locs as $l) {
 			if (in_array($ipAddress, $l->ipAddresses, true)) {
+				return $l;
+			}
+		}
+		return null;
+	}
+
+	public function asGeoIFace(string $type = "unknown"): object
+	{
+		return (object)[
+			'lat' => $this->lat,
+			'lng' => $this->lng,
+			'human' => $this->name,
+			'type' => $type
+		];
+	}
+
+	public static function getLocationForLatLng(float $lat, float $lng): ?Location
+	{
+		$locs = self::getLocations();
+		foreach ($locs as $l) {
+			$d = Geo::distance($lat, $lng, $l->lat, $l->lng);
+			if ($d <= $l->radius) {
 				return $l;
 			}
 		}
@@ -64,6 +93,8 @@ class Location
 			}
 			$l->lat = Utilities::toFloatOrNull($l->lat);
 			$l->lng = Utilities::toFloatOrNull($l->lng);
+			$l->radius = Utilities::toFloatOrNull($l->radius, 1);
+
 			$l->ipAddresses = array_values(array_filter($l->ipAddresses, fn($ip) => filter_var($ip, FILTER_VALIDATE_IP)));
 		}
 		return json_encode($d);
