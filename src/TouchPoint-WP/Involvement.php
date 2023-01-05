@@ -1037,7 +1037,9 @@ class Involvement implements api, updatesViaCron
 
                 echo "<div class=\"$containerClass\">";
 
-                echo "<h2>$name</h2>";
+	            if (count($terms) > 1 && $groupBy !== null) {
+		            echo "<h2>$name</h2>";
+	            }
 
                 usort($posts, [Involvement::class, 'sortPosts']);
 
