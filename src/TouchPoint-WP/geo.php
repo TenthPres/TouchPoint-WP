@@ -20,4 +20,6 @@ interface geo {
 	 * @return bool
 	 */
 	public function hasGeo(): bool;
+
+	public function asGeoIFace(): ?object;
 }

@@ -944,6 +944,7 @@ class TouchPointWP
             $human = $d->city . ", " . $d->country_name;
         }
 
+		/** @see geo::asGeoIFace() */
         return (object)[
 			'lat' => $d->latitude,
 			'lng' => $d->longitude,

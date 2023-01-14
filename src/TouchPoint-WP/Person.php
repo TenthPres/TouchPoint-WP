@@ -1139,7 +1139,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
     public function getProfileUrl(): ?string
     {
-        if ($this->hasProfilePage()) {
+        if (!!apply_filters(TouchPointWP::HOOK_PREFIX . 'use_person_link', $this->hasProfilePage(), $this)) {
             return get_author_posts_url($this->ID);
         } else {
             return null;

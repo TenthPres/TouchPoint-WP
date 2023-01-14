@@ -1,9 +1,7 @@
 <?php
 namespace tp\TouchPointWP;
 
-use tp\TouchPointWP\Utilities\Geo;
-
-class Location
+class Location implements geo
 {
 	protected static ?array $_locations = null;
 
@@ -61,14 +59,27 @@ class Location
 		return null;
 	}
 
-	public function asGeoIFace(string $type = "unknown"): object
+	/**
+	 * Indicates whether this particular location has lat/lng location.
+	 *
+	 * @return bool
+	 */
+	public function hasGeo(): bool
 	{
-		return (object)[
-			'lat' => $this->lat,
-			'lng' => $this->lng,
-			'human' => $this->name,
-			'type' => $type
-		];
+		return $this->lat !== null && $this->lng !== null;
+	}
+
+	public function asGeoIFace(string $type = "unknown"): ?object
+	{
+		if ($this->hasGeo()) {
+			return (object)[
+				'lat'   => $this->lat,
+				'lng'   => $this->lng,
+				'human' => $this->name,
+				'type'  => $type
+			];
+		}
+		return null;
 	}
 
 	public static function getLocationForLatLng(float $lat, float $lng): ?Location

@@ -1908,6 +1908,19 @@ class Involvement implements api, updatesViaCron, geo
 		return $this->geo !== null;
 	}
 
+	public function asGeoIFace(string $type = "unknown"): ?object
+	{
+		if ($this->hasGeo()) {
+			return (object)[
+				'lat'   => $this->geo->lat,
+				'lng'   => $this->geo->lng,
+				'human' => $this->name,
+				'type'  => $type
+			];
+		}
+		return null;
+	}
+
 
 	/**
      * Update posts that are based on an involvement.
