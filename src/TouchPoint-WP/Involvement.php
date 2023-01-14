@@ -22,7 +22,7 @@ use DateInterval;
 use DateTimeImmutable;
 use Exception;
 use stdClass;
-use tp\TouchPointWP\Utilities\Geo;
+use tp\TouchPointWP\geo;
 use WP_Error;
 use WP_Post;
 use WP_Query;
@@ -31,7 +31,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement implements api, updatesViaCron
+class Involvement implements api, updatesViaCron, geo
 {
     use jsInstantiation;
 	use jsonLd;
@@ -1764,7 +1764,7 @@ class Involvement implements api, updatesViaCron
             return $useHiForFalse ? 25000 : false;
         }
 
-		return Geo::distance($this->geo->lat, $this->geo->lng, self::$compareGeo->lat, self::$compareGeo->lng);
+		return Utilities\Geo::distance($this->geo->lat, $this->geo->lng, self::$compareGeo->lat, self::$compareGeo->lng);
     }
 
 
@@ -1895,7 +1895,21 @@ class Involvement implements api, updatesViaCron
     }
 
 
-    /**
+	/**
+	 * Indicates whether a map of a single Involvement can be displayed.
+	 *
+	 * @return bool
+	 */
+	public function hasGeo(): bool
+	{
+		if (!$this->settings()->useGeo)
+			return false;
+
+		return $this->geo !== null;
+	}
+
+
+	/**
      * Update posts that are based on an involvement.
      *
      * @param Involvement_PostTypeSettings $typeSets

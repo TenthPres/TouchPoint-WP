@@ -75,7 +75,7 @@ class Location
 	{
 		$locs = self::getLocations();
 		foreach ($locs as $l) {
-			$d = Geo::distance($lat, $lng, $l->lat, $l->lng);
+			$d = Utilities\Geo::distance($lat, $lng, $l->lat, $l->lng);
 			if ($d <= $l->radius) {
 				return $l;
 			}

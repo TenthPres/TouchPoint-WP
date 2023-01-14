@@ -138,7 +138,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     /**
      * Get a person from a WordPress User ID
      *
-     * @param $id
+     * @param $id int|array|object The WordPress user ID, or an object/array with an ID property representing that ID.
      *
      * @return Person|null
      */

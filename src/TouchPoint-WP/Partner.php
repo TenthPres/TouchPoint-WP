@@ -25,7 +25,7 @@ use WP_Term;
 /**
  * An Outreach partner, corresponding to a family in TouchPoint
  */
-class Partner implements api, JsonSerializable, updatesViaCron
+class Partner implements api, JsonSerializable, updatesViaCron, geo
 {
     use jsInstantiation {
         jsInstantiation::enqueueForJsInstantiation as protected enqueueForJsInstantiationTrait;
@@ -1354,4 +1354,17 @@ class Partner implements api, JsonSerializable, updatesViaCron
         }
         return $this;
     }
+
+	/**
+	 * Indicates whether a map of a *single* Partner can be displayed.
+	 *
+	 * @return bool
+	 */
+	public function hasGeo(): bool
+	{
+		if ($this->decoupleLocation)
+			return false;
+
+		return $this->geo !== null;
+	}
 }
