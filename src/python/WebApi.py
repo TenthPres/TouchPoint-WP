@@ -203,6 +203,7 @@ if "InvsForDivs" in Data.a:
                 o.RegistrationTypeId AS regTypeId,
                 o.OrgPickList,
                 o.MainLeaderId,
+                o.ImageUrl,
                 o.RegSettingXml.exist('/Settings/AskItems') AS hasRegQuestions,
                 FORMAT(o.RegStart, 'yyyy-MM-ddTHH:mm:ss') AS regStart,
                 FORMAT(o.RegEnd, 'yyyy-MM-ddTHH:mm:ss') AS regEnd,
@@ -336,6 +337,7 @@ if "InvsForDivs" in Data.a:
             , o.[regTypeId]                  AS [regTypeId]
             , o.[OrgPickList]                AS [orgPickList]
             , o.[MainLeaderId]               AS [mainLeaderId]
+            , o.[ImageUrl]                   AS [imageUrl]
             , o.[hasRegQuestions]            AS [hasRegQuestions]
             , o.[regStart]                   AS [regStart]
             , o.[regEnd]                     AS [regEnd]

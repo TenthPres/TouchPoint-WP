@@ -216,7 +216,7 @@ class Involvement implements api, updatesViaCron, geo
                     'lng' => Utilities::toFloatOrNull($meta[TouchPointWP::SETTINGS_PREFIX . 'geo_lng'][0] ?? "")
                 ];
             }
-            if ($this->geo === null || $this->geo->lat === null || $this->geo->lng === null) {
+            if ($this->hasGeo()) {
                 $this->geo = null;
             } else {
                 $this->geo->lat = round($this->geo->lat, 3); // Roughly .2 mi
@@ -1905,7 +1905,7 @@ class Involvement implements api, updatesViaCron, geo
 		if (!$this->settings()->useGeo)
 			return false;
 
-		return $this->geo !== null;
+		return $this->geo !== null && $this->geo->lat !== null && $this->geo->lng !== null;
 	}
 
 	public function asGeoIFace(string $type = "unknown"): ?object
@@ -2188,6 +2188,8 @@ class Involvement implements api, updatesViaCron, geo
             } else {
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd", $inv->regEnd);
             }
+
+	        Utilities::updatePostImageFromUrl($post->ID, $inv->imageUrl, $post->post_title);
 
 
             ////////////////////

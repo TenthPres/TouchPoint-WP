@@ -13,6 +13,11 @@ use WP_Error;
 abstract class Utilities
 {
 	/**
+	 * @deprecated since 0.0.15
+	 */
+	public const IMAGE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "imageUrl";
+
+	/**
 	 * @param mixed $numeric
 	 * @param bool|int  $round  False to skip rounding. Otherwise, precision passed to round().
 	 *
@@ -409,4 +414,49 @@ abstract class Utilities
         }
         return $headers;
     }
+
+	/**
+	 * Updates or removes a post's featured image from a URL (e.g. from TouchPoint).
+	 *
+	 * If the $newUrl is blank or null, the image is removed.
+	 *
+	 * @param int         $postId
+	 * @param string|null $newUrl
+	 * @param string      $title
+	 *
+	 * @return void
+	 * @since 0.0.24
+	 */
+	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title)
+	{
+		// Required for image handling
+		require_once(ABSPATH . 'wp-admin/includes/media.php');
+		require_once(ABSPATH . 'wp-admin/includes/file.php');
+		require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+		// Post image
+		global $wpdb;
+		$oldAttId = get_post_thumbnail_id($postId);
+		$oldFName = $wpdb->get_var( "SELECT meta_value FROM $wpdb->postmeta WHERE post_id = '$oldAttId' AND meta_key = '_wp_attached_file'" );
+		$oldFName = substr($oldFName, strrpos($oldFName, '/') + 1);
+
+		$newUrl = trim((string)$newUrl); // nulls are now ""
+
+		$newFName = "";
+		if ($newUrl !== "") {
+			$newFName = substr($newUrl, strrpos($newUrl, '/') + 1);
+		}
+
+		if ($newFName !== $oldFName) {
+			if ($oldAttId > 0) { // Remove and delete old one.
+				wp_delete_attachment($oldAttId, true);
+			}
+			if ($newUrl !== "") { // Load and save new one
+				$attId = media_sideload_image($newUrl, $postId, $title,'id');
+				set_post_thumbnail($postId, $attId);
+			}
+		}
+
+		delete_post_meta($postId, self::IMAGE_META_KEY); // TODO Remove. Deprecated in 0.0.15
+	}
 }

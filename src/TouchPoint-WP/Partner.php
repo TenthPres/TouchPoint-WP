@@ -64,11 +64,6 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo
 
     public const FAMILY_META_KEY = TouchPointWP::SETTINGS_PREFIX . "famId";
 
-    /**
-     * @deprecated since 0.0.15
-     */
-    public const IMAGE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "imageUrl";
-
     public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "partner";
 
     public const META_FEV_PREFIX = TouchPointWP::SETTINGS_PREFIX . "fev_";
@@ -294,11 +289,6 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo
 
         $verbose &= TouchPointWP::currentUserIsAdmin();
 
-        // Required for image handling
-        require_once(ABSPATH . 'wp-admin/includes/media.php');
-        require_once(ABSPATH . 'wp-admin/includes/file.php');
-        require_once(ABSPATH . 'wp-admin/includes/image.php');
-
         $customFev = TouchPointWP::instance()->settings->global_fev_custom;
         $fevFields = $customFev;
 
@@ -475,30 +465,11 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng");
             }
 
-            // Post image
-            global $wpdb;
-            $oldAttId = get_post_thumbnail_id($post->ID);
-            $oldFName = $wpdb->get_var( "SELECT meta_value FROM $wpdb->postmeta WHERE post_id = '$oldAttId' AND meta_key = '_wp_attached_file'" );
-            $oldFName = substr($oldFName, strrpos($oldFName, '/') + 1);
-
-            $newUrl = "";
-            $newFName = "";
-            if ($f->picture !== null) {
-                $newUrl = $f->picture->large ?? "";
-                $newFName = substr($newUrl, strrpos($newUrl, '/') + 1);
-            }
-
-            if ($newFName !== $oldFName) {
-                if ($oldAttId > 0) {
-                    wp_delete_attachment($oldAttId, true);
-                }
-                if ($newUrl !== "") { // Remove and delete
-                    $attId = media_sideload_image($newUrl, $post->ID, $title,'id');
-                    set_post_thumbnail($post->ID, $attId);
-                }
-            }
-
-            delete_post_meta($post->ID, self::IMAGE_META_KEY); // TODO Remove. Deprecated in 0.0.15
+			$newUrl = "";
+			if ($f->picture !== null) {
+				$newUrl = $f->picture->large ?? "";
+	        }
+			Utilities::updatePostImageFromUrl($post->ID, $newUrl, $title);
 
             $postsToKeep[] = $post->ID;
 
