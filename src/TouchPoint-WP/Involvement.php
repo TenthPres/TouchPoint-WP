@@ -411,7 +411,7 @@ class Involvement implements api, updatesViaCron, geo
     /**
      * Whether the involvement can be joined
      *
-     * @return bool|string  True if involvement can be joined.  Or, a string with why it can't be joined otherwise.
+     * @return bool|string  True if involvement can be joined. False if no registration exists. Or, a string with why it can't be joined otherwise.
      */
     public function acceptingNewMembers()
     {
@@ -2537,21 +2537,13 @@ class Involvement implements api, updatesViaCron, geo
         }
 
         $canJoin = $this->acceptingNewMembers();
-        if ($canJoin !== true) {
+        if (is_string($canJoin)) {
             $r[] = $canJoin;
         }
 
 		$r = array_filter($r, fn($i) => !in_array($i, $exclude));
 
-        // Not shown on map (only if there is a map, and the involvement has geo)
-        // Excluded because it doesn't seem helpful.
-//        if (self::$_hasArchiveMap && $this->geo === null) {
-//            $r[] = __("Not Shown on Map", 'TouchPoint-WP');
-//            TouchPointWP::requireScript("fontAwesome");  // For map icons
-//        }
-
-        if ($this->settings() &&
-            $this->settings()->useGeo &&
+        if ($this->hasGeo() &&
             (
 				$exclude === [] ||
 				(
