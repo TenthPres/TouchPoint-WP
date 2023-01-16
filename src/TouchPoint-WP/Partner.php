@@ -1131,11 +1131,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo
         $newContent = $default;
         if ($ev !== "" && property_exists($famObj->familyEV, $ev) && $famObj->familyEV->$ev !== null && $famObj->familyEV->$ev->value !== null) {
             $newContent = $famObj->familyEV->$ev->value;
-            $newContent = strip_tags(
-                $newContent,
-                ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li']
-            );
-            $newContent = trim($newContent);
+            $newContent = Utilities::standardizeHtml($newContent, "partner-import");
         }
 
         return $newContent;

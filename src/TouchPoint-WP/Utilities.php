@@ -427,7 +427,7 @@ abstract class Utilities
 	 * @return void
 	 * @since 0.0.24
 	 */
-	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title)
+	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title): void
 	{
 		// Required for image handling
 		require_once(ABSPATH . 'wp-admin/includes/media.php');
@@ -458,5 +458,74 @@ abstract class Utilities
 		}
 
 		delete_post_meta($postId, self::IMAGE_META_KEY); // TODO Remove. Deprecated in 0.0.15
+	}
+
+	/**
+	 * @param int    $maxAllowed  1 to 6, corresponding to h1 to h6.
+	 * @param string $input The string within which headings should be standardized.
+	 *
+	 * @return string
+	 */
+	public static function standardizeHTags(int $maxAllowed, string $input): string
+	{
+		$maxAllowed = min(max($maxAllowed, 1), 6);
+
+		$deltas = [0,0,0,0,0,0];
+		$indexes = [0,0,0,0,0,0];
+		$o = 0;
+		$i = 1;
+		for (; $i <= 6;) {
+			$deltas[$i-1] = 0;
+			if (str_contains($input, "<h$i ") || str_contains($input, "<h$i>")) {
+				$deltas[$i-1] = $maxAllowed - $i + $o;
+				$indexes[$i-1] = $deltas[$i-1] * $i;
+				$o++;
+			}
+			$i++;
+		}
+
+		arsort($indexes);
+
+		foreach ($indexes as $ix => $x) {
+			$delta = $deltas[$ix];
+			if ($delta === 0)
+				continue;
+
+			$i = $ix + 1;
+			$o = $i + $delta;
+
+			if ($o < 7) {
+				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"], ["<h$o ", "<h$o>", "</h$o>"], $input);
+			} else {
+				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"], ["<p><strong ", "<p><strong>", "</strong></p>"], $input);
+			}
+		}
+
+		return $input;
+	}
+
+	/**
+	 * @param string  $html  The HTML to be standardized.
+	 * @param ?string $context  A context string to pass to hooks.
+	 *
+	 * @return string
+	 */
+	public static function standardizeHtml(string $html, ?string $context = null): string
+	{
+		// The tp_standardize_html filter would completely replace the pre-defined process.
+		$o = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_html', $html, $context);
+		if ($o !== $html)
+			return $o;
+
+		$html = apply_filters(TouchPointWP::HOOK_PREFIX . 'pre_standardize_html', $html, $context);
+		$maxHeader = intval(apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_h_tags_max_h', 2, $context));
+
+		$allowedTags = ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+		$allowedTags = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_allowed_tags', $allowedTags, $context);
+
+		$html = self::standardizeHTags($maxHeader, $html);
+		$html = strip_tags($html, $allowedTags);
+		$html = trim($html);
+		return apply_filters(TouchPointWP::HOOK_PREFIX . 'post_standardize_html', $html, $context);
 	}
 }

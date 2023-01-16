@@ -216,7 +216,7 @@ class Involvement implements api, updatesViaCron, geo
                     'lng' => Utilities::toFloatOrNull($meta[TouchPointWP::SETTINGS_PREFIX . 'geo_lng'][0] ?? "")
                 ];
             }
-            if ($this->hasGeo()) {
+            if (!$this->hasGeo()) {
                 $this->geo = null;
             } else {
                 $this->geo->lat = round($this->geo->lat, 3); // Roughly .2 mi
@@ -2115,8 +2115,11 @@ class Involvement implements api, updatesViaCron, geo
 			}
 
             /** @var $post WP_Post */
-
-            $post->post_content = strip_tags($inv->description, ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li']);
+	        if ($inv->description == null || trim($inv->description) == "") {
+		        $post->post_content = null;
+	        } else {
+		        $post->post_content = Utilities::standardizeHtml($inv->description, "involvement-import");
+	        }
 
             // Title & Slug -- slugs should only be updated if there's a reason, like a title change.  Otherwise, they increment.
             if ($post->post_title != $inv->name || str_contains($post->post_name, "__trashed")) {

@@ -55,7 +55,8 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
         $children = get_children([
             'post_parent' => $post->ID,
             'orderby' => 'title',
-            'order' => 'ASC'
+            'order' => 'ASC',
+            'post_type' => get_post_type($post)
         ]);
         if (count($children) > 0) {
             echo "<div class='child-involvements'>";

@@ -59,7 +59,8 @@ TouchPointWP::enqueuePartialsStyle();
     $children = get_children([
                                  'post_parent' => $inv->post_id,
                                  'orderby' => 'title',
-                                 'order' => 'ASC'
+                                 'order' => 'ASC',
+                                 'post_type' => $postType
                              ]);
     if (count($children) > 0) {
         echo "<div class='involvement-list child-involvements'>";
