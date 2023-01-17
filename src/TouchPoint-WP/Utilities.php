@@ -17,6 +17,9 @@ abstract class Utilities
 	 */
 	public const IMAGE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "imageUrl";
 
+	public const PLUGIN_UPDATE_TRANSIENT = TouchPointWP::SETTINGS_PREFIX . "plugin_update_data";
+	public const PLUGIN_UPDATE_TRANSIENT_TTL = 43200; // 12 hours
+
 	/**
 	 * @param mixed $numeric
 	 * @param bool|int  $round  False to skip rounding. Otherwise, precision passed to round().
@@ -528,4 +531,102 @@ abstract class Utilities
 		$html = trim($html);
 		return apply_filters(TouchPointWP::HOOK_PREFIX . 'post_standardize_html', $html, $context);
 	}
+
+	/**
+	 * Returns true if a new release is available.
+	 *
+	 * @return ?object
+	 */
+	public static function checkForUpdate(): ?object
+	{
+		$ghData = wp_remote_get("https://api.github.com/repos/tenthpres/touchpoint-wp/releases/latest", [
+			'headers' => ['Accept' => 'application/json']
+		]);
+		if (is_wp_error($ghData)) {
+			return null;
+		}
+		$ghData = json_decode(wp_remote_retrieve_body($ghData));
+
+		if (!property_exists($ghData, 'tag_name'))
+			return null;
+
+		$tag = $ghData->tag_name;
+
+		if ($tag == null)
+			return null;
+
+		if ($tag[0] !== "v")
+			return null;
+
+		$newV = substr($tag, 1);
+
+		$newDetails = self::fileHeadersFromWeb( "https://raw.githubusercontent.com/TenthPres/TouchPoint-WP/$newV/TouchPoint-WP.php", [
+			'Requires at least' => '5.5',
+			'Requires PHP'      => '7.4',
+			'Tested up to'      => '5.5'
+		]);
+
+		return (object)[
+			'id'            => 'touchpoint-wp/touchpoint-wp.php',
+			'slug'          => 'touchpoint-wp',
+			'plugin'        => 'touchpoint-wp/touchpoint-wp.php',
+			'new_version'   => $newV,
+			'url'           => 'https://github.com/TenthPres/TouchPoint-WP/',
+			'package'       => 'https://github.com/TenthPres/TouchPoint-WP/releases/download/latest/TouchPoint-WP.zip',
+			'icons'         => [],
+			'banners'       => [],
+			'banners_rtl'   => [],
+			'tested'        => $newDetails == null ? "" : $newDetails['Tested up to'],
+			'requires_php'  => $newDetails == null ? "" : $newDetails['Requires PHP'],
+			'requires'      => $newDetails == null ? "" : $newDetails['Requires at least'],
+			'compatibility' => (object)[],
+		];
+	}
+
+
+	public static function checkForUpdate_transient($transient)
+	{
+		$pluginTransient = get_transient(self::PLUGIN_UPDATE_TRANSIENT);
+
+		$up = $pluginTransient ?: self::checkForUpdate();
+
+		if (!$pluginTransient) {
+			if ($up == null)
+				$up = "error";
+			set_transient(self::PLUGIN_UPDATE_TRANSIENT, $up, self::PLUGIN_UPDATE_TRANSIENT_TTL);
+		}
+
+		if (is_object($up)) {
+			if (version_compare($up->new_version, TouchPointWP::VERSION, ">")) {
+				$transient->response['touchpoint-wp/touchpoint-wp.php'] = $up;
+			} else {
+				$transient->no_update['touchpoint-wp/touchpoint-wp.php'] = $up;
+			}
+		}
+
+		return $transient;
+	}
+
+	public static function fileHeadersFromWeb(string $url, array $headers = []): ?array
+	{
+		$data = wp_remote_get($url);
+		if (is_wp_error($data)) {
+			return null;
+		}
+		$data = wp_remote_retrieve_body($data);
+		$data = explode("\n", $data);
+		$keys = array_keys($headers);
+		foreach ($data as $line) {
+			$line = explode(":", $line, 2);
+			if (count($line) < 2)
+				continue;
+
+			if (in_array($line[0], $keys)) {
+				$headers[$line[0]] = trim($line[1]);
+			}
+		}
+
+		return $headers;
+	}
+
 }

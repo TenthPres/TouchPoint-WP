@@ -233,6 +233,8 @@ class TouchPointWP
 
         add_filter('terms_clauses', [$this, 'getTermsClauses'], 10, 3);
 
+		add_filter('site_transient_update_plugins', [Utilities::class, 'checkForUpdate_transient']);
+
         self::scheduleCleanup();
     }
 

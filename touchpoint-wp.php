@@ -5,8 +5,8 @@
  *
  * @author  James K
  * @license AGPLv3+
- * @link    https://github.com/tenthpres/touchpoint-wp
- * @package touchpoint-wp
+ * @link    https://github.com/TenthPres/TouchPoint-WP
+ * @package TouchPoint-WP
  */
 
 /*
@@ -19,7 +19,7 @@ Author:             James K
 Author URI:         https://github.com/jkrrv
 License:            AGPLv3+
 Requires at least:  5.5
-Tested up to:       5.9.3
+Tested up to:       6.1.1
 Requires PHP:       7.4
 Release Asset:      true
 */
