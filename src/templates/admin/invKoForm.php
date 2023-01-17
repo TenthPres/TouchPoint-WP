@@ -88,6 +88,14 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                     <input id="it-excludeIf-unscheduled" type="checkbox" value="unscheduled" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-unscheduled'}" />
                     <label for="it-excludeIf-unscheduled" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-unscheduled'}"><?php _e("Involvement does not have a Schedule", "TouchPoint-WP"); ?></label>
                 </p>
+                <p>
+                    <input id="it-excludeIf-noRegistration" type="checkbox" value="noRegistration" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-noRegistration'}" />
+                    <label for="it-excludeIf-noRegistration" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-noRegistration'}"><?php _e("Involvement has a registration type of \"No Online Registration\"", "TouchPoint-WP"); ?></label>
+                </p>
+                <p>
+                    <input id="it-excludeIf-registrationEnded" type="checkbox" value="registrationEnded" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-registrationEnded'}" />
+                    <label for="it-excludeIf-registrationEnded" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-registrationEnded'}"><?php _e("Involvement registration has ended (end date is past)", "TouchPoint-WP"); ?></label>
+                </p>
             </td>
         </tr>
 

@@ -2020,6 +2020,24 @@ class Involvement implements api, updatesViaCron, geo
 		        }
 	        }
 
+	        // Registration start
+	        if ($inv->regStart !== null) {
+		        try {
+			        $inv->regStart = new DateTimeImmutable($inv->regStart, $siteTz);
+		        } catch  (Exception $e) {
+			        $inv->regStart = null;
+		        }
+	        }
+
+	        // Registration end
+	        if ($inv->regEnd !== null) {
+		        try {
+			        $inv->regEnd = new DateTimeImmutable($inv->regEnd, $siteTz);
+		        } catch  (Exception $e) {
+			        $inv->regEnd = null;
+		        }
+	        }
+
 
             ////////////////
             // Exclusions //
@@ -2052,6 +2070,21 @@ class Involvement implements api, updatesViaCron, geo
 	        if (in_array("notWeekly", $typeSets->excludeIf) && $inv->notWeekly) {
 		        if ($verbose) {
 			        echo "<p>Stopping processing because Not-Weekly Involvements are excluded.  Involvement will be deleted from WordPress.</p>";
+		        }
+		        continue;
+	        }
+
+	        if (in_array("noRegistration", $typeSets->excludeIf) && intval($inv->regTypeId) === 0) {
+		        if ($verbose) {
+			        echo "<p>Stopping processing because Involvements with \"No Online Registration\" are excluded.  Involvement will be deleted from WordPress.</p>";
+		        }
+		        continue;
+	        }
+
+	        if (in_array("registrationEnded", $typeSets->excludeIf) &&
+	                $inv->regEnd !== null && $inv->regEnd < $now) {
+		        if ($verbose) {
+			        echo "<p>Stopping processing because Involvements whose registrations have ended are excluded.  Involvement will be deleted from WordPress.</p>";
 		        }
 		        continue;
 	        }
@@ -2165,13 +2198,6 @@ class Involvement implements api, updatesViaCron, geo
 
 
 	        // Registration start
-            if ($inv->regStart !== null) {
-                try {
-                    $inv->regStart = new DateTimeImmutable($inv->regStart, $siteTz);
-                } catch  (Exception $e) {
-                    $inv->regStart = null;
-                }
-            }
             if ($inv->regStart === null) {
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regStart");
             } else {
@@ -2179,13 +2205,6 @@ class Involvement implements api, updatesViaCron, geo
             }
 
             // Registration end
-            if ($inv->regEnd !== null) {
-                try {
-                    $inv->regEnd = new DateTimeImmutable($inv->regEnd, $siteTz);
-                } catch  (Exception $e) {
-                    $inv->regEnd = null;
-                }
-            }
             if ($inv->regEnd === null) {
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd");
             } else {
