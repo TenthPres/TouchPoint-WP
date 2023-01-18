@@ -431,7 +431,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         'id'          => 'auth_default',
                         'label'       => __('Make TouchPoint the default authentication method.', 'TouchPoint-WP'),
                         'description' => __(
-                            'By checking this box, the TouchPoint login page will become the default.  To prevent the redirect and reach the standard TouchPoint login page, add \'' . TouchPointWP::HOOK_PREFIX . 'no_redirect\' as a URL parameter.',
+                            'By checking this box, the TouchPoint login page will become the default.  To prevent the redirect and reach the standard TouchPoint login page, add \'' . TouchPointWP::HOOK_PREFIX . 'no_redirect\' as a URL parameter.', // TODO change to a single translation string
                             'TouchPoint-WP'
                         ),
                         'type'        => 'checkbox',
@@ -644,7 +644,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         'id'          => 'global_fev_custom',
                         'label'       => __('Extra Values to Import', 'TouchPoint-WP'),
                         'description' => __(
-                            'Import Family Extra Value fields as Meta data on the partner\'s post.',
+                            'Import Family Extra Value fields as Meta data on the partner\'s post',
                             'TouchPoint-WP'
                         ),
                         'type'        => 'checkbox_multi',
@@ -747,7 +747,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     'id'          => 'dv_divisions',
                     'label'       => __('Divisions to Import', 'TouchPoint-WP'),
                     'description' => __(
-                        'These divisions will be imported for the taxonomy.',
+                        'These Divisions will be imported for the taxonomy',
                         'TouchPoint-WP'
                     ),
                     'type'        => 'checkbox_multi',

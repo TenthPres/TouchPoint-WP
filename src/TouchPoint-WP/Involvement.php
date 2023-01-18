@@ -2309,6 +2309,8 @@ class Involvement implements api, updatesViaCron, geo
                     echo "<p>Leaders: $nameString</p>";
                 }
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders", $nameString);
+            } else {
+				delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders");
             }
 
 
