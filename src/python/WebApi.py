@@ -5,7 +5,7 @@ import json
 import linecache
 import sys
 
-VERSION = "0.0.23"
+VERSION = "0.0.25"
 
 sgContactEvName = "Contact"
 
@@ -79,7 +79,6 @@ def get_person_info_for_sync(person_obj):
 Data.a = Data.a.split(',')
 apiCalled = False
 
-
 if "Divisions" in Data.a:
     apiCalled = True
     divSql = '''
@@ -95,13 +94,11 @@ if "Divisions" in Data.a:
     Data.Title = "All Divisions"
     Data.divs = q.QuerySql(divSql, {})
 
-
 if "ResCodes" in Data.a:
     apiCalled = True
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.ResidentCode'''
     Data.Title = "All Resident Codes"
     Data.resCodes = q.QuerySql(rcSql, {})
-
 
 if "Genders" in Data.a:
     apiCalled = True
@@ -109,13 +106,11 @@ if "Genders" in Data.a:
     Data.Title = "All Genders"
     Data.genders = q.QuerySql(rcSql, {})
 
-
 if "Keywords" in Data.a:
     apiCalled = True
     kwSql = '''SELECT KeywordId as Id, Code, Description as Name FROM Keyword ORDER BY Code'''
     Data.Title = "All Keywords"
     Data.keywords = q.QuerySql(kwSql, {})
-
 
 if "PersonEvFields" in Data.a:
     apiCalled = True
@@ -126,7 +121,6 @@ if "PersonEvFields" in Data.a:
     Data.Title = "Person Extra Value Fields"
     Data.personEvFields = q.QuerySql(pevSql, {})
 
-
 if "FamilyEvFields" in Data.a:
     apiCalled = True
     fevSql = '''SELECT Field, [Type], count(*) as Count,
@@ -135,7 +129,6 @@ if "FamilyEvFields" in Data.a:
                 GROUP BY [Field], [Type] ORDER BY count(*) DESC'''
     Data.Title = "Family Extra Value Fields"
     Data.familyEvFields = q.QuerySql(fevSql, {})
-
 
 if "SavedSearches" in Data.a:
     apiCalled = True
@@ -168,7 +161,6 @@ if "SavedSearches" in Data.a:
     """)
 
     Data.Title = "Saved Searches"
-
 
 if "InvsForDivs" in Data.a:
     apiCalled = True
@@ -393,15 +385,6 @@ if "InvsForDivs" in Data.a:
         else:
             g.schedules = []
 
-        if leadMemTypes != "":
-            leaderSql = '''
-            SELECT om.PeopleId, p.FamilyId, p.LastName, COALESCE(p.NickName, p.FirstName) as GoesBy, p.GenderId
-            FROM OrganizationMembers om JOIN People p ON om.PeopleId = p.PeopleId
-            WHERE OrganizationId IN ({}) AND MemberTypeId IN ({})
-            ORDER BY p.FamilyId'''.format(g.involvementId, leadMemTypes)
-
-            g.leaders = model.SqlListDynamicData(leaderSql)
-
     Data.invs = groups
 
     # Get Extra Values in use on these involvements  TODO put somewhere useful
@@ -409,7 +392,6 @@ if "InvsForDivs" in Data.a:
                   LEFT JOIN DivOrg do ON oe.OrganizationId = do.OrgId WHERE DivId IN ({})'''.format(divs)
 
     Data.invev = model.SqlListDynamicData(invEvSql)  # TODO move to separate request
-
 
 if "MemTypes" in Data.a:
     apiCalled = True
@@ -428,7 +410,6 @@ if "MemTypes" in Data.a:
     memTypeSql += " ORDER BY description ASC"
 
     Data.memTypes = model.SqlListDynamicData(memTypeSql)
-
 
 if "src" in Data.a and Data.q is not None:
     apiCalled = True
@@ -537,14 +518,12 @@ if "src" in Data.a and Data.q is not None:
     if sql is not None:
         Data.people = q.QuerySql(sql)
 
-
 # Start POST requests
 
 if Data.data != "":
     inData = json.loads(Data.data)['inputData']
 else:
     inData = {}
-
 
 if "updateScripts" in Data.a and model.HttpMethod == "post":
     apiCalled = True
@@ -564,7 +543,8 @@ if "ident" in Data.a and model.HttpMethod == "post":
     if inData.has_key('fid'):
         pass
 
-    elif inData.has_key('firstName') and inData.has_key('lastName') and inData['firstName'] is not None and inData['lastName'] is not None:
+    elif inData.has_key('firstName') and inData.has_key('lastName') and inData['firstName'] is not None and inData[
+        'lastName'] is not None:
         # more than email and zip
 
         # coalescing.
@@ -586,9 +566,11 @@ if "ident" in Data.a and model.HttpMethod == "post":
 
         # Update Zip code.  Assumes US Zip codes for comparison
         if inData.has_key('zip') and inData['zip'] is not None and len(inData['zip']) > 4:
-            if p.Family.ZipCode is not None and len(p.Family.ZipCode) > 0 and "{}".format(p.Family.ZipCode[0:5]) == "{}".format(inData['zip'][0:5]):
+            if p.Family.ZipCode is not None and len(p.Family.ZipCode) > 0 and "{}".format(
+                    p.Family.ZipCode[0:5]) == "{}".format(inData['zip'][0:5]):
                 pass  # Family Address already has zip code
-            elif p.ZipCode is not None and len(p.ZipCode) > 0 and "{}".format(p.ZipCode[0:5]) == "{}".format(inData['zip'][0:5]):
+            elif p.ZipCode is not None and len(p.ZipCode) > 0 and "{}".format(p.ZipCode[0:5]) == "{}".format(
+                    inData['zip'][0:5]):
                 pass  # Person Address already has zip code
             else:
                 updates['ZipCode'] = "{}".format(inData['zip'])
@@ -718,7 +700,7 @@ They have also been added to your roster as prospective members.  Please move th
 {3}""".format(names, org.name, "is" if len(addPeople) == 1 else "are", pidStr)
 
         model.CreateTaskNote(owner, addPeople[0].PeopleId, orgContactPid,
-            None, False, text, None, None, keywords)
+                             None, False, text, None, None, keywords)
 
 if "inv_contact" in Data.a and model.HttpMethod == "post":
     apiCalled = True
@@ -761,7 +743,6 @@ if "inv_contact" in Data.a and model.HttpMethod == "post":
 
     Data.success.append({'pid': p['peopleId'], 'invId': oid, 'cpid': orgContactPid})
 
-
 if "person_wpIds" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
@@ -773,7 +754,6 @@ if "person_wpIds" in Data.a and model.HttpMethod == "post":
     for p in inData['people']:
         model.AddExtraValueInt(int(p['PeopleId']), ev, int(p['WpId']))
         Data.success += 1
-
 
 if "person_contact" in Data.a and model.HttpMethod == "post":
     apiCalled = True
@@ -799,7 +779,6 @@ if "person_contact" in Data.a and model.HttpMethod == "post":
     model.CreateTaskNote(t, p.peopleId, None, None, False, text, None, None, keywords)
 
     Data.success.append({'pid': p.peopleId, 'to': t})
-
 
 if "mtg" in Data.a and model.HttpMethod == "post":
     apiCalled = True
@@ -827,7 +806,6 @@ if "mtg" in Data.a and model.HttpMethod == "post":
         mtg.invName = mtg.invName.strip()
         Data.success.append(mtg)
 
-
 if "mtg_rsvp" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
@@ -845,7 +823,6 @@ if "mtg_rsvp" in Data.a and model.HttpMethod == "post":
         for pid in inData.responses.No:
             model.EditCommitment(mid, pid, "Regrets")
             Data.success.append(pid)
-
 
 if "people_get" in Data.a and model.HttpMethod == "post":
     apiCalled = True
@@ -876,6 +853,10 @@ if "people_get" in Data.a and model.HttpMethod == "post":
         for iid in inData['inv']:
             if inData['inv'][iid]['memTypes'] is None:
                 rules.append("IsMemberOf( Org={} ) = 1".format(iid))
+            else:
+                rules.append("MemberTypeCodes( Org={} ) IN ( {} )"
+                             .format(iid, ', '.join(map(str, inData['inv'][iid]['memTypes'])))
+                             )
 
             if iid not in invsMembershipsToImport:
                 invsMembershipsToImport.append(iid)
@@ -911,7 +892,8 @@ if "people_get" in Data.a and model.HttpMethod == "post":
 
     fevSql = ''
     useFamGeo = False
-    if inData.has_key('meta') and isinstance(inData['meta'], dict) and inData['meta'].has_key('fev') and inData['groupBy'] == "FamilyId":
+    if inData.has_key('meta') and isinstance(inData['meta'], dict) and inData['meta'].has_key('fev') and inData[
+        'groupBy'] == "FamilyId":
         useFamGeo = isinstance(inData['meta'], dict) and inData['meta'].has_key('geo')
         fevSql = []
         for fev in inData['meta']['fev']:
@@ -1014,7 +996,6 @@ if "people_get" in Data.a and model.HttpMethod == "post":
     Data.rules = rules  # handy for debugging
     Data.success = True
 
-
 if "auth_key_set" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
@@ -1039,7 +1020,8 @@ if "logout" in Data.a and model.HttpMethod == "get":
     model.Title = "Logging out..."
     model.Header = "Logging out..."
     model.Script = "<script>document.getElementById('logoutIFrame').onload = function() { window.location = \"" + redir + "\"; }</script>"
-    print("<iframe id=\"logoutIFrame\" src=\"/Account/LogOff/\" style=\"position:absolute; top:-1000px; left:-10000px; width:2px; height:2px;\" ></iframe>")
+    print(
+        "<iframe id=\"logoutIFrame\" src=\"/Account/LogOff/\" style=\"position:absolute; top:-1000px; left:-10000px; width:2px; height:2px;\" ></iframe>")
     apiCalled = True
 
 if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r parameter implies desired redir after login.
@@ -1051,7 +1033,9 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
     if pid < 1:
         model.Title = "Error"
         model.Header = "Something went wrong."
-        print("<p>User not found.  If you receive this error message again, please email <b>" + model.Setting("AdminMail", "the church staff") + "</b>.</p>")
+        print(
+            "<p>User not found.  If you receive this error message again, please email <b>" + model.Setting("AdminMail",
+                                                                                                            "the church staff") + "</b>.</p>")
 
     else:
         po = model.GetPerson(pid)
@@ -1071,7 +1055,8 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
             path = ""
 
             # add host if missing
-            if not r[0:8].lower() == "https://" and not r[0:7].lower() == "http://" and not r.split('/', 1)[0].__contains__('.'):
+            if not r[0:8].lower() == "https://" and not r[0:7].lower() == "http://" and not r.split('/', 1)[
+                0].__contains__('.'):
                 if r[0] == '/':
                     r = defaultHost + r
                 else:
@@ -1150,7 +1135,8 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
             model.Title = "Error"
             model.Header = "Something went wrong."
 
-            print("<p>Please email the following error message to <b>" + model.Setting("AdminMail", "the church staff") + "</b>.</p><pre>")
+            print("<p>Please email the following error message to <b>" + model.Setting("AdminMail",
+                                                                                       "the church staff") + "</b>.</p><pre>")
             print(response)
             print("</pre>")
             print("<!-- Exception Raised: ")

@@ -12,11 +12,6 @@ use WP_Error;
  */
 abstract class Utilities
 {
-	/**
-	 * @deprecated since 0.0.15
-	 */
-	public const IMAGE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "imageUrl";
-
 	public const PLUGIN_UPDATE_TRANSIENT = TouchPointWP::SETTINGS_PREFIX . "plugin_update_data";
 	public const PLUGIN_UPDATE_TRANSIENT_TTL = 43200; // 12 hours
 
@@ -459,8 +454,6 @@ abstract class Utilities
 				set_post_thumbnail($postId, $attId);
 			}
 		}
-
-		delete_post_meta($postId, self::IMAGE_META_KEY); // TODO Remove. Deprecated in 0.0.15
 	}
 
 	/**

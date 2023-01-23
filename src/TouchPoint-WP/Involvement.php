@@ -22,7 +22,7 @@ use DateInterval;
 use DateTimeImmutable;
 use Exception;
 use stdClass;
-use tp\TouchPointWP\geo;
+use tp\TouchPointWP\Utilities\PersonQuery;
 use WP_Error;
 use WP_Post;
 use WP_Query;
@@ -66,7 +66,9 @@ class Involvement implements api, updatesViaCron, geo
     protected ?string $_scheduleString;
     protected ?array $_meetings = null;
     protected ?array $_schedules = null;
-    protected ?string $leaders = null;
+	protected PersonArray $_leaders;
+	protected PersonArray $_members;
+	protected ?PersonArray $_hosts;
 	protected ?int $genderId = null;
     public ?string $color = "#999999";
 
@@ -1940,13 +1942,11 @@ class Involvement implements api, updatesViaCron, geo
         $qOpts = [];
 
         // Leader member types
-        $lMTypes = implode(',', $typeSets->leaderTypes);
-        $qOpts['leadMemTypes'] = str_replace('mt', '', $lMTypes);
+        $qOpts['leadMemTypes'] = implode(',', $typeSets->leaderTypeInts());
 
         if ($typeSets->useGeo) {
             // Host member types
-            $hMTypes = implode(',', $typeSets->hostTypes);
-            $qOpts['hostMemTypes'] = str_replace('mt', '', $hMTypes);
+            $qOpts['hostMemTypes'] = implode(',', $typeSets->hostTypeInts());
         }
 
         try {
@@ -2302,17 +2302,7 @@ class Involvement implements api, updatesViaCron, geo
             //// People ////
             ////////////////
 
-            // Handle leaders  TODO make leaders WP Users
-            if (array_key_exists('leadMemTypes', $qOpts) && property_exists($inv, "leaders")) {
-                $nameString = Person::arrangeNamesForPeople($inv->leaders);
-                if ($verbose) {
-                    echo "<p>Leaders: $nameString</p>";
-                }
-                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders", $nameString);
-            } else {
-				delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "leaders");
-            }
-
+	        // Leaders & Members are now imported through the Person sync.
 
 	        ////////////////////
 	        //// Geographic ////
@@ -2466,15 +2456,92 @@ class Involvement implements api, updatesViaCron, geo
      */
     public static function filterAuthor($author): string
     {
-        $post = get_the_ID();
+        $postId = get_the_ID();
 
         $invTypes = Involvement_PostTypeSettings::getPostTypes();
 
-        if (in_array(get_post_type($post), $invTypes)) {
-            $author = get_post_meta($post, TouchPointWP::SETTINGS_PREFIX . "leaders", true);
+        if (in_array(get_post_type($postId), $invTypes)) {
+			$post = get_post($postId);
+			try {
+				$i = Involvement::fromPost($post);
+
+				$author = $i->leaders()->__toString();
+			} catch (TouchPointWP_Exception $e) {
+			}
         }
         return $author;
     }
+
+	/**
+	 * Get the leaders of the Involvement
+	 *
+	 * @return PersonArray
+	 */
+	public function leaders(): PersonArray
+	{
+		if (!isset($this->_leaders)) {
+			$s = $this->settings();
+
+			$q = new PersonQuery(
+				[
+					'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
+					'meta_value'   => $s->leaderTypes,
+					'meta_compare' => 'IN'
+				]
+			);
+
+			$this->_leaders = $q->get_results();
+		}
+		return $this->_leaders;
+	}
+
+	/**
+	 * Get the hosts of the involvement.  Returns null if not a geo-enabled post type.
+	 *
+	 * @return ?PersonArray
+	 */
+	public function hosts(): ?PersonArray
+	{
+		if (!isset($this->_hosts)) {
+			$s = $this->settings();
+
+			if (!$s->useGeo)
+				return null;
+
+			$q = new PersonQuery(
+				[
+					'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
+					'meta_value'   => $s->hostTypes,
+					'meta_compare' => 'IN'
+				]
+			);
+
+			$this->_hosts = $q->get_results();
+		}
+		return $this->_hosts;
+	}
+
+	/**
+	 * Get the members of the involvement.  Note that not all members are necessarily synced to WordPress from TouchPoint.
+	 *
+	 * @return PersonArray
+	 */
+	public function members(): ?PersonArray
+	{
+		if (!isset($this->_members)) {
+			$s = $this->settings();
+
+			$q = new PersonQuery(
+				[
+					'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
+					'meta_compare' => 'EXISTS'
+				]
+			);
+
+			$this->_members = $q->get_results();
+		}
+		return $this->_members;
+	}
 
     /**
      * Get the settings object that corresponds to the Involvement's Post Type
@@ -2547,8 +2614,8 @@ class Involvement implements api, updatesViaCron, geo
             $r[] = $a;
         }
 
-        if ($this->leaders) {
-            $r[] = $this->leaders;
+        if ($this->leaders()) {
+            $r[] = $this->leaders()->__toString();
         }
 
         if ($this->genderId != 0) {

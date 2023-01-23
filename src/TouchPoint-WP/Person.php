@@ -636,7 +636,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             $queryNeeded = true;
         }
 
-        // Update People Indexes
+        // Find People Lists in post content and add their involvements to the query.
         if (TouchPointWP::instance()->settings->enable_people_lists) {
             $posts = Utilities::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_LIST);
 
@@ -650,8 +650,47 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             self::$_indexingMode = false;
         }
 
-        // Update Involvement Leaders
-        // TODO DIR this
+        // Add Involvement Leaders to the query.
+	    if (TouchPointWP::instance()->settings->enable_involvements) {
+			foreach (Involvement_PostTypeSettings::instance() as $type) { // foreach Involvement Post Type...
+				set_time_limit(10);
+
+				// Get the InvIds for the Involvement Type's Posts
+				$postType = $type->postTypeWithPrefix();
+				$key = Involvement::INVOLVEMENT_META_KEY;
+				global $wpdb;
+				/** @noinspection SqlResolve */
+				$sql = "SELECT pm.meta_value AS iid
+                    FROM $wpdb->postmeta AS pm
+                    JOIN $wpdb->posts as p ON pm.post_id = p.Id
+                    WHERE p.post_type = '$postType' AND pm.meta_key = '$key'";
+
+				foreach ($wpdb->get_col($sql) as $iid) {
+					$iid = intval($iid);
+
+					// merge the query with already-existing queries.
+					if (!isset(self::$_indexingQueries['inv'][$iid])) {
+						self::$_indexingQueries['inv'][$iid] = [
+							'invId'          => $iid,
+							'memTypes'       => $type->leaderTypeInts(),
+//                           'subGroups' => null,
+							'with_subGroups' => false
+						];
+					} elseif (is_array(self::$_indexingQueries['inv'][$iid]['memTypes'])) {
+						$r = array_merge(
+							self::$_indexingQueries['inv'][$iid]['memTypes'],
+							$type->leaderTypeInts()
+						);
+						self::$_indexingQueries['inv'][$iid]['memTypes'] = array_unique($r);
+					} elseif (self::$_indexingQueries['inv'][$iid]['memTypes'] !== null) {  // Unknown how to handle this merge.
+						$e = new TouchPointWP_Exception("An Involvement ($iid) has been requested multiple times with mixed contexts.");
+						if ($verbose) {
+							echo $e;
+						}
+					}
+				}
+			}
+	    }
 
         if (count(self::$_indexingQueries['inv']) > 0) {
             $queryNeeded = true;
@@ -676,6 +715,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         // Submit to API
         $people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, 50);
+
+		set_time_limit(count($people->people) * 5 + 10); // a very generous time limit.
 
         // Parse the API results
 	    $allowCreation = TouchPointWP::instance()->settings->enable_people_lists === "on";
@@ -747,10 +788,10 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                     'include' => [$wpId]
                 ]
             );
-            if ($q->get_total() > 0) { // Will only be 0 or 1, unless something has gone disastrously wrong.
+            if ($q->get_total() === 1) { // Will only be 0 or 1, unless something has gone disastrously wrong.
                 $person = $q->get_first_result();
                 $updateWpIdInTouchPoint = false;
-            }
+            } // TODO handle the error condition where there's more than one. (#119)
         }
 
         // Find person by PeopleId
@@ -764,7 +805,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             );
             if ($q->get_total() === 1) {
                 $person = $q->get_first_result();
-            }
+            } // TODO handle the error condition where there's more than one.  (#119
         }
 
         // Create new person
@@ -1149,11 +1190,11 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     /**
      * Take an array of Person-ish objects and return a nicely human-readable list of names.
      *
-     * @param Person[] $people
+     * @param Person[]|PersonArray $people  TODO make api compliant with Person object--remove coalesces.  (#120)
      *
      * @return ?string  Returns a human-readable list of names, nicely formatted with commas and such.
      */
-    public static function arrangeNamesForPeople(array $people): ?string
+    public static function arrangeNamesForPeople($people): ?string
     {
         $people = self::groupByFamily($people);
         if (count($people) === 0) {
@@ -1193,34 +1234,35 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
      *
      * This is only meant to be called within arrangeNamesForPeople
      *
-     * @param array $family
+     * @param Person[] $family
      *
      * @return ?string Returns a human-readable list of names, nicely formatted with commas and such.
      */
-    protected static function formatNamesForFamily(array $family): ?string
+    protected static function formatNamesForFamily(array $family): ?string  // Standardize API  (#120)
     {
         if (count($family) < 1)
             return null;
 
-        $standingLastName = $family[0]->LastName;
+        $standingLastName = $family[0]->LastName ?? $family[0]->last_name;
         $string = "";
 
         usort($family, fn($a, $b) => ($a->GenderId ?? 0) <=> ($b->GenderId ?? 0)); // TODO use something a little more intelligent (head first)
 
-        $first = true;
+        $isFirst = true;
         foreach ($family as $p) {
-            if ($standingLastName != $p->LastName) {
+			$last = $p->LastName ?? $p->last_name;
+            if ($standingLastName != $last) {
                 $string .= " " . $standingLastName;
 
-                $standingLastName = $p->LastName;
+                $standingLastName = $last;
             }
 
-            if (!$first && count($family) > 1)
+            if (!$isFirst && count($family) > 1)
                 $string  .= " & ";
 
-            $string .= $p->GoesBy;
+            $string .= $p->GoesBy ?? $p->first_name;
 
-            $first = false;
+            $isFirst = false;
         }
         $string .= " " . $standingLastName;
 
@@ -1240,13 +1282,13 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
     /**
      * Take an array of Person-like objects and group them by family id.
-     * Objects must have a FamilyId or familyId field.
+     * Objects must have a FamilyId or familyId field.  TODO standardize...   (#120)
      *
-     * @param Person[]|object[] $people
+     * @param Person[]|object[]|PersonArray $people
      *
      * @return Person[][]|object[][]
      */
-    public static function groupByFamily(array $people): array
+    public static function groupByFamily($people): array
     {
         $families = [];
         foreach ($people as $p) {

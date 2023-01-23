@@ -5,7 +5,8 @@
 namespace tp\TouchPointWP\Utilities;
 
 use tp\TouchPointWP\Person;
-use tp\TouchPointWP\TouchPointWP_Exception;
+use tp\TouchPointWP\PersonArray;
+use WP_User;
 use WP_User_Query;
 
 if ( ! defined('ABSPATH')) {
@@ -18,7 +19,8 @@ if ( ! defined('ABSPATH')) {
 class PersonQuery extends WP_User_Query
 {
     protected bool $forceResultToPerson;
-    private array $results;
+	/** @var $results PersonArray|WP_User[] */
+    private $results;
     protected string $fields = "all_with_meta"; // Not quite the same as the User Query $query['fields'] parameter
 
     /**
@@ -41,11 +43,11 @@ class PersonQuery extends WP_User_Query
         parent::__construct($query);
     }
 
-    /**
-     * @return Person[]  Generally, a Person array.  Individual elements may be
-     *          TouchPointWP_Exception objects if the person could not be found.
-     */
-    public function get_results(): array
+	/**
+	 * @return PersonArray|array Generally, a Person array.  Individual elements may be
+	 *          TouchPointWP_Exception objects if the person could not be found.
+	 */
+    public function get_results()
     {
         if (! isset($this->results)) {
             $results = parent::get_results();
@@ -56,7 +58,8 @@ class PersonQuery extends WP_User_Query
                 return $results;
             }
 
-            $this->results = array_map(fn($r) => Person::fromQueryResult($r), $results);
+            $results = array_map(fn($r) => Person::fromQueryResult($r), $results);
+	        $this->results = new PersonArray($results);
         }
 
         return $this->results;

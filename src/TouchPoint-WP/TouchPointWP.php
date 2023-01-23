@@ -26,7 +26,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.24";
+    public const VERSION = "0.0.25";
 
     /**
      * The Token
@@ -2391,7 +2391,7 @@ class TouchPointWP
 
         $host = $this->host();
 
-        if ($host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER)
+        if (!$host)
             throw new TouchPointWP_Exception(__('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'), 170002);
 
 
@@ -2466,7 +2466,7 @@ class TouchPointWP
 
         $respDecoded = json_decode($response['body']);
 
-        if ($respDecoded === null) {
+	    if ($respDecoded === null) {
             throw new TouchPointWP_Exception("Connection Error", 179000);
         }
 
@@ -2543,6 +2543,7 @@ class TouchPointWP
      */
     public function doPersonQuery(array $q, bool $verbose = false, int $timeout = 5): stdClass
     {
+	    set_time_limit($timeout + 2);
         $data = TouchPointWP::instance()->apiPost('people_get', $q, $timeout);
         // An exception may already be thrown.
 

@@ -1274,6 +1274,11 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 	    delete_option('tp_sg_cron_last_run');
 
 
+		// 0.0.25 - Involvement Leaders are now Users and Involvement Images
+	    delete_post_meta_by_key('tp_leaders');
+	    delete_post_meta_by_key('tp_imageUrl');
+
+
         // Update version string
         $this->set('version', TouchPointWP::VERSION);
     }
