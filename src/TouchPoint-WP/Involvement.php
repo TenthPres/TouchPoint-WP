@@ -22,6 +22,7 @@ use DateInterval;
 use DateTimeImmutable;
 use Exception;
 use stdClass;
+use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use WP_Error;
 use WP_Post;

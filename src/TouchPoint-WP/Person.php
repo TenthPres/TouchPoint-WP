@@ -21,6 +21,7 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
 use Exception;
 use JsonSerializable;
 use stdClass;
+use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\Session;
 use WP_User;
@@ -218,6 +219,10 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 return $this->familyId;
             case "id":
                 return $this->ID;
+	        case "goesby":
+				return $this->first_name;
+	        case "lastname":
+				return $this->last_name;
         }
 
         // Direct user fields

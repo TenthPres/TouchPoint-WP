@@ -5,7 +5,6 @@
 namespace tp\TouchPointWP\Utilities;
 
 use tp\TouchPointWP\Person;
-use tp\TouchPointWP\PersonArray;
 use WP_User;
 use WP_User_Query;
 

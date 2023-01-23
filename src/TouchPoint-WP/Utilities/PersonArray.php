@@ -1,6 +1,8 @@
 <?php
 
-namespace tp\TouchPointWP;
+namespace tp\TouchPointWP\Utilities;
+
+use tp\TouchPointWP\Person;
 
 /**
  * A collection of people, easily cast to string.
