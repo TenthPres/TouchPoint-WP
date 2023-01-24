@@ -1,8 +1,11 @@
+<script>
 const tpvm = {
+    DEBUG: false,
     involvements: [],
     partners: [],
     meetings: [],
     people: {},
+    locale: '<?php echo str_replace('_', '-', get_locale()); ?>' ?? 'en-US',
     _actions: {}, // collection of actions that have been registered that can be linked via location.hash.
     _utils: {},
     _vmContext: {},
@@ -28,7 +31,9 @@ const tpvm = {
         }
     },
     trigger: function(name, arg1 = null) {
-        // console.log("Firing " + name); // For debugging.
+        if (tpvm.DEBUG) {
+            console.log("Firing " + name);
+        }
         for (const ei in this._events[name]) {
             if (!this._events[name].hasOwnProperty(ei)) continue;
 
@@ -63,3 +68,4 @@ const tpvm = {
     }
 }
 window.addEventListener('load', () => tpvm.trigger('load'))
+</script>

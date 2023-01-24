@@ -25,7 +25,7 @@ use WP_Term;
 /**
  * An Outreach partner, corresponding to a family in TouchPoint
  */
-class Partner implements api, JsonSerializable, updatesViaCron
+class Partner implements api, JsonSerializable, updatesViaCron, geo
 {
     use jsInstantiation {
         jsInstantiation::enqueueForJsInstantiation as protected enqueueForJsInstantiationTrait;
@@ -63,11 +63,6 @@ class Partner implements api, JsonSerializable, updatesViaCron
     protected WP_Post $post;
 
     public const FAMILY_META_KEY = TouchPointWP::SETTINGS_PREFIX . "famId";
-
-    /**
-     * @deprecated since 0.0.15
-     */
-    public const IMAGE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "imageUrl";
 
     public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "partner";
 
@@ -294,11 +289,6 @@ class Partner implements api, JsonSerializable, updatesViaCron
 
         $verbose &= TouchPointWP::currentUserIsAdmin();
 
-        // Required for image handling
-        require_once(ABSPATH . 'wp-admin/includes/media.php');
-        require_once(ABSPATH . 'wp-admin/includes/file.php');
-        require_once(ABSPATH . 'wp-admin/includes/image.php');
-
         $customFev = TouchPointWP::instance()->settings->global_fev_custom;
         $fevFields = $customFev;
 
@@ -475,30 +465,11 @@ class Partner implements api, JsonSerializable, updatesViaCron
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng");
             }
 
-            // Post image
-            global $wpdb;
-            $oldAttId = get_post_thumbnail_id($post->ID);
-            $oldFName = $wpdb->get_var( "SELECT meta_value FROM $wpdb->postmeta WHERE post_id = '$oldAttId' AND meta_key = '_wp_attached_file'" );
-            $oldFName = substr($oldFName, strrpos($oldFName, '/') + 1);
-
-            $newUrl = "";
-            $newFName = "";
-            if ($f->picture !== null) {
-                $newUrl = $f->picture->large ?? "";
-                $newFName = substr($newUrl, strrpos($newUrl, '/') + 1);
-            }
-
-            if ($newFName !== $oldFName) {
-                if ($oldAttId > 0) {
-                    wp_delete_attachment($oldAttId, true);
-                }
-                if ($newUrl !== "") { // Remove and delete
-                    $attId = media_sideload_image($newUrl, $post->ID, $title,'id');
-                    set_post_thumbnail($post->ID, $attId);
-                }
-            }
-
-            delete_post_meta($post->ID, self::IMAGE_META_KEY); // TODO Remove. Deprecated in 0.0.15
+			$newUrl = "";
+			if ($f->picture !== null) {
+				$newUrl = $f->picture->large ?? "";
+	        }
+			Utilities::updatePostImageFromUrl($post->ID, $newUrl, $title);
 
             $postsToKeep[] = $post->ID;
 
@@ -736,7 +707,7 @@ class Partner implements api, JsonSerializable, updatesViaCron
 
 
     /**
-     * @param string|array                        $params
+     * @param string|array $params
      *
      * @return string
      */
@@ -767,7 +738,7 @@ class Partner implements api, JsonSerializable, updatesViaCron
 
         $content = "<div class=\"$class\" id=\"$filterBarId\">";
 
-        $any = __("Any", TouchPointWP::TEXT_DOMAIN);
+        $any = __("Any", "TouchPoint-WP");
 
         // Partner Category
         if (in_array('partner_category', $filters)) {
@@ -786,29 +757,30 @@ class Partner implements api, JsonSerializable, updatesViaCron
             $content .= "<p class=\"TouchPointWP-map-warnings\">";
             $content .= sprintf(
                 "<span class=\"TouchPointWP-map-warning-visibleOnly\" style=\"display:none;\">%s  </span>",
-                sprintf( // i18n: %s is for the user-provided "Global Partner" term
-                    __("The %s listed are only those shown on the map.", TouchPointWP::TEXT_DOMAIN),
+                sprintf(  // translators: %s is for the user-provided term for the items on the map (e.g. Small Group or Partner)
+                    __("The %s listed are only those shown on the map.", "TouchPoint-WP"),
                     TouchPointWP::instance()->settings->global_name_plural
                 )
             );
             $content .= sprintf(
                 "<span class=\"TouchPointWP-map-warning-visibleAndInvisible\" style=\"display:none;\">%s  </span>",
-                sprintf( // i18n: %s is for the user-provided "Global Partner" and "Secure Partner" terms.
-                    __("The %s listed are only those shown on the map, as well as all %s.", TouchPointWP::TEXT_DOMAIN),
+                sprintf(  // translators: %s is for the user-provided "Global Partner" and "Secure Partner" terms.
+                    __('The %1$s listed are only those shown on the map, as well as all %2$s.', 'TouchPoint-WP'),
                     TouchPointWP::instance()->settings->global_name_plural,
                     TouchPointWP::instance()->settings->global_name_plural_decoupled
                 )
             );
-            $content .= sprintf(
-                "<span class=\"TouchPointWP-map-warning-zoomOrReset\" style=\"display:none;\">%s  </span>",
-                sprintf( // i18n: %s is the link to reset the map
-                    __("Zoom out or %s to see more.", TouchPointWP::TEXT_DOMAIN),
-                    sprintf( // i18n: %s is the link to reset the map
-                        "<a href=\"#\" class=\"TouchPointWP-map-resetLink\">%s</a>",
-                        __("reset the map", TouchPointWP::TEXT_DOMAIN)
-                    )
-                )
-            );
+	        $content .= sprintf(
+		        "<span class=\"TouchPointWP-map-warning-zoomOrReset\" style=\"display:none;\">%s  </span>",
+		        sprintf(
+		            // translators: %s is the link to "reset the map"
+			        __("Zoom out or %s to see more.", 'TouchPoint-WP'),
+			        sprintf(
+				        "<a href=\"#\" class=\"TouchPointWP-map-resetLink\">%s</a>",
+				        _x("reset the map", "Zoom out or reset the map to see more.", 'TouchPoint-WP')
+			        )
+		        )
+	        );
             $content .= "</p>";
         }
 
@@ -928,9 +900,9 @@ class Partner implements api, JsonSerializable, updatesViaCron
         // Setup cron for updating Partners daily.
         add_action(self::CRON_HOOK, [self::class, 'updateCron']);
         if ( ! wp_next_scheduled(self::CRON_HOOK)) {
-            // Runs at 6am EST (11am UTC), hypothetically after TouchPoint runs its Morning Batches.
+            // Runs at 6:15am EST (11:15am UTC), hypothetically after TouchPoint runs its Morning Batches.
             wp_schedule_event(
-                date('U', strtotime('tomorrow') + 3600 * 11),
+                date('U', strtotime('tomorrow') + 3600 * 11.25),
                 'daily',
                 self::CRON_HOOK
             );
@@ -1021,9 +993,10 @@ class Partner implements api, JsonSerializable, updatesViaCron
      */
     public static function registerScriptsAndStyles(): void
     {
+		$i = TouchPointWP::instance();
         wp_register_script(
             TouchPointWP::SHORTCODE_PREFIX . 'partner-defer',
-            TouchPointWP::instance()->assets_url . 'js/partner-defer.js',
+            $i->assets_url . 'js/partner-defer' . $i->script_ext,
             [TouchPointWP::SHORTCODE_PREFIX . 'base-defer'],
             TouchPointWP::VERSION,
             true
@@ -1158,11 +1131,7 @@ class Partner implements api, JsonSerializable, updatesViaCron
         $newContent = $default;
         if ($ev !== "" && property_exists($famObj->familyEV, $ev) && $famObj->familyEV->$ev !== null && $famObj->familyEV->$ev->value !== null) {
             $newContent = $famObj->familyEV->$ev->value;
-            $newContent = strip_tags(
-                $newContent,
-                ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li']
-            );
-            $newContent = trim($newContent);
+            $newContent = Utilities::standardizeHtml($newContent, "partner-import");
         }
 
         return $newContent;
@@ -1190,7 +1159,7 @@ class Partner implements api, JsonSerializable, updatesViaCron
 
         // Not shown on map (only if there is a map, and the partner isn't on it because they lack geo.)
         if (self::$_hasArchiveMap && $this->geo === null && !$this->decoupleLocation) {
-            $r[] = __("Not Shown on Map", TouchPointWP::TEXT_DOMAIN);
+            $r[] = __("Not Shown on Map", "TouchPoint-WP");
             TouchPointWP::requireScript("fontAwesome");  // For map icons
         }
 
@@ -1231,7 +1200,7 @@ class Partner implements api, JsonSerializable, updatesViaCron
 
         // Show on map button.  (Only works if map is called before this is.)
         if (self::$_hasArchiveMap && !$this->decoupleLocation && $this->geo !== null) {
-            $text = __("Show on Map", TouchPointWP::TEXT_DOMAIN);
+            $text = __("Show on Map", "TouchPoint-WP");
             $ret .= "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  ";
         }
 
@@ -1352,4 +1321,30 @@ class Partner implements api, JsonSerializable, updatesViaCron
         }
         return $this;
     }
+
+	/**
+	 * Indicates whether a map of a *single* Partner can be displayed.
+	 *
+	 * @return bool
+	 */
+	public function hasGeo(): bool
+	{
+		if ($this->decoupleLocation)
+			return false;
+
+		return $this->geo !== null;
+	}
+
+	public function asGeoIFace(string $type = "unknown"): ?object
+	{
+		if ($this->hasGeo()) {
+			return (object)[
+				'lat'   => $this->geo->lat,
+				'lng'   => $this->geo->lng,
+				'human' => $this->name,
+				'type'  => $type
+			];
+		}
+		return null;
+	}
 }

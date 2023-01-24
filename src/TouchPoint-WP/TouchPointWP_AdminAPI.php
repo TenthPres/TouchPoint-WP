@@ -7,6 +7,10 @@ namespace tp\TouchPointWP;
 use WP_Post;
 use ZipArchive;
 
+if (!TOUCHPOINT_COMPOSER_ENABLED) {
+    require_once 'api.php';
+}
+
 if ( ! defined('ABSPATH')) {
     exit;
 }
@@ -51,7 +55,7 @@ class TouchPointWP_AdminAPI implements api {
                 }
                 exit;
 
-            case "scriptupdate":
+            case "script-update":
                 if (!TouchPointWP::currentUserIsAdmin()) {
                     return false;
                 }
@@ -63,6 +67,20 @@ class TouchPointWP_AdminAPI implements api {
                 }
                 exit;
 
+            case "debug-enable":
+                if (TouchPointWP::currentUserIsAdmin()) {
+                    echo self::setDebug(true) ? "Success" : "Failure";
+                    exit;
+                }
+                return false;
+
+            case "debug-disable":
+                if (TouchPointWP::currentUserIsAdmin()) {
+                    echo self::setDebug(false) ? "Success" : "Failure";
+                    exit;
+                }
+                return false;
+
             case "force-migrate":
                 if (!TouchPointWP::currentUserIsAdmin()) {
                     return false;
@@ -72,6 +90,20 @@ class TouchPointWP_AdminAPI implements api {
         }
 
         return false;
+    }
+
+    /**
+     * @param bool $debug
+     *
+     * @return bool
+     */
+    protected static function setDebug(bool $debug): bool
+    {
+        $debugSet = $debug ? "true" : "";
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === $debugSet) {
+            return true;
+        }
+        return update_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", $debugSet, false);
     }
 
     /**
@@ -390,9 +422,6 @@ class TouchPointWP_AdminAPI implements api {
             if (!in_array('*', $filenames) && !in_array($fn, $filenames)) {
                 continue;
             }
-            if ($fn === 'WebAuth' && in_array('*', $filenames)) {
-                continue;
-            }
 
             $outFn = self::getTpFilenameForRepoFilename($fn);
 
@@ -454,10 +483,6 @@ class TouchPointWP_AdminAPI implements api {
             case 'WebApi':
                 $newFn = TouchPointWP::instance()->settings->api_script_name;
                 break;
-
-            case 'WebAuth':
-                $newFn = TouchPointWP::instance()->settings->auth_script_name;
-                break;
         }
 
         $newFn = trim($newFn); // this is necessary.
@@ -474,8 +499,13 @@ class TouchPointWP_AdminAPI implements api {
      */
     public static function showError($message)
     {
-        $class = 'notice notice-error';
-        printf( '<div class="%1$s"><p><b>TouchPoint-WP:</b> %2$s</p></div>', esc_attr($class), esc_html($message));
+        add_action('admin_notices',
+            function() use ($message) {
+                $class = 'notice notice-error';
+                printf( '<div class="%1$s"><p><b>TouchPoint-WP:</b> %2$s</p></div>', esc_attr($class), $message);
+            }, 10, 2
+        );
+
     }
 
 }

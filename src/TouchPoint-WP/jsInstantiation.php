@@ -34,7 +34,6 @@ trait jsInstantiation {
         // Remove duplicates.  (array_unique won't handle objects cleanly)
         $ids     = array_map(fn($item) => $item->getTouchPointId(), $list);
         $uniqIds = array_unique($ids);
-
         return array_values(array_intersect_key($list, $uniqIds));
     }
 

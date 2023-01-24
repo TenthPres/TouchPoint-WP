@@ -10,8 +10,11 @@ help you with this.
 ## Features
 ### Involvement Lists & Small Group Finder
 - Publish a list and map of involvements, with dynamic filtering based on actual data, such as demographics and location.
+  - e.g. filter Small Groups by Age and Prevailing Marital Status *based on the people in the involvement*.  You don't 
+  need to change any per-group settings, just keep the roster up to date.
 - Suggest Small Groups physically nearby based on geolocation.
 - Allow website guests to easily contact leaders or join a group, without exposing leaders' contact info publicly.
+- Includes Search Engine optimizing metadata. 
 
 [Small Groups Example.](https://www.tenth.org/smallgroups)
 [Classes Example.](https://www.tenth.org/abs)
@@ -22,10 +25,10 @@ No login required, just an email address and zip code.
 
 ### People Lists
 Show your Staff members, Elders, or other collections of people, automatically kept in sync with TouchPoint.
-[Example.](https://www.tenth.org/about/staff)
+[Example.](https://www.tenth.org/about/staff)  (This example and others like is are 100% updated from TouchPoint, including the titles and social links.)
 
 ### Outreach Partners
-Automatically import partner bios and info can be imported from TouchPoint for display on your public website, with 
+Automatically import partner bios and info from TouchPoint for display on your public website, with 
 appropriate care for their security.
 [Example.](https://www.tenth.org/outreach/partners)
 
@@ -33,34 +36,49 @@ appropriate care for their security.
 Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by
 ModernTribe](https://theeventscalendar.com/).  This is compatible with both the free and "Pro" versions.
 
-<!--
 ### Authentication (Beta)
-Authenticate TouchPoint users to WordPress, so you can know your website users.  Optionally, this authentication can
-happen silently in the background, so that if a user is logged into TouchPoint, they are automatically logged into your
-website.
--->
+Authenticate TouchPoint users to WordPress, so you can know your website users. 
+
+## Costs & Considerations
+
+**This plugin is FREE!**  We developed this plugin for us, but want to share it with any other churches that would
+benefit from it.  If you already have a WordPress website, you can probably get started in about five minutes.
+
+If you're considering whether WordPress is the right tool for your church, here were the factors that led us this
+direction:
+- WordPress is very widely supported, and it's easy to find developers who are familiar with it when custom work is
+  needed.
+- The WordPress ecosystem has thousands of themes and plugins available to do just about anything.
+- WordPress itself is free, very powerful, ridiculously flexible, and extremely well documented.
+- Other bespoke CMS platforms come and go with the startups that create them.  WordPress isn't going anywhere.
+- We own 100% of our content, and we have total control over it.
+- WordPress can be complicated, but we have the technical staff to support and configure it.
+
+If you're not sure whether WordPress is the right tool for you, feel free to get in touch.  We can also have good 
+relationships with several firms who could help with the setup and technical maintenance if you're interested.  But,
+it's probably not the right tool for every church.
 
 ## Future Features
 - Authenticate
-    - Unify your public web properties with a single login. 
     - Track viewership of webpages and web resources non-anonymously.  (Know who attended your virtual worship service.)
     - Sync WordPress Permissions with TouchPoint involvements or roles.
-- Events (Requires [The Events Calendar from ModernTribe](https://theeventscalendar.com/))
-    - Link TouchPoint Meetings with Calendar events (Requires Pro version of The Events Calendar)
+- Events
+    - Sync TouchPoint Meetings with events on your public web calendar.
 - Small Groups
     - Suggest demographically-targeted small groups.
-- Bios & Contact Info
-    - Generate bio pages for officers or staff members from TouchPoint People records.
-    
+- Integrated Directory
+    - Find someone's contact info by typing their name into the standard site search bar.
+- Prayer Requests
+  - Collect prayer requests through a form, and display them to people with the appropriate access roles.
 
 ## Requirements
 
 Making this work requires notable configuration of your TouchPoint database.  We've scripted what we can, and the
 remainder is in [the Installation Instructions](https://github.com/TenthPres/TouchPoint-WP/wiki/Installation).
 
-Some features require other plugins, which may or may not be free.
+Some features require other plugins, which may have fees attached.
 
-You will need a TouchPoint user account with API-level access.  New TouchPoint databases do not have one by default.  
+You will need a TouchPoint user account with API-level access. New TouchPoint databases do not have one by default. 
 If your church doesn't have one, open a support ticket with TouchPoint to create one, referencing this plugin.
 
 If you're using the Authentication component, your WordPress site **MUST** use HTTPS with a valid certificate.
@@ -79,7 +97,7 @@ you're interested in using this plugin in a multisite environment, [please get i
 This plugin uses PSR-12 coding standards, which are significantly different from the WordPress standards, but are easier
 for working in [OOP](https://en.wikipedia.org/wiki/Object-oriented_programming).  This plugin heavily uses OOP.
 
-Several plugins have lended structure or code snippets to this plugin:
+Several plugins have lended structure, code, or inspiration to this plugin:
 - [Plugin Template from hlashbrooke](https://github.com/hlashbrooke/WordPress-Plugin-Template) (GPLv2)
 - [AAD SSO from psignoret](https://github.com/psignoret/aad-sso-wordpress) (MIT)
 
@@ -93,3 +111,8 @@ Several plugins have lended structure or code snippets to this plugin:
 ### License
 This plugin is released under the AGPL, which is "very strong copy-left".  Therefore, if you change this code and use it
 in production, you *MUST* make your changes available.
+
+## Support
+We're a church, not a software company.  However, we really do want to see you thrive.  While we won't make any 
+guarantees about support, we do try to be pretty responsive in troubleshooting. Get in touch or open an issue if you 
+have questions. 

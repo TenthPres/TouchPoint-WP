@@ -273,4 +273,39 @@ class Involvement_PostTypeSettings {
 
         return json_encode($new);
     }
+
+	/**
+	 * @param string|string[]|int[] $memberTypes
+	 *
+	 * @return int[]
+	 */
+	protected static function memberTypesToInts($memberTypes): array
+	{
+		$memberTypes = str_replace('mt', '', $memberTypes);
+
+		/** @noinspection SpellCheckingInspection */
+		return array_map('intval', $memberTypes);
+	}
+
+	/**
+	 * Get the leader member types, as an array of ints
+	 *
+	 * @return int[]
+	 */
+	public function leaderTypeInts(): array
+	{
+		return self::memberTypesToInts($this->leaderTypes);
+	}
+
+	/**
+	 * Get the host member types, as an array of ints.  Will be null if useGeo is false.
+	 *
+	 * @return ?int[]
+	 */
+	public function hostTypeInts(): ?array
+	{
+		if (!$this->useGeo)
+			return null;
+		return self::memberTypesToInts($this->hostTypes);
+	}
 }

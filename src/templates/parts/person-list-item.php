@@ -18,11 +18,13 @@ if (!empty($image)) {
     <header class="entry-header">
         <div class="entry-header-inner">
             <?php
-            if ($person->hasProfilePage()) {
+            $link = $person->getProfileUrl();
+            $useLink = $link !== null;
+            if ($useLink) {
                 /** @noinspection HtmlUnknownTarget */
                 echo sprintf(
                     '<h2 class="entry-title default-max-width heading-size-1"><a href="%s">%s</a></h2>',
-                    esc_url($person->getProfileUrl()),
+                    esc_url($link),
                     esc_html($person->display_name)
                 );
             } else {

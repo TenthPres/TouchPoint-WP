@@ -69,12 +69,12 @@ abstract class Rsvp
                 'class'     => 'TouchPoint-RSVP',
                 'btnclass'  => 'btn button',
                 'meetingid' => null,
-                'preload'   => __("Loading...", TouchPointWP::TEXT_DOMAIN)
+                'preload'   => __("Loading...", "TouchPoint-WP")
             ],
             $params,
             self::SHORTCODE
         );
-        $content = $content === '' ? __("RSVP", TouchPointWP::TEXT_DOMAIN) : $content;
+        $content = $content === '' ? __("RSVP", "TouchPoint-WP") : $content;
 
         // Verify that meeting ID is provided
         if ( ! isset($params['meetingid']) || ! is_numeric($params['meetingid'])) {
@@ -101,7 +101,7 @@ abstract class Rsvp
         }
 
         // create the link
-        if (TouchPointWP::isApi()) {
+        if (TouchPointWP::isApi() || is_feed()) {
             global $post;
             $link = get_permalink($post);
             return "<a href=\"$link#tp-rsvp-m$meetingId\" $class><span class=\"rsvp-btn-content\">$content</span></a>";
@@ -109,6 +109,7 @@ abstract class Rsvp
             TouchPointWP::requireScript('swal2-defer');
             TouchPointWP::requireScript('meeting-defer');
             TouchPointWP::enqueueActionsStyle('rsvp');
+            Person::enqueueUsersForJsInstantiation();
 
             return "<a href=\"#\" onclick=\"return false;\" $class disabled data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$content</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
         }

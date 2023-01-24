@@ -1,0 +1,29 @@
+{
+  "name": "touchpoint-wp",
+  "version": "0.0.23",
+  "description": "A WordPress Plugin for integrating with TouchPoint Church Management Software.",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TenthPres/TouchPoint-WP.git"
+  },
+  "keywords": [
+    "WordPress",
+    "wp",
+    "TouchPoint",
+    "ChMS",
+    "\"Church",
+    "Management\""
+  ],
+  "author": "James K. <jkrrv@jkrrv.org>",
+  "license": "AGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/TenthPres/TouchPoint-WP/issues"
+  },
+  "homepage": "https://github.com/TenthPres/TouchPoint-WP#readme",
+  "devDependencies": {
+    "uglify-js": "^3.17.4"
+  }
+}

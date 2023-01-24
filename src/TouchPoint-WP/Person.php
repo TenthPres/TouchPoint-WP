@@ -15,18 +15,25 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
     require_once "updatesViaCron.php";
     require_once "InvolvementMembership.php";
     require_once "Utilities/PersonQuery.php";
+    require_once "Utilities/Session.php";
 }
 
 use Exception;
 use JsonSerializable;
 use stdClass;
+use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
+use tp\TouchPointWP\Utilities\Session;
 use WP_User;
 
 /**
  * This Person Object connects a WordPress User with a TouchPoint Person.
  *
  * @property ?object $picture An object with the picture URLs and other metadata
+ * @property-read int familyId  The Family ID
+ * @property-read int peopleId  The People ID
+ * @property ?string $loginSessionToken  A token that is saved on the Session variable and used to ensure links aren't used between sessions.
+ * @property ?string $loginToken  A token used to validate the user.
  */
 class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 {
@@ -38,6 +45,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     public const BACKUP_USER_PREFIX = "touchpoint-";
 
     public const META_PEOPLEID = TouchPointWP::SETTINGS_PREFIX . 'peopleId';
+    public const META_FAMILYID = TouchPointWP::SETTINGS_PREFIX . 'familyId';
     public const META_CUSTOM_PREFIX = 'c_'; // setters and getters also insert standard setting prefix
     public const META_INV_MEMBER_PREFIX = TouchPointWP::SETTINGS_PREFIX . "inv_mem_";
     public const META_INV_ATTEND_PREFIX = TouchPointWP::SETTINGS_PREFIX . "inv_att_";
@@ -50,13 +58,18 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     private static array $_indexingQueries;
     private static array $_instances = [];
 
+    private static array $_peopleWhoNeedWpIdUpdatedInTouchPoint = [];
+
     public int $peopleId;
+    public int $familyId;
 
     private array $_userFieldsToUpdate = [];
     private array $_userMetaToUpdate = [];
     private array $_meta = [];
     private array $_invs;
     private bool $_invsAllFetched = false;
+
+    private static bool $_enqueueUsersForJsInstantiation = false;
 
     private const FIELDS_FOR_USER_UPDATE = [
         'user_pass',
@@ -84,7 +97,9 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
     private const FIELDS_FOR_META = [
         'picture',
-        'familyId'
+        'familyId',
+        'loginToken',
+        'loginSessionToken'
     ];
 
 
@@ -98,6 +113,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         parent::__construct($id, $name, $site_id);
 
         $this->peopleId = intval($this->get(self::META_PEOPLEID));
+        $this->familyId = intval($this->get(self::META_FAMILYID));
 
         self::$_instances[$this->ID] = $this;
     }
@@ -114,7 +130,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         }
 
         if (! property_exists($queryResult, "ID")) {
-            return new TouchPointWP_Exception(__("No WordPress User ID provided for initializing a person object.", TouchPointWP::TEXT_DOMAIN));
+            return new TouchPointWP_Exception(__("No WordPress User ID provided for initializing a person object.", "TouchPoint-WP"));
         }
 
         return new Person($queryResult->ID);
@@ -123,7 +139,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     /**
      * Get a person from a WordPress User ID
      *
-     * @param $id
+     * @param $id int|array|object The WordPress user ID, or an object/array with an ID property representing that ID.
      *
      * @return Person|null
      */
@@ -199,8 +215,14 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             /** @noinspection SpellCheckingInspection */
             case "peopleid":
                 return $this->peopleId;
+            case "familyid":
+                return $this->familyId;
             case "id":
                 return $this->ID;
+	        case "goesby":
+				return $this->first_name;
+	        case "lastname":
+				return $this->last_name;
         }
 
         // Direct user fields
@@ -241,6 +263,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         switch (strtolower($key)) {
             /** @noinspection SpellCheckingInspection */
             case "peopleid":
+            case "familyid":
             case "id":
                 _doing_it_wrong(__FUNCTION__, "IDs can only be updated within the Person class.", TouchPointWP::VERSION);
                 return;
@@ -274,7 +297,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     /**
      * @param int $peopleId Update the PeopleId Meta field if it's somehow missing.
      *
-     * @return bool False is the update is not completed properly.  True if the value is unchanged or updated.
+     * @return bool False if the update is not completed properly.  True if the value is unchanged or updated.
      */
     protected function updatePeopleId(int $peopleId): bool
     {
@@ -285,6 +308,24 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         $result = !!update_user_option($this->ID, self::META_PEOPLEID, $peopleId, true);
 
         $this->peopleId = $this->get(self::META_PEOPLEID);
+
+        return $result;
+    }
+
+    /**
+     * @param int $familyId Update the familyId Meta field if it's somehow missing.
+     *
+     * @return bool False if the update is not completed properly.  True if the value is unchanged or updated.
+     */
+    protected function updateFamilyId(int $familyId): bool
+    {
+        if ($familyId === $this->familyId) {
+            return true;
+        }
+
+        $result = !!update_user_option($this->ID, self::META_FAMILYID, $familyId, true);
+
+        $this->familyId = $this->get(self::META_FAMILYID);
 
         return $result;
     }
@@ -396,7 +437,6 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         if ($loadedPart === false) {
             TouchPointWP::enqueuePartialsStyle();
             ob_start();
-            /** @noinspection PhpIncludeInspection */
             require TouchPointWP::$dir . "/src/templates/parts/person-list.php";
             $out .= ob_get_clean();
         }
@@ -554,7 +594,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     public static function userContactMethods(array $methods): array
     {
         if (TouchPointWP::currentUserIsAdmin()) {
-            $methods[self::META_PEOPLEID] = __("TouchPoint People ID", TouchPointWP::TEXT_DOMAIN);
+            $methods[self::META_PEOPLEID] = __("TouchPoint People ID", "TouchPoint-WP");
         }
 
         return $methods;
@@ -601,7 +641,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             $queryNeeded = true;
         }
 
-        // Update People Indexes
+        // Find People Lists in post content and add their involvements to the query.
         if (TouchPointWP::instance()->settings->enable_people_lists) {
             $posts = Utilities::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_LIST);
 
@@ -615,8 +655,47 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             self::$_indexingMode = false;
         }
 
-        // Update Involvement Leaders
-        // TODO DIR this
+        // Add Involvement Leaders to the query.
+	    if (TouchPointWP::instance()->settings->enable_involvements) {
+			foreach (Involvement_PostTypeSettings::instance() as $type) { // foreach Involvement Post Type...
+				set_time_limit(10);
+
+				// Get the InvIds for the Involvement Type's Posts
+				$postType = $type->postTypeWithPrefix();
+				$key = Involvement::INVOLVEMENT_META_KEY;
+				global $wpdb;
+				/** @noinspection SqlResolve */
+				$sql = "SELECT pm.meta_value AS iid
+                    FROM $wpdb->postmeta AS pm
+                    JOIN $wpdb->posts as p ON pm.post_id = p.Id
+                    WHERE p.post_type = '$postType' AND pm.meta_key = '$key'";
+
+				foreach ($wpdb->get_col($sql) as $iid) {
+					$iid = intval($iid);
+
+					// merge the query with already-existing queries.
+					if (!isset(self::$_indexingQueries['inv'][$iid])) {
+						self::$_indexingQueries['inv'][$iid] = [
+							'invId'          => $iid,
+							'memTypes'       => $type->leaderTypeInts(),
+//                           'subGroups' => null,
+							'with_subGroups' => false
+						];
+					} elseif (is_array(self::$_indexingQueries['inv'][$iid]['memTypes'])) {
+						$r = array_merge(
+							self::$_indexingQueries['inv'][$iid]['memTypes'],
+							$type->leaderTypeInts()
+						);
+						self::$_indexingQueries['inv'][$iid]['memTypes'] = array_unique($r);
+					} elseif (self::$_indexingQueries['inv'][$iid]['memTypes'] !== null) {  // Unknown how to handle this merge.
+						$e = new TouchPointWP_Exception("An Involvement ($iid) has been requested multiple times with mixed contexts.");
+						if ($verbose) {
+							echo $e;
+						}
+					}
+				}
+			}
+	    }
 
         if (count(self::$_indexingQueries['inv']) > 0) {
             $queryNeeded = true;
@@ -642,8 +721,11 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         // Submit to API
         $people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, 50);
 
+		set_time_limit(count($people->people) * 5 + 10); // a very generous time limit.
+
         // Parse the API results
-        $count = self::updatePeopleFromApiData($people->people, $verbose);
+	    $allowCreation = TouchPointWP::instance()->settings->enable_people_lists === "on";
+        $count = self::updatePeopleFromApiData($people->people, $allowCreation, $verbose);
 
         if ($count !== 0) {
             TouchPointWP::instance()->settings->set('person_cron_last_run', time());
@@ -654,191 +736,207 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         return $count;
     }
 
-    /**
-     * @param stdClass[] $people An array of objects from TouchPoint that each corresponds with a Person.
-     * @param bool       $verbose
-     *
-     * @return int  False on failure.  Otherwise, the number of updates.
-     */
-    protected static function updatePeopleFromApiData(array $people, bool $verbose = false): int
+	/**
+	 * @param stdClass[] $people An array of objects from TouchPoint that each corresponds with a Person.
+	 * @param bool       $allowCreation
+	 * @param bool       $verbose
+	 *
+	 * @return int  False on failure.  Otherwise, the number of updates.
+	 */
+    protected static function updatePeopleFromApiData(array $people, bool $allowCreation, bool $verbose = false): int
     {
         $peopleUpdated = 0;
 
-        $peopleWhoNeedWpIdUpdatedInTouchPoint = [];
-
         foreach ($people as $pData) {
-            $peopleUpdated++;
+            $peopleUpdated += (self::updatePersonFromApiData($pData, $allowCreation, $verbose, true) !== null);
 
             set_time_limit(30);
-            $person = null;
-            $updateWpIdInTouchPoint = true;
-
-            // Find person by WordPress ID, if provided.
-            $wpId = null;
-            foreach ($pData->PeopleEV as $pev) {
-                if ($pev->field === TouchPointWP::instance()->settings->people_ev_wpId && $pev->type === "Int") {
-                    if (intval($pev->value) !== 0) {
-                        $wpId = intval($pev->value);
-                    }
-                    break;
-                }
-            }
-            if ($wpId !== null) {
-                $q = new PersonQuery(
-                    [
-                        'include' => [$wpId]
-                    ]
-                );
-                if ($q->get_total() > 0) { // Will only be 0 or 1, unless something has gone disastrously wrong.
-                    $person = $q->get_first_result();
-                    update_user_option($person->ID, self::META_PEOPLEID, $pData->PeopleId, true);
-                    $updateWpIdInTouchPoint = false;
-                }
-            }
-
-            // Find person by PeopleId
-            if ($person === null) {
-                $q = new PersonQuery(
-                    [
-                        'meta_key'     => self::META_PEOPLEID,
-                        'meta_value'   => $pData->PeopleId,
-                        'meta_compare' => '='
-                    ]
-                );
-                if ($q->get_total() === 1) {
-                    $person = $q->get_first_result();
-                }
-            }
-
-            // Create new person
-            if ($person === null) {
-                if (Person::createUsers()) {
-                    // Provision a new user, since we were unsuccessful in finding one.
-                    set_time_limit(60);
-                    $uid = wp_create_user(self::generateUserName($pData), com_create_guid()); // Email addresses are imported/updated later, which prevents notification emails.
-                    if (is_numeric($uid)) { // user was successfully generated.
-                        update_user_option($uid, 'created_by', 'TouchPoint-WP', true);
-                        update_user_option($uid, self::META_PEOPLEID, $pData->PeopleId, true);
-                        $person = new Person($uid);
-                    }
-                }
-            }
-
-            // User doesn't exist.
-            if ($person === null) {
-                continue;
-            }
-
-            if ($updateWpIdInTouchPoint) {
-                $peopleWhoNeedWpIdUpdatedInTouchPoint[] = [
-                    'PeopleId'  => $pData->PeopleId,
-                    'WpId'      => $person->ID
-                ];
-            }
-
-            // Make sure the PeopleId is correct, just in case.
-            $person->updatePeopleId($pData->PeopleId);
-
-            $person->first_name = $pData->GoesBy;
-            $person->last_name = $pData->LastName;
-            $person->display_name = $pData->DisplayName;
-            if (count($pData->Emails) > 0) {
-                $person->user_email = $pData->Emails[0];
-            } else {
-                $person->user_email = null;
-            }
-            $person->picture = $pData->Picture;
-
-            // Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
-
-            // Apply EV Types
-            $pData->PeopleEV = ExtraValueHandler::jsonToDataTyped($pData->PeopleEV ?? (object)[]);
-
-            // Apply Custom EVs
-            $fields = TouchPointWP::instance()->getPersonEvFields(TouchPointWP::instance()->settings->people_ev_custom);
-            foreach ($fields as $fld) {
-                if (isset($pData->PeopleEV->{$fld->hash})) {
-                    $person->setExtraValueWP($fld->field, $pData->PeopleEV->{$fld->hash}->value);
-                } else {
-                    $person->removeExtraValueWP($fld->field);
-                }
-            }
-            unset($fields, $fld);
-
-            // Apply Bio EV
-            $bioField = TouchPointWP::instance()->settings->people_ev_bio;
-            if ($bioField !== "") {
-                if (isset($pData->PeopleEV->$bioField)) {
-                    update_user_meta($person->ID, 'description', $pData->PeopleEV->$bioField->value);
-                } else {
-                    update_user_meta($person->ID, 'description', '');
-                }
-            }
-            unset($bioField);
-
-            // Removal of no-longer valid EV Fields happens within Cleanup::cleanupPersonEVs
-
-            // Involvements!
-            if (isset($pData->Inv)) {
-                $currentInvs = $person->getInvolvementMemberships();
-                $inv_del     = array_keys($currentInvs);
-                $inv_updates = [];
-
-                // Process diffs, as appropriate.
-                foreach ($pData->Inv as $i) {
-                    if (($key = array_search($i->iid, $inv_del)) !== false) {
-                        unset($inv_del[$key]);
-                    }
-
-                    if ( ! isset($currentInvs[$i->iid])) {
-                        $inv_updates[self::META_INV_MEMBER_PREFIX . $i->iid] = $i->memType;
-                        $inv_updates[self::META_INV_ATTEND_PREFIX . $i->iid] = $i->attType;
-                        $inv_updates[self::META_INV_DESC_PREFIX . $i->iid]   = $i->descr;
-                        continue;
-                    }
-
-                    if ($currentInvs[$i->iid]->mt !== $i->memType) {
-                        $inv_updates[self::META_INV_MEMBER_PREFIX . $i->iid] = $i->memType;
-                    }
-                    if ($currentInvs[$i->iid]->at !== $i->attType) {
-                        $inv_updates[self::META_INV_ATTEND_PREFIX . $i->iid] = $i->attType;
-                    }
-                    if ($currentInvs[$i->iid]->description !== $i->descr) {
-                        $inv_updates[self::META_INV_DESC_PREFIX . $i->iid] = $i->descr;
-                    }
-                }
-
-                foreach ($inv_updates as $k => $v) {
-                    if ($v === null || trim($v) === '') { // don't waste space on blanks--especially descriptions.
-                        delete_user_option($person->ID, $k, true);
-                    } else {
-                        update_user_option($person->ID, $k, $v, true);
-                    }
-                }
-                foreach ($inv_del as $iid) {
-                    delete_user_option($person->ID, self::META_INV_MEMBER_PREFIX . $iid, true);
-                    delete_user_option($person->ID, self::META_INV_ATTEND_PREFIX . $iid, true);
-                    delete_user_option($person->ID, self::META_INV_DESC_PREFIX . $iid, true);
-                }
-            }
-
-            if ($verbose) {
-                var_dump($pData);
-                var_dump($person);
-                echo "<hr />";
-            }
-
-            // Submit update.
-            $person->submitUpdate();
         }
         set_time_limit(30);
 
-        if (count($peopleWhoNeedWpIdUpdatedInTouchPoint) > 0) {
-            self::updatePeopleWordPressIDs($peopleWhoNeedWpIdUpdatedInTouchPoint);
+        if (count(self::$_peopleWhoNeedWpIdUpdatedInTouchPoint) > 0) {
+            self::updatePeopleWordPressIDs();
             TouchPointWP::instance()->updatePersonEvFields(); // force update to account for new WordPress IDs
         }
 
         return $peopleUpdated;
+    }
+
+	/**
+	 * Update a single person's information on WordPress, and WP User ID TouchPoint.
+	 *
+	 * @param mixed $pData
+	 * @param bool  $allowCreation
+	 * @param bool  $verbose
+	 * @param bool  $deferTPUpdate
+	 *
+	 * @return ?Person The updated person, or null if no user was found/updated.
+	 */
+    public static function updatePersonFromApiData($pData, bool $allowCreation, bool $verbose = false, bool $deferTPUpdate = false): ?Person
+    {
+        $person = null;
+        $updateWpIdInTouchPoint = true;
+
+        // Find person by WordPress ID, if provided.
+        $wpId = null;
+        foreach ($pData->PeopleEV as $pev) {
+            if ($pev->field === TouchPointWP::instance()->settings->people_ev_wpId && $pev->type === "Int") {
+                if (intval($pev->value) !== 0) {
+                    $wpId = intval($pev->value);
+                }
+                break;
+            }
+        }
+        if ($wpId !== null) {
+            $q = new PersonQuery(
+                [
+                    'include' => [$wpId]
+                ]
+            );
+            if ($q->get_total() === 1) { // Will only be 0 or 1, unless something has gone disastrously wrong.
+                $person = $q->get_first_result();
+                $updateWpIdInTouchPoint = false;
+            } // TODO handle the error condition where there's more than one. (#119)
+        }
+
+        // Find person by PeopleId
+        if ($person === null) {
+            $q = new PersonQuery(
+                [
+                    'meta_key'     => self::META_PEOPLEID,
+                    'meta_value'   => $pData->PeopleId,
+                    'meta_compare' => '='
+                ]
+            );
+            if ($q->get_total() === 1) {
+                $person = $q->get_first_result();
+            } // TODO handle the error condition where there's more than one.  (#119
+        }
+
+        // Create new person
+        if ($person === null && $allowCreation) {
+            // Provision a new user, since we were unsuccessful in finding one.
+            set_time_limit(60);
+            $uid = wp_create_user(self::generateUserName($pData), Utilities::createGuid()); // Email addresses are imported/updated later, which prevents notification emails.
+            if (is_numeric($uid)) { // user was successfully generated.
+                update_user_option($uid, 'created_by', 'TouchPoint-WP', true);
+                $person = new Person($uid);
+            }
+        }
+
+        // User doesn't exist. (despite potential creation)
+        if ($person === null) {
+            return null;
+        }
+
+        if ($updateWpIdInTouchPoint) {
+            self::$_peopleWhoNeedWpIdUpdatedInTouchPoint[] = [
+                'PeopleId'  => $pData->PeopleId,
+                'WpId'      => $person->ID
+            ];
+        }
+
+        // Make sure the PeopleId is correct, just in case.
+        $person->updatePeopleId($pData->PeopleId);
+        $person->updateFamilyId($pData->FamilyId);
+
+        $person->first_name = $pData->GoesBy;
+        $person->last_name = $pData->LastName;
+        $person->display_name = $pData->DisplayName;
+        if (count($pData->Emails) > 0) {
+            $person->user_email = $pData->Emails[0];
+        } else {
+            $person->user_email = null;
+        }
+        $person->picture = $pData->Picture;
+
+        // Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
+
+        // Apply EV Types
+        $pData->PeopleEV = ExtraValueHandler::jsonToDataTyped($pData->PeopleEV ?? (object)[]);
+
+        // Apply Custom EVs
+        $fields = TouchPointWP::instance()->getPersonEvFields(TouchPointWP::instance()->settings->people_ev_custom);
+        foreach ($fields as $fld) {
+            if (isset($pData->PeopleEV->{$fld->hash})) {
+                $person->setExtraValueWP($fld->field, $pData->PeopleEV->{$fld->hash}->value);
+            } else {
+                $person->removeExtraValueWP($fld->field);
+            }
+        }
+        unset($fields, $fld);
+
+        // Apply Bio EV
+        $bioField = TouchPointWP::instance()->settings->people_ev_bio;
+        if ($bioField !== "") {
+            if (isset($pData->PeopleEV->$bioField)) {
+                update_user_meta($person->ID, 'description', $pData->PeopleEV->$bioField->value);
+            } else {
+                update_user_meta($person->ID, 'description', '');
+            }
+        }
+        unset($bioField);
+
+        // Removal of no-longer valid EV Fields happens within Cleanup::cleanupPersonEVs
+
+        // Involvements!
+        if (isset($pData->Inv)) {
+            $currentInvs = $person->getInvolvementMemberships();
+            $inv_del     = array_keys($currentInvs);
+            $inv_updates = [];
+
+            // Process diffs, as appropriate.
+            foreach ($pData->Inv as $i) {
+                if (($key = array_search($i->iid, $inv_del)) !== false) {
+                    unset($inv_del[$key]);
+                }
+
+                if ( ! isset($currentInvs[$i->iid])) {
+                    $inv_updates[self::META_INV_MEMBER_PREFIX . $i->iid] = $i->memType;
+                    $inv_updates[self::META_INV_ATTEND_PREFIX . $i->iid] = $i->attType;
+                    $inv_updates[self::META_INV_DESC_PREFIX . $i->iid]   = $i->descr;
+                    continue;
+                }
+
+                if ($currentInvs[$i->iid]->mt !== $i->memType) {
+                    $inv_updates[self::META_INV_MEMBER_PREFIX . $i->iid] = $i->memType;
+                }
+                if ($currentInvs[$i->iid]->at !== $i->attType) {
+                    $inv_updates[self::META_INV_ATTEND_PREFIX . $i->iid] = $i->attType;
+                }
+                if ($currentInvs[$i->iid]->description !== $i->descr) {
+                    $inv_updates[self::META_INV_DESC_PREFIX . $i->iid] = $i->descr;
+                }
+            }
+
+            foreach ($inv_updates as $k => $v) {
+                if ($v === null || trim($v) === '') { // don't waste space on blanks--especially descriptions.
+                    delete_user_option($person->ID, $k, true);
+                } else {
+                    update_user_option($person->ID, $k, $v, true);
+                }
+            }
+            foreach ($inv_del as $iid) {
+                delete_user_option($person->ID, self::META_INV_MEMBER_PREFIX . $iid, true);
+                delete_user_option($person->ID, self::META_INV_ATTEND_PREFIX . $iid, true);
+                delete_user_option($person->ID, self::META_INV_DESC_PREFIX . $iid, true);
+            }
+        }
+
+        if ($verbose) {
+            var_dump($pData);
+            var_dump($person);
+            echo "<hr />";
+        }
+
+        // Submit update.
+        $person->submitUpdate();
+
+        if (!$deferTPUpdate) {
+            self::updatePeopleWordPressIDs();
+        }
+
+        return $person;
     }
 
     /**
@@ -862,17 +960,36 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     }
 
     /**
-     * @param array $changes
+     * Used for setting or clearing a user's login tokens
+     *
+     * @param string|null $session
+     * @param string|null $login
      *
      * @return void
      */
-    protected static function updatePeopleWordPressIDs(array $changes)
+    public function setLoginTokens(?string $session, ?string $login): void
     {
+        $this->loginToken = $login;
+        $this->loginSessionToken = $session;
+        $this->submitUpdate();
+    }
+
+    /**
+     * Send WordPress User IDs to WordPress for storage in an extra value
+     *
+     * @return void
+     */
+    protected static function updatePeopleWordPressIDs()
+    {
+        if (count(self::$_peopleWhoNeedWpIdUpdatedInTouchPoint) < 1) {
+            return;
+        }
         try {
             TouchPointWP::instance()->apiPost('person_wpIds', [
-                'people' => $changes,
+                'people' => self::$_peopleWhoNeedWpIdUpdatedInTouchPoint,
                 'evName' => TouchPointWP::instance()->settings->people_ev_wpId
             ]);
+            self::$_peopleWhoNeedWpIdUpdatedInTouchPoint = [];
         } catch (Exception $ex) { // If it fails this time, it'll probably get fixed next time
         }
     }
@@ -896,8 +1013,9 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             $btnClass = " class=\"$btnClass\"";
         }
 
-        $text = __("Contact", TouchPointWP::TEXT_DOMAIN);
+        $text = __("Contact", "TouchPoint-WP");
         TouchPointWP::enqueueActionsStyle('person-contact');
+        self::enqueueUsersForJsInstantiation();
         $ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
 
         return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context, $btnClass);
@@ -920,6 +1038,41 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     }
 
     /**
+     * Call this function if users (and immediate family members, probably) should be automatically instantiated in JS
+     * on page load.  (e.g. if the page contains an RSVP button)
+     *
+     * @return void
+     */
+    public static function enqueueUsersForJsInstantiation(): void
+    {
+        self::$_enqueueUsersForJsInstantiation = true;
+    }
+
+    /**
+     * Return the instances to be used for instantiation.
+     *
+     * @return object[]
+     */
+    protected static function getQueueForJsInstantiation(): array
+    {
+        if (self::$requireAllObjectsInJs) {
+            $list = self::$constructedObjects;
+        } else {
+            $list = self::$queueForJsInstantiation;
+        }
+
+        if (self::$_enqueueUsersForJsInstantiation) {
+            $s = Session::instance();
+            $list = array_merge($list, $s->people ?? []);
+        }
+
+        // Remove duplicates.  (array_unique won't handle objects cleanly)
+        $ids     = array_map(fn($item) => $item->peopleId, $list);
+        $uniqIds = array_unique($ids);
+        return array_values(array_intersect_key($list, $uniqIds));
+    }
+
+    /**
      * Controls the information that's actually serialized for jsInstantiation
      *
      * @return array
@@ -928,7 +1081,10 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     {
         return [
             'peopleId' => $this->peopleId,
+            'familyId' => $this->familyId,
             'displayName' => $this->display_name,
+            'goesBy' => $this->first_name,
+            'lastName' => $this->last_name
         ];
     }
 
@@ -947,18 +1103,19 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         $listStr = json_encode($queue);
 
-        return "\ttpvm.addOrTriggerEventListener('Person_class_loaded', function() {
-        TP_Person.fromObjArray($listStr);\n\t});\n";
-    }
+		$out = "\ttpvm.addOrTriggerEventListener('Person_class_loaded', function() {\n";
+	    $out .= "\t\tTP_Person.fromObjArray($listStr);\n";
 
-    /**
-     * Determines whether JS Instantiation should be used.
-     *
-     * @return bool
-     */
-    public static function useJsInstantiation(): bool
-    {
-        return count(static::$queueForJsInstantiation) > 0;
+	    if (self::$_enqueueUsersForJsInstantiation) {
+			$s = Session::instance();
+			$pFids = json_encode($s->primaryFam ?? []);
+			$sFids = json_encode($s->secondaryFam ?? []);
+		    $out .= "\t\tTP_Person.identByFamily($pFids, $sFids);\n";
+		}
+
+		$out .= "\t});\n";
+
+		return $out;
     }
 
     /**
@@ -1028,7 +1185,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
     public function getProfileUrl(): ?string
     {
-        if ($this->hasProfilePage()) {
+        if (!!apply_filters(TouchPointWP::HOOK_PREFIX . 'use_person_link', $this->hasProfilePage(), $this)) {
             return get_author_posts_url($this->ID);
         } else {
             return null;
@@ -1036,13 +1193,13 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     }
 
     /**
-     * Take an array of people-ish objects and return a nicely human-readable list of names.
+     * Take an array of Person-ish objects and return a nicely human-readable list of names.
      *
-     * @param array $people
+     * @param Person[]|PersonArray $people  TODO make api compliant with Person object--remove coalesces.  (#120)
      *
      * @return ?string  Returns a human-readable list of names, nicely formatted with commas and such.
      */
-    public static function arrangeNamesForPeople(array $people): ?string
+    public static function arrangeNamesForPeople($people): ?string
     {
         $people = self::groupByFamily($people);
         if (count($people) === 0) {
@@ -1060,7 +1217,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 $useOxford = true;
             }
             if (strpos($fn, ' & ') !== false) {
-                $and = ' and ';
+	            $and = ' ' . __('and', 'TouchPoint-WP') . ' ';
                 $useOxford = true;
             }
             $familyNames[] = $fn;
@@ -1082,34 +1239,35 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
      *
      * This is only meant to be called within arrangeNamesForPeople
      *
-     * @param array $family
+     * @param Person[] $family
      *
      * @return ?string Returns a human-readable list of names, nicely formatted with commas and such.
      */
-    protected static function formatNamesForFamily(array $family): ?string
+    protected static function formatNamesForFamily(array $family): ?string  // Standardize API  (#120)
     {
         if (count($family) < 1)
             return null;
 
-        $standingLastName = $family[0]->LastName;
+        $standingLastName = $family[0]->LastName ?? $family[0]->last_name;
         $string = "";
 
         usort($family, fn($a, $b) => ($a->GenderId ?? 0) <=> ($b->GenderId ?? 0)); // TODO use something a little more intelligent (head first)
 
-        $first = true;
+        $isFirst = true;
         foreach ($family as $p) {
-            if ($standingLastName != $p->LastName) {
+			$last = $p->LastName ?? $p->last_name;
+            if ($standingLastName != $last) {
                 $string .= " " . $standingLastName;
 
-                $standingLastName = $p->LastName;
+                $standingLastName = $last;
             }
 
-            if (!$first && count($family) > 1)
+            if (!$isFirst && count($family) > 1)
                 $string  .= " & ";
 
-            $string .= $p->GoesBy;
+            $string .= $p->GoesBy ?? $p->first_name;
 
-            $first = false;
+            $isFirst = false;
         }
         $string .= " " . $standingLastName;
 
@@ -1117,7 +1275,25 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         return str_replace(" & ", ", ", substr($string, 0, $lastAmpPos)) . substr($string, $lastAmpPos);
     }
 
-    public static function groupByFamily(array $people): array
+    /**
+     * Functionally convert this Person object to a WP_User object for working with the WP API.
+     *
+     * @return WP_User
+     */
+    public function toNewWpUser(): WP_User
+    {
+        return new WP_User($this);
+    }
+
+    /**
+     * Take an array of Person-like objects and group them by family id.
+     * Objects must have a FamilyId or familyId field.  TODO standardize...   (#120)
+     *
+     * @param Person[]|object[]|PersonArray $people
+     *
+     * @return Person[][]|object[][]
+     */
+    public static function groupByFamily($people): array
     {
         $families = [];
         foreach ($people as $p) {
@@ -1125,7 +1301,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 continue;
             }
 
-            $fid = intval($p->FamilyId);
+            $fid = intval($p->familyId ?? $p->FamilyId ?? 0);
 
             if (!array_key_exists($fid, $families))
                 $families[$fid] = [];
@@ -1135,12 +1311,35 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         return $families;
     }
 
+	/**
+	 * Handler for Informal Auth calls.  Print the output.
+	 *
+	 * @return void
+	 */
     private static function ajaxIdent(): void
     {
-        $inputData = TouchPointWP::postHeadersAndFiltering();
+	    $inputData = TouchPointWP::postHeadersAndFiltering();
+	    $inputData = json_decode($inputData);
+		if (property_exists($inputData, 'pid')) {
+			unset($inputData->pid);
+		}
 
+		$r = self::ident($inputData);
+
+	    echo json_encode($r);
+	    exit;
+    }
+
+	/**
+	 * Make the API call to get family members, store the results to the Session, and return them.
+	 *
+	 * @param $inputData
+	 *
+	 * @return array
+	 */
+	public static function ident($inputData): array
+	{
         try {
-            $inputData = json_decode($inputData);
             $inputData->context = "ident";
             $data = TouchPointWP::instance()->apiPost('ident', $inputData, 30);
         } catch (Exception $ex) {
@@ -1150,31 +1349,47 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         $people = $data->people ?? [];
 
-        // TODO consider adding person as a user and/or authenticating user.
+        $data->primaryFam = $data->primaryFam ?? [];
+
+        $s = Session::instance();
 
         $ret = [];
+        $primaryFam = $s->primaryFam ?? [];
+        $secondaryFam = $s->secondaryFam ?? [];
         foreach ($people as $p) {
-            $ret[] = [
+            $ret[] = (object)[
                 'goesBy' => $p->GoesBy,
                 'lastName' => strlen($p->LastName) > 0 ? $p->LastName[0] . "." : "",
                 'displayName' => trim($p->GoesBy . " " . (strlen($p->LastName) > 0 ? $p->LastName[0] . "." : "")),
                 'familyId' => $p->FamilyId,
                 'peopleId' => $p->PeopleId
             ];
+            if (in_array($p->FamilyId, $data->primaryFam) && !in_array($p->FamilyId, $primaryFam)) {
+                $primaryFam[] = $p->FamilyId;
+            } elseif (!in_array($p->FamilyId, $data->primaryFam) && !in_array($p->FamilyId, $secondaryFam)) {
+                $secondaryFam[] = $p->FamilyId;
+            }
         }
 
-        echo json_encode([
-            'people' => $ret,
-            'primaryFam' => $data->primaryFam ?? []
-        ]);
-        exit;
+        // Merge list of people and restrict to uniques
+        $sPeople = array_merge($s->people ?? [], $ret);
+        $ids     = array_map(fn($p) => $p->peopleId, $sPeople);
+        $uniqIds = array_unique($ids);
+        $s->people = array_values(array_intersect_key($sPeople, $uniqIds));
+
+        $s->primaryFam = $primaryFam;
+        $s->secondaryFam = $secondaryFam;
+
+		return [
+			'people' => $ret,
+			'primaryFam' => $data->primaryFam ?? []
+		];
     }
 
     private static function ajaxSrc(): void
     {
         $q['q'] = $_GET['q'] ?? '';
         $q['context'] = 'src';
-
 
         if ($q['q'] !== '') {
             try {
@@ -1320,16 +1535,6 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             } catch (Exception $ex) {
             }
         }
-    }
-
-    /**
-     * Determines whether users should be imported when presented through a sync process.
-     *
-     * @return bool
-     */
-    protected static function createUsers(): bool
-    {
-        return TouchPointWP::instance()->settings->enable_people_lists === "on";
     }
 
     /**

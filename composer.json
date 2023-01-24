@@ -32,5 +32,10 @@
     "ext-zip": "*"
   },
   "require-dev": {
+  },
+  "config": {
+    "allow-plugins": {
+      "composer/installers": true
+    }
   }
 }

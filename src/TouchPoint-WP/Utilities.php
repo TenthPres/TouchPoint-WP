@@ -12,25 +12,32 @@ use WP_Error;
  */
 abstract class Utilities
 {
-    /**
-     * @param numeric $numeric
-     *
-     * @return float|null
-     */
-    public static function toFloatOrNull($numeric): ?float
+	public const PLUGIN_UPDATE_TRANSIENT = TouchPointWP::SETTINGS_PREFIX . "plugin_update_data";
+	public const PLUGIN_UPDATE_TRANSIENT_TTL = 43200; // 12 hours
+
+	/**
+	 * @param mixed $numeric
+	 * @param bool|int  $round  False to skip rounding. Otherwise, precision passed to round().
+	 *
+	 * @see round()
+	 *
+	 * @return float|null
+	 */
+    public static function toFloatOrNull($numeric, $round = false): ?float
     {
-        if (is_numeric($numeric)) {
-            return (float)$numeric;
+        if (!is_numeric($numeric)) {
+            return null;
         }
 
-        return null;
+		if ($round === false) {
+			return (float)$numeric;
+		} else {
+			return round($numeric, $round);
+		}
     }
 
     /**
      * Gets the plural form of a weekday name.
-     *
-     * Translation: These are deliberately not scoped to TouchPoint-WP, so if the translation exists globally, it should
-     * work here.
      *
      * @param int $dayNum
      *
@@ -39,17 +46,39 @@ abstract class Utilities
     public static function getPluralDayOfWeekNameForNumber(int $dayNum): string
     {
         $names = [
-            __('Sundays'),
-            __('Mondays'),
-            __('Tuesdays'),
-            __('Wednesdays'),
-            __('Thursdays'),
-            __('Fridays'),
-            __('Saturdays'),
+            _x('Sundays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Mondays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Tuesdays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Wednesdays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Thursdays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Fridays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+            _x('Saturdays', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
         ];
 
         return $names[$dayNum % 7];
     }
+
+	/**
+	 * Gets the plural form of a weekday name, but without translation for use in places like slugs.
+	 *
+	 * @param int $dayNum
+	 *
+	 * @return string Plural weekday (e.g. Mondays)
+	 */
+	public static function getPluralDayOfWeekNameForNumber_noI18n(int $dayNum): string
+	{
+		$names = [
+			'Sundays',
+			'Mondays',
+			'Tuesdays',
+			'Wednesdays',
+			'Thursdays',
+			'Fridays',
+			'Saturdays',
+		];
+
+		return $names[$dayNum % 7];
+	}
 
     /**
      * @param int $dayNum
@@ -59,48 +88,76 @@ abstract class Utilities
     public static function getDayOfWeekShortForNumber(int $dayNum): string
     {
         $names = [
-            'Sun',
-            'Mon',
-            'Tue',
-            'Wed',
-            'Thu',
-            'Fri',
-            'Sat',
+	        _x('Sun', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Mon', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Tue', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Wed', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Thu', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Fri', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
+	        _x('Sat', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
         ];
 
         return $names[$dayNum % 7];
     }
 
-    /**
-     * Gets the non-specific time of day in words.
-     *
-     * Translation: These are deliberately not scoped to TouchPoint-WP, so if the translation exists globally, it should
-     * work here.
-     *
-     * @param DateTimeInterface $dt
-     *
-     * @return string
-     */
-    public static function getTimeOfDayTermForTime(DateTimeInterface $dt): string
+	/**
+	 * NOT internationalized, such as for slugs
+	 *
+	 * @param int $dayNum
+	 *
+	 * @return string
+	 */
+	public static function getDayOfWeekShortForNumber_noI18n(int $dayNum): string
+	{
+		$names = [
+			'Sun',
+			'Mon',
+			'Tue',
+			'Wed',
+			'Thu',
+			'Fri',
+			'Sat',
+		];
+
+		return $names[$dayNum % 7];
+	}
+
+	/**
+	 * Gets the non-specific time of day in words.
+	 *
+	 * Translation: These are deliberately not scoped to TouchPoint-WP, so if the translation exists globally, it should
+	 * work here.
+	 *
+	 * @param DateTimeInterface $dt
+	 * @param bool              $i18n
+	 *
+	 * @return string
+	 */
+    public static function getTimeOfDayTermForTime(DateTimeInterface $dt, bool $i18n = true): string
     {
         $timeInt = intval($dt->format('Hi'));
 
         if ($timeInt < 300 || $timeInt >= 2200) {
-            return __('Late Night');
+            return $i18n ? _x('Late Night', 'Time of Day', 'TouchPoint-WP') : "Late Night";
         } elseif ($timeInt < 800) {
-            return __('Early Morning');
+            return $i18n ? _x('Early Morning', 'Time of Day', 'TouchPoint-WP') : "Early Morning";
         } elseif ($timeInt < 1115) {
-            return __('Morning');
+            return $i18n ? _x('Morning', 'Time of Day', 'TouchPoint-WP') : "Morning";
         } elseif ($timeInt < 1300) {
-            return __('Midday');
+            return $i18n ? _x('Midday', 'Time of Day', 'TouchPoint-WP') : "Midday";
         } elseif ($timeInt < 1700) {
-            return __('Afternoon');
+            return $i18n ? _x('Afternoon', 'Time of Day', 'TouchPoint-WP') : "Afternoon";
         } elseif ($timeInt < 2015) {
-            return __('Evening');
+            return $i18n ? _x('Evening', 'Time of Day', 'TouchPoint-WP') : "Evening";
         } else {
-            return __('Night');
+            return $i18n ? _x('Night', 'Time of Day', 'TouchPoint-WP') : "Night";
         }
     }
+
+	public static function getTimeOfDayTermForTime_noI18n(DateTimeInterface $dt): string
+	{
+		return self::getTimeOfDayTermForTime($dt, false);
+	}
 
     /**
      * Join an array of strings into a properly-formatted (English-style) list. Uses commas and ampersands by default.
@@ -125,7 +182,7 @@ abstract class Utilities
             $useOxford = true;
         }
         if (strpos($concat, ' & ') !== false) {
-            $and = ' ' . __('and') . ' ';
+            $and = ' ' . __('and', 'TouchPoint-WP') . ' ';
             $useOxford = true;
         }
 
@@ -321,4 +378,248 @@ abstract class Utilities
         }
         return $r;
     }
+
+    /**
+     * Generates a Microsoft-friendly globally unique identifier (Guid).
+     *
+     * @return string A new random globally unique identifier.
+     */
+    public static function createGuid(): string
+    {
+        mt_srand(( double )microtime() * 10000);
+        $char   = strtoupper(md5(uniqid(rand(), true)));
+        $hyphen = chr(45); // "-"
+
+        return substr($char, 0, 8) . $hyphen
+               . substr($char, 8, 4) . $hyphen
+               . substr($char, 12, 4) . $hyphen
+               . substr($char, 16, 4) . $hyphen
+               . substr($char, 20, 12);
+    }
+
+    /**
+     * Get all HTTP request headers.
+     *
+     * @return array
+     */
+    public static function getAllHeaders(): array
+    {
+        $headers = [];
+        foreach ($_SERVER as $name => $value) {
+            if (substr($name, 0, 5) == 'HTTP_') {
+                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+            }
+        }
+        return $headers;
+    }
+
+	/**
+	 * Updates or removes a post's featured image from a URL (e.g. from TouchPoint).
+	 *
+	 * If the $newUrl is blank or null, the image is removed.
+	 *
+	 * @param int         $postId
+	 * @param string|null $newUrl
+	 * @param string      $title
+	 *
+	 * @return void
+	 * @since 0.0.24
+	 */
+	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title): void
+	{
+		// Required for image handling
+		require_once(ABSPATH . 'wp-admin/includes/media.php');
+		require_once(ABSPATH . 'wp-admin/includes/file.php');
+		require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+		// Post image
+		global $wpdb;
+		$oldAttId = get_post_thumbnail_id($postId);
+		$oldFName = $wpdb->get_var( "SELECT meta_value FROM $wpdb->postmeta WHERE post_id = '$oldAttId' AND meta_key = '_wp_attached_file'" );
+		$oldFName = substr($oldFName, strrpos($oldFName, '/') + 1);
+
+		$newUrl = trim((string)$newUrl); // nulls are now ""
+
+		$newFName = "";
+		if ($newUrl !== "") {
+			$newFName = substr($newUrl, strrpos($newUrl, '/') + 1);
+		}
+
+		if ($newFName !== $oldFName) {
+			if ($oldAttId > 0) { // Remove and delete old one.
+				wp_delete_attachment($oldAttId, true);
+			}
+			if ($newUrl !== "") { // Load and save new one
+				$attId = media_sideload_image($newUrl, $postId, $title,'id');
+				set_post_thumbnail($postId, $attId);
+			}
+		}
+	}
+
+	/**
+	 * @param int    $maxAllowed  1 to 6, corresponding to h1 to h6.
+	 * @param string $input The string within which headings should be standardized.
+	 *
+	 * @return string
+	 */
+	public static function standardizeHTags(int $maxAllowed, string $input): string
+	{
+		$maxAllowed = min(max($maxAllowed, 1), 6);
+
+		$deltas = [0,0,0,0,0,0];
+		$indexes = [0,0,0,0,0,0];
+		$o = 0;
+		$i = 1;
+		for (; $i <= 6;) {
+			$deltas[$i-1] = 0;
+			if (str_contains($input, "<h$i ") || str_contains($input, "<h$i>")) {
+				$deltas[$i-1] = $maxAllowed - $i + $o;
+				$indexes[$i-1] = $deltas[$i-1] * $i;
+				$o++;
+			}
+			$i++;
+		}
+
+		arsort($indexes);
+
+		foreach ($indexes as $ix => $x) {
+			$delta = $deltas[$ix];
+			if ($delta === 0)
+				continue;
+
+			$i = $ix + 1;
+			$o = $i + $delta;
+
+			if ($o < 7) {
+				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"], ["<h$o ", "<h$o>", "</h$o>"], $input);
+			} else {
+				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"], ["<p><strong ", "<p><strong>", "</strong></p>"], $input);
+			}
+		}
+
+		return $input;
+	}
+
+	/**
+	 * @param string  $html  The HTML to be standardized.
+	 * @param ?string $context  A context string to pass to hooks.
+	 *
+	 * @return string
+	 */
+	public static function standardizeHtml(string $html, ?string $context = null): string
+	{
+		// The tp_standardize_html filter would completely replace the pre-defined process.
+		$o = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_html', $html, $context);
+		if ($o !== $html)
+			return $o;
+
+		$html = apply_filters(TouchPointWP::HOOK_PREFIX . 'pre_standardize_html', $html, $context);
+		$maxHeader = intval(apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_h_tags_max_h', 2, $context));
+
+		$allowedTags = ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+		$allowedTags = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_allowed_tags', $allowedTags, $context);
+
+		$html = self::standardizeHTags($maxHeader, $html);
+		$html = strip_tags($html, $allowedTags);
+		$html = trim($html);
+		return apply_filters(TouchPointWP::HOOK_PREFIX . 'post_standardize_html', $html, $context);
+	}
+
+	/**
+	 * Returns true if a new release is available.
+	 *
+	 * @return ?object
+	 */
+	public static function checkForUpdate(): ?object
+	{
+		$ghData = wp_remote_get("https://api.github.com/repos/tenthpres/touchpoint-wp/releases/latest", [
+			'headers' => ['Accept' => 'application/json']
+		]);
+		if (is_wp_error($ghData)) {
+			return null;
+		}
+		$ghData = json_decode(wp_remote_retrieve_body($ghData));
+
+		if (!property_exists($ghData, 'tag_name'))
+			return null;
+
+		$tag = $ghData->tag_name;
+
+		if ($tag == null)
+			return null;
+
+		if ($tag[0] !== "v")
+			return null;
+
+		$newV = substr($tag, 1);
+
+		$newDetails = self::fileHeadersFromWeb( "https://raw.githubusercontent.com/TenthPres/TouchPoint-WP/$newV/TouchPoint-WP.php", [
+			'Requires at least' => '5.5',
+			'Requires PHP'      => '7.4',
+			'Tested up to'      => '5.5'
+		]);
+
+		return (object)[
+			'id'            => 'touchpoint-wp/touchpoint-wp.php',
+			'slug'          => 'touchpoint-wp',
+			'plugin'        => 'touchpoint-wp/touchpoint-wp.php',
+			'new_version'   => $newV,
+			'url'           => 'https://github.com/TenthPres/TouchPoint-WP/',
+			'package'       => 'https://github.com/TenthPres/TouchPoint-WP/releases/download/latest/TouchPoint-WP.zip',
+			'icons'         => [],
+			'banners'       => [],
+			'banners_rtl'   => [],
+			'tested'        => $newDetails == null ? "" : $newDetails['Tested up to'],
+			'requires_php'  => $newDetails == null ? "" : $newDetails['Requires PHP'],
+			'requires'      => $newDetails == null ? "" : $newDetails['Requires at least'],
+			'compatibility' => (object)[],
+		];
+	}
+
+
+	public static function checkForUpdate_transient($transient)
+	{
+		$pluginTransient = get_transient(self::PLUGIN_UPDATE_TRANSIENT);
+
+		$up = $pluginTransient ?: self::checkForUpdate();
+
+		if (!$pluginTransient) {
+			if ($up == null)
+				$up = "error";
+			set_transient(self::PLUGIN_UPDATE_TRANSIENT, $up, self::PLUGIN_UPDATE_TRANSIENT_TTL);
+		}
+
+		if (is_object($up)) {
+			if (version_compare($up->new_version, TouchPointWP::VERSION, ">")) {
+				$transient->response['touchpoint-wp/touchpoint-wp.php'] = $up;
+			} else {
+				$transient->no_update['touchpoint-wp/touchpoint-wp.php'] = $up;
+			}
+		}
+
+		return $transient;
+	}
+
+	public static function fileHeadersFromWeb(string $url, array $headers = []): ?array
+	{
+		$data = wp_remote_get($url);
+		if (is_wp_error($data)) {
+			return null;
+		}
+		$data = wp_remote_retrieve_body($data);
+		$data = explode("\n", $data);
+		$keys = array_keys($headers);
+		foreach ($data as $line) {
+			$line = explode(":", $line, 2);
+			if (count($line) < 2)
+				continue;
+
+			if (in_array($line[0], $keys)) {
+				$headers[$line[0]] = trim($line[1]);
+			}
+		}
+
+		return $headers;
+	}
+
 }

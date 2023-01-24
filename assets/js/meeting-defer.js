@@ -40,7 +40,7 @@ class TP_Meeting {
                 const action = actionBtns[ai].getAttribute('data-tp-action');
 
                 if (action === "rsvp" && this.mtgDateTime < TP_Meeting.now()) {
-                    actionBtns[ai].title = "Event Past"; // i18n
+                    actionBtns[ai].title = __("Event Past", 'TouchPoint-WP');
                     actionBtns[ai].setAttribute("disabled", "disabled");
                     actionBtns[ai].classList.add("disabled");
                 } else {
@@ -95,7 +95,7 @@ class TP_Meeting {
         tpvm.trigger('Meeting_class_loaded');
 
         if (document.readyState === 'loading') {  // Loading hasn't finished yet
-            document.addEventListener('DOMContentLoaded', this.initMeetings());
+            document.addEventListener('DOMContentLoaded', () => this.initMeetings());
         } else {  // `DOMContentLoaded` has already fired
             this.initMeetings();
         }
@@ -166,24 +166,24 @@ class TP_Meeting {
 
         let res = await tpvm.postData('mtg/rsvp', {mtgId: meeting.mtgId, responses: data});
         if (res.success.length > 0) {
-            let s = res.success.length === 1 ? "" : "s";
             if (showConfirm) {
                 Swal.fire({
                     icon: 'success',
-                    title: `Response${s} Recorded`,
+                    title: _n('Response Recorded', 'Responses Recorded', res.success.length, 'TouchPoint-WP'),
                     timer: 3000,
-                    customClass: tpvm._utils.defaultSwalClasses()
+                    customClass: tpvm._utils.defaultSwalClasses(),
+                    confirmButtonText: __('OK', 'TouchPoint-WP')
                 });
-                // tpvm._utils.clearHash();  TODO remove
             }
         } else {
             console.error(res);
             if (showConfirm) {
                 Swal.fire({
                     icon: 'error',
-                    title: `Something strange happened.`,
+                    title: __('Something strange happened.', 'TouchPoint-WP'),
                     timer: 3000,
-                    customClass: tpvm._utils.defaultSwalClasses()
+                    customClass: tpvm._utils.defaultSwalClasses(),
+                    confirmButtonText: __('OK', 'TouchPoint-WP')
                 });
             }
         }
@@ -201,7 +201,9 @@ class TP_Meeting {
 
         tpvm._utils.applyHashForAction("rsvp", this);
 
-        let title = "RSVP for " + (meeting.description ?? meeting.inv.name) + "<br /><small>" + this.dateTimeString() + "</small>";
+        // translators: "RSVP for {Event Name}"  This is the heading on the RSVP modal.  The event name isn't translated because it comes from TouchPoint.
+        let title = sprintf(__('RSVP for %s', 'TouchPoint-WP'),  (meeting.description ?? meeting.inv.name))
+             + "<br /><small>" + this.dateTimeString() + "</small>";
 
         TP_Person.DoInformalAuth(title, forceAsk).then(
             (res) => rsvpUi(meeting, res).then(tpvm._utils.clearHash),
@@ -212,14 +214,15 @@ class TP_Meeting {
             tpvm._utils.ga('send', 'event', 'rsvp', 'rsvp userIdentified', meeting.mtgId);
 
             return Swal.fire({
-                html: `<p id="swal-tp-text">Who is coming?</p><p class="small swal-tp-instruction">Indicate who is or is not coming.  This will overwrite any existing RSVP.  <br />To avoid overwriting an existing RSVP, leave that person blank.  <br />To protect privacy, we won't show existing RSVPs here.</p></i>` + TP_Person.peopleArrayToRadio(['Yes', 'No'], people, tpvm._secondaryUsers),
+                html: `<p id="swal-tp-text">${__('Who is coming?', 'TouchPoint-WP')}</p><p class="small swal-tp-instruction">${__('Indicate who is or is not coming.  This will overwrite any existing RSVP.', 'TouchPoint-WP')}<br />${__('To avoid overwriting an existing RSVP, leave that person blank.', 'TouchPoint-WP')}<br />${__("To protect privacy, we won't show existing RSVPs here.", 'TouchPoint-WP')}</p></i>` + TP_Person.peopleArrayToRadio({Yes: __('Yes', 'TouchPoint-WP'), No: __('No', 'TouchPoint-WP')}, people, tpvm._secondaryUsers),
                 customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,
                 showDenyButton: true,
                 title: title,
-                denyButtonText: 'Add Someone Else',
-                confirmButtonText: 'Submit',
+                denyButtonText: __('Add Someone Else', 'TouchPoint-WP'),
+                confirmButtonText: __('Submit', 'TouchPoint-WP'),
+                cancelButtonText: __('Cancel', 'TouchPoint-WP'),
                 focusConfirm: false,
                 preConfirm: () => {
                     let form = document.getElementById('tp_people_list_radio'),
@@ -237,7 +240,7 @@ class TP_Meeting {
 
                     if (!hasResponses) {
                         let prompt = document.getElementById('swal-tp-text');
-                        prompt.innerText = "Nothing to submit.";
+                        prompt.innerText = __("Nothing to submit.", 'TouchPoint-WP');
                         prompt.classList.add('error')
                         return false;
                     }
@@ -266,7 +269,7 @@ class TP_Meeting {
         let ret;
 
         if (this.mtgDateTime.getFullYear() !== (new Date()).getFullYear()) {
-            ret = this.mtgDateTime.toLocaleString('en-US', {
+            ret = this.mtgDateTime.toLocaleString(tpvm.locale, {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric',
@@ -274,7 +277,7 @@ class TP_Meeting {
                 minute: 'numeric'
             });
         } else {
-            ret = this.mtgDateTime.toLocaleString('en-US', {
+            ret = this.mtgDateTime.toLocaleString(tpvm.locale, {
                 day: 'numeric',
                 month: 'long',
                 // year: 'numeric', // current year isn't needed.
