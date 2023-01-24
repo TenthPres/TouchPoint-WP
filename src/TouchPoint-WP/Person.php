@@ -790,13 +790,15 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         if ($wpId !== null) {
             $q = new PersonQuery(
                 [
-                    'include' => [$wpId]
+                    'include' => [$wpId],
+                    'orderby' => 'ID'
                 ]
             );
-            if ($q->get_total() === 1) { // Will only be 0 or 1, unless something has gone disastrously wrong.
+            if ($q->get_total() > 0) { // Will only be 0 or 1, unless something has gone disastrously wrong.
                 $person = $q->get_first_result();
                 $updateWpIdInTouchPoint = false;
             } // TODO handle the error condition where there's more than one. (#119)
+	        // TODO validate that this is the right person.
         }
 
         // Find person by PeopleId
@@ -805,12 +807,13 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 [
                     'meta_key'     => self::META_PEOPLEID,
                     'meta_value'   => $pData->PeopleId,
-                    'meta_compare' => '='
+                    'meta_compare' => '=',
+	                'orderby'      => 'ID'
                 ]
             );
-            if ($q->get_total() === 1) {
+            if ($q->get_total() > 0) {
                 $person = $q->get_first_result();
-            } // TODO handle the error condition where there's more than one.  (#119
+            } // TODO handle the error condition where there's more than one.  (#119)
         }
 
         // Create new person
