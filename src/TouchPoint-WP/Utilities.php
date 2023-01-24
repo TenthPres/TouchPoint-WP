@@ -565,7 +565,7 @@ abstract class Utilities
 			'plugin'        => 'touchpoint-wp/touchpoint-wp.php',
 			'new_version'   => $newV,
 			'url'           => 'https://github.com/TenthPres/TouchPoint-WP/',
-			'package'       => 'https://github.com/TenthPres/TouchPoint-WP/releases/download/latest/TouchPoint-WP.zip',
+			'package'       => 'https://github.com/TenthPres/TouchPoint-WP/releases/download/latest/touchpoint-wp.zip',
 			'icons'         => [],
 			'banners'       => [],
 			'banners_rtl'   => [],

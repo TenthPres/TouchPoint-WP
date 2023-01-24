@@ -34,6 +34,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./TouchPoint-WP.zip
-          asset_name: TouchPoint-WP.zip
+          asset_path: ./touchpoint-wp.zip
+          asset_name: touchpoint-wp.zip
           asset_content_type: application/zip

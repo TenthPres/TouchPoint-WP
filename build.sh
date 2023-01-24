@@ -12,7 +12,7 @@ nvm install node
 npm update
 
 rm -r build
-rm TouchPoint-WP.zip
+rm touchpoint-wp.zip
 mkdir build
 
 # install uglify and uglify the JS files.
@@ -22,7 +22,7 @@ uglifyjs -o build/assets/js/meeting-defer.min.js -- assets/js/meeting-defer.js
 uglifyjs -o build/assets/js/partner-defer.min.js -- assets/js/partner-defer.js
 cp -r assets build
 cd ./build || exit
-zip -r ../TouchPoint-WP.zip assets
+zip -r ../touchpoint-wp.zip assets
 cd ..
 
 
@@ -34,14 +34,14 @@ cp -r i18n build/i18n
 php ./wp-cli.phar i18n make-json build/i18n
 php ./wp-cli.phar i18n make-mo build/i18n
 cd ./build || exit
-zip -r ../TouchPoint-WP.zip i18n
+zip -r ../touchpoint-wp.zip i18n
 cd ..
 
-zip -r TouchPoint-WP.zip ./ext
-zip -r TouchPoint-WP.zip ./src
+zip -r touchpoint-wp.zip ./ext
+zip -r touchpoint-wp.zip ./src
 
-find . -maxdepth 1 -iname "*.php" -exec zip TouchPoint-WP.zip {} \;
-find . -maxdepth 1 -iname "*.md" -exec zip TouchPoint-WP.zip {} \;
-find . -maxdepth 1 -iname "*.json" -exec zip TouchPoint-WP.zip {} \;
+find . -maxdepth 1 -iname "*.php" -exec zip touchpoint-wp.zip {} \;
+find . -maxdepth 1 -iname "*.md" -exec zip touchpoint-wp.zip {} \;
+find . -maxdepth 1 -iname "*.json" -exec zip touchpoint-wp.zip {} \;
 
 rm -r build
