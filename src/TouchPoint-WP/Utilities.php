@@ -589,7 +589,7 @@ abstract class Utilities
 			set_transient(self::PLUGIN_UPDATE_TRANSIENT, $up, self::PLUGIN_UPDATE_TRANSIENT_TTL);
 		}
 
-		if (is_object($up)) {
+		if (is_object($up) && is_object($transient)) {
 			if (version_compare($up->new_version, TouchPointWP::VERSION, ">")) {
 				$transient->response['touchpoint-wp/touchpoint-wp.php'] = $up;
 			} else {

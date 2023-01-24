@@ -11,6 +11,6 @@ class PersonArray extends \ArrayObject
 {
 	public function __toString()
 	{
-		return Person::arrangeNamesForPeople($this);
+		return Person::arrangeNamesForPeople($this) ?? "";
 	}
 }

@@ -2615,7 +2615,7 @@ class Involvement implements api, updatesViaCron, geo
             $r[] = $a;
         }
 
-        if ($this->leaders()) {
+        if ($this->leaders()->count() > 0) {
             $r[] = $this->leaders()->__toString();
         }
 
