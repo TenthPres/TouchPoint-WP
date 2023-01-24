@@ -1278,6 +1278,19 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 	    delete_post_meta_by_key('tp_leaders');
 	    delete_post_meta_by_key('tp_imageUrl');
 
+		// 0.0.25 - Adjust to lower case of plugin main file
+		$activePlugins = get_option('active_plugins');
+		$new = "touchpoint-wp/touchpoint-wp.php";
+		if (($k = array_search($new, array_map('strtolower', $activePlugins))) !== false) {
+			if ($activePlugins[$k] !== $new) {
+				$activePlugins[$k] = $new;
+				update_option('active_plugins', $activePlugins);
+			}
+		}
+		if (file_exists("../../touchpoint-wp/TouchOoint-WP.php")) {
+			rename("../../touchpoint-wp/TouchPoint-WP.php", "../../touchpoint-wp/touchpoint-wp.php");
+		}
+
 
         // Update version string
         $this->set('version', TouchPointWP::VERSION);
