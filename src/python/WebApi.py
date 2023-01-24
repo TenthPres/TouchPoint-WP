@@ -5,7 +5,7 @@ import json
 import linecache
 import sys
 
-VERSION = "0.0.25"
+VERSION = "0.0.26"
 
 sgContactEvName = "Contact"
 
