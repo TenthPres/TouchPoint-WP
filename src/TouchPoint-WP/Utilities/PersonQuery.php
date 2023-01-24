@@ -69,12 +69,11 @@ class PersonQuery extends WP_User_Query
      */
     public function get_first_result(): ?Person
     {
-
         if (! isset($this->results)) {
-            $this->get_results();
+	        $this->get_results();
         }
 
-        $r = array_values($this->results)[0];
+        $r = $this->results[0];
 
         if (get_class($r) === Person::CLASS) {
             return $r;
