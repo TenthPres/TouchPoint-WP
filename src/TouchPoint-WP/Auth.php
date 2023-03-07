@@ -350,7 +350,8 @@ abstract class Auth implements api
                 self::handlePostFromTouchPoint();
                 exit;
 
-			case "login.js";
+            case "login.js":
+            case "login.jsr":
 				wp_redirect(content_url('/plugins/touchpoint-wp/ext/login.js'), 307);
 				exit;
         }
