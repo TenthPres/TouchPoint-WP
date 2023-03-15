@@ -516,7 +516,10 @@ abstract class Utilities
 		$html = apply_filters(TouchPointWP::HOOK_PREFIX . 'pre_standardize_html', $html, $context);
 		$maxHeader = intval(apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_h_tags_max_h', 2, $context));
 
-		$allowedTags = ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+		$allowedTags = [
+            'p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li',
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'table', 'tr', 'th', 'td', 'thead', 'tbody', 'tfoot'];
 		$allowedTags = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_allowed_tags', $allowedTags, $context);
 
 		$html = self::standardizeHTags($maxHeader, $html);
