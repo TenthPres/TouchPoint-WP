@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-01-24T05:10:22+00:00\n"
+"POT-Creation-Date: 2023-03-31T17:21:44+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.7.1\n"
 "X-Domain: TouchPoint-WP\n"
@@ -240,15 +240,15 @@ msgstr ""
 msgid "Sign in with your %s account"
 msgstr ""
 
-#: src/TouchPoint-WP/Auth.php:385
+#: src/TouchPoint-WP/Auth.php:386
 msgid "Your login token expired."
 msgstr ""
 
-#: src/TouchPoint-WP/Auth.php:400
+#: src/TouchPoint-WP/Auth.php:401
 msgid "Your login token is invalid."
 msgstr ""
 
-#: src/TouchPoint-WP/Auth.php:412
+#: src/TouchPoint-WP/Auth.php:413
 msgid "Session could not be validated."
 msgstr ""
 

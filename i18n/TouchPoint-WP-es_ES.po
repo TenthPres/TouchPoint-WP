@@ -178,15 +178,15 @@ msgstr "%s se importarán durante la noche por primera vez."
 msgid "Sign in with your %s account"
 msgstr "Inicie sesión con su cuenta de %s"
 
-#: src/TouchPoint-WP/Auth.php:385
+#: src/TouchPoint-WP/Auth.php:386
 msgid "Your login token expired."
 msgstr "Su token de inicio de sesión caducó."
 
-#: src/TouchPoint-WP/Auth.php:400
+#: src/TouchPoint-WP/Auth.php:401
 msgid "Your login token is invalid."
 msgstr "Su token de inicio de sesión no es válido."
 
-#: src/TouchPoint-WP/Auth.php:412
+#: src/TouchPoint-WP/Auth.php:413
 msgid "Session could not be validated."
 msgstr "No se pudo validar la sesión."
 
