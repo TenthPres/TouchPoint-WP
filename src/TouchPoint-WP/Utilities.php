@@ -516,7 +516,11 @@ abstract class Utilities
 		$html = apply_filters(TouchPointWP::HOOK_PREFIX . 'pre_standardize_html', $html, $context);
 		$maxHeader = intval(apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_h_tags_max_h', 2, $context));
 
-		$allowedTags = ['p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+		$allowedTags = [
+            'p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li',
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'table', 'tr', 'th', 'td', 'thead', 'tbody', 'tfoot'
+        ];
 		$allowedTags = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_allowed_tags', $allowedTags, $context);
 
 		$html = self::standardizeHTags($maxHeader, $html);
@@ -553,11 +557,17 @@ abstract class Utilities
 
 		$newV = substr($tag, 1);
 
-		$newDetails = self::fileHeadersFromWeb( "https://raw.githubusercontent.com/TenthPres/TouchPoint-WP/$newV/TouchPoint-WP.php", [
-			'Requires at least' => '5.5',
-			'Requires PHP'      => '7.4',
-			'Tested up to'      => '5.5'
-		]);
+        $initialHeaders = self::fileHeadersFromString(file_get_contents("../../touchpoint-wp.php"), [
+            'Requires at least' => null,
+            'Requires PHP'      => null,
+            'Tested up to'      => null
+        ]);
+
+		$newDetails = self::fileHeadersFromWeb( "https://raw.githubusercontent.com/TenthPres/TouchPoint-WP/v$newV/touchpoint-wp.php", $initialHeaders);
+
+        if ($newDetails === null) {
+            $newDetails = self::fileHeadersFromWeb( "https://raw.githubusercontent.com/TenthPres/TouchPoint-WP/v$newV/TouchPoint-WP.php", $initialHeaders);
+        }
 
 		return (object)[
 			'id'            => 'touchpoint-wp/touchpoint-wp.php',
@@ -565,7 +575,7 @@ abstract class Utilities
 			'plugin'        => 'touchpoint-wp/touchpoint-wp.php',
 			'new_version'   => $newV,
 			'url'           => 'https://github.com/TenthPres/TouchPoint-WP/',
-			'package'       => 'https://github.com/TenthPres/TouchPoint-WP/releases/download/latest/touchpoint-wp.zip',
+			'package'       => "https://github.com/TenthPres/TouchPoint-WP/releases/download/v$newV/touchpoint-wp.zip",
 			'icons'         => [],
 			'banners'       => [],
 			'banners_rtl'   => [],
@@ -607,19 +617,25 @@ abstract class Utilities
 			return null;
 		}
 		$data = wp_remote_retrieve_body($data);
-		$data = explode("\n", $data);
-		$keys = array_keys($headers);
-		foreach ($data as $line) {
-			$line = explode(":", $line, 2);
-			if (count($line) < 2)
-				continue;
 
-			if (in_array($line[0], $keys)) {
-				$headers[$line[0]] = trim($line[1]);
-			}
-		}
-
-		return $headers;
+        return self::fileHeadersFromString($data, $headers);
 	}
+
+    public static function fileHeadersFromString(string $data, array $headers = []): ?array
+    {
+        $data = explode("\n", $data);
+        $keys = array_keys($headers);
+        foreach ($data as $line) {
+            $line = explode(":", $line, 2);
+            if (count($line) < 2)
+                continue;
+
+            if (in_array($line[0], $keys)) {
+                $headers[$line[0]] = trim($line[1]);
+            }
+        }
+
+        return $headers;
+    }
 
 }
