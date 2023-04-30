@@ -635,7 +635,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         // Existing Users
         /** @noinspection SqlResolve */
-        $sql = "SELECT meta_value FROM $wpdb->usermeta WHERE meta_key = '$pidMeta'";
+        $sql = "SELECT meta_value FROM $wpdb->usermeta WHERE meta_key = '$pidMeta' AND meta_value <> '' AND meta_value IS NOT NULL";
         self::$_indexingQueries['pid'] = $wpdb->get_col($sql);
         if (count(self::$_indexingQueries['pid']) > 0) {
             $queryNeeded = true;

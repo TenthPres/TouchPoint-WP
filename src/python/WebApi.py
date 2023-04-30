@@ -841,7 +841,8 @@ if "people_get" in Data.a and model.HttpMethod == "post":
     # People Ids
     if inData.has_key('pid'):
         for pid in inData['pid']:
-            rules.append("PeopleId = {}".format(pid))
+            if pid is not None:
+                rules.append("PeopleId = {}".format(pid))
 
     # Family Ids
     if inData.has_key('fid'):
