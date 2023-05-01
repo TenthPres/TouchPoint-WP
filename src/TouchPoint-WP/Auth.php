@@ -498,11 +498,13 @@ abstract class Auth implements api
 
             $person->setLoginTokens($data->sToken, $userLoginToken);
 
+            header('Content-Type: application/json');
             echo json_encode($resp);
 
             exit(0);
 
         } catch (TouchPointWP_Exception $e) {
+            header('Content-Type: application/json');
             echo $e->toJson();
             exit(1);
         }

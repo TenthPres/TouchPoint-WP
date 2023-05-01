@@ -2,14 +2,14 @@
 # This file is distributed under the AGPLv3+.
 msgid ""
 msgstr ""
-"Project-Id-Version: TouchPoint WP 0.0.28\n"
+"Project-Id-Version: TouchPoint WP 0.0.30\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/TouchPoint-WP\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-03-31T17:21:44+00:00\n"
+"POT-Creation-Date: 2023-05-01T03:14:50+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.7.1\n"
 "X-Domain: TouchPoint-WP\n"
@@ -217,20 +217,19 @@ msgstr ""
 msgid "The Campus"
 msgstr ""
 
-#. translators: %s will the plural post type (e.g. Small Groups)
+#. translators: %s will be the plural post type (e.g. Small Groups)
 #: src/templates/parts/involvement-list-none.php:16
-#: src/TouchPoint-WP/Involvement.php:1531
 msgid "No %s Found."
 msgstr ""
 
-#. translators: %s will the plural post type (e.g. Small Groups)
+#. translators: %s will be the plural post type (e.g. Small Groups)
 #: src/templates/parts/involvement-list-none.php:20
 msgid "%s will be imported overnight for the first time."
 msgstr ""
 
 #. translators: number of miles
 #: src/templates/parts/involvement-nearby-list.php:10
-#: src/TouchPoint-WP/Involvement.php:2651
+#: src/TouchPoint-WP/Involvement.php:2662
 msgctxt "miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'"
 msgid "%2.1fmi"
 msgstr ""
@@ -357,52 +356,66 @@ msgctxt "Zoom out or reset the map to see more."
 msgid "reset the map"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2625
+#: src/TouchPoint-WP/Involvement.php:1494
+msgid "This involvement type doesn't exist."
+msgstr ""
+
+#: src/TouchPoint-WP/Involvement.php:1502
+msgid "This involvement type doesn't have geographic locations enabled."
+msgstr ""
+
+#: src/TouchPoint-WP/Involvement.php:1517
+#: src/TouchPoint-WP/TouchPointWP_Settings.php:762
+#: src/TouchPoint-WP/TouchPointWP_Settings.php:768
+msgid "Locations"
+msgstr ""
+
+#: src/TouchPoint-WP/Involvement.php:2636
 msgid "Men Only"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2628
+#: src/TouchPoint-WP/Involvement.php:2639
 msgid "Women Only"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2679
+#: src/TouchPoint-WP/Involvement.php:2690
 msgid "Contact Leaders"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2686
+#: src/TouchPoint-WP/Involvement.php:2697
 msgid "Register"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2691
+#: src/TouchPoint-WP/Involvement.php:2702
 msgid "Create Account"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2695
+#: src/TouchPoint-WP/Involvement.php:2706
 msgid "Schedule"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2700
+#: src/TouchPoint-WP/Involvement.php:2711
 msgid "Give"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2703
+#: src/TouchPoint-WP/Involvement.php:2714
 msgid "Manage Subscriptions"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2706
+#: src/TouchPoint-WP/Involvement.php:2717
 msgid "Record Attendance"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2709
+#: src/TouchPoint-WP/Involvement.php:2720
 msgid "Get Tickets"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2716
+#: src/TouchPoint-WP/Involvement.php:2727
 #: assets/js/base-defer.js:974
 msgid "Join"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2725
+#: src/TouchPoint-WP/Involvement.php:2736
 #: src/TouchPoint-WP/Partner.php:1203
 msgid "Show on Map"
 msgstr ""
@@ -438,42 +451,42 @@ msgstr ""
 msgid "RSVP"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2194
+#: src/TouchPoint-WP/TouchPointWP.php:2195
 msgid "Unknown Type"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2248
+#: src/TouchPoint-WP/TouchPointWP.php:2249
 msgid "Your Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2251
+#: src/TouchPoint-WP/TouchPointWP.php:2252
 msgid "Public Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2254
+#: src/TouchPoint-WP/TouchPointWP.php:2255
 msgid "Status Flags"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2259
 #: src/TouchPoint-WP/TouchPointWP.php:2260
+#: src/TouchPoint-WP/TouchPointWP.php:2261
 msgid "Current Value"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2387
-#: src/TouchPoint-WP/TouchPointWP.php:2425
+#: src/TouchPoint-WP/TouchPointWP.php:2388
+#: src/TouchPoint-WP/TouchPointWP.php:2426
 msgid "Invalid or incomplete API Settings."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2395
-#: src/TouchPoint-WP/TouchPointWP.php:2432
+#: src/TouchPoint-WP/TouchPointWP.php:2396
+#: src/TouchPoint-WP/TouchPointWP.php:2433
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2493
+#: src/TouchPoint-WP/TouchPointWP.php:2494
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2552
+#: src/TouchPoint-WP/TouchPointWP.php:2553
 msgid "People Query Failed"
 msgstr ""
 
@@ -877,11 +890,6 @@ msgstr ""
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:749
 msgid "These Divisions will be imported for the taxonomy"
-msgstr ""
-
-#: src/TouchPoint-WP/TouchPointWP_Settings.php:762
-#: src/TouchPoint-WP/TouchPointWP_Settings.php:768
-msgid "Locations"
 msgstr ""
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:763

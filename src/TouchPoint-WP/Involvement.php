@@ -1484,13 +1484,24 @@ class Involvement implements api, updatesViaCron, geo
      */
     public static function ajaxNearby(): void
     {
+        header('Content-Type: application/json');
+
         $settings = self::getSettingsForPostType($_GET['type']);
 
+        if (! $settings) {
+            echo json_encode([
+                     "invList" => [],
+                     "error" => __("This involvement type doesn't exist.", 'TouchPoint-WP')
+                 ]);
+            exit;
+        }
+
         if (! $settings->useGeo) {
-            json_encode([
+            echo json_encode([
                 "invList" => [],
-                "error" => __("Error: This involvement type doesn't have geographic locations enabled.")
+                "error" => __("This involvement type doesn't have geographic locations enabled.", 'TouchPoint-WP')
             ]);
+            exit;
         }
 
         $r = [];
@@ -1503,7 +1514,7 @@ class Involvement implements api, updatesViaCron, geo
             if ($geoObj === false) {
                 echo json_encode([
                     "invList" => [],
-                    "error" => __("Error: No Location Available"),
+                    "error" => sprintf("No %s Found.", __("Locations", 'TouchPoint-WP')),
                     "geo" => false
                 ]);
                 exit;
@@ -1525,11 +1536,11 @@ class Involvement implements api, updatesViaCron, geo
         $invs = self::getInvsNear($_GET['lat'], $_GET['lng'], $settings->postType, $_GET['limit']);
 
         if ($invs === null) {
-            json_encode([
+            echo json_encode([
                 "invList" => [],
-	            // translators: %s will the plural post type (e.g. Small Groups)
-                "error" => sprintf(esc_html__("No %s Found.", 'TouchPoint-WP'), $settings->namePlural)
+                "error" => sprintf("No %s Found.", $settings->namePlural)
             ]);
+            exit;
         }
 
         $errorMessage = null;
@@ -2758,6 +2769,8 @@ class Involvement implements api, updatesViaCron, geo
      */
     private static function ajaxInvJoin(): void
     {
+        header('Content-Type: application/json');
+
         $inputData = TouchPointWP::postHeadersAndFiltering();
         $inputData = json_decode($inputData);
         $inputData->keywords = [];
@@ -2786,6 +2799,8 @@ class Involvement implements api, updatesViaCron, geo
      */
     private static function ajaxContact(): void
     {
+        header('Content-Type: application/json');
+
         $inputData = TouchPointWP::postHeadersAndFiltering();
         $inputData = json_decode($inputData);
         $inputData->keywords = [];

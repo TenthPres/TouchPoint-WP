@@ -40,6 +40,7 @@ class TouchPointWP_AdminAPI implements api {
     {
         switch (strtolower($uri['path'][2])) {
             case "memtypes":
+                header('Content-Type: application/json');
                 $divs = explode(",", $_GET['divs']);
                 $mt = TouchPointWP::instance()->getMemberTypesForDivisions($divs);
                 echo json_encode($mt);

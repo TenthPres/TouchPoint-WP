@@ -77,6 +77,7 @@ abstract class Meeting implements api
     private static function ajaxGetMeetingInfo(): void
     {
         header('Content-Type: application/json');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
             echo json_encode(['error' => 'Only GET requests are allowed.']);
             exit;
@@ -99,6 +100,7 @@ abstract class Meeting implements api
     private static function ajaxSubmitRsvps(): void
     {
         header('Content-Type: application/json');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             echo json_encode(['error' => 'Only POST requests are allowed.']);
             exit;

@@ -1321,6 +1321,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 	 */
     private static function ajaxIdent(): void
     {
+        header('Content-Type: application/json');
+
 	    $inputData = TouchPointWP::postHeadersAndFiltering();
 	    $inputData = json_decode($inputData);
 		if (property_exists($inputData, 'pid')) {
@@ -1391,6 +1393,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
     private static function ajaxSrc(): void
     {
+        header('Content-Type: application/json');
+
         $q['q'] = $_GET['q'] ?? '';
         $q['context'] = 'src';
 
@@ -1475,6 +1479,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
      */
     private static function ajaxContact(): void
     {
+        header('Content-Type: application/json');
+
         $inputData = TouchPointWP::postHeadersAndFiltering();
         $inputData = json_decode($inputData);
 

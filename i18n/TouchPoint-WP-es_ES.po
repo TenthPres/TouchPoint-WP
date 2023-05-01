@@ -162,13 +162,12 @@ msgstr "Grupos Pequeños"
 msgid "Select..."
 msgstr "Seleccione..."
 
-#. translators: %s will the plural post type (e.g. Small Groups)
+#. translators: %s will be the plural post type (e.g. Small Groups)
 #: src/templates/parts/involvement-list-none.php:16
-#: src/TouchPoint-WP/Involvement.php:1531
 msgid "No %s Found."
 msgstr "No se encontraron %s"
 
-#. translators: %s will the plural post type (e.g. Small Groups)
+#. translators: %s will be the plural post type (e.g. Small Groups)
 #: src/templates/parts/involvement-list-none.php:20
 msgid "%s will be imported overnight for the first time."
 msgstr "%s se importarán durante la noche por primera vez."
@@ -225,52 +224,52 @@ msgstr "Cualquier"
 msgid "The %s listed are only those shown on the map."
 msgstr "Los %s enumerados son solo los que se muestran en el mapa."
 
-#: src/TouchPoint-WP/Involvement.php:2625
+#: src/TouchPoint-WP/Involvement.php:2636
 msgid "Men Only"
 msgstr "Solo hombres"
 
-#: src/TouchPoint-WP/Involvement.php:2628
+#: src/TouchPoint-WP/Involvement.php:2639
 msgid "Women Only"
 msgstr "Solo mujeres"
 
-#: src/TouchPoint-WP/Involvement.php:2679
+#: src/TouchPoint-WP/Involvement.php:2690
 msgid "Contact Leaders"
 msgstr "Contacta con las líderes"
 
-#: src/TouchPoint-WP/Involvement.php:2686
+#: src/TouchPoint-WP/Involvement.php:2697
 msgid "Register"
 msgstr "Regístrate ahora"
 
-#: src/TouchPoint-WP/Involvement.php:2691
+#: src/TouchPoint-WP/Involvement.php:2702
 msgid "Create Account"
 msgstr "Crear cuenta"
 
-#: src/TouchPoint-WP/Involvement.php:2695
+#: src/TouchPoint-WP/Involvement.php:2706
 msgid "Schedule"
 msgstr "Programe"
 
-#: src/TouchPoint-WP/Involvement.php:2700
+#: src/TouchPoint-WP/Involvement.php:2711
 msgid "Give"
 msgstr "Dar"
 
-#: src/TouchPoint-WP/Involvement.php:2703
+#: src/TouchPoint-WP/Involvement.php:2714
 msgid "Manage Subscriptions"
 msgstr "Administrar suscripciones"
 
-#: src/TouchPoint-WP/Involvement.php:2706
+#: src/TouchPoint-WP/Involvement.php:2717
 msgid "Record Attendance"
 msgstr "Registre su asistencia"
 
-#: src/TouchPoint-WP/Involvement.php:2709
+#: src/TouchPoint-WP/Involvement.php:2720
 msgid "Get Tickets"
 msgstr "Obtener boletos"
 
-#: src/TouchPoint-WP/Involvement.php:2716
+#: src/TouchPoint-WP/Involvement.php:2727
 #: assets/js/base-defer.js:974
 msgid "Join"
 msgstr "Únete"
 
-#: src/TouchPoint-WP/Involvement.php:2725
+#: src/TouchPoint-WP/Involvement.php:2736
 #: src/TouchPoint-WP/Partner.php:1203
 msgid "Show on Map"
 msgstr "Muestra en el mapa"
@@ -300,38 +299,38 @@ msgstr "Contacta"
 msgid "RSVP"
 msgstr "RSVP"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2194
+#: src/TouchPoint-WP/TouchPointWP.php:2195
 msgid "Unknown Type"
 msgstr "Tipo desconocido"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2248
+#: src/TouchPoint-WP/TouchPointWP.php:2249
 msgid "Your Searches"
 msgstr "Tus búsquedas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2251
+#: src/TouchPoint-WP/TouchPointWP.php:2252
 msgid "Public Searches"
 msgstr "Búsquedas públicas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2254
+#: src/TouchPoint-WP/TouchPointWP.php:2255
 msgid "Status Flags"
 msgstr "Indicadores de Estado"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2259
 #: src/TouchPoint-WP/TouchPointWP.php:2260
+#: src/TouchPoint-WP/TouchPointWP.php:2261
 msgid "Current Value"
 msgstr "Valor actual"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2387
-#: src/TouchPoint-WP/TouchPointWP.php:2425
+#: src/TouchPoint-WP/TouchPointWP.php:2388
+#: src/TouchPoint-WP/TouchPointWP.php:2426
 msgid "Invalid or incomplete API Settings."
 msgstr "Configuración de API no válida o incompleta."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2395
-#: src/TouchPoint-WP/TouchPointWP.php:2432
+#: src/TouchPoint-WP/TouchPointWP.php:2396
+#: src/TouchPoint-WP/TouchPointWP.php:2433
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr "Parece que falta el host en la configuración de TouchPoint-WP."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2552
+#: src/TouchPoint-WP/TouchPointWP.php:2553
 msgid "People Query Failed"
 msgstr "Consulta de registros de personas fallida"
 
@@ -990,7 +989,7 @@ msgstr "Enviar"
 msgid "Nothing to submit."
 msgstr "Nada que enviar."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2493
+#: src/TouchPoint-WP/TouchPointWP.php:2494
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr "Los scripts en TouchPoint que interactúan con este complemento están desactualizados y falló una actualización automática."
 
@@ -1171,6 +1170,7 @@ msgstr "Añade una ubicación"
 msgid "The Campus"
 msgstr "El campus"
 
+#: src/TouchPoint-WP/Involvement.php:1517
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:762
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:768
 msgid "Locations"
@@ -1275,7 +1275,7 @@ msgstr "%1$s, hasta el %2$s"
 
 #. translators: number of miles
 #: src/templates/parts/involvement-nearby-list.php:10
-#: src/TouchPoint-WP/Involvement.php:2651
+#: src/TouchPoint-WP/Involvement.php:2662
 msgctxt "miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'"
 msgid "%2.1fmi"
 msgstr "%2.1fmi"
@@ -1291,3 +1291,11 @@ msgstr "La participación tiene un tipo de registro de \"No Online Registration\
 #: src/templates/admin/invKoForm.php:97
 msgid "Involvement registration has ended (end date is past)"
 msgstr "El registro de participación ha finalizado (la fecha de finalización ya pasó)"
+
+#: src/TouchPoint-WP/Involvement.php:1494
+msgid "This involvement type doesn't exist."
+msgstr "Este tipo de participación no existe."
+
+#: src/TouchPoint-WP/Involvement.php:1502
+msgid "This involvement type doesn't have geographic locations enabled."
+msgstr "Este tipo de participación no tiene habilitadas las ubicaciones geográficas."

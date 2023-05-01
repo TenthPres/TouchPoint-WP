@@ -26,7 +26,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.29";
+    public const VERSION = "0.0.30";
 
     /**
      * The Token
@@ -856,6 +856,7 @@ class TouchPointWP
     public function ajaxGeolocate(): void
     {
         header('Content-Type: application/json');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
             echo json_encode(['error' => 'Only GET requests are allowed.']);
             exit;
