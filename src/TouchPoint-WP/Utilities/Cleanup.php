@@ -35,6 +35,7 @@ abstract class Cleanup implements api
             self::cleanMemberTypes();
         } catch (\Exception $e) {
             if ($verbose) {
+                http_response_code(Http::SERVER_ERROR);
                 echo $e->getMessage();
             }
         }
@@ -43,6 +44,7 @@ abstract class Cleanup implements api
             self::cleanupPersonEVs();
         } catch (\Exception $e) {
             if ($verbose) {
+                http_response_code(Http::SERVER_ERROR);
                 echo $e->getMessage();
             }
         }

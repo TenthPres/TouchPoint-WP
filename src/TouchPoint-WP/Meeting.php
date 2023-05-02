@@ -13,6 +13,7 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
 }
 
 use Exception;
+use tp\TouchPointWP\Utilities\Http;
 
 /**
  * Handle meeting content, particularly RSVPs.
@@ -79,13 +80,18 @@ abstract class Meeting implements api
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-            echo json_encode(['error' => 'Only GET requests are allowed.']);
+            http_response_code(Http::METHOD_NOT_ALLOWED);
+            echo json_encode([
+                'error'      => 'Only GET requests are allowed.',
+                'error_i18n' => __("Only GET requests are allowed.", 'TouchPoint-WP')
+            ]);
             exit;
         }
 
         try {
             $data = self::getMeetingInfo($_GET);
         } catch (TouchPointWP_Exception $ex) {
+            http_response_code(Http::SERVER_ERROR);
             echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }
@@ -102,19 +108,28 @@ abstract class Meeting implements api
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['error' => 'Only POST requests are allowed.']);
+            http_response_code(Http::METHOD_NOT_ALLOWED);
+            echo json_encode([
+                'error'      => 'Only POST requests are allowed.',
+                'error_i18n' => __("Only POST requests are allowed.", 'TouchPoint-WP')
+            ]);
             exit;
         }
 
         $inputData = file_get_contents('php://input');
         if ($inputData[0] !== '{') {
-            echo json_encode(['error' => 'Invalid data provided.']);
+            http_response_code(Http::BAD_REQUEST);
+            echo json_encode([
+                'error'      => 'Invalid data provided.',
+                'error_i18n' => __("Invalid data provided.", 'TouchPoint-WP')
+            ]);
             exit;
         }
 
         try {
             $data = TouchPointWP::instance()->apiPost('mtg_rsvp', json_decode($inputData));
         } catch (Exception $ex) {
+            http_response_code(Http::SERVER_ERROR);
             echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }

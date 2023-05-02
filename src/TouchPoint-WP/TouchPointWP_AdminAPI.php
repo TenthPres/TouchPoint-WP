@@ -4,6 +4,7 @@
  */
 namespace tp\TouchPointWP;
 
+use tp\TouchPointWP\Utilities\Http;
 use WP_Post;
 use ZipArchive;
 
@@ -64,6 +65,7 @@ class TouchPointWP_AdminAPI implements api {
                     TouchPointWP::instance()->settings->updateDeployedScripts();
                     echo "Success";
                 } catch (TouchPointWP_Exception $e) {
+                    http_response_code(Http::SERVER_ERROR);
                     echo "Failed: " . $e->getMessage();
                 }
                 exit;

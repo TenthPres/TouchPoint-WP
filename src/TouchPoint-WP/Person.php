@@ -21,6 +21,7 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
 use Exception;
 use JsonSerializable;
 use stdClass;
+use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\Session;
@@ -1403,6 +1404,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 $data = TouchPointWP::instance()->apiGet('src', $q, 30);
                 $data = $data->people ?? [];
             } catch (Exception $ex) {
+                http_response_code(Http::SERVER_ERROR);
                 echo json_encode(['error' => $ex->getMessage()]);
                 exit;
             }
@@ -1466,6 +1468,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 try {
                     echo self::updateFromTouchPoint(true);
                 } catch (Exception $ex) {
+                    http_response_code(Http::SERVER_ERROR);
                     echo "Update Failed: " . $ex->getMessage();
                 }
                 exit;
@@ -1490,6 +1493,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         try {
             $data = TouchPointWP::instance()->apiPost('person_contact', $inputData);
         } catch (Exception $ex) {
+            http_response_code(Http::SERVER_ERROR);
             echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }

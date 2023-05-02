@@ -50,6 +50,7 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
     require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Cleanup.php";
     require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Geo.php";
     require_once __DIR__ . "/src/TouchPoint-WP/Utilities/PersonArray.php";
+    require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Http.php";
     require_once __DIR__ . "/src/TouchPoint-WP/geo.php";
 
     require_once __DIR__ . "/src/TouchPoint-WP/Person.php";

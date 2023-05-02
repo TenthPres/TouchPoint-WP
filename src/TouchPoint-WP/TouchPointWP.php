@@ -12,6 +12,8 @@ use WP_Term;
 
 use tp\TouchPointWP\Utilities\Cleanup;
 use tp\TouchPointWP\Utilities\Session;
+use tp\TouchPointWP\Utilities\Http;
+
 
 if ( ! defined('ABSPATH')) {
     exit;
@@ -323,13 +325,19 @@ class TouchPointWP
         TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['error' => 'Only POST requests are allowed.']);
+            echo json_encode([
+                'error'      => 'Only POST requests are allowed.',
+                'error_i18n' => __("Only POST requests are allowed.", 'TouchPoint-WP')
+            ]);
             exit;
         }
 
         $inputData = file_get_contents('php://input');
         if ($inputData[0] !== '{') {
-            echo json_encode(['error' => 'Invalid data provided.']);
+            echo json_encode([
+                'error'      => 'Invalid data provided.',
+                'error_i18n' => __("Invalid data provided.", 'TouchPoint-WP')
+            ]);
             exit;
         }
 
@@ -439,7 +447,6 @@ class TouchPointWP
             // Geolocate via IP
             if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_GEOLOCATE &&
                 count($reqUri['path']) === 2) {
-
                 $this->ajaxGeolocate();
             }
         }
@@ -858,7 +865,11 @@ class TouchPointWP
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-            echo json_encode(['error' => 'Only GET requests are allowed.']);
+            http_response_code(Http::METHOD_NOT_ALLOWED);
+            echo json_encode([
+                'error'      => 'Only GET requests are allowed.',
+                'error_i18n' => __("Only GET requests are allowed.", 'TouchPoint-WP')
+            ]);
             exit;
         }
 

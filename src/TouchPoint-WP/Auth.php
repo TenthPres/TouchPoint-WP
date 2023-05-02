@@ -4,6 +4,7 @@
  */
 namespace tp\TouchPointWP;
 
+use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\Session;
 use WP_Error;
@@ -345,14 +346,15 @@ abstract class Auth implements api
         switch (strtolower($uri['path'][2])) {
             case "token":
                 if ($_SERVER['REQUEST_METHOD'] !== "POST") {
+                    http_response_code(Http::METHOD_NOT_ALLOWED);
                     return false;
                 }
                 self::handlePostFromTouchPoint();
                 exit;
 
-            case "login.js":  // Some hosts bypass PHP for js extensions, so this doesn't work.
+            case "login.js":   // Some hosts bypass PHP for js extensions, so this doesn't work.
             case "login.jsr":
-				wp_redirect(content_url('/plugins/touchpoint-wp/ext/login.js'), 307);
+				wp_redirect(content_url('/plugins/touchpoint-wp/ext/login.js'), Http::SEE_OTHER_TEMP);
 				exit;
         }
 
@@ -505,6 +507,7 @@ abstract class Auth implements api
 
         } catch (TouchPointWP_Exception $e) {
             header('Content-Type: application/json');
+            http_response_code(Http::BAD_REQUEST);
             echo $e->toJson();
             exit(1);
         }
