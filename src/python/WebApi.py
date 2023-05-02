@@ -186,6 +186,7 @@ if "InvsForDivs" in Data.a:
                 o.LeaderMemberTypeId,
                 o.Location,
                 o.OrganizationName AS name,
+                o.RegistrationTitle AS regTitle,
                 o.MemberCount,
                 o.ClassFilled AS groupFull,
                 o.GenderId,
@@ -320,6 +321,7 @@ if "InvsForDivs" in Data.a:
             , o.[LeaderMemberTypeId]         AS [leaderMemberTypeId]
             , o.[Location]                   AS [location]
             , o.[name]                       AS [name]
+            , o.[regTitle]                   AS [regTitle]
             , o.[MemberCount]                AS [memberCount]
             , o.[groupFull]                  AS [groupFull]
             , o.[GenderId]                   AS [genderId]

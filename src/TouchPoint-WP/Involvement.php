@@ -2146,11 +2146,14 @@ class Involvement implements api, updatesViaCron, geo
 				$post = null;
             }
 
+            $titleToUse = $inv->regTitle ?? $inv->name;
+            $titleToUse = trim($titleToUse);
+
 			if ($post === null) {
                 $post = wp_insert_post(
                     [ // create new
                         'post_type'  => $typeSets->postType,
-                        'post_name'  => $inv->name,
+                        'post_name'  => $titleToUse,
                         'meta_input' => [
                             self::INVOLVEMENT_META_KEY => $inv->involvementId
                         ]
@@ -2177,8 +2180,8 @@ class Involvement implements api, updatesViaCron, geo
 	        }
 
             // Title & Slug -- slugs should only be updated if there's a reason, like a title change.  Otherwise, they increment.
-            if ($post->post_title != $inv->name || str_contains($post->post_name, "__trashed")) {
-                $post->post_title = $inv->name;
+            if ($post->post_title != $titleToUse || str_contains($post->post_name, "__trashed")) {
+                $post->post_title = $titleToUse;
                 $post->post_name = ''; // Slug will regenerate;
             }
 
