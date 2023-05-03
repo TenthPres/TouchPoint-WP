@@ -1626,6 +1626,8 @@ class TouchPointWP
     {
         $this->_log_version_number();
 
+        self::clearScheduledHooks();
+
         self::flushRewriteRules(true);
     }
 
@@ -1638,13 +1640,22 @@ class TouchPointWP
         // TODO remove all taxonomies (maybe)
         // TODO remove all posts
 
-        wp_clear_scheduled_hook(Involvement::CRON_HOOK);
-        wp_clear_scheduled_hook(Partner::CRON_HOOK);
-        wp_clear_scheduled_hook(Person::CRON_HOOK);
+        self::clearScheduledHooks();
 
         self::dropTables();
     }
 
+    /**
+     * Clear the scheduled crons.
+     *
+     * @return void
+     */
+    protected static function clearScheduledHooks(): void
+    {
+        wp_clear_scheduled_hook(Involvement::CRON_HOOK);
+        wp_clear_scheduled_hook(Partner::CRON_HOOK);
+        wp_clear_scheduled_hook(Person::CRON_HOOK);
+    }
 
     /**
      * Create or update database tables
@@ -1737,6 +1748,7 @@ class TouchPointWP
         if ($noChildlessParents) {
             foreach ($lineage[0] as $i => $term) {
                 if ( ! isset($lineage[$term->term_id])) {
+                    /** @noinspection PhpIllegalArrayKeyTypeInspection -- there isn't an error here. */
                     unset($lineage[0][$i]);
                 }
             }
