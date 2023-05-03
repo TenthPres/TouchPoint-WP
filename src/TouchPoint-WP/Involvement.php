@@ -22,6 +22,7 @@ use DateInterval;
 use DateTimeImmutable;
 use Exception;
 use stdClass;
+use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use WP_Error;
@@ -1484,13 +1485,28 @@ class Involvement implements api, updatesViaCron, geo
      */
     public static function ajaxNearby(): void
     {
+        header('Content-Type: application/json');
+
         $settings = self::getSettingsForPostType($_GET['type']);
 
+        if (! $settings) {
+            http_response_code(Http::NOT_FOUND);
+            echo json_encode([
+                     "invList"    => [],
+                     "error"      => "This involvement type doesn't exist.",
+                     "error_i18n" => __("This involvement type doesn't exist.", 'TouchPoint-WP')
+                 ]);
+            exit;
+        }
+
         if (! $settings->useGeo) {
-            json_encode([
-                "invList" => [],
-                "error" => __("Error: This involvement type doesn't have geographic locations enabled.")
+            http_response_code(Http::EXPECTATION_FAILED);
+            echo json_encode([
+                "invList"    => [],
+                "error"      => "This involvement type doesn't have geographic locations enabled.",
+                "error_i18n" => __("This involvement type doesn't have geographic locations enabled.", 'TouchPoint-WP')
             ]);
+            exit;
         }
 
         $r = [];
@@ -1501,10 +1517,12 @@ class Involvement implements api, updatesViaCron, geo
             $geoObj = TouchPointWP::instance()->geolocate();
 
             if ($geoObj === false) {
+                http_response_code(Http::PRECONDITION_FAILED);
                 echo json_encode([
-                    "invList" => [],
-                    "error" => __("Error: No Location Available"),
-                    "geo" => false
+                    "invList"    => [],
+                    "error"      => "Could not locate.",
+                    "error_i18n" => __("Could not locate.", 'TouchPoint-WP'),
+                    "geo"        => false
                 ]);
                 exit;
             }
@@ -1525,11 +1543,13 @@ class Involvement implements api, updatesViaCron, geo
         $invs = self::getInvsNear($_GET['lat'], $_GET['lng'], $settings->postType, $_GET['limit']);
 
         if ($invs === null) {
-            json_encode([
-                "invList" => [],
-	            // translators: %s will the plural post type (e.g. Small Groups)
-                "error" => sprintf(esc_html__("No %s Found.", 'TouchPoint-WP'), $settings->namePlural)
+            http_response_code(Http::NOT_FOUND);
+            echo json_encode([
+                "invList"    => [],
+                "error"      => sprintf("No %s Found.", $settings->namePlural),
+                "error_i18n" => sprintf(__("No %s Found.", "TouchPoint-WP"), $settings->namePlural)
             ]);
+            exit;
         }
 
         $errorMessage = null;
@@ -1540,6 +1560,7 @@ class Involvement implements api, updatesViaCron, geo
                 $g->invType = $settings->postTypeWithoutPrefix();
                 $g->path    = get_permalink($inv->post_id);
             } catch (TouchPointWP_Exception $ex) {
+                http_response_code(Http::SERVER_ERROR);
                 $errorMessage = $ex->getMessage();
             }
         }
@@ -1618,7 +1639,7 @@ class Involvement implements api, updatesViaCron, geo
 			if (!$sch) {
 				try {
 					$i   = self::fromInvId($iObj->invId);
-					$sch = $i->scheduleString();
+                    $sch = $i !== null ? $i->scheduleString() : null;
 				} catch (TouchPointWP_Exception $e) {
 					$sch = null;
 				}
@@ -2125,11 +2146,14 @@ class Involvement implements api, updatesViaCron, geo
 				$post = null;
             }
 
+            $titleToUse = $inv->regTitle ?? $inv->name;
+            $titleToUse = trim($titleToUse);
+
 			if ($post === null) {
                 $post = wp_insert_post(
                     [ // create new
                         'post_type'  => $typeSets->postType,
-                        'post_name'  => $inv->name,
+                        'post_name'  => $titleToUse,
                         'meta_input' => [
                             self::INVOLVEMENT_META_KEY => $inv->involvementId
                         ]
@@ -2156,8 +2180,8 @@ class Involvement implements api, updatesViaCron, geo
 	        }
 
             // Title & Slug -- slugs should only be updated if there's a reason, like a title change.  Otherwise, they increment.
-            if ($post->post_title != $inv->name || str_contains($post->post_name, "__trashed")) {
-                $post->post_title = $inv->name;
+            if ($post->post_title != $titleToUse || str_contains($post->post_name, "__trashed")) {
+                $post->post_title = $titleToUse;
                 $post->post_name = ''; // Slug will regenerate;
             }
 
@@ -2758,6 +2782,8 @@ class Involvement implements api, updatesViaCron, geo
      */
     private static function ajaxInvJoin(): void
     {
+        header('Content-Type: application/json');
+
         $inputData = TouchPointWP::postHeadersAndFiltering();
         $inputData = json_decode($inputData);
         $inputData->keywords = [];
@@ -2768,11 +2794,19 @@ class Involvement implements api, updatesViaCron, geo
             $inputData->owner = $settings->taskOwner;
             $lTypes = implode(',', $settings->leaderTypes);
             $inputData->leaderTypes = str_replace('mt', '', $lTypes);
+        } else {
+            http_response_code(Http::NOT_FOUND);
+            echo json_encode([
+                'error' => "Invalid Post Type.",
+                'error_i18n' => __("Invalid Post Type.", 'TouchPoint-WP')
+            ]);
+            exit;
         }
 
         try {
             $data = TouchPointWP::instance()->apiPost('inv_join', $inputData);
         } catch (TouchPointWP_Exception $ex) {
+            http_response_code(Http::SERVER_ERROR);
             echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }
@@ -2786,6 +2820,8 @@ class Involvement implements api, updatesViaCron, geo
      */
     private static function ajaxContact(): void
     {
+        header('Content-Type: application/json');
+
         $inputData = TouchPointWP::postHeadersAndFiltering();
         $inputData = json_decode($inputData);
         $inputData->keywords = [];
@@ -2796,11 +2832,19 @@ class Involvement implements api, updatesViaCron, geo
             $inputData->owner = $settings->taskOwner;
             $lTypes = implode(',', $settings->leaderTypes);
             $inputData->leaderTypes = str_replace('mt', '', $lTypes);
+        } else {
+            http_response_code(Http::NOT_FOUND);
+            echo json_encode([
+                'error'      => "Invalid Post Type.",
+                'error_i18n' => __("Invalid Post Type.", 'TouchPoint-WP')
+            ]);
+            exit;
         }
 
         try {
             $data = TouchPointWP::instance()->apiPost('inv_contact', $inputData);
         } catch (TouchPointWP_Exception $ex) {
+            http_response_code(Http::SERVER_ERROR);
             echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }

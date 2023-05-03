@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="WEB_MODULE" version="4">
-  <component name="NewModuleRootManager">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src/TouchPoint-WP" isTestSource="false" packagePrefix="tp\TouchPointWP\" />
       <sourceFolder url="file://$MODULE_DIR$/src/TouchPoint-WP/Utilities" isTestSource="false" packagePrefix="tp\TouchPointWP\Utilities\" />

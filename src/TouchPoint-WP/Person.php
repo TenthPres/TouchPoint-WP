@@ -21,6 +21,7 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
 use Exception;
 use JsonSerializable;
 use stdClass;
+use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\Session;
@@ -635,7 +636,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         // Existing Users
         /** @noinspection SqlResolve */
-        $sql = "SELECT meta_value FROM $wpdb->usermeta WHERE meta_key = '$pidMeta'";
+        $sql = "SELECT meta_value FROM $wpdb->usermeta WHERE meta_key = '$pidMeta' AND meta_value <> '' AND meta_value IS NOT NULL";
         self::$_indexingQueries['pid'] = $wpdb->get_col($sql);
         if (count(self::$_indexingQueries['pid']) > 0) {
             $queryNeeded = true;
@@ -1321,6 +1322,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 	 */
     private static function ajaxIdent(): void
     {
+        header('Content-Type: application/json');
+
 	    $inputData = TouchPointWP::postHeadersAndFiltering();
 	    $inputData = json_decode($inputData);
 		if (property_exists($inputData, 'pid')) {
@@ -1391,6 +1394,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
     private static function ajaxSrc(): void
     {
+        header('Content-Type: application/json');
+
         $q['q'] = $_GET['q'] ?? '';
         $q['context'] = 'src';
 
@@ -1399,6 +1404,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 $data = TouchPointWP::instance()->apiGet('src', $q, 30);
                 $data = $data->people ?? [];
             } catch (Exception $ex) {
+                http_response_code(Http::SERVER_ERROR);
                 echo json_encode(['error' => $ex->getMessage()]);
                 exit;
             }
@@ -1462,6 +1468,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 try {
                     echo self::updateFromTouchPoint(true);
                 } catch (Exception $ex) {
+                    http_response_code(Http::SERVER_ERROR);
                     echo "Update Failed: " . $ex->getMessage();
                 }
                 exit;
@@ -1475,6 +1482,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
      */
     private static function ajaxContact(): void
     {
+        header('Content-Type: application/json');
+
         $inputData = TouchPointWP::postHeadersAndFiltering();
         $inputData = json_decode($inputData);
 
@@ -1484,6 +1493,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         try {
             $data = TouchPointWP::instance()->apiPost('person_contact', $inputData);
         } catch (Exception $ex) {
+            http_response_code(Http::SERVER_ERROR);
             echo json_encode(['error' => $ex->getMessage()]);
             exit;
         }

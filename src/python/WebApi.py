@@ -5,7 +5,7 @@ import json
 import linecache
 import sys
 
-VERSION = "0.0.29"
+VERSION = "0.0.30"
 
 sgContactEvName = "Contact"
 
@@ -186,6 +186,7 @@ if "InvsForDivs" in Data.a:
                 o.LeaderMemberTypeId,
                 o.Location,
                 o.OrganizationName AS name,
+                o.RegistrationTitle AS regTitle,
                 o.MemberCount,
                 o.ClassFilled AS groupFull,
                 o.GenderId,
@@ -320,6 +321,7 @@ if "InvsForDivs" in Data.a:
             , o.[LeaderMemberTypeId]         AS [leaderMemberTypeId]
             , o.[Location]                   AS [location]
             , o.[name]                       AS [name]
+            , o.[regTitle]                   AS [regTitle]
             , o.[MemberCount]                AS [memberCount]
             , o.[groupFull]                  AS [groupFull]
             , o.[GenderId]                   AS [genderId]
@@ -841,7 +843,8 @@ if "people_get" in Data.a and model.HttpMethod == "post":
     # People Ids
     if inData.has_key('pid'):
         for pid in inData['pid']:
-            rules.append("PeopleId = {}".format(pid))
+            if pid is not None:
+                rules.append("PeopleId = {}".format(pid))
 
     # Family Ids
     if inData.has_key('fid'):

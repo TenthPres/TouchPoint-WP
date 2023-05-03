@@ -1091,7 +1091,8 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo
                 } catch (TouchPointWP_Exception $e) {
                 }
             } else {
-                $theDate = "Can't do that format"; // TODO
+                $e = new TouchPointWP_Exception("Unexpected Date/Time Format.  The date string \"$format\" can't be used in this situation.", 172001);
+                $theDate = "<!-- {$e->getMessage()} -->";
             }
         }
         return $theDate;
