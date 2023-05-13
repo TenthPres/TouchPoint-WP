@@ -790,8 +790,7 @@ if "mtg" in Data.a and model.HttpMethod == "post":
 
     Data.success = []
     for mtg in q.QuerySql('''
-    SELECT TOP 1 
-            m.meetingId as mtgId,
+    SELECT  m.meetingId as mtgId,
             m.organizationId as invId,
             m.location,
             FORMAT(m.meetingDate, 'yyyy-MM-ddTHH:mm:ss') as mtgDate,
