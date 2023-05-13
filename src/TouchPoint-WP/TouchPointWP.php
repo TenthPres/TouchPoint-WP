@@ -462,6 +462,8 @@ class TouchPointWP
      */
     public static function currentUserIsAdmin(): bool
     {
+        if (!function_exists('current_user_can'))
+            return false;
         return current_user_can('manage_options');
     }
 
