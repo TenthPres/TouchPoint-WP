@@ -557,7 +557,7 @@ abstract class Utilities
 
 		$newV = substr($tag, 1);
 
-        $initialHeaders = self::fileHeadersFromString(file_get_contents("../../touchpoint-wp.php"), [
+        $initialHeaders = self::fileHeadersFromString(file_get_contents(__DIR__ . "/../../touchpoint-wp.php"), [
             'Requires at least' => null,
             'Requires PHP'      => null,
             'Tested up to'      => null
