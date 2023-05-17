@@ -764,6 +764,20 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     }
 
     /**
+     * Deletes a user and optionally reassigns their posts to a different user. Does not re-map meta fields.
+     *
+     * @param $userId   int ID of the user to delete
+     * @param $reassign ?int ID of the user to whom the deleted author's work should be assigned.
+     *
+     * @return bool
+     */
+    protected static function deleteUser($userId, $reassign = null): bool
+    {
+        require_once './wp-admin/includes/user.php';
+        return wp_delete_user($userId, $reassign);
+    }
+
+    /**
      * Update a single person's information on WordPress, and WP User ID TouchPoint.
      *
      * @param mixed $pData
@@ -777,6 +791,30 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
     {
         $person = null;
         $updateWpIdInTouchPoint = true;
+
+        // Find person by PeopleId
+        if ($person === null) {
+            $q = new PersonQuery(
+                [
+                    'meta_key'     => self::META_PEOPLEID,
+                    'meta_value'   => $pData->PeopleId,
+                    'meta_compare' => '=',
+                    'orderby'      => 'ID'
+                ]
+            );
+            if ($q->get_total() > 0) {
+                $person = $q->get_first_result();
+                if ($q->get_total() > 1) {
+                    // Handle the error condition where there's more than one.  (#119)
+                    foreach($q->get_results() as $p) {
+                        if ($p === $person) {
+                            continue;
+                        }
+                        self::deleteUser($p->ID, $person->ID);
+                    }
+                }
+            }
+        }
 
         // Find person by WordPress ID, if provided.
         $wpId = null;
@@ -796,25 +834,17 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 ]
             );
             if ($q->get_total() > 0) { // Will only be 0 or 1, unless something has gone disastrously wrong.
-                $person = $q->get_first_result();
-                $updateWpIdInTouchPoint = false;
-            } // TODO handle the error condition where there's more than one. (#119)
-	        // TODO validate that this is the right person.
-        }
-
-        // Find person by PeopleId
-        if ($person === null) {
-            $q = new PersonQuery(
-                [
-                    'meta_key'     => self::META_PEOPLEID,
-                    'meta_value'   => $pData->PeopleId,
-                    'meta_compare' => '=',
-	                'orderby'      => 'ID'
-                ]
-            );
-            if ($q->get_total() > 0) {
-                $person = $q->get_first_result();
-            } // TODO handle the error condition where there's more than one.  (#119)
+                foreach($q->get_results() as $p) {
+                    if ($p->peopleId === $pData->PeopleId) {
+                        // Person selected is actually the right person.
+                        $person                 = $p;
+                        $updateWpIdInTouchPoint = false;
+                        continue;
+                    }
+                    // Handle the error condition where there's more than one.  (#119)
+                    self::deleteUser($p->ID, $person->ID);
+                }
+            }
         }
 
         // Create new person
@@ -853,6 +883,8 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             $person->user_email = null;
         }
         $person->picture = $pData->Picture;
+
+        $person->submitUpdate();
 
         // Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
 
@@ -908,6 +940,11 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 if ($currentInvs[$i->iid]->at !== $i->attType) {
                     $inv_updates[self::META_INV_ATTEND_PREFIX . $i->iid] = $i->attType;
                 }
+
+                $i->descr = $i->descr ?? "";
+                $i->descr = explode("--Add comments", $i->descr, 2)[0];
+                if (trim($i->descr) === '')
+                    $i->descr = null;
                 if ($currentInvs[$i->iid]->description !== $i->descr) {
                     $inv_updates[self::META_INV_DESC_PREFIX . $i->iid] = $i->descr;
                 }
