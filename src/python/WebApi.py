@@ -32,6 +32,14 @@ def get_person_info_for_sync(person_obj):
     p.GoesBy = person_obj.NickName if person_obj.NickName is not None else person_obj.FirstName
     p.DisplayName = " "
     p.DecoupleLocation = False
+    p.CampusId = person_obj.CampusId
+
+    # ResCodes
+    p.ResCode = None
+    if person_obj.ResidentCode is not None:
+        p.ResCode = person_obj.ResidentCode.Description
+    elif person_obj.Family.ResidentCode is not None:
+        p.ResCode = person_obj.Family.ResidentCode.Description
 
     # Person's Picture
     if person_obj.Picture is None:
@@ -99,6 +107,12 @@ if "ResCodes" in Data.a:
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.ResidentCode'''
     Data.Title = "All Resident Codes"
     Data.resCodes = q.QuerySql(rcSql, {})
+
+if "Campuses" in Data.a:
+    apiCalled = True
+    rcSql = '''SELECT Id, Code, Description as Name FROM lookup.Campus'''
+    Data.Title = "All Campuses"
+    Data.campuses = q.QuerySql(rcSql, {})
 
 if "Genders" in Data.a:
     apiCalled = True
@@ -197,6 +211,7 @@ if "InvsForDivs" in Data.a:
                 o.OrgPickList,
                 o.MainLeaderId,
                 o.ImageUrl,
+                o.CampusId,
                 o.RegSettingXml.exist('/Settings/AskItems') AS hasRegQuestions,
                 FORMAT(o.RegStart, 'yyyy-MM-ddTHH:mm:ss') AS regStart,
                 FORMAT(o.RegEnd, 'yyyy-MM-ddTHH:mm:ss') AS regEnd,
@@ -347,6 +362,7 @@ if "InvsForDivs" in Data.a:
             , ol.lat                         AS [lat]
             , ol.lng                         AS [lng]
             , ol.resCodeName                 AS [resCodeName]
+            , c.Description                  AS [campusName]
         FROM cteTargetOrgs o
             LEFT JOIN cteMaritalStatus ms
                 ON o.OrganizationId = ms.OrganizationId
@@ -360,6 +376,8 @@ if "InvsForDivs" in Data.a:
                 ON o.OrganizationId = d.OrganizationId
             LEFT JOIN cteOrganizationLocation ol
                 ON o.OrganizationId = ol.OrganizationId
+            LEFT JOIN lookup.Campus c
+                ON o.CampusId = c.Id
         ORDER BY o.parentInvId ASC, o.OrganizationId ASC'''.format(divs, hostMemTypes)
 
     groups = model.SqlListDynamicData(invSql)
@@ -389,11 +407,11 @@ if "InvsForDivs" in Data.a:
 
     Data.invs = groups
 
-    # Get Extra Values in use on these involvements  TODO put somewhere useful
+    # Get Extra Values in use on these involvements
     invEvSql = '''SELECT DISTINCT [Field], [Type] FROM OrganizationExtra oe
                   LEFT JOIN DivOrg do ON oe.OrganizationId = do.OrgId WHERE DivId IN ({})'''.format(divs)
 
-    Data.invev = model.SqlListDynamicData(invEvSql)  # TODO move to separate request
+    Data.invev = model.SqlListDynamicData(invEvSql)
 
 if "MemTypes" in Data.a:
     apiCalled = True
@@ -693,7 +711,7 @@ if "inv_join" in Data.a and model.HttpMethod == "post":
 
     if len(addPeople) > 0:
         org = model.GetOrganization(oid)
-        names = " & ".join(p.FirstName for p in addPeople)  # TODO develop a better name listing mechanism for python.
+        names = " & ".join(p.FirstName for p in addPeople)
         pidStr = "(P" + ") (P".join(str(p.PeopleId) for p in addPeople) + ")"
 
         text = """**{0} {2} interested in joining {1}**. Please reach out to welcome them and mark the task as complete.

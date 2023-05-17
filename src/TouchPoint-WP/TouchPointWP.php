@@ -70,6 +70,7 @@ class TouchPointWP
     public const SETTINGS_PREFIX = "tp_";
 
     public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
+    public const TAX_CAMPUS = self::HOOK_PREFIX . "campus";
     public const TAX_DIV = self::HOOK_PREFIX . "div";
     public const TAX_WEEKDAY = self::HOOK_PREFIX . "weekday";
     public const TAX_TENSE = self::HOOK_PREFIX . "tense";
@@ -80,6 +81,7 @@ class TouchPointWP
     public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
     public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
     public const TAX_GP_CATEGORY = self::HOOK_PREFIX . "partner_category";
+    public const TAXMETA_LOOKUP_ID = self::HOOK_PREFIX . "lookup_id";
 
     /**
      * Table Names
@@ -1100,8 +1102,79 @@ class TouchPointWP
         return $return;
     }
 
+    /**
+     * Get the term id for a given taxonomy and value.
+     *
+     * @param $taxonomy string Taxonomy name
+     * @param $value int|string The Lookup ID or name or slug of the term.
+     *
+     * @return ?int
+     *
+     * @since 0.0.31
+     */
+    public static function getTaxTermId(string $taxonomy, $value): ?int
+    {
+        $args = [
+            'taxonomy' => $taxonomy,
+            'hide_empty' => false,
+            'fields' => 'ids'
+        ];
+
+        if (is_numeric($value)) {
+            // by lookup id
+            $args['meta_key']   = self::TAXMETA_LOOKUP_ID;
+            $args['meta_value'] = $value;
+
+        } else {
+            // by name
+            $args['name'] = $value;
+            $t            = get_terms($args);
+            if (count($t) > 0) {
+                return $t[0];
+            }
+
+            // by slug
+            unset($args['name']);
+            $args['slug'] = $value;
+        }
+        $t = get_terms($args);
+        if (count($t) > 0) {
+            return $t[0];
+        }
+
+        return null;
+    }
+
+    /**
+     * Register the taxonomies.
+     *
+     * @return void
+     */
     public function registerTaxonomies(): void
     {
+        /**
+         * Create the label strings for taxonomies, just in case they ever become visible to the user.
+         *
+         * @param string $singular
+         * @param string $plural
+         *
+         * @return array
+         */
+        function getLabels(string $singular, string $plural): array
+        {
+            return [
+                'name'          => $singular,
+                'singular_name' => $plural,
+                'search_items'  => sprintf(__('Search %s.', 'TouchPoint-WP'), $plural),
+                'all_items'     => sprintf(__('All %s.', 'TouchPoint-WP'), $plural),
+                'edit_item'     => sprintf(__('Edit %s.', 'TouchPoint-WP'), $singular),
+                'update_item'   => sprintf(__('Update %s.', 'TouchPoint-WP'), $singular),
+                'add_new_item'  => sprintf(__('Add New %s.', 'TouchPoint-WP'), $singular),
+                'new_item_name' => sprintf(__('New %s.', 'TouchPoint-WP'), $singular),
+                'menu_name'     => $plural
+            ];
+        }
+
         // Resident Codes
         $resCodeTypesToApply = [];
         if ($this->settings->enable_involvements === "on") {
@@ -1114,18 +1187,8 @@ class TouchPointWP
             [
                 'hierarchical'      => false,
                 'show_ui'           => false,
-                'description'       => __('Classify posts by their general locations.'),
-                'labels'            => [
-                    'name'          => $this->settings->rc_name_plural,
-                    'singular_name' => $this->settings->rc_name_singular,
-                    'search_items'  => __('Search ' . $this->settings->rc_name_plural),
-                    'all_items'     => __('All ' . $this->settings->rc_name_plural),
-                    'edit_item'     => __('Edit ' . $this->settings->rc_name_singular),
-                    'update_item'   => __('Update ' . $this->settings->rc_name_singular),
-                    'add_new_item'  => __('Add New ' . $this->settings->rc_name_singular),
-                    'new_item_name' => __('New ' . $this->settings->rc_name_singular . ' Name'),
-                    'menu_name'     => $this->settings->rc_name_plural,
-                ],
+                'description'       => __('Classify posts by their general locations.', 'TouchPoint-WP'),
+                'labels'            => getLabels($this->settings->rc_name_singular, $this->settings->rc_name_plural),
                 'public'            => true,
                 'show_in_rest'      => true,
                 'show_admin_column' => true,
@@ -1140,7 +1203,7 @@ class TouchPointWP
         );
         foreach ($this->getResCodes() as $rc) {
             if ($rc->name !== null && !Utilities::termExists($rc->name, self::TAX_RESCODE)) {
-                Utilities::insertTerm(
+                $term = Utilities::insertTerm(
                     $rc->name,
                     self::TAX_RESCODE,
                     [
@@ -1148,10 +1211,57 @@ class TouchPointWP
                         'slug'        => sanitize_title($rc->name)
                     ]
                 );
+                update_term_meta($term['term_id'], self::TAXMETA_LOOKUP_ID, $rc->id);
+
                 self::queueFlushRewriteRules();
             }
         }
         // TODO remove defunct res codes
+
+        // Campuses
+        if ($this->settings->enable_campuses === "on") {
+            $campusesTypesToApply = [];
+            if ($this->settings->enable_involvements === "on") {
+                $campusesTypesToApply = Involvement_PostTypeSettings::getPostTypes();
+            }
+            $campusesTypesToApply[] = 'user';
+            register_taxonomy(
+                self::TAX_CAMPUS,
+                $campusesTypesToApply,
+                [
+                    'hierarchical'      => false,
+                    'show_ui'           => false,
+                    'description'       => __('Classify posts by their church campus.', 'TouchPoint-WP'),
+                    'labels'            => getLabels($this->settings->camp_name_singular, $this->settings->camp_name_plural),
+                    'public'            => true,
+                    'show_in_rest'      => true,
+                    'show_admin_column' => true,
+
+                    // Control the slugs used for this taxonomy
+                    'rewrite'           => [
+                        'slug'         => $this->settings->camp_slug,
+                        'with_front'   => false,
+                        'hierarchical' => false
+                    ],
+                ]
+            );
+            foreach ($this->getCampuses() as $c) {
+                if ($c->name !== null && ! Utilities::termExists($c->name, self::TAX_CAMPUS)) {
+                    $term = Utilities::insertTerm(
+                        $c->name,
+                        self::TAX_CAMPUS,
+                        [
+                            'description' => $c->name,
+                            'slug'        => sanitize_title($c->code)
+                        ]
+                    );
+                    update_term_meta($term['term_id'], self::TAXMETA_LOOKUP_ID, $c->id);
+
+                    self::queueFlushRewriteRules();
+                }
+            }
+        }
+        // TODO remove defunct campuses (including all of them, if disabled)
 
         // Divisions & Programs
         $divisionTypesToApply = [];
@@ -1166,18 +1276,8 @@ class TouchPointWP
                 [
                     'hierarchical'      => true,
                     'show_ui'           => true,
-                    'description'       => sprintf(__('Classify things by %s.'), $this->settings->dv_name_singular),
-                    'labels'            => [
-                        'name'          => $this->settings->dv_name_plural,
-                        'singular_name' => $this->settings->dv_name_singular,
-                        'search_items'  => __('Search ' . $this->settings->dv_name_plural),
-                        'all_items'     => __('All ' . $this->settings->dv_name_plural),
-                        'edit_item'     => __('Edit ' . $this->settings->dv_name_singular),
-                        'update_item'   => __('Update ' . $this->settings->dv_name_singular),
-                        'add_new_item'  => __('Add New ' . $this->settings->dv_name_singular),
-                        'new_item_name' => __('New ' . $this->settings->dv_name_singular . ' Name'),
-                        'menu_name'     => $this->settings->dv_name_plural,
-                    ],
+                    'description'       => sprintf(__('Classify things by %s.', 'TouchPoint-WP'), $this->settings->dv_name_singular),
+                    'labels'            => getLabels($this->settings->dv_name_singular, $this->settings->dv_name_plural),
                     'public'            => true,
                     'show_in_rest'      => true,
                     'show_admin_column' => false,
@@ -1252,18 +1352,8 @@ class TouchPointWP
                 [
                     'hierarchical'      => false,
                     'show_ui'           => false,
-                    'description'       => __('Classify involvements by the day on which they meet.'),
-                    'labels'            => [
-                        'name'          => __('Weekdays'),
-                        'singular_name' => __('Weekday'),
-                        'search_items'  => __('Search Weekdays'),
-                        'all_items'     => __('All Weekdays'),
-                        'edit_item'     => __('Edit Weekday'),
-                        'update_item'   => __('Update Weekday'),
-                        'add_new_item'  => __('Add New Weekday'),
-                        'new_item_name' => __('New Weekday Name'),
-                        'menu_name'     => __('Weekdays'),
-                    ],
+                    'description'       => __('Classify involvements by the day on which they meet.', 'TouchPoint-WP'),
+                    'labels'            => getLabels(__('Weekday', 'TouchPoint-WP'), __('Weekdays', 'TouchPoint-WP')),
                     'public'            => true,
                     'show_in_rest'      => true,
                     'show_admin_column' => true,
@@ -1298,18 +1388,8 @@ class TouchPointWP
                 [
                     'hierarchical'      => false,
                     'show_ui'           => false,
-                    'description'       => __('Classify involvements by tense (present, future, past)'),
-                    'labels'            => [
-                        'name'          => __('Tenses'),
-                        'singular_name' => __('Tense'),
-                        'search_items'  => __('Search Tenses'),
-                        'all_items'     => __('All Tenses'),
-                        'edit_item'     => __('Edit Tense'),
-                        'update_item'   => __('Update Tense'),
-                        'add_new_item'  => __('Add New Tense'),
-                        'new_item_name' => __('New Tense'),
-                        'menu_name'     => __('Tenses'),
-                    ],
+                    'description'       => __('Classify involvements by tense (present, future, past)', 'TouchPoint-WP'),
+                    'labels'            => getLabels(__("Tense", 'TouchPoint-WP'), __("Tenses", 'TouchPoint-WP')),
                     'public'            => true,
                     'show_in_rest'      => false,
                     'show_admin_column' => false,
@@ -1323,9 +1403,9 @@ class TouchPointWP
                 ]
             );
             foreach ([
-                TouchPointWP::TAX_TENSE_FUTURE => __('Upcoming'),
-                TouchPointWP::TAX_TENSE_PRESENT => __('Current'),
-                TouchPointWP::TAX_TENSE_PAST => __('Past'),
+                TouchPointWP::TAX_TENSE_FUTURE => 'Upcoming',
+                TouchPointWP::TAX_TENSE_PRESENT => 'Current',
+                TouchPointWP::TAX_TENSE_PAST => 'Past',
             ] as $slug => $name) {
                 if (!Utilities::termExists($slug, self::TAX_TENSE)) {
                     Utilities::insertTerm(
@@ -1348,18 +1428,8 @@ class TouchPointWP
                 [
                     'hierarchical'      => false,
                     'show_ui'           => false,
-                    'description'       => __('Classify involvements by the portion of the day in which they meet.'),
-                    'labels'            => [
-                        'name'          => __('Times of Day'),
-                        'singular_name' => __('Time of Day'),
-                        'search_items'  => __('Search Times of Day'),
-                        'all_items'     => __('All Times of Day'),
-                        'edit_item'     => __('Edit Time of Day'),
-                        'update_item'   => __('Update Time of Day'),
-                        'add_new_item'  => __('Add New Time of Day'),
-                        'new_item_name' => __('New Time of Day'),
-                        'menu_name'     => __('Times of Day'),
-                    ],
+                    'description'       => __('Classify involvements by the portion of the day in which they meet.', 'TouchPoint-WP'),
+                    'labels'            => getLabels(__('Time of Day', 'TouchPoint-WP'), __('Times of Day', 'TouchPoint-WP')),
                     'public'            => true,
                     'show_in_rest'      => true,
                     'show_admin_column' => true,
@@ -1410,18 +1480,8 @@ class TouchPointWP
             [
                 'hierarchical' => false,
                 'show_ui' => false,
-                'description' => __( 'Classify involvements and users by their age groups.' ),
-                'labels' => [
-                    'name' => __('Age Groups'),
-                    'singular_name' => __('Age Group'),
-                    'search_items' =>  __( 'Search Age Groups' ),
-                    'all_items' => __( 'All Age Groups'  ),
-                    'edit_item' => __( 'Edit Age Group' ),
-                    'update_item' => __( 'Update Age Group' ),
-                    'add_new_item' => __( 'Add New Age Group' ),
-                    'new_item_name' => __( 'New Age Group' ),
-                    'menu_name' => __('Age Groups'),
-                ],
+                'description' => __( 'Classify involvements and users by their age groups.', 'TouchPoint-WP'),
+                'labels' => getLabels(__('Age Group', 'TouchPoint-WP'), __('Age Groups', 'TouchPoint-WP')),
                 'public' => true,
                 'show_in_rest' => true,
                 'show_admin_column' => true,
@@ -1457,18 +1517,8 @@ class TouchPointWP
                 [
                     'hierarchical'      => false,
                     'show_ui'           => false,
-                    'description'       => __('Classify involvements by whether participants are mostly single or married.'),
-                    'labels'            => [
-                        'name'          => __('Marital Status'),
-                        'singular_name' => __('Marital Statuses'),
-                        'search_items'  => __('Search Martial Statuses'),
-                        'all_items'     => __('All Marital Statuses'),
-                        'edit_item'     => __('Edit Marital Status'),
-                        'update_item'   => __('Update Marital Status'),
-                        'add_new_item'  => __('Add New Marital Status'),
-                        'new_item_name' => __('New Marital Status'),
-                        'menu_name'     => __('Marital Statuses'),
-                    ],
+                    'description'       => __('Classify involvements by whether participants are mostly single or married.', 'TouchPoint-WP'),
+                    'labels'            => getLabels(__('Marital Status', 'TouchPoint-WP'), __('Marital Statuses', 'TouchPoint-WP')),
                     'public'            => true,
                     'show_in_rest'      => true,
                     'show_admin_column' => true,
@@ -1503,25 +1553,15 @@ class TouchPointWP
                 unregister_taxonomy(self::TAX_GP_CATEGORY);
             } elseif (count($this->getFamilyEvFields([$tax])) > 0) {
                 $tax = $this->getFamilyEvFields([$tax])[0];
-                $plural = $tax->field . "s"; // Sad, but works.  i18n someday.
+                $plural = $tax->field . "s"; // TODO Sad, but works.  i18n someday.
                 register_taxonomy(
                     self::TAX_GP_CATEGORY,
                     Partner::POST_TYPE,
                     [
                         'hierarchical'      => false,
                         'show_ui'           => false,
-                        'description'       => __('Classify Partners by category chosen in settings.'),
-                        'labels'            => [
-                            'name'          => $tax->field,
-                            'singular_name' => $plural,
-                            'search_items'  => sprintf(__('Search %s.'), $plural),
-                            'all_items'     => sprintf(__('All %s.'), $plural),
-                            'edit_item'     => sprintf(__('Edit %s.'), $tax->field),
-                            'update_item'   => sprintf(__('Update %s.'), $tax->field),
-                            'add_new_item'  => sprintf(__('Add New %s.'), $tax->field),
-                            'new_item_name' => sprintf(__('New %s.'), $tax->field),
-                            'menu_name'     => $plural
-                        ],
+                        'description'       => __('Classify Partners by category chosen in settings.', 'TouchPoint-WP'),
+                        'labels'            => getLabels($tax->field, $plural),
                         'public'            => true,
                         'show_in_rest'      => true,
                         'show_admin_column' => true,
@@ -1939,6 +1979,67 @@ class TouchPointWP
         }
 
         return $rcObj->resCodes;
+    }
+
+
+    /**
+     * Returns an array of objects that correspond to campuses.  Each Campus has a name, a code, and an id.
+     *
+     * @returns object[]
+     */
+    public function getCampuses(): array
+    {
+        $cObj = $this->settings->get('meta_campuses');
+
+        $needsUpdate = false;
+        if ($cObj === false || $cObj === null) {
+            $needsUpdate = true;
+        } else {
+            $cObj = json_decode($cObj);
+            if (strtotime($cObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($cObj->campuses)) {
+                $needsUpdate = true;
+            }
+        }
+
+        // Get update if needed.
+        if ($needsUpdate) {
+            $update = $this->updateCampuses();
+            if ($update !== false) {
+                $cObj = $update;
+            }
+        }
+
+        if ($cObj === false) {
+            return [];
+        }
+
+        return $cObj->campuses;
+    }
+
+
+    /**
+     * @return false|object Update the resident codes if they're stale.
+     */
+    private function updateCampuses()
+    {
+        try {
+            $data = $this->apiGet('Campuses');
+        } catch (TouchPointWP_Exception $e) {
+            return false;
+        }
+
+        if ( ! is_array($data->campuses)) {
+            return false;
+        }
+
+        $obj = (object)[
+            '_updated' => date('c'),
+            'campuses' => $data->campuses
+        ];
+
+        $this->settings->set("meta_campuses", json_encode($obj));
+
+        return $obj;
     }
 
 

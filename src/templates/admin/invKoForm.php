@@ -155,9 +155,15 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                     <label for="it-filt-genderId" data-bind="attr: { for: 'it-' + slug() + '-filt-genderId'}"><?php _e("Gender", "TouchPoint-WP"); ?></label>
                 </p>
                 <p data-bind="visible: useGeo">
-                    <input id="it-filt-useGeo" type="checkbox" value="rescode" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-useGeo'}" />
-                    <label for="it-filt-useGeo" data-bind="attr: { for: 'it-' + slug() + '-filt-useGeo'}"><?php echo $this->get('rc_name_singular') ?></label>
+                    <input id="it-filt-rescode" type="checkbox" value="rescode" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-rescode'}" />
+                    <label for="it-filt-rescode" data-bind="attr: { for: 'it-' + slug() + '-filt-rescode'}"><?php echo $this->get('rc_name_singular') ?></label>
                 </p>
+                <?php if ($this->get('enable_campuses') === "on") { ?>
+                <p>
+                    <input id="it-filt-campus" type="checkbox" value="campus" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-campus'}" />
+                    <label for="it-filt-campus" data-bind="attr: { for: 'it-' + slug() + '-filt-campus'}"><?php echo $this->get('camp_name_singular') ?></label>
+                </p>
+                <?php } ?>
                 <p>
                     <input id="it-filt-weekday" type="checkbox" value="weekday" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-weekday'}" />
                     <label for="it-filt-weekday" data-bind="attr: { for: 'it-' + slug() + '-filt-weekday'}"><?php _e("Weekday", "TouchPoint-WP"); ?></label>

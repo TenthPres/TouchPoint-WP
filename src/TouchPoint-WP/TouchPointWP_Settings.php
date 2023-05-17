@@ -19,6 +19,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string enable_people_lists  Whether to allow public People Lists.
  * @property-read string enable_rsvp        Whether the RSVP module is included.
  * @property-read string enable_global      Whether to import Global partners.
+ * @property-read string enable_campuses    Whether to import campuses.
  *
  * @property-read string|false host         The domain for the TouchPoint instance
  * @property-read string host_deeplink      The domain for mobile deep linking to the Custom Mobile App
@@ -68,6 +69,10 @@ if ( ! defined('ABSPATH')) {
  * @property-read string rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
  * @property-read string rc_name_singular   What a resident code should be called, singular (e.g. "Resident Code" or "Zone")
  * @property-read string rc_slug            Slug for resident code taxonomy (e.g. "zones" for church.org/zones)
+ *
+ * @property-read string camp_name_plural   What campuses should be called, plural (e.g. "Campuses" or "Languages")
+ * @property-read string camp_name_singular What a campus should be called, singular (e.g. "Campus" or "Language")
+ * @property-read string camp_slug          Slug for campus taxonomy (e.g. "campuses" for church.org/campuses)
  *
  * @property-read string dv_name_plural     What divisions should be called, plural (e.g. "Divisions" or "Ministries")
  * @property-read string dv_name_singular   What a division should be called, singular (e.g. "Division" or "Ministry")
@@ -242,6 +247,16 @@ class TouchPointWP_Settings
                     'label'       => __('Enable Global Partner Listings', 'TouchPoint-WP'),
                     'description' => __(
                         'Import ministry partners from TouchPoint to list publicly.',
+                        'TouchPoint-WP'
+                    ),
+                    'type'        => 'checkbox',
+                    'default'     => '',
+                ],
+                [
+                    'id'          => 'enable_campuses',
+                    'label'       => __('Enable Campuses', 'TouchPoint-WP'),
+                    'description' => __(
+                        "Import campuses as a taxonomy. (You probably want to do this if you're multi-campus.)",
                         'TouchPoint-WP'
                     ),
                     'type'        => 'checkbox',
@@ -781,46 +796,51 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 		    ],
 	    ];
 
-	    $this->settings['campuses'] = [
-		    'title'       => __('Campuses', 'TouchPoint-WP'),
-		    'description' => __('Import Campuses from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', 'TouchPoint-WP'),
-		    'fields'      => [
-			    [
-				    'id'          => 'camp_name_plural',
-				    'label'       => __('Campus Name (Plural)', 'TouchPoint-WP'),
-				    'description' => __(
-					    'What you call Campuses at your church',
-					    'TouchPoint-WP'
-				    ),
-				    'type'        => 'text',
-				    'default'     => 'Campuses',
-				    'placeholder' => 'Campuses'
-			    ],
-			    [
-				    'id'          => 'camp_name_singular',
-				    'label'       => __('Campus Name (Singular)', 'TouchPoint-WP'),
-				    'description' => __(
-					    'What you call a Campus at your church',
-					    'TouchPoint-WP'
-				    ),
-				    'type'        => 'text',
-				    'default'     => 'Campus',
-				    'placeholder' => 'Campus'
-			    ],
-			    [
-				    'id'          => 'camp_slug',
-				    'label'       => __('Campus Slug', 'TouchPoint-WP'),
-				    'description' => __(
-					    'The root path for the Campus Taxonomy',
-					    'TouchPoint-WP'
-				    ),
-				    'type'        => 'text',
-				    'default'     => 'campus',
-				    'placeholder' => 'campus',
-				    'callback'    => fn($new) => $this->validation_slug($new, 'camp_slug')
-			    ]
-		    ],
-	    ];
+        if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_campuses') === "on") { // TODO MULTI
+            $this->settings['campuses'] = [
+                'title'       => __('Campuses', 'TouchPoint-WP'),
+                'description' => __(
+                    'Import Campuses from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.',
+                    'TouchPoint-WP'
+                ),
+                'fields'      => [
+                    [
+                        'id'          => 'camp_name_plural',
+                        'label'       => __('Campus Name (Plural)', 'TouchPoint-WP'),
+                        'description' => __(
+                            'What you call Campuses at your church',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Campuses',
+                        'placeholder' => 'Campuses'
+                    ],
+                    [
+                        'id'          => 'camp_name_singular',
+                        'label'       => __('Campus Name (Singular)', 'TouchPoint-WP'),
+                        'description' => __(
+                            'What you call a Campus at your church',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'Campus',
+                        'placeholder' => 'Campus'
+                    ],
+                    [
+                        'id'          => 'camp_slug',
+                        'label'       => __('Campus Slug', 'TouchPoint-WP'),
+                        'description' => __(
+                            'The root path for the Campus Taxonomy',
+                            'TouchPoint-WP'
+                        ),
+                        'type'        => 'text',
+                        'default'     => 'campus',
+                        'placeholder' => 'campus',
+                        'callback'    => fn($new) => $this->validation_slug($new, 'camp_slug')
+                    ]
+                ],
+            ];
+        }
 
         $this->settings['resident_codes'] = [
             'title'       => __('Resident Codes', 'TouchPoint-WP'),
@@ -1265,7 +1285,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 		    TouchPointWP::HOOK_PREFIX . "nextMeeting"
 	    ];
 		foreach ($metaKeys as $k) {
-			$wpdb->query("DELETE FROM $wpdb->postmeta WHERE meta_key = '$k'");
+            /** @noinspection SqlResolve */
+            $wpdb->query("DELETE FROM $wpdb->postmeta WHERE meta_key = '$k'");
 		}
 
 
@@ -1287,9 +1308,20 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 				update_option('active_plugins', $activePlugins);
 			}
 		}
-		if (file_exists("../../touchpoint-wp/TouchOoint-WP.php")) {
+		if (file_exists("../../touchpoint-wp/TouchPoint-WP.php") && !file_exists("../../touchpoint-wp/touchpoint-wp.php")) {
 			rename("../../touchpoint-wp/TouchPoint-WP.php", "../../touchpoint-wp/touchpoint-wp.php");
 		}
+
+
+        // 0.0.31 - Add lookup IDs to ResCodes
+        foreach (TouchPointWP::instance()->getResCodes() as $rc) {
+            $term = Utilities::termExists($rc->name, TouchPointWP::TAX_RESCODE);
+            if ($term !== null && isset($term['term_id'])) {
+                if (update_term_meta($term['term_id'], TouchPointWP::TAXMETA_LOOKUP_ID, $rc->id)) {
+                    TouchPointWP::queueFlushRewriteRules();
+                }
+            }
+        }
 
 
         // Update version string

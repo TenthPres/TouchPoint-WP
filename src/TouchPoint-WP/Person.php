@@ -25,16 +25,21 @@ use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\Session;
+use WP_Term;
 use WP_User;
 
 /**
  * This Person Object connects a WordPress User with a TouchPoint Person.
  *
- * @property ?object $picture An object with the picture URLs and other metadata
- * @property-read int familyId  The Family ID
- * @property-read int peopleId  The People ID
+ * @property ?object $picture       An object with the picture URLs and other metadata
+ * @property-read int familyId      The Family ID
+ * @property-read int peopleId      The People ID
+ * @property-read ?WP_Term campus   The Campus taxonomy, if present
+ * @property ?int campus_term_id    The Campus term ID
+ * @property-read ?WP_Term resCode  The ResCode taxonomy, if present
+ * @property ?int rescode_term_id   The ResCode term ID
  * @property ?string $loginSessionToken  A token that is saved on the Session variable and used to ensure links aren't used between sessions.
- * @property ?string $loginToken  A token used to validate the user.
+ * @property ?string $loginToken    A token used to validate the user.
  */
 class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 {
@@ -63,6 +68,11 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
     public int $peopleId;
     public int $familyId;
+
+    protected ?WP_Term $_campus;
+    private bool $_campusLoaded = false;
+    protected ?WP_Term $_resCode;
+    private bool $_resCodeLoaded = false;
 
     private array $_userFieldsToUpdate = [];
     private array $_userMetaToUpdate = [];
@@ -100,7 +110,9 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         'picture',
         'familyId',
         'loginToken',
-        'loginSessionToken'
+        'loginSessionToken',
+        'campus_term_id',
+        'rescode_term_id'
     ];
 
 
@@ -216,14 +228,27 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             /** @noinspection SpellCheckingInspection */
             case "peopleid":
                 return $this->peopleId;
+
+            /** @noinspection SpellCheckingInspection */
             case "familyid":
                 return $this->familyId;
+
             case "id":
                 return $this->ID;
+
+            /** @noinspection SpellCheckingInspection */
             case "goesby":
                 return $this->first_name;
+
             case "lastname":
                 return $this->last_name;
+
+            case "campus":
+                return $this->campus();
+
+            /** @noinspection SpellCheckingInspection */
+            case "rescode":
+                return $this->resCode();
         }
 
         // Direct user fields
@@ -264,10 +289,20 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         switch (strtolower($key)) {
             /** @noinspection SpellCheckingInspection */
             case "peopleid":
+            /** @noinspection SpellCheckingInspection */
             case "familyid":
             case "id":
                 _doing_it_wrong(__FUNCTION__, "IDs can only be updated within the Person class.", TouchPointWP::VERSION);
                 return;
+
+            case "campus_term_id":
+                $this->_campusLoaded = false;
+                break;
+
+            /** @noinspection SpellCheckingInspection */
+            case "rescode_term_id":
+                $this->_resCodeLoaded = false;
+                break;
         }
 
         // If value isn't changed, don't update.
@@ -884,6 +919,15 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         }
         $person->picture = $pData->Picture;
 
+        // resCodes and Campuses
+        $person->rescode_term_id = TouchPointWP::getTaxTermId(TouchPointWP::TAX_RESCODE, $pData->ResCode);
+        if (TouchPointWP::instance()->settings->enable_campuses !== "on") {
+            $person->campus_term_id = null;
+        } else {
+            $person->campus_term_id = TouchPointWP::getTaxTermId(TouchPointWP::TAX_CAMPUS, $pData->CampusId);
+        }
+
+        // Submit update.
         $person->submitUpdate();
 
         // Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
@@ -914,6 +958,9 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         unset($bioField);
 
         // Removal of no-longer valid EV Fields happens within Cleanup::cleanupPersonEVs
+
+        // Submit update.
+        $person->submitUpdate();
 
         // Involvements!
         if (isset($pData->Inv)) {
@@ -1033,6 +1080,45 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             self::$_peopleWhoNeedWpIdUpdatedInTouchPoint = [];
         } catch (Exception $ex) { // If it fails this time, it'll probably get fixed next time
         }
+    }
+
+    /**
+     * Get the WP_Term for the Campus taxonomy connected to this person.
+     *
+     * @return WP_Term|null  The term, or null of there isn't one.
+     */
+    protected function campus(): ?WP_Term
+    {
+        if (TouchPointWP::instance()->settings->enable_campuses !== "on") {
+            return null;
+        }
+        if ($this->_campusLoaded === false) {
+            if ($this->campus_term_id === null) {
+                $this->_campus = null;
+            } else {
+                $this->_campus = WP_Term::get_instance($this->campus_term_id, TouchPointWP::TAX_CAMPUS);
+            }
+            $this->_campusLoaded = true;
+        }
+        return $this->_campus;
+    }
+
+    /**
+     * Get the WP_Term for the ResCode taxonomy connected to this person.
+     *
+     * @return WP_Term|null  The term, or null of there isn't one.
+     */
+    protected function resCode(): ?WP_Term
+    {
+        if ($this->_resCodeLoaded === false) {
+            if ($this->rescode_term_id === null) {
+                $this->_resCode = null;
+            } else {
+                $this->_resCode = WP_Term::get_instance($this->rescode_term_id, TouchPointWP::TAX_RESCODE);
+            }
+            $this->_resCodeLoaded = true;
+        }
+        return $this->_resCode;
     }
 
     /**

@@ -148,17 +148,22 @@ class Involvement implements api, updatesViaCron, geo
             $this->invType = substr($this->invType, strlen(TouchPointWP::HOOK_PREFIX));
         }
 
+        $postTerms = [
+            TouchPointWP::TAX_RESCODE,
+            TouchPointWP::TAX_AGEGROUP,
+            TouchPointWP::TAX_WEEKDAY,
+            TouchPointWP::TAX_TENSE,
+            TouchPointWP::TAX_DAYTIME,
+            TouchPointWP::TAX_INV_MARITAL,
+            TouchPointWP::TAX_DIV
+        ];
+        if (TouchPointWP::instance()->settings->enable_campuses === "on") {
+            $postTerms[] = TouchPointWP::TAX_CAMPUS;
+        }
+
         $terms = wp_get_post_terms(
             $this->post_id,
-            [
-                TouchPointWP::TAX_RESCODE,
-                TouchPointWP::TAX_AGEGROUP,
-                TouchPointWP::TAX_WEEKDAY,
-                TouchPointWP::TAX_TENSE,
-                TouchPointWP::TAX_DAYTIME,
-                TouchPointWP::TAX_INV_MARITAL,
-                TouchPointWP::TAX_DIV
-            ]
+            $postTerms
         );
 
         if (is_array($terms) && count($terms) > 0) {
@@ -228,7 +233,7 @@ class Involvement implements api, updatesViaCron, geo
             }
 
             // Color!
-            $this->color = Utilities::getColorFor("default", "involvement"); // TODO for real
+            $this->color = Utilities::getColorFor("default", "involvement");
         }
 
         $this->registerConstruction();
@@ -509,7 +514,7 @@ class Involvement implements api, updatesViaCron, geo
 	 *
 	 * @return DateTimeImmutable|null
 	 */
-	public function nextMeeting(): ?\DateTimeImmutable
+	public function nextMeeting(): ?DateTimeImmutable
 	{
 		$now = new DateTimeImmutable();
 		$this->_nextMeeting = null;
@@ -1309,6 +1314,30 @@ class Involvement implements api, updatesViaCron, geo
                 $content .= "<option disabled selected>$rcName</option><option value=\"\">$any</option>";
 
                 foreach ($rcList as $g) {
+                    $name    = $g->name;
+                    $id      = $g->slug;
+                    $content .= "<option value=\"$id\">$name</option>";
+                }
+
+                $content .= "</select>";
+            }
+        }
+
+        // Campuses
+        if (in_array('campus', $filters) && TouchPointWP::instance()->settings->enable_campuses === "on") {
+            $cName = TouchPointWP::instance()->settings->camp_name_singular;
+            $cList = get_terms(
+                [
+                    'taxonomy'                              => TouchPointWP::TAX_CAMPUS,
+                    'hide_empty'                            => true,
+                    TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
+                ]
+            );
+            if (is_array($cList) && count($cList) > 1) {
+                $content .= "<select class=\"$class-filter\" data-involvement-filter=\"campus\">";
+                $content .= "<option disabled selected>$cName</option><option value=\"\">$any</option>";
+
+                foreach ($cList as $g) {
                     $name    = $g->name;
                     $id      = $g->slug;
                     $content .= "<option value=\"$id\">$name</option>";
@@ -2354,6 +2383,17 @@ class Involvement implements api, updatesViaCron, geo
 	                /** @noinspection PhpRedundantOptionalArgumentInspection */
                     wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
                 }
+
+                // Handle Campuses
+                if (TouchPointWP::instance()->settings->enable_campuses === "on") {
+                    if (property_exists($inv, "campusName") && $inv->campusName !== null) {
+                        /** @noinspection PhpRedundantOptionalArgumentInspection */
+                        wp_set_post_terms($post->ID, [$inv->campusName], TouchPointWP::TAX_CAMPUS, false);
+                    } else {
+                        /** @noinspection PhpRedundantOptionalArgumentInspection */
+                        wp_set_post_terms($post->ID, [], TouchPointWP::TAX_CAMPUS, false);
+                    }
+                }
             }
 
 
@@ -2554,8 +2594,6 @@ class Involvement implements api, updatesViaCron, geo
 	public function members(): ?PersonArray
 	{
 		if (!isset($this->_members)) {
-			$s = $this->settings();
-
 			$q = new PersonQuery(
 				[
 					'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
