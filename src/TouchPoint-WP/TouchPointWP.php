@@ -1165,12 +1165,18 @@ class TouchPointWP
             return [
                 'name'          => $singular,
                 'singular_name' => $plural,
-                'search_items'  => sprintf(__('Search %s.', 'TouchPoint-WP'), $plural),
-                'all_items'     => sprintf(__('All %s.', 'TouchPoint-WP'), $plural),
-                'edit_item'     => sprintf(__('Edit %s.', 'TouchPoint-WP'), $singular),
-                'update_item'   => sprintf(__('Update %s.', 'TouchPoint-WP'), $singular),
-                'add_new_item'  => sprintf(__('Add New %s.', 'TouchPoint-WP'), $singular),
-                'new_item_name' => sprintf(__('New %s.', 'TouchPoint-WP'), $singular),
+                /* translators: %s: taxonomy name, plural */
+                'search_items'  => sprintf(__('Search %s', 'TouchPoint-WP'), $plural),
+                /* translators: %s: taxonomy name, plural */
+                'all_items'     => sprintf(__('All %s', 'TouchPoint-WP'), $plural),
+                /* translators: %s: taxonomy name, singular */
+                'edit_item'     => sprintf(__('Edit %s', 'TouchPoint-WP'), $singular),
+                /* translators: %s: taxonomy name, singular */
+                'update_item'   => sprintf(__('Update %s', 'TouchPoint-WP'), $singular),
+                /* translators: %s: taxonomy name, singular */
+                'add_new_item'  => sprintf(__('Add New %s', 'TouchPoint-WP'), $singular),
+                /* translators: %s: taxonomy name, singular */
+                'new_item_name' => sprintf(__('New %s', 'TouchPoint-WP'), $singular),
                 'menu_name'     => $plural
             ];
         }
@@ -1276,6 +1282,7 @@ class TouchPointWP
                 [
                     'hierarchical'      => true,
                     'show_ui'           => true,
+                    /* translators: %s: taxonomy name, singular */
                     'description'       => sprintf(__('Classify things by %s.', 'TouchPoint-WP'), $this->settings->dv_name_singular),
                     'labels'            => getLabels($this->settings->dv_name_singular, $this->settings->dv_name_plural),
                     'public'            => true,
