@@ -1073,6 +1073,36 @@ class Involvement implements api, updatesViaCron, geo
     }
 
     /**
+     * Get a WP_Post by the Involvement ID if it exists.  Return null if it does not.
+     *
+     * @param string|string[] $postType
+     * @param $involvementId
+     *
+     * @return int|WP_Post|null
+     */
+    private static function getWpPostByInvolvementId($postType, $involvementId)
+    {
+        $involvementId = (string)$involvementId;
+
+        $q = new WP_Query([
+            'post_type'   => $postType,
+            'meta_key'    => self::INVOLVEMENT_META_KEY,
+            'meta_value'  => $involvementId,
+            'numberposts' => 2  // only need one, but if there's two, there should be an error condition.
+        ]);
+        $posts = $q->get_posts();
+        $counts = count($posts);
+        if ($counts > 1) {  // multiple posts match, which isn't great.
+            new TouchPointWP_Exception("Multiple Posts Exist", 171002);
+        }
+        if ($counts > 0) { // post exists already.
+            return $posts[0];
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * Print a list of involvements that match the given criteria.
      *
      * @param array|string  $params
@@ -1711,19 +1741,7 @@ class Involvement implements api, updatesViaCron, geo
     private static function fromInvId(int $iid): ?Involvement
     {
         if ( ! isset(self::$_instances[$iid])) {
-            $q = new WP_Query(
-                [
-                    'post_type' => Involvement::getPostTypes(),
-                    'meta_key'   => self::INVOLVEMENT_META_KEY,
-                    'meta_value' => (string)$iid
-                ]
-            );
-            $post = $q->get_posts();
-            if (count($post) > 0) { // post exists.
-                $post = $post[0];
-            } else {
-                return null;
-            }
+            $post = self::getWpPostByInvolvementId(Involvement::getPostTypes(), $iid);
             self::$_instances[$iid] = new Involvement($post);
         }
 
@@ -2016,6 +2034,7 @@ class Involvement implements api, updatesViaCron, geo
             echo "API returned " . count($invData) . " objects";
         }
 
+        /** @var int[] $postsToKeep An array collecting Post IDs that shouldn't be deleted. */
         $postsToKeep = [];
 
         try {
@@ -2161,19 +2180,7 @@ class Involvement implements api, updatesViaCron, geo
             // Find or Create Post //
             /////////////////////////
 
-            $q = new WP_Query(
-                [
-                    'post_type'  => $typeSets->postType,
-                    'meta_key'   => self::INVOLVEMENT_META_KEY,
-                    'meta_value' => $inv->involvementId
-                ]
-            );
-            $post = $q->get_posts();
-            if (count($post) > 0) { // post exists already.
-                $post = $post[0];
-            } else {
-				$post = null;
-            }
+            $post = self::getWpPostByInvolvementId($typeSets->postType, $inv->involvementId);
 
             $titleToUse = $inv->regTitle ?? $inv->name;
             $titleToUse = trim($titleToUse);
@@ -2218,21 +2225,12 @@ class Involvement implements api, updatesViaCron, geo
             if ($typeSets->hierarchical) {
                 $parent = 0;
                 if ($inv->parentInvId > 0) {
-                    $q      = new WP_Query(
-                        [
-                            'post_type' => $typeSets->postType,
-                            'meta_key' => self::INVOLVEMENT_META_KEY,
-                            'meta_value' => $inv->parentInvId
-                        ]
-                    );
-                    $parentO = $q->get_posts();
-                    if (count($parentO) > 0) { // parent does exist.
-                        $parent = $parentO[0]->ID;
-                    }
-                }
+                    $parent = self::getWpPostByInvolvementId($typeSets->postType, $inv->parentInvId);
+                    $parent = $parent->ID;
 
-                if ($verbose) {
-                    echo "<p>Parent Post: $parent</p>";
+                    if ($verbose) {
+                        echo "<p>Parent Post: $parent</p>";
+                    }
                 }
 
                 $post->post_parent = $parent;
@@ -2459,19 +2457,16 @@ class Involvement implements api, updatesViaCron, geo
 	    //////////////////
 
         // Delete posts that are no longer current
-        $q = new WP_Query(
-            [
-                'post_type' => $typeSets->postType,
-                'nopaging'  => true,
-            ]
-        );
+        $q = new WP_Query([
+            'post_type'    => $typeSets->postType,
+            'nopaging'     => true,
+            'post__not_in' => $postsToKeep
+        ]);
         $removals = 0;
         foreach ($q->get_posts() as $post) {
-            if ( ! in_array($post->ID, $postsToKeep)) {
-                set_time_limit(10);
-                wp_delete_post($post->ID, true);
-                $removals++;
-            }
+            set_time_limit(10);
+            wp_delete_post($post->ID, true);
+            $removals++;
         }
 
         return $removals + count($invData);
