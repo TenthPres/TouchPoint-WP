@@ -485,15 +485,14 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo
             [
                 'post_type' => self::POST_TYPE,
                 'nopaging'  => true,
+                'post__not_in' => $postsToKeep
             ]
         );
 
         foreach ($q->get_posts() as $post) {
-            if ( ! in_array($post->ID, $postsToKeep)) {
-                set_time_limit(10);
-                wp_delete_post($post->ID, true);
-                $count++;
-            }
+            set_time_limit(10);
+            wp_delete_post($post->ID, true);
+            $count++;
         }
 
         if ($count !== 0) {
