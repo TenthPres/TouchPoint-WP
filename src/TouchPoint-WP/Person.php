@@ -927,9 +927,6 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             $person->campus_term_id = TouchPointWP::getTaxTermId(TouchPointWP::TAX_CAMPUS, $pData->CampusId);
         }
 
-        // Submit update.
-        $person->submitUpdate();
-
         // Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
 
         // Apply EV Types
@@ -959,8 +956,6 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         // Removal of no-longer valid EV Fields happens within Cleanup::cleanupPersonEVs
 
-        // Submit update.
-        $person->submitUpdate();
 
         // Involvements!
         if (isset($pData->Inv)) {
@@ -1011,17 +1006,17 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             }
         }
 
-        if ($verbose) {
-            var_dump($pData);
-            var_dump($person);
-            echo "\n\n<hr />\n\n";
-        }
-
         // Submit update.
         $person->submitUpdate();
 
         if (!$deferTPUpdate) {
             self::updatePeopleWordPressIDs();
+        }
+
+        if ($verbose) {
+            var_dump($pData);
+            var_dump($person);
+            echo "\n\n<hr />\n\n";
         }
 
         return $person;
@@ -1035,7 +1030,22 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         if (count($this->_userFieldsToUpdate) > 0) {
             add_filter('send_password_change_email', '__return_false');
             add_filter('send_email_change_email', '__return_false');
-            wp_update_user($this->fieldsForUpdate());
+
+            // Try an update.
+            $fields = $this->fieldsForUpdate();
+            $r = wp_update_user($fields);
+
+            // if email is in use by a different user, just skip updating the email.
+            if (is_wp_error($r) && isset($r->errors['existing_user_email'])) {
+                unset($fields->user_email);
+                $r = wp_update_user($fields);
+            }
+
+            // If there are other errors, log them if appropriate.
+            if (is_wp_error($r)) {
+                new TouchPointWP_WPError($r);
+            }
+
             remove_filter('send_password_change_email', '__return_false');
             remove_filter('send_email_change_email', '__return_false');
             $this->_userFieldsToUpdate = [];
