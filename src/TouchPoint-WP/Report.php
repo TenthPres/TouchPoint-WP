@@ -290,6 +290,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
         // If desired, add a caption that indicates when the table was last updated.
         if ($params['showupdated']) {
             $updatedS = sprintf(
+                // translators: Last updated date/time for a report. %1$s is the date. %2$s is the time.
                 esc_html__('Updated on %1$s at %2$s', 'TouchPoint-WP'),
                 get_the_modified_date('', $report->getPost()),
                 get_the_modified_time('', $report->getPost())
