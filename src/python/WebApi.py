@@ -1017,6 +1017,46 @@ if "people_get" in Data.a and model.HttpMethod == "post":
     Data.rules = rules  # handy for debugging
     Data.success = True
 
+
+if "report_run" in Data.a and model.HttpMethod == "post":
+    apiCalled = True
+
+    Data.Title = 'Running requested reports'
+
+    if inData.has_key('reports'):
+        # noinspection SqlConstantCondition,SqlConstantExpression
+        reportsQ = 'SELECT Id, Name, Body, TypeId FROM Content WHERE 1=0'
+        sqlPs = {}
+        for r in inData['reports']:
+            rNameL = r['name'].lower()
+            type = 9999
+            if r['type'] == 'sql':
+                type = 4
+                if rNameL not in sqlPs:
+                    sqlPs[rNameL] = []
+                    reportsQ += " OR (Name = '{}' AND TypeId = {})".format(r['name'], type)
+                sqlPs[rNameL].append(r['p1'])
+
+        Data.sqlPs = sqlPs
+
+        Data.report_results = []
+        for r in q.QuerySql(reportsQ):
+            if r.TypeId == 4:  # SQL
+                rNameL = r.Name.lower()
+                if rNameL in sqlPs:
+                    for p1 in sqlPs[rNameL]:
+                        sql = r.Body.replace("@p1", "'{}'".format(p1))
+
+                        Data.report_results.append({
+                            'id': r.Id,
+                            'name': r.Name,
+                            'type': 'sql',
+                            'p1': p1,
+                            'result': model.SqlGrid(sql)[131:-96]  # The substring removes the superfluous html
+                        })
+
+        Data.success = 1
+
 if "auth_key_set" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 

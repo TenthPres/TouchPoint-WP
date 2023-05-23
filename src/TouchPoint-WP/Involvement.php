@@ -33,7 +33,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement implements api, updatesViaCron, geo
+class Involvement implements api, updatesViaCron, geo, module
 {
     use jsInstantiation;
 	use jsonLd;
@@ -272,7 +272,8 @@ class Involvement implements api, updatesViaCron, geo
                     'show_in_rest' => true,
                     'supports'     => [
                         'title',
-                        'custom-fields'
+                        'custom-fields',
+                        'thumbnail'
                     ],
                     'has_archive'  => true,
                     'rewrite'      => [
@@ -1093,7 +1094,7 @@ class Involvement implements api, updatesViaCron, geo
         $posts = $q->get_posts();
         $counts = count($posts);
         if ($counts > 1) {  // multiple posts match, which isn't great.
-            new TouchPointWP_Exception("Multiple Posts Exist", 171002);
+            new TouchPointWP_Exception("Multiple Posts Exist", 170006);
         }
         if ($counts > 0) { // post exists already.
             return $posts[0];
@@ -1749,6 +1750,11 @@ class Involvement implements api, updatesViaCron, geo
     }
 
 
+    /**
+     * Loads the module and initializes the other actions.
+     *
+     * @return bool
+     */
     public static function load(): bool
     {
         if (self::$_isLoaded) {
@@ -1790,7 +1796,7 @@ class Involvement implements api, updatesViaCron, geo
         // Do an update if needed.
         add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'checkUpdates']);
 
-        // Setup cron for updating Small Groups daily.
+        // Setup cron for updating Involvements daily.
         add_action(self::CRON_HOOK, [self::class, 'updateCron']);
         if ( ! wp_next_scheduled(self::CRON_HOOK)) {
             // Runs at 6am EST (11am UTC), hypothetically after TouchPoint runs its Morning Batches.

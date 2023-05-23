@@ -46,6 +46,7 @@ class TouchPointWP
     public const API_ENDPOINT_MEETING = "mtg";
     public const API_ENDPOINT_ADMIN = "admin";
     public const API_ENDPOINT_AUTH = "auth";
+    public const API_ENDPOINT_REPORT = "report";
     public const API_ENDPOINT_ADMIN_SCRIPTZIP = "admin/scriptzip";
     public const API_ENDPOINT_CLEANUP = "cleanup";
     public const API_ENDPOINT_GEOLOCATE = "geolocate";
@@ -163,6 +164,11 @@ class TouchPointWP
     protected ?bool $involvements = null;
 
     /**
+     * @var ?bool True after the Reports feature is loaded.
+     */
+    protected ?bool $reports = null;
+
+    /**
      * @var ?bool True after the Global feature is loaded.
      */
     protected ?bool $global = null;
@@ -239,7 +245,23 @@ class TouchPointWP
 
 		add_filter('site_transient_update_plugins', [Utilities::class, 'checkForUpdate_transient']);
 
+        add_filter('cron_schedules', [self::class, 'cronAdd15Minutes']);
+
         self::scheduleCleanup();
+    }
+
+    /**
+     * @param $schedules
+     *
+     * @return mixed
+     */
+    public static function cronAdd15Minutes( $schedules ) {
+        // Adds once weekly to the existing schedules.
+        $schedules['tp_every_15_minutes'] = array(
+            'interval' => 15 * 60,
+            'display' => __('Every 15 minutes', 'TouchPoint-WP')
+        );
+        return $schedules;
     }
 
 	/**
@@ -280,7 +302,7 @@ class TouchPointWP
 
     public static function scheduleCleanup(): void
     {
-        // Setup cron for updating Small Groups daily.
+        // Setup cron for daily cleanup task.
         add_action(Cleanup::CRON_HOOK, [Cleanup::class, 'cronCleanup']);
         if ( ! wp_next_scheduled(Cleanup::CRON_HOOK)) {
             // Runs at 3am EST (8am UTC)
@@ -418,6 +440,13 @@ class TouchPointWP
             // Meeting endpoints
             if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_MEETING) {
                 if (!Meeting::api($reqUri)) {
+                    return $continue;
+                }
+            }
+
+            // Report endpoints
+            if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_REPORT) {
+                if (!Report::api($reqUri)) {
                     return $continue;
                 }
             }
@@ -669,6 +698,9 @@ class TouchPointWP
                 require_once 'EventsCalendar.php';
             }
         }
+
+        // Load Reports (feature is always enabled)
+        $instance->reports = Report::load();
 
         add_action('init', [self::class, 'init']);
 
@@ -1645,7 +1677,7 @@ class TouchPointWP
     }
 
     /**
-     * don't deserialize.
+     * Don't deserialize.
      */
     public function __wakeup()
     {
@@ -1704,6 +1736,7 @@ class TouchPointWP
         wp_clear_scheduled_hook(Involvement::CRON_HOOK);
         wp_clear_scheduled_hook(Partner::CRON_HOOK);
         wp_clear_scheduled_hook(Person::CRON_HOOK);
+        wp_clear_scheduled_hook(Report::CRON_HOOK);
     }
 
     /**
@@ -1996,6 +2029,10 @@ class TouchPointWP
      */
     public function getCampuses(): array
     {
+        if ($this->settings->enable_campuses !== "on") {
+            return [];
+        }
+
         $cObj = $this->settings->get('meta_campuses');
 
         $needsUpdate = false;

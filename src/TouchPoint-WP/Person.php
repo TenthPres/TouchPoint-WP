@@ -41,7 +41,7 @@ use WP_User;
  * @property ?string $loginSessionToken  A token that is saved on the Session variable and used to ensure links aren't used between sessions.
  * @property ?string $loginToken    A token used to validate the user.
  */
-class Person extends WP_User implements api, JsonSerializable, updatesViaCron
+class Person extends WP_User implements api, JsonSerializable, module, updatesViaCron
 {
     use jsInstantiation;
     use extraValues;
@@ -1635,6 +1635,11 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         exit;
     }
 
+    /**
+     * Loads the module and initializes the other actions.
+     *
+     * @return bool
+     */
     public static function load(): bool
     {
         if (self::$_isLoaded) {

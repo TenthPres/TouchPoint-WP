@@ -25,7 +25,7 @@ use WP_Term;
 /**
  * An Outreach partner, corresponding to a family in TouchPoint
  */
-class Partner implements api, JsonSerializable, updatesViaCron, geo
+class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 {
     use jsInstantiation {
         jsInstantiation::enqueueForJsInstantiation as protected enqueueForJsInstantiationTrait;
@@ -868,6 +868,11 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo
     }
 
 
+    /**
+     * Loads the module and initializes the other actions.
+     *
+     * @return bool
+     */
     public static function load(): bool
     {
         if (self::$_isLoaded) {

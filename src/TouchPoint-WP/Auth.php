@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 /**
  * The Auth-handling class.
  */
-abstract class Auth implements api
+abstract class Auth implements api, module
 {
     protected const LOGIN_TIMEOUT_STANDARD = 30;    // number of seconds during which the user login tokens are valid.
     protected const API_KEY_TIMEOUT = 86400;        // How long until an API key needs to be replaced.
