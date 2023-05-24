@@ -315,7 +315,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
      */
     public function getPost(bool $create = false): ?WP_Post
     {
-        if (!$this->_postLoaded) {
+        if (!$this->_postLoaded || ($this->post === null && $create)) {
             $q = new WP_Query([
                 'post_type'   => self::POST_TYPE,
                 'meta_query' => [
@@ -357,6 +357,11 @@ class Report implements api, module, JsonSerializable, updatesViaCron
                 if (is_wp_error($postId)) {
                     $this->post = null;
                     new TouchPointWP_WPError($postId);
+                    return null;
+                } elseif ($postId === 0) {
+                    $this->post = null;
+                    new TouchPointWP_Exception("Could not create post.", 173003);
+                    return null;
                 } else {
                     $this->post = get_post($postId);
                 }
@@ -457,6 +462,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 
         $updateCount = 0;
         foreach ($updates as $u) {
+            var_dump($u);
+
             try {
                 $report = self::fromParams($u);
             } catch (TouchPointWP_Exception $e) {
@@ -464,6 +471,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
             }
 
             $post = $report->getPost(true);
+            var_dump($post);
             $post->post_content = self::cleanupContent($u->result);
             $submit = $report->submitUpdate();
 
