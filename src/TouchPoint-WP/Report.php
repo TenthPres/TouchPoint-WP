@@ -541,7 +541,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
         $p = $this->getPost();
         if ($p === null)
             return true;
-        $expires = DateTime::createFromFormat("Y-m-d H:i:s", $p->post_modified);
+        $expires = DateTime::createFromFormat("Y-m-d H:i:s", $p->post_modified, wp_timezone());
         $expires->add($this->intervalAsDateInterval());
         return $expires <= Utilities::dateTimeNow();
     }
