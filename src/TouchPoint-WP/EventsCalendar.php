@@ -18,7 +18,7 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
 /**
  * Event Calendar for the Mobile App
  */
-abstract class EventsCalendar implements api
+abstract class EventsCalendar implements api, module
 {
     protected static function generateEventsList(array $params = []): array
     {

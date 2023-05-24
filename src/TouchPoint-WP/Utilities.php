@@ -4,6 +4,7 @@
  */
 namespace tp\TouchPointWP;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use WP_Error;
 
@@ -35,6 +36,20 @@ abstract class Utilities
 			return round($numeric, $round);
 		}
     }
+
+    /**
+     * @return DateTimeImmutable
+     */
+    public static function dateTimeNow(): DateTimeImmutable
+    {
+        if (self::$_dateTimeNow === null) {
+            try {
+                self::$_dateTimeNow = new DateTimeImmutable('now', wp_timezone());
+            } catch (\Exception $e) {}
+        }
+        return self::$_dateTimeNow;
+    }
+    private static ?DateTimeImmutable $_dateTimeNow = null;
 
     /**
      * Gets the plural form of a weekday name.
@@ -557,7 +572,7 @@ abstract class Utilities
 
 		$newV = substr($tag, 1);
 
-        $initialHeaders = self::fileHeadersFromString(file_get_contents("../../touchpoint-wp.php"), [
+        $initialHeaders = self::fileHeadersFromString(file_get_contents(__DIR__ . "/../../touchpoint-wp.php"), [
             'Requires at least' => null,
             'Requires PHP'      => null,
             'Tested up to'      => null

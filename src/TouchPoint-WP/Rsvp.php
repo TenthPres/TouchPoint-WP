@@ -17,11 +17,17 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
 /**
  * The RSVP framework class.
  */
-abstract class Rsvp
+abstract class Rsvp implements module
 {
     public const SHORTCODE = TouchPointWP::SHORTCODE_PREFIX . "RSVP";
     private static bool $_isLoaded = false;
 
+
+    /**
+     * Loads the module and initializes the other actions.
+     *
+     * @return bool
+     */
     public static function load(): bool
     {
         if (self::$_isLoaded) {

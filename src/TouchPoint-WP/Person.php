@@ -25,18 +25,23 @@ use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\Session;
+use WP_Term;
 use WP_User;
 
 /**
  * This Person Object connects a WordPress User with a TouchPoint Person.
  *
- * @property ?object $picture An object with the picture URLs and other metadata
- * @property-read int familyId  The Family ID
- * @property-read int peopleId  The People ID
+ * @property ?object $picture       An object with the picture URLs and other metadata
+ * @property-read int familyId      The Family ID
+ * @property-read int peopleId      The People ID
+ * @property-read ?WP_Term campus   The Campus taxonomy, if present
+ * @property ?int campus_term_id    The Campus term ID
+ * @property-read ?WP_Term resCode  The ResCode taxonomy, if present
+ * @property ?int rescode_term_id   The ResCode term ID
  * @property ?string $loginSessionToken  A token that is saved on the Session variable and used to ensure links aren't used between sessions.
- * @property ?string $loginToken  A token used to validate the user.
+ * @property ?string $loginToken    A token used to validate the user.
  */
-class Person extends WP_User implements api, JsonSerializable, updatesViaCron
+class Person extends WP_User implements api, JsonSerializable, module, updatesViaCron
 {
     use jsInstantiation;
     use extraValues;
@@ -63,6 +68,11 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
     public int $peopleId;
     public int $familyId;
+
+    protected ?WP_Term $_campus;
+    private bool $_campusLoaded = false;
+    protected ?WP_Term $_resCode;
+    private bool $_resCodeLoaded = false;
 
     private array $_userFieldsToUpdate = [];
     private array $_userMetaToUpdate = [];
@@ -100,7 +110,9 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         'picture',
         'familyId',
         'loginToken',
-        'loginSessionToken'
+        'loginSessionToken',
+        'campus_term_id',
+        'rescode_term_id'
     ];
 
 
@@ -216,14 +228,27 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             /** @noinspection SpellCheckingInspection */
             case "peopleid":
                 return $this->peopleId;
+
+            /** @noinspection SpellCheckingInspection */
             case "familyid":
                 return $this->familyId;
+
             case "id":
                 return $this->ID;
-	        case "goesby":
-				return $this->first_name;
-	        case "lastname":
-				return $this->last_name;
+
+            /** @noinspection SpellCheckingInspection */
+            case "goesby":
+                return $this->first_name;
+
+            case "lastname":
+                return $this->last_name;
+
+            case "campus":
+                return $this->campus();
+
+            /** @noinspection SpellCheckingInspection */
+            case "rescode":
+                return $this->resCode();
         }
 
         // Direct user fields
@@ -264,10 +289,20 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         switch (strtolower($key)) {
             /** @noinspection SpellCheckingInspection */
             case "peopleid":
+            /** @noinspection SpellCheckingInspection */
             case "familyid":
             case "id":
                 _doing_it_wrong(__FUNCTION__, "IDs can only be updated within the Person class.", TouchPointWP::VERSION);
                 return;
+
+            case "campus_term_id":
+                $this->_campusLoaded = false;
+                break;
+
+            /** @noinspection SpellCheckingInspection */
+            case "rescode_term_id":
+                $this->_resCodeLoaded = false;
+                break;
         }
 
         // If value isn't changed, don't update.
@@ -657,46 +692,46 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         }
 
         // Add Involvement Leaders to the query.
-	    if (TouchPointWP::instance()->settings->enable_involvements) {
-			foreach (Involvement_PostTypeSettings::instance() as $type) { // foreach Involvement Post Type...
-				set_time_limit(10);
+        if (TouchPointWP::instance()->settings->enable_involvements) {
+            foreach (Involvement_PostTypeSettings::instance() as $type) { // foreach Involvement Post Type...
+                set_time_limit(10);
 
-				// Get the InvIds for the Involvement Type's Posts
-				$postType = $type->postTypeWithPrefix();
-				$key = Involvement::INVOLVEMENT_META_KEY;
-				global $wpdb;
-				/** @noinspection SqlResolve */
-				$sql = "SELECT pm.meta_value AS iid
+                // Get the InvIds for the Involvement Type's Posts
+                $postType = $type->postTypeWithPrefix();
+                $key = Involvement::INVOLVEMENT_META_KEY;
+                global $wpdb;
+                /** @noinspection SqlResolve */
+                $sql = "SELECT pm.meta_value AS iid
                     FROM $wpdb->postmeta AS pm
                     JOIN $wpdb->posts as p ON pm.post_id = p.Id
                     WHERE p.post_type = '$postType' AND pm.meta_key = '$key'";
 
-				foreach ($wpdb->get_col($sql) as $iid) {
-					$iid = intval($iid);
+                foreach ($wpdb->get_col($sql) as $iid) {
+                    $iid = intval($iid);
 
-					// merge the query with already-existing queries.
-					if (!isset(self::$_indexingQueries['inv'][$iid])) {
-						self::$_indexingQueries['inv'][$iid] = [
-							'invId'          => $iid,
-							'memTypes'       => $type->leaderTypeInts(),
+                    // merge the query with already-existing queries.
+                    if (!isset(self::$_indexingQueries['inv'][$iid])) {
+                        self::$_indexingQueries['inv'][$iid] = [
+                            'invId'          => $iid,
+                            'memTypes'       => $type->leaderTypeInts(),
 //                           'subGroups' => null,
-							'with_subGroups' => false
-						];
-					} elseif (is_array(self::$_indexingQueries['inv'][$iid]['memTypes'])) {
-						$r = array_merge(
-							self::$_indexingQueries['inv'][$iid]['memTypes'],
-							$type->leaderTypeInts()
-						);
-						self::$_indexingQueries['inv'][$iid]['memTypes'] = array_unique($r);
-					} elseif (self::$_indexingQueries['inv'][$iid]['memTypes'] !== null) {  // Unknown how to handle this merge.
-						$e = new TouchPointWP_Exception("An Involvement ($iid) has been requested multiple times with mixed contexts.");
-						if ($verbose) {
-							echo $e;
-						}
-					}
-				}
-			}
-	    }
+                            'with_subGroups' => false
+                        ];
+                    } elseif (is_array(self::$_indexingQueries['inv'][$iid]['memTypes'])) {
+                        $r = array_merge(
+                            self::$_indexingQueries['inv'][$iid]['memTypes'],
+                            $type->leaderTypeInts()
+                        );
+                        self::$_indexingQueries['inv'][$iid]['memTypes'] = array_unique($r);
+                    } elseif (self::$_indexingQueries['inv'][$iid]['memTypes'] !== null) {  // Unknown how to handle this merge.
+                        $e = new TouchPointWP_Exception("An Involvement ($iid) has been requested multiple times with mixed contexts.");
+                        if ($verbose) {
+                            echo $e;
+                        }
+                    }
+                }
+            }
+        }
 
         if (count(self::$_indexingQueries['inv']) > 0) {
             $queryNeeded = true;
@@ -722,10 +757,10 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         // Submit to API
         $people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, 50);
 
-		set_time_limit(count($people->people) * 5 + 10); // a very generous time limit.
+        set_time_limit(count($people->people) * 5 + 10); // a very generous time limit.
 
         // Parse the API results
-	    $allowCreation = TouchPointWP::instance()->settings->enable_people_lists === "on";
+        $allowCreation = TouchPointWP::instance()->settings->enable_people_lists === "on";
         $count = self::updatePeopleFromApiData($people->people, $allowCreation, $verbose);
 
         if ($count !== 0) {
@@ -737,13 +772,13 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         return $count;
     }
 
-	/**
-	 * @param stdClass[] $people An array of objects from TouchPoint that each corresponds with a Person.
-	 * @param bool       $allowCreation
-	 * @param bool       $verbose
-	 *
-	 * @return int  False on failure.  Otherwise, the number of updates.
-	 */
+    /**
+     * @param stdClass[] $people An array of objects from TouchPoint that each corresponds with a Person.
+     * @param bool       $allowCreation
+     * @param bool       $verbose
+     *
+     * @return int  False on failure.  Otherwise, the number of updates.
+     */
     protected static function updatePeopleFromApiData(array $people, bool $allowCreation, bool $verbose = false): int
     {
         $peopleUpdated = 0;
@@ -763,20 +798,58 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         return $peopleUpdated;
     }
 
-	/**
-	 * Update a single person's information on WordPress, and WP User ID TouchPoint.
-	 *
-	 * @param mixed $pData
-	 * @param bool  $allowCreation
-	 * @param bool  $verbose
-	 * @param bool  $deferTPUpdate
-	 *
-	 * @return ?Person The updated person, or null if no user was found/updated.
-	 */
+    /**
+     * Deletes a user and optionally reassigns their posts to a different user. Does not re-map meta fields.
+     *
+     * @param $userId   int ID of the user to delete
+     * @param $reassign ?int ID of the user to whom the deleted author's work should be assigned.
+     *
+     * @return bool
+     */
+    protected static function deleteUser($userId, $reassign = null): bool
+    {
+        require_once './wp-admin/includes/user.php';
+        return wp_delete_user($userId, $reassign);
+    }
+
+    /**
+     * Update a single person's information on WordPress, and WP User ID TouchPoint.
+     *
+     * @param mixed $pData
+     * @param bool  $allowCreation
+     * @param bool  $verbose
+     * @param bool  $deferTPUpdate
+     *
+     * @return ?Person The updated person, or null if no user was found/updated.
+     */
     public static function updatePersonFromApiData($pData, bool $allowCreation, bool $verbose = false, bool $deferTPUpdate = false): ?Person
     {
         $person = null;
         $updateWpIdInTouchPoint = true;
+
+        // Find person by PeopleId
+        if ($person === null) {
+            $q = new PersonQuery(
+                [
+                    'meta_key'     => self::META_PEOPLEID,
+                    'meta_value'   => $pData->PeopleId,
+                    'meta_compare' => '=',
+                    'orderby'      => 'ID'
+                ]
+            );
+            if ($q->get_total() > 0) {
+                $person = $q->get_first_result();
+                if ($q->get_total() > 1) {
+                    // Handle the error condition where there's more than one.  (#119)
+                    foreach($q->get_results() as $p) {
+                        if ($p === $person) {
+                            continue;
+                        }
+                        self::deleteUser($p->ID, $person->ID);
+                    }
+                }
+            }
+        }
 
         // Find person by WordPress ID, if provided.
         $wpId = null;
@@ -796,25 +869,17 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 ]
             );
             if ($q->get_total() > 0) { // Will only be 0 or 1, unless something has gone disastrously wrong.
-                $person = $q->get_first_result();
-                $updateWpIdInTouchPoint = false;
-            } // TODO handle the error condition where there's more than one. (#119)
-	        // TODO validate that this is the right person.
-        }
-
-        // Find person by PeopleId
-        if ($person === null) {
-            $q = new PersonQuery(
-                [
-                    'meta_key'     => self::META_PEOPLEID,
-                    'meta_value'   => $pData->PeopleId,
-                    'meta_compare' => '=',
-	                'orderby'      => 'ID'
-                ]
-            );
-            if ($q->get_total() > 0) {
-                $person = $q->get_first_result();
-            } // TODO handle the error condition where there's more than one.  (#119)
+                foreach($q->get_results() as $p) {
+                    if ($p->peopleId === $pData->PeopleId) {
+                        // Person selected is actually the right person.
+                        $person                 = $p;
+                        $updateWpIdInTouchPoint = false;
+                        continue;
+                    }
+                    // Handle the error condition where there's more than one.  (#119)
+                    self::deleteUser($p->ID, $person->ID);
+                }
+            }
         }
 
         // Create new person
@@ -854,6 +919,14 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         }
         $person->picture = $pData->Picture;
 
+        // resCodes and Campuses
+        $person->rescode_term_id = TouchPointWP::getTaxTermId(TouchPointWP::TAX_RESCODE, $pData->ResCode);
+        if (TouchPointWP::instance()->settings->enable_campuses !== "on") {
+            $person->campus_term_id = null;
+        } else {
+            $person->campus_term_id = TouchPointWP::getTaxTermId(TouchPointWP::TAX_CAMPUS, $pData->CampusId);
+        }
+
         // Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
 
         // Apply EV Types
@@ -883,6 +956,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         // Removal of no-longer valid EV Fields happens within Cleanup::cleanupPersonEVs
 
+
         // Involvements!
         if (isset($pData->Inv)) {
             $currentInvs = $person->getInvolvementMemberships();
@@ -908,6 +982,11 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 if ($currentInvs[$i->iid]->at !== $i->attType) {
                     $inv_updates[self::META_INV_ATTEND_PREFIX . $i->iid] = $i->attType;
                 }
+
+                $i->descr = $i->descr ?? "";
+                $i->descr = explode("--Add comments", $i->descr, 2)[0];
+                if (trim($i->descr) === '')
+                    $i->descr = null;
                 if ($currentInvs[$i->iid]->description !== $i->descr) {
                     $inv_updates[self::META_INV_DESC_PREFIX . $i->iid] = $i->descr;
                 }
@@ -927,17 +1006,17 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             }
         }
 
-        if ($verbose) {
-            var_dump($pData);
-            var_dump($person);
-            echo "<hr />";
-        }
-
         // Submit update.
         $person->submitUpdate();
 
         if (!$deferTPUpdate) {
             self::updatePeopleWordPressIDs();
+        }
+
+        if ($verbose) {
+            var_dump($pData);
+            var_dump($person);
+            echo "\n\n<hr />\n\n";
         }
 
         return $person;
@@ -951,7 +1030,22 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         if (count($this->_userFieldsToUpdate) > 0) {
             add_filter('send_password_change_email', '__return_false');
             add_filter('send_email_change_email', '__return_false');
-            wp_update_user($this->fieldsForUpdate());
+
+            // Try an update.
+            $fields = $this->fieldsForUpdate();
+            $r = wp_update_user($fields);
+
+            // if email is in use by a different user, just skip updating the email.
+            if (is_wp_error($r) && isset($r->errors['existing_user_email'])) {
+                unset($fields->user_email);
+                $r = wp_update_user($fields);
+            }
+
+            // If there are other errors, log them if appropriate.
+            if (is_wp_error($r)) {
+                new TouchPointWP_WPError($r);
+            }
+
             remove_filter('send_password_change_email', '__return_false');
             remove_filter('send_email_change_email', '__return_false');
             $this->_userFieldsToUpdate = [];
@@ -996,6 +1090,45 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
             self::$_peopleWhoNeedWpIdUpdatedInTouchPoint = [];
         } catch (Exception $ex) { // If it fails this time, it'll probably get fixed next time
         }
+    }
+
+    /**
+     * Get the WP_Term for the Campus taxonomy connected to this person.
+     *
+     * @return WP_Term|null  The term, or null of there isn't one.
+     */
+    protected function campus(): ?WP_Term
+    {
+        if (TouchPointWP::instance()->settings->enable_campuses !== "on") {
+            return null;
+        }
+        if ($this->_campusLoaded === false) {
+            if ($this->campus_term_id === null) {
+                $this->_campus = null;
+            } else {
+                $this->_campus = WP_Term::get_instance($this->campus_term_id, TouchPointWP::TAX_CAMPUS);
+            }
+            $this->_campusLoaded = true;
+        }
+        return $this->_campus;
+    }
+
+    /**
+     * Get the WP_Term for the ResCode taxonomy connected to this person.
+     *
+     * @return WP_Term|null  The term, or null of there isn't one.
+     */
+    protected function resCode(): ?WP_Term
+    {
+        if ($this->_resCodeLoaded === false) {
+            if ($this->rescode_term_id === null) {
+                $this->_resCode = null;
+            } else {
+                $this->_resCode = WP_Term::get_instance($this->rescode_term_id, TouchPointWP::TAX_RESCODE);
+            }
+            $this->_resCodeLoaded = true;
+        }
+        return $this->_resCode;
     }
 
     /**
@@ -1107,19 +1240,19 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         $listStr = json_encode($queue);
 
-		$out = "\ttpvm.addOrTriggerEventListener('Person_class_loaded', function() {\n";
-	    $out .= "\t\tTP_Person.fromObjArray($listStr);\n";
+        $out = "\ttpvm.addOrTriggerEventListener('Person_class_loaded', function() {\n";
+        $out .= "\t\tTP_Person.fromObjArray($listStr);\n";
 
-	    if (self::$_enqueueUsersForJsInstantiation) {
-			$s = Session::instance();
-			$pFids = json_encode($s->primaryFam ?? []);
-			$sFids = json_encode($s->secondaryFam ?? []);
-		    $out .= "\t\tTP_Person.identByFamily($pFids, $sFids);\n";
-		}
+        if (self::$_enqueueUsersForJsInstantiation) {
+            $s = Session::instance();
+            $pFids = json_encode($s->primaryFam ?? []);
+            $sFids = json_encode($s->secondaryFam ?? []);
+            $out .= "\t\tTP_Person.identByFamily($pFids, $sFids);\n";
+        }
 
-		$out .= "\t});\n";
+        $out .= "\t});\n";
 
-		return $out;
+        return $out;
     }
 
     /**
@@ -1221,7 +1354,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
                 $useOxford = true;
             }
             if (strpos($fn, ' & ') !== false) {
-	            $and = ' ' . __('and', 'TouchPoint-WP') . ' ';
+                $and = ' ' . __('and', 'TouchPoint-WP') . ' ';
                 $useOxford = true;
             }
             $familyNames[] = $fn;
@@ -1259,7 +1392,7 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
 
         $isFirst = true;
         foreach ($family as $p) {
-			$last = $p->LastName ?? $p->last_name;
+            $last = $p->LastName ?? $p->last_name;
             if ($standingLastName != $last) {
                 $string .= " " . $standingLastName;
 
@@ -1315,36 +1448,36 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         return $families;
     }
 
-	/**
-	 * Handler for Informal Auth calls.  Print the output.
-	 *
-	 * @return void
-	 */
+    /**
+     * Handler for Informal Auth calls.  Print the output.
+     *
+     * @return void
+     */
     private static function ajaxIdent(): void
     {
         header('Content-Type: application/json');
 
-	    $inputData = TouchPointWP::postHeadersAndFiltering();
-	    $inputData = json_decode($inputData);
-		if (property_exists($inputData, 'pid')) {
-			unset($inputData->pid);
-		}
+        $inputData = TouchPointWP::postHeadersAndFiltering();
+        $inputData = json_decode($inputData);
+        if (property_exists($inputData, 'pid')) {
+            unset($inputData->pid);
+        }
 
-		$r = self::ident($inputData);
+        $r = self::ident($inputData);
 
-	    echo json_encode($r);
-	    exit;
+        echo json_encode($r);
+        exit;
     }
 
-	/**
-	 * Make the API call to get family members, store the results to the Session, and return them.
-	 *
-	 * @param $inputData
-	 *
-	 * @return array
-	 */
-	public static function ident($inputData): array
-	{
+    /**
+     * Make the API call to get family members, store the results to the Session, and return them.
+     *
+     * @param $inputData
+     *
+     * @return array
+     */
+    public static function ident($inputData): array
+    {
         try {
             $inputData->context = "ident";
             $data = TouchPointWP::instance()->apiPost('ident', $inputData, 30);
@@ -1386,10 +1519,10 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         $s->primaryFam = $primaryFam;
         $s->secondaryFam = $secondaryFam;
 
-		return [
-			'people' => $ret,
-			'primaryFam' => $data->primaryFam ?? []
-		];
+        return [
+            'people' => $ret,
+            'primaryFam' => $data->primaryFam ?? []
+        ];
     }
 
     private static function ajaxSrc(): void
@@ -1502,6 +1635,11 @@ class Person extends WP_User implements api, JsonSerializable, updatesViaCron
         exit;
     }
 
+    /**
+     * Loads the module and initializes the other actions.
+     *
+     * @return bool
+     */
     public static function load(): bool
     {
         if (self::$_isLoaded) {

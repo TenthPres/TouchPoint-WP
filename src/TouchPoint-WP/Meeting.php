@@ -18,7 +18,7 @@ use tp\TouchPointWP\Utilities\Http;
 /**
  * Handle meeting content, particularly RSVPs.
  */
-abstract class Meeting implements api
+abstract class Meeting implements api, module
 {
     /**
      * Register scripts and styles to be used on display pages.
