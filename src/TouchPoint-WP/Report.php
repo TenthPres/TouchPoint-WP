@@ -462,8 +462,6 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 
         $updateCount = 0;
         foreach ($updates as $u) {
-            var_dump($u);
-
             try {
                 $report = self::fromParams($u);
             } catch (TouchPointWP_Exception $e) {
@@ -471,7 +469,6 @@ class Report implements api, module, JsonSerializable, updatesViaCron
             }
 
             $post = $report->getPost(true);
-            var_dump($post);
             $post->post_content = self::cleanupContent($u->result);
             $submit = $report->submitUpdate();
 
