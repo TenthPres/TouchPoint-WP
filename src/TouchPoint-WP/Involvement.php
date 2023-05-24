@@ -2,13 +2,14 @@
 /**
  * @package TouchPointWP
  */
+
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
     exit(1);
 }
 
-if (!TOUCHPOINT_COMPOSER_ENABLED) {
+if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
     require_once "api.php";
     require_once "jsInstantiation.php";
     require_once "jsonLd.php";
@@ -36,7 +37,7 @@ use WP_Term;
 class Involvement implements api, updatesViaCron, geo, module
 {
     use jsInstantiation;
-	use jsonLd;
+    use jsonLd;
 
     public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "Inv-Map";
     public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "Inv-Filters";
@@ -46,8 +47,8 @@ class Involvement implements api, updatesViaCron, geo, module
     public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
     public const CRON_OFFSET = 86400 + 3600;
 
-	public const SCHEDULE_STRING_CACHE_EXPIRATION = 3600 * 8; // 8 hours.  Automatically deleted during sync.
-	public const SCHED_STRING_CACHE_KEY = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
+    public const SCHEDULE_STRING_CACHE_EXPIRATION = 3600 * 8; // 8 hours.  Automatically deleted during sync.
+    public const SCHED_STRING_CACHE_KEY = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
 
     protected static bool $_hasUsedMap = false;
     protected static bool $_hasArchiveMap = false;
@@ -68,10 +69,10 @@ class Involvement implements api, updatesViaCron, geo, module
     protected ?string $_scheduleString;
     protected ?array $_meetings = null;
     protected ?array $_schedules = null;
-	protected PersonArray $_leaders;
-	protected PersonArray $_members;
-	protected ?PersonArray $_hosts;
-	protected ?int $genderId = null;
+    protected PersonArray $_leaders;
+    protected PersonArray $_members;
+    protected ?PersonArray $_hosts;
+    protected ?int $genderId = null;
     public ?string $color = "#999999";
 
     public string $name;
@@ -105,20 +106,19 @@ class Involvement implements api, updatesViaCron, geo, module
 
         if (gettype($object) === "object" && get_class($object) == WP_Post::class) {
             // WP_Post Object
-            $this->post = $object;
-            $this->name = $object->post_title;
-            $this->invId = intval($object->{self::INVOLVEMENT_META_KEY});
+            $this->post    = $object;
+            $this->name    = $object->post_title;
+            $this->invId   = intval($object->{self::INVOLVEMENT_META_KEY});
             $this->post_id = $object->ID;
             $this->invType = get_post_type($this->post_id);
 
             if ($this->invId === 0) {
                 throw new TouchPointWP_Exception("No Involvement ID provided in the post.");
             }
-
         } elseif (gettype($object) === "object") {
             // Sql Object, probably.
 
-            if (! property_exists($object, 'post_id')) {
+            if ( ! property_exists($object, 'post_id')) {
                 _doing_it_wrong(
                     __FUNCTION__,
                     esc_html(
@@ -128,7 +128,7 @@ class Involvement implements api, updatesViaCron, geo, module
                 );
             }
 
-            $this->post = get_post($object, "OBJECT");
+            $this->post    = get_post($object, "OBJECT");
             $this->post_id = $this->post->ID;
             $this->invType = $object->invType;
 
@@ -136,7 +136,6 @@ class Involvement implements api, updatesViaCron, geo, module
                 if (property_exists(self::class, $property)) {
                     $this->$property = $value;
                 }
-
                 // TODO add an else for nonstandard/optional metadata fields
             }
         } else {
@@ -188,25 +187,25 @@ class Involvement implements api, updatesViaCron, geo, module
             }
         }
 
-		$meta = get_post_meta($this->post_id);
-		$prefixLength = strlen(TouchPointWP::SETTINGS_PREFIX);
+        $meta         = get_post_meta($this->post_id);
+        $prefixLength = strlen(TouchPointWP::SETTINGS_PREFIX);
 
-		foreach ($meta as $k_tp => $v) {
-			if (substr($k_tp, 0, $prefixLength) !== TouchPointWP::SETTINGS_PREFIX) {
-				continue; // not ours.
-			}
+        foreach ($meta as $k_tp => $v) {
+            if (substr($k_tp, 0, $prefixLength) !== TouchPointWP::SETTINGS_PREFIX) {
+                continue; // not ours.
+            }
 
-			$k = substr($k_tp, $prefixLength);
-			if ($k === "invId") {
-				continue;
-			}
-			if (property_exists(self::class, $k)) {  // properties
-				$this->$k = maybe_unserialize($v[0]);
-			}
-		}
+            $k = substr($k_tp, $prefixLength);
+            if ($k === "invId") {
+                continue;
+            }
+            if (property_exists(self::class, $k)) {  // properties
+                $this->$k = maybe_unserialize($v[0]);
+            }
+        }
 
-		// JS attributes, for filtering mostly.
-		$this->attributes->genderId = (string)$this->genderId;
+        // JS attributes, for filtering mostly.
+        $this->attributes->genderId = (string)$this->genderId;
 
         // Geo
         if (self::getSettingsForPostType($this->invType)->useGeo) {
@@ -225,7 +224,7 @@ class Involvement implements api, updatesViaCron, geo, module
                     'lng' => Utilities::toFloatOrNull($meta[TouchPointWP::SETTINGS_PREFIX . 'geo_lng'][0] ?? "")
                 ];
             }
-            if (!$this->hasGeo()) {
+            if ( ! $this->hasGeo()) {
                 $this->geo = null;
             } else {
                 $this->geo->lat = round($this->geo->lat, 3); // Roughly .2 mi
@@ -250,7 +249,7 @@ class Involvement implements api, updatesViaCron, geo, module
     }
 
 
-	/**
+    /**
      * Register stuff
      */
     public static function init(): void
@@ -261,30 +260,30 @@ class Involvement implements api, updatesViaCron, geo, module
             register_post_type(
                 $type->postType,
                 [
-                    'labels'       => [
+                    'labels'            => [
                         'name'          => $type->namePlural,
                         'singular_name' => $type->nameSingular
                     ],
-                    'public'       => true,
-                    'hierarchical' => $type->hierarchical,
-                    'show_ui'      => false,
+                    'public'            => true,
+                    'hierarchical'      => $type->hierarchical,
+                    'show_ui'           => false,
                     'show_in_nav_menus' => true,
-                    'show_in_rest' => true,
-                    'supports'     => [
+                    'show_in_rest'      => true,
+                    'supports'          => [
                         'title',
                         'custom-fields',
                         'thumbnail'
                     ],
-                    'has_archive'  => true,
-                    'rewrite'      => [
-                        'slug' => $type->slug,
+                    'has_archive'       => true,
+                    'rewrite'           => [
+                        'slug'       => $type->slug,
                         'with_front' => false,
                         'feeds'      => false,
                         'pages'      => true
                     ],
-                    'query_var'        => $type->slug,
-                    'can_export'       => false,
-                    'delete_with_user' => false
+                    'query_var'         => $type->slug,
+                    'can_export'        => false,
+                    'delete_with_user'  => false
                 ]
             );
         }
@@ -310,8 +309,8 @@ class Involvement implements api, updatesViaCron, geo, module
 
         // Fork sync to a different process, if supported. (only some linux systems)
         $forked = false;
-	    /** @noinspection SpellCheckingInspection */
-	    if (function_exists('pcntl_fork')) {
+        /** @noinspection SpellCheckingInspection */
+        if (function_exists('pcntl_fork')) {
             $pid = pcntl_fork();
             if ($pid >= 0) {
                 // Forking successful.
@@ -324,7 +323,7 @@ class Involvement implements api, updatesViaCron, geo, module
                 }
             }
         }
-        if (! $forked) {
+        if ( ! $forked) {
             self::updateFromTouchPoint();
         }
     }
@@ -338,7 +337,7 @@ class Involvement implements api, updatesViaCron, geo, module
      */
     public static function updateFromTouchPoint(bool $verbose = false)
     {
-        $count = 0;
+        $count   = 0;
         $success = true;
 
         // Prevent other threads from attempting for an hour.
@@ -356,7 +355,7 @@ class Involvement implements api, updatesViaCron, geo, module
             }
 
             // Divisions
-            $divs = Utilities::idArrayToIntArray($type->importDivs, false);
+            $divs   = Utilities::idArrayToIntArray($type->importDivs, false);
             $update = self::updateInvolvementPostsForType($type, $divs, $verbose);
 
             if ($update === false) {
@@ -389,7 +388,7 @@ class Involvement implements api, updatesViaCron, geo, module
      */
     public static function templateFilter(string $template): string
     {
-	    if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
+        if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
             $postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
             $templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
 
@@ -421,7 +420,8 @@ class Involvement implements api, updatesViaCron, geo, module
     /**
      * Whether the involvement can be joined
      *
-     * @return bool|string  True if involvement can be joined. False if no registration exists. Or, a string with why it can't be joined otherwise.
+     * @return bool|string  True if involvement can be joined. False if no registration exists. Or, a string with why
+     *     it can't be joined otherwise.
      */
     public function acceptingNewMembers()
     {
@@ -433,7 +433,7 @@ class Involvement implements api, updatesViaCron, geo, module
             return __("Currently Closed", 'TouchPoint-WP');
         }
 
-        $now = current_datetime();
+        $now      = current_datetime();
         $regStart = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regStart", true);
         if ($regStart !== false && $regStart !== '' && $regStart > $now) {
             return __("Registration Not Open Yet", 'TouchPoint-WP');
@@ -462,277 +462,300 @@ class Involvement implements api, updatesViaCron, geo, module
                 intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) !== 1);
     }
 
-	/**
-	 * @return stdClass[]
-	 */
-	protected function meetings(): array
-	{
-		if (!isset($this->_meetings)) {
-			$m = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "meetings", true);
-			if ($m === "")
-				$m = [];
-			$this->_meetings = $m;
-		}
+    /**
+     * @return stdClass[]
+     */
+    protected function meetings(): array
+    {
+        if ( ! isset($this->_meetings)) {
+            $m = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "meetings", true);
+            if ($m === "") {
+                $m = [];
+            }
+            $this->_meetings = $m;
+        }
 
-		return $this->_meetings;
-	}
+        return $this->_meetings;
+    }
 
-	/**
-	 * @return stdClass[]
-	 */
-	protected function schedules(): array
-	{
-		if (!isset($this->_schedules)) {
-			$s = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "schedules", true);
-			if ($s === "")
-				$s = [];
-			$this->_schedules = $s;
-		}
+    /**
+     * @return stdClass[]
+     */
+    protected function schedules(): array
+    {
+        if ( ! isset($this->_schedules)) {
+            $s = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "schedules", true);
+            if ($s === "") {
+                $s = [];
+            }
+            $this->_schedules = $s;
+        }
 
-		return $this->_schedules;
-	}
+        return $this->_schedules;
+    }
 
-	/**
-	 * Get a description of the meeting schedule in a human-friendly phrase, e.g. Sundays at 11:00am, starting January 14.
-	 *
-	 * @return string
-	 */
-	public function scheduleString(): ?string
-	{
-		if (!isset($this->_scheduleString)) {
-			$cacheGroup = $this->invId . "_" . get_locale();
-			$this->_scheduleString = wp_cache_get(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
-			if (!$this->_scheduleString) {
-				$this->_scheduleString = $this->scheduleString_calc();
-				wp_cache_set(self::SCHED_STRING_CACHE_KEY, $this->_scheduleString, $cacheGroup, self::SCHEDULE_STRING_CACHE_EXPIRATION);
-			}
-		}
-		return $this->_scheduleString;
-	}
+    /**
+     * Get a description of the meeting schedule in a human-friendly phrase, e.g. Sundays at 11:00am, starting January
+     * 14.
+     *
+     * @return string
+     */
+    public function scheduleString(): ?string
+    {
+        if ( ! isset($this->_scheduleString)) {
+            $cacheGroup            = $this->invId . "_" . get_locale();
+            $this->_scheduleString = wp_cache_get(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
+            if ( ! $this->_scheduleString) {
+                $this->_scheduleString = $this->scheduleString_calc();
+                wp_cache_set(
+                    self::SCHED_STRING_CACHE_KEY,
+                    $this->_scheduleString,
+                    $cacheGroup,
+                    self::SCHEDULE_STRING_CACHE_EXPIRATION
+                );
+            }
+        }
 
-	/**
-	 * Get the next meeting date/time from either the meetings or schedules.
-	 *
-	 * @return DateTimeImmutable|null
-	 */
-	public function nextMeeting(): ?DateTimeImmutable
-	{
-		$now = new DateTimeImmutable();
-		$this->_nextMeeting = null;
+        return $this->_scheduleString;
+    }
 
-		if ($this->_nextMeeting === null) {
+    /**
+     * Get the next meeting date/time from either the meetings or schedules.
+     *
+     * @return DateTimeImmutable|null
+     */
+    public function nextMeeting(): ?DateTimeImmutable
+    {
+        $now                = new DateTimeImmutable();
+        $this->_nextMeeting = null;
 
-			// meetings
-			foreach ($this->meetings() as $m) {
-				$mdt = $m->dt;
-				if ($mdt > $now) {
-					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
-						$this->_nextMeeting = $mdt;
-					}
-				}
-			}
+        if ($this->_nextMeeting === null) {
+            // meetings
+            foreach ($this->meetings() as $m) {
+                $mdt = $m->dt;
+                if ($mdt > $now) {
+                    if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
+                        $this->_nextMeeting = $mdt;
+                    }
+                }
+            }
 
-			// schedules
-			foreach ($this->schedules() as $s) {
-				$mdt = $s->next;
-				if ($mdt > $now) {
-					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
-						$this->_nextMeeting = $mdt;
-					}
-				}
-			}
-		}
+            // schedules
+            foreach ($this->schedules() as $s) {
+                $mdt = $s->next;
+                if ($mdt > $now) {
+                    if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
+                        $this->_nextMeeting = $mdt;
+                    }
+                }
+            }
+        }
 
-		// schedules + 1 week (assumes schedules are recurring weekly)
-		if ($this->_nextMeeting === null) { // really only needed if we don't have a date yet.
-			foreach ($this->schedules() as $s) {
-				$mdt = $s->next->modify("+1 week");
-				if ($mdt > $now) {
-					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
-						$this->_nextMeeting = $mdt;
-					}
-				}
-			}
-		}
-		return $this->_nextMeeting;
-	}
+        // schedules + 1 week (assumes schedules are recurring weekly)
+        if ($this->_nextMeeting === null) { // really only needed if we don't have a date yet.
+            foreach ($this->schedules() as $s) {
+                $mdt = $s->next->modify("+1 week");
+                if ($mdt > $now) {
+                    if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
+                        $this->_nextMeeting = $mdt;
+                    }
+                }
+            }
+        }
 
-	/**
-	 * @param array $meetings
-	 * @param array $schedules
-	 *
-	 * @return ?array[]
-	 */
-	private static function computeCommonOccurrences(array $meetings = [], array $schedules = []): ?array
-	{
-		try {
-			$siteTz    = wp_timezone();
-			$now       = new DateTimeImmutable(null, $siteTz);
-		} catch (Exception $e) {
-			return null;
-		}
+        return $this->_nextMeeting;
+    }
 
-		$commonOccurrences = [];
+    /**
+     * @param array $meetings
+     * @param array $schedules
+     *
+     * @return ?array[]
+     */
+    private static function computeCommonOccurrences(array $meetings = [], array $schedules = []): ?array
+    {
+        try {
+            $siteTz = wp_timezone();
+            $now    = new DateTimeImmutable(null, $siteTz);
+        } catch (Exception $e) {
+            return null;
+        }
 
-		// Populate the schedules
-		foreach ($schedules as $s) {
+        $commonOccurrences = [];
 
-			if (! is_object($s))
-				continue;
+        // Populate the schedules
+        foreach ($schedules as $s) {
+            if ( ! is_object($s)) {
+                continue;
+            }
 
-			$dt = $s->next;
+            $dt = $s->next;
 
-			$coInx = $dt->format('w-Hi');
-			$commonOccurrences[$coInx] = [
-				'count' => 20,
-				'example' => $dt
-			];
-		}
-		unset($dt, $coInx, $s);
+            $coInx                     = $dt->format('w-Hi');
+            $commonOccurrences[$coInx] = [
+                'count'   => 20,
+                'example' => $dt
+            ];
+        }
+        unset($dt, $coInx, $s);
 
-		// If there isn't a schedule, but there are common meeting dates/times, use those.
-		foreach ($meetings as $m) {
-			if (! is_object($m))
-				continue;
+        // If there isn't a schedule, but there are common meeting dates/times, use those.
+        foreach ($meetings as $m) {
+            if ( ! is_object($m)) {
+                continue;
+            }
 
-			$dt = $m->dt;
+            $dt = $m->dt;
 
-			if ($dt < $now)
-				continue;
+            if ($dt < $now) {
+                continue;
+            }
 
-			$coInx = $dt->format('w-Hi');
-			if (isset($commonOccurrences[$coInx])) {
-				$commonOccurrences[$coInx]['count']++;
-			} else {
-				$commonOccurrences[$coInx] = [
-					'count'   => 1,
-					'example' => $dt
-				];
-			}
-		}
-		unset($dt, $coInx, $m);
+            $coInx = $dt->format('w-Hi');
+            if (isset($commonOccurrences[$coInx])) {
+                $commonOccurrences[$coInx]['count']++;
+            } else {
+                $commonOccurrences[$coInx] = [
+                    'count'   => 1,
+                    'example' => $dt
+                ];
+            }
+        }
+        unset($dt, $coInx, $m);
 
-		return array_filter($commonOccurrences, fn($co) => $co['count'] > 2);
-	}
+        return array_filter($commonOccurrences, fn($co) => $co['count'] > 2);
+    }
 
-	/**
-	 * Calculate the schedule string.
-	 *
-	 * @return string
-	 */
-	protected function scheduleString_calc(): ?string
-	{
-		$commonOccurrences = self::computeCommonOccurrences($this->meetings(), $this->schedules());
+    /**
+     * Calculate the schedule string.
+     *
+     * @return string
+     */
+    protected function scheduleString_calc(): ?string
+    {
+        $commonOccurrences = self::computeCommonOccurrences($this->meetings(), $this->schedules());
 
-		$dayStr = null;
-		$timeFormat = get_option('time_format');
-		$dateFormat = get_option('date_format');
+        $dayStr     = null;
+        $timeFormat = get_option('time_format');
+        $dateFormat = get_option('date_format');
 
-		if (count($commonOccurrences) > 0) {
-			$uniqueTimeStrings = [];
-			$days              = [];
-			if (count($commonOccurrences) > 1) { // this is only needed if there's multiple schedules
-				foreach ($commonOccurrences as $k => $co) {
-					$timeStr = substr($k, 2);
-					if ( ! in_array($timeStr, $uniqueTimeStrings, true)) {
-						$uniqueTimeStrings[] = $timeStr;
+        if (count($commonOccurrences) > 0) {
+            $uniqueTimeStrings = [];
+            $days              = [];
+            if (count($commonOccurrences) > 1) { // this is only needed if there's multiple schedules
+                foreach ($commonOccurrences as $k => $co) {
+                    $timeStr = substr($k, 2);
+                    if ( ! in_array($timeStr, $uniqueTimeStrings, true)) {
+                        $uniqueTimeStrings[] = $timeStr;
 
-						$weekday = "d" . $k[0];
-						if ( ! isset($days[$weekday])) {
-							$days[$weekday] = [];
-						}
-						$days[$weekday][] = $co['example'];
-					}
-				}
-				unset($timeStr, $k, $co, $weekday);
-			} else {
-				$cok                   = array_key_first($commonOccurrences);
-				$days["d" . $cok[0]][] = $commonOccurrences[$cok]['example'];
-			}
+                        $weekday = "d" . $k[0];
+                        if ( ! isset($days[$weekday])) {
+                            $days[$weekday] = [];
+                        }
+                        $days[$weekday][] = $co['example'];
+                    }
+                }
+                unset($timeStr, $k, $co, $weekday);
+            } else {
+                $cok                   = array_key_first($commonOccurrences);
+                $days["d" . $cok[0]][] = $commonOccurrences[$cok]['example'];
+            }
 
-			if (count($uniqueTimeStrings) > 1) {  // Multiple different times.  Sun at 9am & 11am, and Sat at 6pm
-				// multiple different times of day
-				$dayStr = [];
-				foreach ($days as $dk => $dta) {
-					$timeStr = [];
-					foreach ($dta as $dt) {
-						/** @var $dt DateTimeImmutable */
-						$ts = $dt->format($timeFormat);
-						$ts = apply_filters(TouchPointWP::HOOK_PREFIX . 'adjust_time_string', $ts, $dt);
-						$timeStr[] = $ts;
-					}
-					$timeStr = Utilities::stringArrayToListString($timeStr);
+            if (count($uniqueTimeStrings) > 1) {  // Multiple different times.  Sun at 9am & 11am, and Sat at 6pm
+                // multiple different times of day
+                $dayStr = [];
+                foreach ($days as $dk => $dta) {
+                    $timeStr = [];
+                    foreach ($dta as $dt) {
+                        /** @var $dt DateTimeImmutable */
+                        $ts        = $dt->format($timeFormat);
+                        $ts        = apply_filters(TouchPointWP::HOOK_PREFIX . 'adjust_time_string', $ts, $dt);
+                        $timeStr[] = $ts;
+                    }
+                    $timeStr = Utilities::stringArrayToListString($timeStr);
 
-					if (count($days) > 1) {  // Mon at 7pm & Tue at 8pm
-						$day = Utilities::getDayOfWeekShortForNumber(intval($dk[1]));
-					} else {
-						$day = Utilities::getPluralDayOfWeekNameForNumber(intval($dk[1]));
-					}
-					// translators: "Mon at 7pm"  or  "Sundays at 9am & 11am"
-					$dayStr[] = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $day, $timeStr);
-				}
-				$dayStr = Utilities::stringArrayToListString($dayStr);
-			} else {  // one time of day.  Tue & Thu at 7pm
-				if (count($days) > 1) {
-					// more than one day per week
-					$dayStr = [];
-					foreach ($days as $k => $d) {
-						$dayStr[] = Utilities::getDayOfWeekShortForNumber(intval($k[1]));
-					}
-					$dayStr = Utilities::stringArrayToListString($dayStr);
-				} else {
-					// one day of the week
-					$k      = array_key_first($days);
-					$dayStr = Utilities::getPluralDayOfWeekNameForNumber(intval($k[1]));
-				}
-				$dt      = array_values($days)[0][0];
-				/** @var $dt DateTimeImmutable */
-				$timeStr = $dt->format($timeFormat);
-				$timeStr = apply_filters(TouchPointWP::HOOK_PREFIX . 'adjust_time_string', $timeStr, $dt);
-				$dayStr  = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $dayStr, $timeStr);
-			}
-		}
+                    if (count($days) > 1) {  // Mon at 7pm & Tue at 8pm
+                        $day = Utilities::getDayOfWeekShortForNumber(intval($dk[1]));
+                    } else {
+                        $day = Utilities::getPluralDayOfWeekNameForNumber(intval($dk[1]));
+                    }
+                    // translators: "Mon at 7pm"  or  "Sundays at 9am & 11am"
+                    $dayStr[] = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $day, $timeStr);
+                }
+                $dayStr = Utilities::stringArrayToListString($dayStr);
+            } else {  // one time of day.  Tue & Thu at 7pm
+                if (count($days) > 1) {
+                    // more than one day per week
+                    $dayStr = [];
+                    foreach ($days as $k => $d) {
+                        $dayStr[] = Utilities::getDayOfWeekShortForNumber(intval($k[1]));
+                    }
+                    $dayStr = Utilities::stringArrayToListString($dayStr);
+                } else {
+                    // one day of the week
+                    $k      = array_key_first($days);
+                    $dayStr = Utilities::getPluralDayOfWeekNameForNumber(intval($k[1]));
+                }
+                $dt = array_values($days)[0][0];
+                /** @var $dt DateTimeImmutable */
+                $timeStr = $dt->format($timeFormat);
+                $timeStr = apply_filters(TouchPointWP::HOOK_PREFIX . 'adjust_time_string', $timeStr, $dt);
+                $dayStr  = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $dayStr, $timeStr);
+            }
+        }
 
-		// Convert start and end to string.
-		if ($this->firstMeeting !== null && $this->lastMeeting !== null) {
-			if ($dayStr === null) {
-				// translators: {start date} through {end date}  e.g. February 14 through August 12
-				$dayStr = wp_sprintf(__('%1$s through %2$s', 'TouchPoint-WP'),
-				                     $this->firstMeeting->format($dateFormat),
-				                     $this->lastMeeting->format($dateFormat));
-			} else {
-				// translators: {schedule}, {start date} through {end date}  e.g. Sundays at 11am, February 14 through August 12
-				$dayStr = wp_sprintf(__('%1$s, %2$s through %3$s', 'TouchPoint-WP'),
-								     $dayStr,
-				                     $this->firstMeeting->format($dateFormat),
-				                     $this->lastMeeting->format($dateFormat));
-			}
-		} elseif ($this->firstMeeting !== null) {
-			if ($dayStr === null) {
-				// translators: Starts {start date}  e.g. Starts September 15
-				$dayStr = wp_sprintf(__('Starts %1$s', 'TouchPoint-WP'),
-				                     $this->firstMeeting->format($dateFormat));
-			} else {
-				// translators: {schedule}, starting {start date}  e.g. Sundays at 11am, starting February 14
-				$dayStr = wp_sprintf(__('%1$s, starting %2$s', 'TouchPoint-WP'),
-				                     $dayStr,
-				                     $this->firstMeeting->format($dateFormat));
-			}
-		} elseif ($this->lastMeeting !== null) {
-			if ($dayStr === null) {
-				// translators: Through {end date}  e.g. Through September 15
-				$dayStr = wp_sprintf(__('Through %1$s', 'TouchPoint-WP'),
-				                     $this->lastMeeting->format($dateFormat));
-			} else {
-				// translators: {schedule}, through {end date}  e.g. Sundays at 11am, through February 14
-				$dayStr = wp_sprintf(__('%1$s, through %2$s', 'TouchPoint-WP'),
-				                     $dayStr,
-				                     $this->lastMeeting->format($dateFormat));
-			}
-		}
+        // Convert start and end to string.
+        if ($this->firstMeeting !== null && $this->lastMeeting !== null) {
+            if ($dayStr === null) {
+                // translators: {start date} through {end date}  e.g. February 14 through August 12
+                $dayStr = wp_sprintf(
+                    __('%1$s through %2$s', 'TouchPoint-WP'),
+                    $this->firstMeeting->format($dateFormat),
+                    $this->lastMeeting->format($dateFormat)
+                );
+            } else {
+                // translators: {schedule}, {start date} through {end date}  e.g. Sundays at 11am, February 14 through August 12
+                $dayStr = wp_sprintf(
+                    __('%1$s, %2$s through %3$s', 'TouchPoint-WP'),
+                    $dayStr,
+                    $this->firstMeeting->format($dateFormat),
+                    $this->lastMeeting->format($dateFormat)
+                );
+            }
+        } elseif ($this->firstMeeting !== null) {
+            if ($dayStr === null) {
+                // translators: Starts {start date}  e.g. Starts September 15
+                $dayStr = wp_sprintf(
+                    __('Starts %1$s', 'TouchPoint-WP'),
+                    $this->firstMeeting->format($dateFormat)
+                );
+            } else {
+                // translators: {schedule}, starting {start date}  e.g. Sundays at 11am, starting February 14
+                $dayStr = wp_sprintf(
+                    __('%1$s, starting %2$s', 'TouchPoint-WP'),
+                    $dayStr,
+                    $this->firstMeeting->format($dateFormat)
+                );
+            }
+        } elseif ($this->lastMeeting !== null) {
+            if ($dayStr === null) {
+                // translators: Through {end date}  e.g. Through September 15
+                $dayStr = wp_sprintf(
+                    __('Through %1$s', 'TouchPoint-WP'),
+                    $this->lastMeeting->format($dateFormat)
+                );
+            } else {
+                // translators: {schedule}, through {end date}  e.g. Sundays at 11am, through February 14
+                $dayStr = wp_sprintf(
+                    __('%1$s, through %2$s', 'TouchPoint-WP'),
+                    $dayStr,
+                    $this->lastMeeting->format($dateFormat)
+                );
+            }
+        }
 
-		return $dayStr;
-	}
+        return $dayStr;
+    }
 
     /**
      * Returns an array of the Involvement's Divisions, excluding those that cause it to be included.
@@ -743,7 +766,7 @@ class Involvement implements api, updatesViaCron, geo, module
     {
         $exclude = $this->settings()->importDivs;
 
-        if (!isset($this->divisions)) {
+        if ( ! isset($this->divisions)) {
             if (count($exclude) > 1) {
                 $mq = ['relation' => "AND"];
             } else {
@@ -752,8 +775,8 @@ class Involvement implements api, updatesViaCron, geo, module
 
             foreach ($exclude as $e) {
                 $mq[] = [
-                    'key' => TouchPointWP::SETTINGS_PREFIX . 'divId',
-                    'value' => substr($e, 3),
+                    'key'     => TouchPointWP::SETTINGS_PREFIX . 'divId',
+                    'value'   => substr($e, 3),
                     'compare' => 'NOT LIKE'
                 ];
             }
@@ -765,6 +788,7 @@ class Involvement implements api, updatesViaCron, geo, module
         foreach ($this->divisions as $d) {
             $out[] = $d->name;
         }
+
         return $out;
     }
 
@@ -780,6 +804,7 @@ class Involvement implements api, updatesViaCron, geo, module
         if ($postType === null) {
             return null;
         }
+
         return Involvement_PostTypeSettings::getForInvType($postType);
     }
 
@@ -794,6 +819,7 @@ class Involvement implements api, updatesViaCron, geo, module
         foreach (self::allTypeSettings() as $pt) {
             $r[] = $pt->postTypeWithPrefix();
         }
+
         return $r;
     }
 
@@ -801,8 +827,8 @@ class Involvement implements api, updatesViaCron, geo, module
      * Display action buttons for an involvement.  Takes an id parameter for the Involvement ID.  If not provided,
      * the current post will be used.
      *
-     * @param array|string  $params
-     * @param string $content
+     * @param array|string $params
+     * @param string       $content
      *
      * @return string
      * @noinspection PhpUnusedParameterInspection
@@ -813,17 +839,17 @@ class Involvement implements api, updatesViaCron, geo, module
         if (is_string($params)) {
             $params = explode(",", $params);
         }
-	    /** @noinspection PhpRedundantOptionalArgumentInspection */
-	    $params = array_change_key_case($params, CASE_LOWER);
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
+        $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
         /** @noinspection SpellCheckingInspection */
         $params = shortcode_atts(
             [
-                'class' => 'TouchPoint-involvement actions',
+                'class'    => 'TouchPoint-involvement actions',
                 'btnclass' => 'btn button',
-                'invid' => null,
-                'id'    => wp_unique_id('tp-actions-')
+                'invid'    => null,
+                'id'       => wp_unique_id('tp-actions-')
             ],
             $params,
             self::SHORTCODE_ACTIONS
@@ -853,7 +879,7 @@ class Involvement implements api, updatesViaCron, geo, module
 
         try {
             $inv = self::fromInvId($iid);
-        } catch(TouchPointWP_Exception $e) {
+        } catch (TouchPointWP_Exception $e) {
             return "<!-- Error: " . $e->getMessage() . " -->";
         }
 
@@ -890,7 +916,7 @@ class Involvement implements api, updatesViaCron, geo, module
         }
 
         // Attempt to infer the type if it doesn't exist.
-        if (! isset($params['type'])) {
+        if ( ! isset($params['type'])) {
             $params['type'] = is_archive() ? get_queried_object()->name : false;
         }
 
@@ -950,7 +976,7 @@ class Involvement implements api, updatesViaCron, geo, module
         // Get the formalized post types
         $types = [];
         $terms = [null];
-        if (!isset($params['type']) && $q->is_post_type_archive()) {
+        if ( ! isset($params['type']) && $q->is_post_type_archive()) {
             $params['type'] = $q->query['post_type'];
         }
         $settings = null;
@@ -965,18 +991,18 @@ class Involvement implements api, updatesViaCron, geo, module
         }
 
         // CSS
-	    /** @noinspection SpellCheckingInspection */
-	    $params['includecss'] = !isset($params['includecss']) ||
+        /** @noinspection SpellCheckingInspection */
+        $params['includecss'] = ! isset($params['includecss']) ||
                                 $params['includecss'] === true ||
                                 $params['includecss'] === 'true';
 
         // Only group for single post types.
         $groupBy = null;
         if (count($types) === 1) {
-            $groupBy = $settings->groupBy;
+            $groupBy      = $settings->groupBy;
             $groupByOrder = "ASC";
             if (strlen($groupBy) > 1 && $groupBy[0] === "-") {
-                $groupBy = substr($groupBy, 1);
+                $groupBy      = substr($groupBy, 1);
                 $groupByOrder = "DESC";
             }
 
@@ -1005,8 +1031,8 @@ class Involvement implements api, updatesViaCron, geo, module
             if (count($divs) > 0) {
                 $taxQuery[] = [
                     'taxonomy' => TouchPointWP::TAX_DIV,
-                    'field' => 'ID',
-                    'terms' => $divs
+                    'field'    => 'ID',
+                    'terms'    => $divs
                 ];
             }
         }
@@ -1016,7 +1042,7 @@ class Involvement implements api, updatesViaCron, geo, module
         if ($userLoc !== false) {
             // we have a viable location. Use it for sorting by distance.
             Involvement::setComparisonGeo($userLoc);
-            if (!headers_sent()) { // Depending on when this was called, it may be too late.
+            if ( ! headers_sent()) { // Depending on when this was called, it may be too late.
                 TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
             }
         }
@@ -1040,16 +1066,16 @@ class Involvement implements api, updatesViaCron, geo, module
             $posts = $q->get_posts();
 
             if ($q->post_count > 0) {
-	            /** @noinspection SpellCheckingInspection */
-	            if ($params['includecss']) {
+                /** @noinspection SpellCheckingInspection */
+                if ($params['includecss']) {
                     TouchPointWP::enqueuePartialsStyle();
                 }
 
                 echo "<div class=\"$containerClass\">";
 
-	            if (count($terms) > 1 && $groupBy !== null) {
-		            echo "<h2>$name</h2>";
-	            }
+                if (count($terms) > 1 && $groupBy !== null) {
+                    echo "<h2>$name</h2>";
+                }
 
                 usort($posts, [Involvement::class, 'sortPosts']);
 
@@ -1077,7 +1103,7 @@ class Involvement implements api, updatesViaCron, geo, module
      * Get a WP_Post by the Involvement ID if it exists.  Return null if it does not.
      *
      * @param string|string[] $postType
-     * @param $involvementId
+     * @param                 $involvementId
      *
      * @return int|WP_Post|null
      */
@@ -1085,13 +1111,14 @@ class Involvement implements api, updatesViaCron, geo, module
     {
         $involvementId = (string)$involvementId;
 
-        $q = new WP_Query([
-            'post_type'   => $postType,
-            'meta_key'    => self::INVOLVEMENT_META_KEY,
-            'meta_value'  => $involvementId,
-            'numberposts' => 2  // only need one, but if there's two, there should be an error condition.
-        ]);
-        $posts = $q->get_posts();
+        $q      = new WP_Query([
+                                   'post_type'   => $postType,
+                                   'meta_key'    => self::INVOLVEMENT_META_KEY,
+                                   'meta_value'  => $involvementId,
+                                   'numberposts' => 2
+                                   // only need one, but if there's two, there should be an error condition.
+                               ]);
+        $posts  = $q->get_posts();
         $counts = count($posts);
         if ($counts > 1) {  // multiple posts match, which isn't great.
             new TouchPointWP_Exception("Multiple Posts Exist", 170006);
@@ -1106,8 +1133,8 @@ class Involvement implements api, updatesViaCron, geo, module
     /**
      * Print a list of involvements that match the given criteria.
      *
-     * @param array|string  $params
-     * @param string $content
+     * @param array|string $params
+     * @param string       $content
      *
      * @return string
      *
@@ -1119,12 +1146,12 @@ class Involvement implements api, updatesViaCron, geo, module
         if (is_string($params)) {
             $params = explode(",", $params);
         }
-	    /** @noinspection PhpRedundantOptionalArgumentInspection */
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
-	    /** @noinspection SpellCheckingInspection */
-	    $params = shortcode_atts(
+        /** @noinspection SpellCheckingInspection */
+        $params = shortcode_atts(
             [
                 'type'       => null,
                 'div'        => null,
@@ -1139,7 +1166,7 @@ class Involvement implements api, updatesViaCron, geo, module
 
         global $wp_the_query;
         $q = $wp_the_query;
-        if (!$q->is_post_type_archive() && ($params['usequery'] === false || $params['usequery'] === 'false')) {
+        if ( ! $q->is_post_type_archive() && ($params['usequery'] === false || $params['usequery'] === 'false')) {
             $q = new WP_Query();
         }
         ob_start();
@@ -1149,12 +1176,13 @@ class Involvement implements api, updatesViaCron, geo, module
         if (trim($render) == "") {
             return "<!-- Nothing to show -->";
         }
+
         return apply_shortcodes($render);
     }
 
     /**
-     * @param array|string  $params
-     * @param string $content
+     * @param array|string $params
+     * @param string       $content
      *
      * @return string
      * @noinspection PhpUnusedParameterInspection
@@ -1169,21 +1197,21 @@ class Involvement implements api, updatesViaCron, geo, module
         }
 
         // standardize parameters
-	    /** @noinspection PhpRedundantOptionalArgumentInspection */
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
         $params = shortcode_atts(
             [
                 'count' => 3,
-                'type' => null
+                'type'  => null
             ],
             $params,
             self::SHORTCODE_NEARBY
         );
 
         // Attempt to infer the type if it doesn't exist.
-        if (! isset($params['type'])) {
+        if ( ! isset($params['type'])) {
             $params['type'] = is_archive() ? get_queried_object()->name : false;
         }
 
@@ -1199,8 +1227,8 @@ class Involvement implements api, updatesViaCron, geo, module
         }
 
         $nearbyListId = wp_unique_id('tp-nearby-list-');
-        $type = $params['type'];
-        $count = $params['count'];
+        $type         = $params['type'];
+        $count        = $params['count'];
 
         ob_start();
         $loadedPart = get_template_part('list-item', 'involvement-nearby-list');
@@ -1236,7 +1264,7 @@ class Involvement implements api, updatesViaCron, geo, module
     protected static final function filterDropdownHtml(array $params, Involvement_PostTypeSettings $settings): string
     {
         // standardize parameters
-	    /** @noinspection PhpRedundantOptionalArgumentInspection */
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $params = array_change_key_case($params, CASE_LOWER);
 
         // set some defaults
@@ -1265,7 +1293,9 @@ class Involvement implements api, updatesViaCron, geo, module
         // Division
         if (in_array('div', $filters)) {
             $exclude = $settings->importDivs;
-            if (count($exclude) == 1) { // Exclude the imported div if there's only one, as all invs would have that div.
+            if (count(
+                    $exclude
+                ) == 1) { // Exclude the imported div if there's only one, as all invs would have that div.
                 $mq = ['relation' => "AND"];
                 foreach ($exclude as $e) {
                     $mq[] = [
@@ -1315,7 +1345,7 @@ class Involvement implements api, updatesViaCron, geo, module
         // Gender
         if (in_array('genderid', $filters)) {
             $gList   = TouchPointWP::instance()->getGenders();
-			$gName   = __("Genders", 'TouchPoint-WP');
+            $gName   = __("Genders", 'TouchPoint-WP');
             $content .= "<select class=\"$class-filter\" data-involvement-filter=\"genderId\">";
             $content .= "<option disabled selected>$gName</option><option value=\"\">$any</option>";
             foreach ($gList as $g) {
@@ -1383,9 +1413,9 @@ class Involvement implements api, updatesViaCron, geo, module
             $wdName = __("Weekday", 'TouchPoint-WP');
             $wdList = get_terms(
                 [
-                    'taxonomy'   => TouchPointWP::TAX_WEEKDAY,
-                    'hide_empty' => true,
-                    'orderby'    => 'id',
+                    'taxonomy'                              => TouchPointWP::TAX_WEEKDAY,
+                    'hide_empty'                            => true,
+                    'orderby'                               => 'id',
                     TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
                 ]
             );
@@ -1393,7 +1423,11 @@ class Involvement implements api, updatesViaCron, geo, module
                 $content .= "<select class=\"$class-filter\" data-involvement-filter=\"weekday\">";
                 $content .= "<option disabled selected>$wdName</option><option value=\"\">$any</option>";
                 foreach ($wdList as $d) {
-                    $content .= "<option value=\"$d->slug\">" . _x($d->name, 'e.g. event happens weekly on...', 'TouchPoint-WP') . "</option>";
+                    $content .= "<option value=\"$d->slug\">" . _x(
+                            $d->name,
+                            'e.g. event happens weekly on...',
+                            'TouchPoint-WP'
+                        ) . "</option>";
                 }
                 $content .= "</select>";
             }
@@ -1405,9 +1439,9 @@ class Involvement implements api, updatesViaCron, geo, module
             $todName = __("Time of Day", 'TouchPoint-WP');
             $todList = get_terms(
                 [
-                    'taxonomy'   => TouchPointWP::TAX_DAYTIME,
-                    'hide_empty' => true,
-                    'orderby'    => 'id',
+                    'taxonomy'                              => TouchPointWP::TAX_DAYTIME,
+                    'hide_empty'                            => true,
+                    'orderby'                               => 'id',
                     TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
                 ]
             );
@@ -1415,7 +1449,7 @@ class Involvement implements api, updatesViaCron, geo, module
                 $content .= "<select class=\"$class-filter\" data-involvement-filter=\"timeOfDay\">";
                 $content .= "<option disabled selected>$todName</option><option value=\"\">$any</option>";
                 foreach ($todList as $t) {
-					$label = _x($t->name, 'Time of Day', 'TouchPoint-WP');
+                    $label   = _x($t->name, 'Time of Day', 'TouchPoint-WP');
                     $content .= "<option value=\"$t->slug\">$label</option>";
                 }
                 $content .= "</select>";
@@ -1424,8 +1458,8 @@ class Involvement implements api, updatesViaCron, geo, module
 
         // Marital Status
         if (in_array('inv_marital', $filters)) {
-			$status = __("Marital Status", 'TouchPoint-WP');
-            $single = _x("Mostly Single", "Marital status for a group of people", 'TouchPoint-WP');
+            $status  = __("Marital Status", 'TouchPoint-WP');
+            $single  = _x("Mostly Single", "Marital status for a group of people", 'TouchPoint-WP');
             $married = _x("Mostly Married", "Marital status for a group of people", 'TouchPoint-WP');
             $content .= "<select class=\"$class-filter\" data-involvement-filter=\"inv_marital\">";
             $content .= "<option disabled selected>$status</option>";
@@ -1466,7 +1500,7 @@ class Involvement implements api, updatesViaCron, geo, module
             $content .= sprintf(
                 "<span class=\"TouchPointWP-map-warning-zoomOrReset\" style=\"display:none;\">%s  </span>",
                 sprintf(
-					// translators: %s is the link to "reset the map"
+                // translators: %s is the link to "reset the map"
                     __("Zoom out or %s to see more.", 'TouchPoint-WP'),
                     sprintf(
                         "<a href=\"#\" class=\"TouchPointWP-map-resetLink\">%s</a>",
@@ -1549,23 +1583,26 @@ class Involvement implements api, updatesViaCron, geo, module
 
         $settings = self::getSettingsForPostType($_GET['type']);
 
-        if (! $settings) {
+        if ( ! $settings) {
             http_response_code(Http::NOT_FOUND);
             echo json_encode([
-                     "invList"    => [],
-                     "error"      => "This involvement type doesn't exist.",
-                     "error_i18n" => __("This involvement type doesn't exist.", 'TouchPoint-WP')
-                 ]);
+                                 "invList"    => [],
+                                 "error"      => "This involvement type doesn't exist.",
+                                 "error_i18n" => __("This involvement type doesn't exist.", 'TouchPoint-WP')
+                             ]);
             exit;
         }
 
-        if (! $settings->useGeo) {
+        if ( ! $settings->useGeo) {
             http_response_code(Http::EXPECTATION_FAILED);
             echo json_encode([
-                "invList"    => [],
-                "error"      => "This involvement type doesn't have geographic locations enabled.",
-                "error_i18n" => __("This involvement type doesn't have geographic locations enabled.", 'TouchPoint-WP')
-            ]);
+                                 "invList"    => [],
+                                 "error"      => "This involvement type doesn't have geographic locations enabled.",
+                                 "error_i18n" => __(
+                                     "This involvement type doesn't have geographic locations enabled.",
+                                     'TouchPoint-WP'
+                                 )
+                             ]);
             exit;
         }
 
@@ -1573,17 +1610,16 @@ class Involvement implements api, updatesViaCron, geo, module
 
         if ($_GET['lat'] === "null" || $_GET['lng'] === "null" ||
             $_GET['lat'] === null || $_GET['lng'] === null) {
-
             $geoObj = TouchPointWP::instance()->geolocate();
 
             if ($geoObj === false) {
                 http_response_code(Http::PRECONDITION_FAILED);
                 echo json_encode([
-                    "invList"    => [],
-                    "error"      => "Could not locate.",
-                    "error_i18n" => __("Could not locate.", 'TouchPoint-WP'),
-                    "geo"        => false
-                ]);
+                                     "invList"    => [],
+                                     "error"      => "Could not locate.",
+                                     "error_i18n" => __("Could not locate.", 'TouchPoint-WP'),
+                                     "geo"        => false
+                                 ]);
                 exit;
             }
 
@@ -1591,7 +1627,6 @@ class Involvement implements api, updatesViaCron, geo, module
             $_GET['lng'] = $geoObj->lng;
 
             $r['geo'] = $geoObj;
-
         } else {
             $geoObj = TouchPointWP::instance()->reverseGeocode($_GET['lat'], $_GET['lng']);
 
@@ -1605,10 +1640,10 @@ class Involvement implements api, updatesViaCron, geo, module
         if ($invs === null) {
             http_response_code(Http::NOT_FOUND);
             echo json_encode([
-                "invList"    => [],
-                "error"      => sprintf("No %s Found.", $settings->namePlural),
-                "error_i18n" => sprintf(__("No %s Found.", "TouchPoint-WP"), $settings->namePlural)
-            ]);
+                                 "invList"    => [],
+                                 "error"      => sprintf("No %s Found.", $settings->namePlural),
+                                 "error_i18n" => sprintf(__("No %s Found.", "TouchPoint-WP"), $settings->namePlural)
+                             ]);
             exit;
         }
 
@@ -1636,19 +1671,19 @@ class Involvement implements api, updatesViaCron, geo, module
     }
 
 
-	/**
-	 * Gets an array of ID/Distance pairs for a given lat/lng.
-	 *
-	 * Math from https://stackoverflow.com/a/574736/2339939
-	 *
-	 * @param float  $lat Longitude
-	 * @param float  $lng Longitude
-	 * @param string $postType The Post Type to return.
-	 * @param int    $limit Number of results to return.  0-100 inclusive.
-	 *
-	 * @return object[]|null  An array of database query result objects, or null if the location isn't provided or
-	 *     valid.
-	 */
+    /**
+     * Gets an array of ID/Distance pairs for a given lat/lng.
+     *
+     * Math from https://stackoverflow.com/a/574736/2339939
+     *
+     * @param float  $lat Longitude
+     * @param float  $lng Longitude
+     * @param string $postType The Post Type to return.
+     * @param int    $limit Number of results to return.  0-100 inclusive.
+     *
+     * @return object[]|null  An array of database query result objects, or null if the location isn't provided or
+     *     valid.
+     */
     private static function getInvsNear(float $lat, float $lng, string $postType, int $limit = 3): ?array
     {
         if ($lat > 90 || $lat < -90 ||
@@ -1692,20 +1727,20 @@ class Involvement implements api, updatesViaCron, geo, module
             $limit
         );
 
-		$r = $wpdb->get_results($q, 'OBJECT');
-		foreach ($r as $iObj) {
-			$cacheGroup = $iObj->invId . "_" . get_locale();
-			$sch = wp_cache_get(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
-			if (!$sch) {
-				try {
-					$i   = self::fromInvId($iObj->invId);
+        $r = $wpdb->get_results($q, 'OBJECT');
+        foreach ($r as $iObj) {
+            $cacheGroup = $iObj->invId . "_" . get_locale();
+            $sch        = wp_cache_get(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
+            if ( ! $sch) {
+                try {
+                    $i   = self::fromInvId($iObj->invId);
                     $sch = $i !== null ? $i->scheduleString() : null;
-				} catch (TouchPointWP_Exception $e) {
-					$sch = null;
-				}
-			}
-			$iObj->schedule = $sch;
-		}
+                } catch (TouchPointWP_Exception $e) {
+                    $sch = null;
+                }
+            }
+            $iObj->schedule = $sch;
+        }
 
         return $r;
     }
@@ -1742,7 +1777,7 @@ class Involvement implements api, updatesViaCron, geo, module
     private static function fromInvId(int $iid): ?Involvement
     {
         if ( ! isset(self::$_instances[$iid])) {
-            $post = self::getWpPostByInvolvementId(Involvement::getPostTypes(), $iid);
+            $post                   = self::getWpPostByInvolvementId(Involvement::getPostTypes(), $iid);
             self::$_instances[$iid] = new Involvement($post);
         }
 
@@ -1811,7 +1846,8 @@ class Involvement implements api, updatesViaCron, geo, module
     }
 
     /**
-     * Run the updating cron task.  Fail quietly to not disturb the visitor experience if using WP default cron handling.
+     * Run the updating cron task.  Fail quietly to not disturb the visitor experience if using WP default cron
+     * handling.
      *
      * @return void
      */
@@ -1841,7 +1877,12 @@ class Involvement implements api, updatesViaCron, geo, module
             return $useHiForFalse ? 25000 : false;
         }
 
-		return Utilities\Geo::distance($this->geo->lat, $this->geo->lng, self::$compareGeo->lat, self::$compareGeo->lng);
+        return Utilities\Geo::distance(
+            $this->geo->lat,
+            $this->geo->lng,
+            self::$compareGeo->lat,
+            self::$compareGeo->lng
+        );
     }
 
 
@@ -1877,6 +1918,7 @@ class Involvement implements api, updatesViaCron, geo, module
         if ($ad == $bd) {
             return strcasecmp($a->name, $b->name);
         }
+
         return $ad <=> $bd;
     }
 
@@ -1894,6 +1936,7 @@ class Involvement implements api, updatesViaCron, geo, module
         try {
             $a = self::fromPost($a);
             $b = self::fromPost($b);
+
             return self::sort($a, $b);
         } catch (TouchPointWP_Exception $ex) {
             return $a <=> $b;
@@ -1909,8 +1952,8 @@ class Involvement implements api, updatesViaCron, geo, module
     }
 
     /**
-     * @param string|array  $params
-     * @param string $content
+     * @param string|array $params
+     * @param string       $content
      *
      * @return string
      *
@@ -1926,7 +1969,7 @@ class Involvement implements api, updatesViaCron, geo, module
             self::$_hasUsedMap = true;
 
             // standardize parameters
-	        /** @noinspection PhpRedundantOptionalArgumentInspection */
+            /** @noinspection PhpRedundantOptionalArgumentInspection */
             $params = array_change_key_case($params, CASE_LOWER);
 
             TouchPointWP::requireScript("googleMaps");
@@ -1972,34 +2015,36 @@ class Involvement implements api, updatesViaCron, geo, module
     }
 
 
-	/**
-	 * Indicates whether a map of a single Involvement can be displayed.
-	 *
-	 * @return bool
-	 */
-	public function hasGeo(): bool
-	{
-		if (!$this->settings()->useGeo)
-			return false;
+    /**
+     * Indicates whether a map of a single Involvement can be displayed.
+     *
+     * @return bool
+     */
+    public function hasGeo(): bool
+    {
+        if ( ! $this->settings()->useGeo) {
+            return false;
+        }
 
-		return $this->geo !== null && $this->geo->lat !== null && $this->geo->lng !== null;
-	}
+        return $this->geo !== null && $this->geo->lat !== null && $this->geo->lng !== null;
+    }
 
-	public function asGeoIFace(string $type = "unknown"): ?object
-	{
-		if ($this->hasGeo()) {
-			return (object)[
-				'lat'   => $this->geo->lat,
-				'lng'   => $this->geo->lng,
-				'human' => $this->name,
-				'type'  => $type
-			];
-		}
-		return null;
-	}
+    public function asGeoIFace(string $type = "unknown"): ?object
+    {
+        if ($this->hasGeo()) {
+            return (object)[
+                'lat'   => $this->geo->lat,
+                'lng'   => $this->geo->lng,
+                'human' => $this->name,
+                'type'  => $type
+            ];
+        }
+
+        return null;
+    }
 
 
-	/**
+    /**
      * Update posts that are based on an involvement.
      *
      * @param Involvement_PostTypeSettings $typeSets
@@ -2008,8 +2053,11 @@ class Involvement implements api, updatesViaCron, geo, module
      *
      * @return false|int  False on failure.  Otherwise, the number of updates.
      */
-    final protected static function updateInvolvementPostsForType(Involvement_PostTypeSettings $typeSets, $divs, bool $verbose)
-    {
+    final protected static function updateInvolvementPostsForType(
+        Involvement_PostTypeSettings $typeSets,
+        $divs,
+        bool $verbose
+    ) {
         $siteTz = wp_timezone();
 
         set_time_limit(180);
@@ -2044,11 +2092,11 @@ class Involvement implements api, updatesViaCron, geo, module
         $postsToKeep = [];
 
         try {
-            $now = new DateTimeImmutable(null, $siteTz);
-            $aYear = new DateInterval('P1Y');
+            $now       = new DateTimeImmutable(null, $siteTz);
+            $aYear     = new DateInterval('P1Y');
             $nowPlus1Y = $now->add($aYear);
             unset($aYear);
-        } catch  (Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
 
@@ -2068,51 +2116,51 @@ class Involvement implements api, updatesViaCron, geo, module
             if ($inv->firstMeeting !== null) {
                 try {
                     $inv->firstMeeting = new DateTimeImmutable($inv->firstMeeting, $siteTz);
-                } catch  (Exception $e) {
+                } catch (Exception $e) {
                     $inv->firstMeeting = null;
                 }
             }
             if ($inv->lastMeeting !== null) {
                 try {
                     $inv->lastMeeting = new DateTimeImmutable($inv->lastMeeting, $siteTz);
-                } catch  (Exception $e) {
+                } catch (Exception $e) {
                     $inv->lastMeeting = null;
                 }
             }
 
-			// Meeting and Schedule date/time strings as DateTimeImmutables
-	        foreach ($inv->schedules as $i => $s) {
-				try {
-					$s->next = new DateTimeImmutable($s->next, $siteTz);
-				} catch (Exception $e) {
-					unset($inv->schedules[$i]);
-				}
-	        }
-	        foreach ($inv->meetings as $i => $m) {
-		        try {
-			        $m->dt = new DateTimeImmutable($m->dt, $siteTz);
-		        } catch (Exception $e) {
-			        unset($inv->meetings[$i]);
-		        }
-	        }
+            // Meeting and Schedule date/time strings as DateTimeImmutables
+            foreach ($inv->schedules as $i => $s) {
+                try {
+                    $s->next = new DateTimeImmutable($s->next, $siteTz);
+                } catch (Exception $e) {
+                    unset($inv->schedules[$i]);
+                }
+            }
+            foreach ($inv->meetings as $i => $m) {
+                try {
+                    $m->dt = new DateTimeImmutable($m->dt, $siteTz);
+                } catch (Exception $e) {
+                    unset($inv->meetings[$i]);
+                }
+            }
 
-	        // Registration start
-	        if ($inv->regStart !== null) {
-		        try {
-			        $inv->regStart = new DateTimeImmutable($inv->regStart, $siteTz);
-		        } catch  (Exception $e) {
-			        $inv->regStart = null;
-		        }
-	        }
+            // Registration start
+            if ($inv->regStart !== null) {
+                try {
+                    $inv->regStart = new DateTimeImmutable($inv->regStart, $siteTz);
+                } catch (Exception $e) {
+                    $inv->regStart = null;
+                }
+            }
 
-	        // Registration end
-	        if ($inv->regEnd !== null) {
-		        try {
-			        $inv->regEnd = new DateTimeImmutable($inv->regEnd, $siteTz);
-		        } catch  (Exception $e) {
-			        $inv->regEnd = null;
-		        }
-	        }
+            // Registration end
+            if ($inv->regEnd !== null) {
+                try {
+                    $inv->regEnd = new DateTimeImmutable($inv->regEnd, $siteTz);
+                } catch (Exception $e) {
+                    $inv->regEnd = null;
+                }
+            }
 
 
             ////////////////
@@ -2129,7 +2177,7 @@ class Involvement implements api, updatesViaCron, geo, module
                 continue; // Stop processing this involvement.  This will cause it to be removed if it exists already.
             }
 
-            if (in_array("closed", $typeSets->excludeIf) && !!$inv->closed) {
+            if (in_array("closed", $typeSets->excludeIf) && ! ! $inv->closed) {
                 if ($verbose) {
                     echo "<p>Stopping processing because Involvements with Closed Registrations are excluded.  Involvement will be deleted from WordPress.</p>";
                 }
@@ -2143,43 +2191,43 @@ class Involvement implements api, updatesViaCron, geo, module
                 continue;
             }
 
-	        if (in_array("notWeekly", $typeSets->excludeIf) && $inv->notWeekly) {
-		        if ($verbose) {
-			        echo "<p>Stopping processing because Not-Weekly Involvements are excluded.  Involvement will be deleted from WordPress.</p>";
-		        }
-		        continue;
-	        }
+            if (in_array("notWeekly", $typeSets->excludeIf) && $inv->notWeekly) {
+                if ($verbose) {
+                    echo "<p>Stopping processing because Not-Weekly Involvements are excluded.  Involvement will be deleted from WordPress.</p>";
+                }
+                continue;
+            }
 
-	        if (in_array("noRegistration", $typeSets->excludeIf) && intval($inv->regTypeId) === 0) {
-		        if ($verbose) {
-			        echo "<p>Stopping processing because Involvements with \"No Online Registration\" are excluded.  Involvement will be deleted from WordPress.</p>";
-		        }
-		        continue;
-	        }
+            if (in_array("noRegistration", $typeSets->excludeIf) && intval($inv->regTypeId) === 0) {
+                if ($verbose) {
+                    echo "<p>Stopping processing because Involvements with \"No Online Registration\" are excluded.  Involvement will be deleted from WordPress.</p>";
+                }
+                continue;
+            }
 
-	        if (in_array("registrationEnded", $typeSets->excludeIf) &&
-	                $inv->regEnd !== null && $inv->regEnd < $now) {
-		        if ($verbose) {
-			        echo "<p>Stopping processing because Involvements whose registrations have ended are excluded.  Involvement will be deleted from WordPress.</p>";
-		        }
-		        continue;
-	        }
+            if (in_array("registrationEnded", $typeSets->excludeIf) &&
+                $inv->regEnd !== null && $inv->regEnd < $now) {
+                if ($verbose) {
+                    echo "<p>Stopping processing because Involvements whose registrations have ended are excluded.  Involvement will be deleted from WordPress.</p>";
+                }
+                continue;
+            }
 
-	        if (in_array("unscheduled", $typeSets->excludeIf) && count($inv->occurrences) > 0) {
-				$hasSchedule = false;
-				foreach ($inv->occurrences as $o) {
-					if ($o->type === 'S') {
-						$hasSchedule = true;
-						break;
-					}
-				}
-		        if (!$hasSchedule) {
-			        if ($verbose) {
-				        echo "<p>Stopping processing because Involvements without schedules are excluded.  Involvement will be deleted from WordPress.</p>";
-			        }
-			        continue;
-		        }
-	        }
+            if (in_array("unscheduled", $typeSets->excludeIf) && count($inv->occurrences) > 0) {
+                $hasSchedule = false;
+                foreach ($inv->occurrences as $o) {
+                    if ($o->type === 'S') {
+                        $hasSchedule = true;
+                        break;
+                    }
+                }
+                if ( ! $hasSchedule) {
+                    if ($verbose) {
+                        echo "<p>Stopping processing because Involvements without schedules are excluded.  Involvement will be deleted from WordPress.</p>";
+                    }
+                    continue;
+                }
+            }
 
 
             /////////////////////////
@@ -2191,7 +2239,7 @@ class Involvement implements api, updatesViaCron, geo, module
             $titleToUse = $inv->regTitle ?? $inv->name;
             $titleToUse = trim($titleToUse);
 
-			if ($post === null) {
+            if ($post === null) {
                 $post = wp_insert_post(
                     [ // create new
                         'post_type'  => $typeSets->postType,
@@ -2209,22 +2257,22 @@ class Involvement implements api, updatesViaCron, geo, module
                 continue;
             }
 
-			if ($post === null) {
-				new TouchPointWP_Exception("Post could not be found or created.", 171001);
-				continue;
-			}
+            if ($post === null) {
+                new TouchPointWP_Exception("Post could not be found or created.", 171001);
+                continue;
+            }
 
             /** @var $post WP_Post */
-	        if ($inv->description == null || trim($inv->description) == "") {
-		        $post->post_content = null;
-	        } else {
-		        $post->post_content = Utilities::standardizeHtml($inv->description, "involvement-import");
-	        }
+            if ($inv->description == null || trim($inv->description) == "") {
+                $post->post_content = null;
+            } else {
+                $post->post_content = Utilities::standardizeHtml($inv->description, "involvement-import");
+            }
 
             // Title & Slug -- slugs should only be updated if there's a reason, like a title change.  Otherwise, they increment.
             if ($post->post_title != $titleToUse || str_contains($post->post_name, "__trashed")) {
                 $post->post_title = $titleToUse;
-                $post->post_name = ''; // Slug will regenerate;
+                $post->post_name  = ''; // Slug will regenerate;
             }
 
             // Parent Post
@@ -2255,7 +2303,7 @@ class Involvement implements api, updatesViaCron, geo, module
             update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regTypeId", intval($inv->regTypeId));
 
 
-	        // Registration start
+            // Registration start
             if ($inv->regStart === null) {
                 delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regStart");
             } else {
@@ -2269,7 +2317,7 @@ class Involvement implements api, updatesViaCron, geo, module
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd", $inv->regEnd);
             }
 
-	        Utilities::updatePostImageFromUrl($post->ID, $inv->imageUrl, $post->post_title);
+            Utilities::updatePostImageFromUrl($post->ID, $inv->imageUrl, $post->post_title);
 
 
             ////////////////////
@@ -2277,31 +2325,31 @@ class Involvement implements api, updatesViaCron, geo, module
             ////////////////////
 
             // Establish a container
-            if (!is_array($inv->meetings)) {
+            if ( ! is_array($inv->meetings)) {
                 $inv->meetings = [];
             }
 
             // Determine schedule characteristics for terms
-	        $upcomingDateTimes = self::computeCommonOccurrences($inv->meetings, $inv->schedules);
+            $upcomingDateTimes = self::computeCommonOccurrences($inv->meetings, $inv->schedules);
             $uniqueTimeStrings = [];
-            $timeTerms = [];
-            $days = [];
+            $timeTerms         = [];
+            $days              = [];
 
             foreach ($upcomingDateTimes as $dtString => $dt) {
                 $weekday = "d" . $dtString[0];
 
                 // days
-                if (!isset($days[$weekday])) {
+                if ( ! isset($days[$weekday])) {
                     $days[$weekday] = [];
                 }
                 $days[$weekday][] = $dt['example'];
 
                 // times
                 $timeStr = substr($dtString, 2);
-                if (!in_array($timeStr, $uniqueTimeStrings)) {
+                if ( ! in_array($timeStr, $uniqueTimeStrings)) {
                     $uniqueTimeStrings[] = $timeStr;
-                    $timeTerm = Utilities::getTimeOfDayTermForTime_noI18n($dt['example']);
-                    if (! in_array($timeTerm, $timeTerms)) {
+                    $timeTerm            = Utilities::getTimeOfDayTermForTime_noI18n($dt['example']);
+                    if ( ! in_array($timeTerm, $timeTerms)) {
                         $timeTerms[] = $timeTerm;
                     }
                 }
@@ -2313,46 +2361,46 @@ class Involvement implements api, updatesViaCron, geo, module
             if ($inv->firstMeeting !== null && $inv->firstMeeting < $now) { // First meeting already happened.
                 $inv->firstMeeting = null; // We don't need to list info from the past.
             }
-			if ($inv->firstMeeting === null) {
-				delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "firstMeeting");
-			} else {
-				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "firstMeeting", $inv->firstMeeting);
-			}
+            if ($inv->firstMeeting === null) {
+                delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "firstMeeting");
+            } else {
+                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "firstMeeting", $inv->firstMeeting);
+            }
 
             if ($inv->lastMeeting !== null && $inv->lastMeeting > $nowPlus1Y) { // Last mtg is > 1yr away
                 $inv->lastMeeting = null; // For all practical purposes: it's not ending.
             }
-	        if ($inv->lastMeeting === null) {
-		        delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "lastMeeting");
-	        } else {
-		        update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "lastMeeting", $inv->lastMeeting);
-	        }
+            if ($inv->lastMeeting === null) {
+                delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "lastMeeting");
+            } else {
+                update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "lastMeeting", $inv->lastMeeting);
+            }
 
-			// Clear Cached Schedule String
-	        $cacheGroup = $inv->involvementId . "_" . get_locale();
-			wp_cache_delete(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
+            // Clear Cached Schedule String
+            $cacheGroup = $inv->involvementId . "_" . get_locale();
+            wp_cache_delete(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
 
-			// Tense
+            // Tense
             if ($inv->firstMeeting !== null) {
                 $tense = TouchPointWP::TAX_TENSE_FUTURE;
             }
-	        /** @noinspection PhpRedundantOptionalArgumentInspection */
-	        wp_set_post_terms($post->ID, [$tense], TouchPointWP::TAX_TENSE, false);
+            /** @noinspection PhpRedundantOptionalArgumentInspection */
+            wp_set_post_terms($post->ID, [$tense], TouchPointWP::TAX_TENSE, false);
 
-			// Update meetings and schedules
-	        update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetings", $inv->meetings);
-	        update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "schedules", $inv->schedules);
+            // Update meetings and schedules
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetings", $inv->meetings);
+            update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "schedules", $inv->schedules);
 
             // Day of week taxonomy
             $dayTerms = [];
             foreach ($days as $k => $d) {
                 $dayTerms[] = Utilities::getDayOfWeekShortForNumber_noI18n(intval($k[1]));
             }
-	        /** @noinspection PhpRedundantOptionalArgumentInspection */
+            /** @noinspection PhpRedundantOptionalArgumentInspection */
             wp_set_post_terms($post->ID, $dayTerms, TouchPointWP::TAX_WEEKDAY, false);
 
             // Time of day taxonomy
-	        /** @noinspection PhpRedundantOptionalArgumentInspection */
+            /** @noinspection PhpRedundantOptionalArgumentInspection */
             wp_set_post_terms($post->ID, $timeTerms, TouchPointWP::TAX_DAYTIME, false);
 
 
@@ -2360,15 +2408,14 @@ class Involvement implements api, updatesViaCron, geo, module
             //// People ////
             ////////////////
 
-	        // Leaders & Members are now imported through the Person sync.
+            // Leaders & Members are now imported through the Person sync.
 
-	        ////////////////////
-	        //// Geographic ////
-	        ////////////////////
+            ////////////////////
+            //// Geographic ////
+            ////////////////////
 
             // Handle locations for involvement types that are geo-enabled
             if ($typeSets->useGeo) {
-
                 // Handle locations
                 if (property_exists($inv, "lat") && $inv->lat !== null &&
                     property_exists($inv, "lng") && $inv->lng !== null) {
@@ -2381,10 +2428,10 @@ class Involvement implements api, updatesViaCron, geo, module
 
                 // Handle Resident Code
                 if (property_exists($inv, "resCodeName") && $inv->resCodeName !== null) {
-	                /** @noinspection PhpRedundantOptionalArgumentInspection */
+                    /** @noinspection PhpRedundantOptionalArgumentInspection */
                     wp_set_post_terms($post->ID, [$inv->resCodeName], TouchPointWP::TAX_RESCODE, false);
                 } else {
-	                /** @noinspection PhpRedundantOptionalArgumentInspection */
+                    /** @noinspection PhpRedundantOptionalArgumentInspection */
                     wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
                 }
 
@@ -2401,9 +2448,9 @@ class Involvement implements api, updatesViaCron, geo, module
             }
 
 
-	        /////////////////////
-	        //// Demographic ////
-	        /////////////////////
+            /////////////////////
+            //// Demographic ////
+            /////////////////////
 
             // Handle Marital Status
             $maritalTax = [];
@@ -2415,22 +2462,22 @@ class Involvement implements api, updatesViaCron, geo, module
                     $maritalTax[] = "mostly_single";
                 }
             }
-	        /** @noinspection PhpRedundantOptionalArgumentInspection */
+            /** @noinspection PhpRedundantOptionalArgumentInspection */
             wp_set_post_terms($post->ID, $maritalTax, TouchPointWP::TAX_INV_MARITAL, false);
 
             // Handle Age Groups
             if ($inv->age_groups === null) {
-	            /** @noinspection PhpRedundantOptionalArgumentInspection */
+                /** @noinspection PhpRedundantOptionalArgumentInspection */
                 wp_set_post_terms($post->ID, [], TouchPointWP::TAX_AGEGROUP, false);
             } else {
-	            /** @noinspection PhpRedundantOptionalArgumentInspection */
+                /** @noinspection PhpRedundantOptionalArgumentInspection */
                 wp_set_post_terms($post->ID, $inv->age_groups, TouchPointWP::TAX_AGEGROUP, false);
             }
 
 
-	        ///////////////////
-	        //// Divisions ////
-	        ///////////////////
+            ///////////////////
+            //// Divisions ////
+            ///////////////////
 
             // Handle divisions
             $divs = [];
@@ -2442,8 +2489,8 @@ class Involvement implements api, updatesViaCron, geo, module
                     }
                 }
             }
-	        /** @noinspection PhpRedundantOptionalArgumentInspection */
-	        wp_set_post_terms($post->ID, $divs, TouchPointWP::TAX_DIV, false);
+            /** @noinspection PhpRedundantOptionalArgumentInspection */
+            wp_set_post_terms($post->ID, $divs, TouchPointWP::TAX_DIV, false);
 
             if ($verbose) {
                 echo "<p>Division Terms:</p>";
@@ -2458,16 +2505,16 @@ class Involvement implements api, updatesViaCron, geo, module
         }
 
 
-	    //////////////////
-	    //// Removals ////
-	    //////////////////
+        //////////////////
+        //// Removals ////
+        //////////////////
 
         // Delete posts that are no longer current
-        $q = new WP_Query([
-            'post_type'    => $typeSets->postType,
-            'nopaging'     => true,
-            'post__not_in' => $postsToKeep
-        ]);
+        $q        = new WP_Query([
+                                     'post_type'    => $typeSets->postType,
+                                     'nopaging'     => true,
+                                     'post__not_in' => $postsToKeep
+                                 ]);
         $removals = 0;
         foreach ($q->get_posts() as $post) {
             set_time_limit(10);
@@ -2491,23 +2538,26 @@ class Involvement implements api, updatesViaCron, geo, module
      */
     public static function filterPublishDate($theDate, $format, $post = null): string
     {
-        if ($post == null)
+        if ($post == null) {
             $post = get_the_ID();
+        }
 
         $invTypes = Involvement_PostTypeSettings::getPostTypes();
 
         if (in_array(get_post_type($post), $invTypes)) {
-            if (is_numeric($post))
+            if (is_numeric($post)) {
                 $post = get_post($post);
+            }
 
-			try {
-				$inv = self::fromPost($post);
-			} catch (TouchPointWP_Exception $e) {
-				return $theDate;
-			}
+            try {
+                $inv = self::fromPost($post);
+            } catch (TouchPointWP_Exception $e) {
+                return $theDate;
+            }
 
             $theDate = $inv->scheduleString() ?? "";
         }
+
         return $theDate;
     }
 
@@ -2527,85 +2577,91 @@ class Involvement implements api, updatesViaCron, geo, module
         $invTypes = Involvement_PostTypeSettings::getPostTypes();
 
         if (in_array(get_post_type($postId), $invTypes)) {
-			$post = get_post($postId);
-			try {
-				$i = Involvement::fromPost($post);
+            $post = get_post($postId);
+            try {
+                $i = Involvement::fromPost($post);
 
-				$author = $i->leaders()->__toString();
-			} catch (TouchPointWP_Exception $e) {
-			}
+                $author = $i->leaders()->__toString();
+            } catch (TouchPointWP_Exception $e) {
+            }
         }
+
         return $author;
     }
 
-	/**
-	 * Get the leaders of the Involvement
-	 *
-	 * @return PersonArray
-	 */
-	public function leaders(): PersonArray
-	{
-		if (!isset($this->_leaders)) {
-			$s = $this->settings();
+    /**
+     * Get the leaders of the Involvement
+     *
+     * @return PersonArray
+     */
+    public function leaders(): PersonArray
+    {
+        if ( ! isset($this->_leaders)) {
+            $s = $this->settings();
 
-			$q = new PersonQuery(
-				[
-					'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
-					'meta_value'   => $s->leaderTypes,
-					'meta_compare' => 'IN'
-				]
-			);
+            $q = new PersonQuery(
+                [
+                    'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
+                    'meta_value'   => $s->leaderTypes,
+                    'meta_compare' => 'IN'
+                ]
+            );
 
-			$this->_leaders = $q->get_results();
-		}
-		return $this->_leaders;
-	}
+            $this->_leaders = $q->get_results();
+        }
 
-	/**
-	 * Get the hosts of the involvement.  Returns null if not a geo-enabled post type.
-	 *
-	 * @return ?PersonArray
-	 */
-	public function hosts(): ?PersonArray
-	{
-		if (!isset($this->_hosts)) {
-			$s = $this->settings();
+        return $this->_leaders;
+    }
 
-			if (!$s->useGeo)
-				return null;
+    /**
+     * Get the hosts of the involvement.  Returns null if not a geo-enabled post type.
+     *
+     * @return ?PersonArray
+     */
+    public function hosts(): ?PersonArray
+    {
+        if ( ! isset($this->_hosts)) {
+            $s = $this->settings();
 
-			$q = new PersonQuery(
-				[
-					'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
-					'meta_value'   => $s->hostTypes,
-					'meta_compare' => 'IN'
-				]
-			);
+            if ( ! $s->useGeo) {
+                return null;
+            }
 
-			$this->_hosts = $q->get_results();
-		}
-		return $this->_hosts;
-	}
+            $q = new PersonQuery(
+                [
+                    'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
+                    'meta_value'   => $s->hostTypes,
+                    'meta_compare' => 'IN'
+                ]
+            );
 
-	/**
-	 * Get the members of the involvement.  Note that not all members are necessarily synced to WordPress from TouchPoint.
-	 *
-	 * @return PersonArray
-	 */
-	public function members(): ?PersonArray
-	{
-		if (!isset($this->_members)) {
-			$q = new PersonQuery(
-				[
-					'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
-					'meta_compare' => 'EXISTS'
-				]
-			);
+            $this->_hosts = $q->get_results();
+        }
 
-			$this->_members = $q->get_results();
-		}
-		return $this->_members;
-	}
+        return $this->_hosts;
+    }
+
+    /**
+     * Get the members of the involvement.  Note that not all members are necessarily synced to WordPress from
+     * TouchPoint.
+     *
+     * @return PersonArray
+     */
+    public function members(): ?PersonArray
+    {
+        if ( ! isset($this->_members)) {
+            $q = new PersonQuery(
+                [
+                    'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
+                    'meta_compare' => 'EXISTS'
+                ]
+            );
+
+            $this->_members = $q->get_results();
+        }
+
+        return $this->_members;
+    }
 
     /**
      * Get the settings object that corresponds to the Involvement's Post Type
@@ -2624,41 +2680,42 @@ class Involvement implements api, updatesViaCron, geo, module
      */
     public function toJsonLD(): ?array
     {
-	    if ($this->locationName === null || $this->nextMeeting() === null) {
-			// If either of these are missing, Google considers the markup invalid.
-		    return null;
-	    }
+        if ($this->locationName === null || $this->nextMeeting() === null) {
+            // If either of these are missing, Google considers the markup invalid.
+            return null;
+        }
 
-		$startDate = $this->firstMeeting ?? $this->nextMeeting();
+        $startDate = $this->firstMeeting ?? $this->nextMeeting();
 
-		$fields = [
-			"@context"      => "https://schema.org",
-			"@type"         => "Event",
-			"name"          => $this->name,
-			"url"           => get_permalink($this->post_id),
-			"location"      => $this->locationName,
-			"startDate"     => $startDate->format('c'),
-			"eventSchedule" => [
-				"@type"            => "Schedule",
-				"repeatFrequency"  => "P1W",
-				"byDay"            => "https://schema.org/" . $this->nextMeeting()->format('l'),
-				"startTime"        => $this->nextMeeting()->format('H:i:s'),
-				"scheduleTimezone" => wp_timezone()->getName()
-			]
-		];
+        $fields = [
+            "@context"      => "https://schema.org",
+            "@type"         => "Event",
+            "name"          => $this->name,
+            "url"           => get_permalink($this->post_id),
+            "location"      => $this->locationName,
+            "startDate"     => $startDate->format('c'),
+            "eventSchedule" => [
+                "@type"            => "Schedule",
+                "repeatFrequency"  => "P1W",
+                "byDay"            => "https://schema.org/" . $this->nextMeeting()->format('l'),
+                "startTime"        => $this->nextMeeting()->format('H:i:s'),
+                "scheduleTimezone" => wp_timezone()->getName()
+            ]
+        ];
 
-		$desc = wp_trim_words(get_the_excerpt($this->post_id), 20, "...");
-		if (strlen($desc) > 10) {
-			$fields["description"] = $desc;
-		}
+        $desc = wp_trim_words(get_the_excerpt($this->post_id), 20, "...");
+        if (strlen($desc) > 10) {
+            $fields["description"] = $desc;
+        }
 
-		return $fields;
+        return $fields;
     }
 
     /**
      * Get notable attributes, such as gender restrictions, as strings.
      *
-     * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent inv, not needed here.)
+     * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent inv, not needed
+     *     here.)
      *
      * @return string[]
      */
@@ -2683,7 +2740,7 @@ class Involvement implements api, updatesViaCron, geo, module
         }
 
         if ($this->genderId != 0) {
-            switch($this->genderId) {
+            switch ($this->genderId) {
                 case 1:
                     $r[] = __('Men Only', 'TouchPoint-WP');
                     break;
@@ -2698,20 +2755,27 @@ class Involvement implements api, updatesViaCron, geo, module
             $r[] = $canJoin;
         }
 
-		$r = array_filter($r, fn($i) => !in_array($i, $exclude));
+        $r = array_filter($r, fn($i) => ! in_array($i, $exclude));
 
         if ($this->hasGeo() &&
             (
-				$exclude === [] ||
-				(
-					$this->locationName !== null &&
-					!in_array($this->locationName, $exclude)
-				)
+                $exclude === [] ||
+                (
+                    $this->locationName !== null &&
+                    ! in_array($this->locationName, $exclude)
+                )
             )
         ) {
             $dist = $this->getDistance();
             if ($dist !== false) {
-                $r[] = wp_sprintf(_x("%2.1fmi", "miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'", 'TouchPoint-WP'), $dist);
+                $r[] = wp_sprintf(
+                    _x(
+                        "%2.1fmi",
+                        "miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'",
+                        'TouchPoint-WP'
+                    ),
+                    $dist
+                );
             }
         }
 
@@ -2719,11 +2783,13 @@ class Involvement implements api, updatesViaCron, geo, module
     }
 
     /**
-     * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with the
+     * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with
+     * the
      * `data-tp-involvement` attribute with the post_id (NOT the Inv ID) as the value.
      *
      * @param ?string $context A reference to where the action buttons are meant to be used.
-     * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button elements.
+     * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button
+     *     elements.
      *
      * @return string
      */
@@ -2732,7 +2798,7 @@ class Involvement implements api, updatesViaCron, geo, module
         TouchPointWP::requireScript('swal2-defer');
         TouchPointWP::requireScript('base-defer');
         $this->enqueueForJsInstantiation();
-		$this->enqueueForJsonLdInstantiation();
+        $this->enqueueForJsonLdInstantiation();
         Person::enqueueUsersForJsInstantiation();
 
         if ($btnClass !== "") {
@@ -2740,7 +2806,7 @@ class Involvement implements api, updatesViaCron, geo, module
         }
 
         $text = __("Contact Leaders", 'TouchPoint-WP');
-        $ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button> ";
+        $ret  = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button> ";
         TouchPointWP::enqueueActionsStyle('inv-contact');
         $count = 1;
 
@@ -2823,22 +2889,22 @@ class Involvement implements api, updatesViaCron, geo, module
     {
         header('Content-Type: application/json');
 
-        $inputData = TouchPointWP::postHeadersAndFiltering();
-        $inputData = json_decode($inputData);
+        $inputData           = TouchPointWP::postHeadersAndFiltering();
+        $inputData           = json_decode($inputData);
         $inputData->keywords = [];
 
         $settings = self::getSettingsForPostType($inputData->invType);
-        if (!!$settings) {
-            $inputData->keywords = Utilities::idArrayToIntArray($settings->joinKeywords);
-            $inputData->owner = $settings->taskOwner;
-            $lTypes = implode(',', $settings->leaderTypes);
+        if ( ! ! $settings) {
+            $inputData->keywords    = Utilities::idArrayToIntArray($settings->joinKeywords);
+            $inputData->owner       = $settings->taskOwner;
+            $lTypes                 = implode(',', $settings->leaderTypes);
             $inputData->leaderTypes = str_replace('mt', '', $lTypes);
         } else {
             http_response_code(Http::NOT_FOUND);
             echo json_encode([
-                'error' => "Invalid Post Type.",
-                'error_i18n' => __("Invalid Post Type.", 'TouchPoint-WP')
-            ]);
+                                 'error'      => "Invalid Post Type.",
+                                 'error_i18n' => __("Invalid Post Type.", 'TouchPoint-WP')
+                             ]);
             exit;
         }
 
@@ -2861,22 +2927,22 @@ class Involvement implements api, updatesViaCron, geo, module
     {
         header('Content-Type: application/json');
 
-        $inputData = TouchPointWP::postHeadersAndFiltering();
-        $inputData = json_decode($inputData);
+        $inputData           = TouchPointWP::postHeadersAndFiltering();
+        $inputData           = json_decode($inputData);
         $inputData->keywords = [];
 
         $settings = self::getSettingsForPostType($inputData->invType);
-        if (!!$settings) {
-            $inputData->keywords = Utilities::idArrayToIntArray($settings->contactKeywords);
-            $inputData->owner = $settings->taskOwner;
-            $lTypes = implode(',', $settings->leaderTypes);
+        if ( ! ! $settings) {
+            $inputData->keywords    = Utilities::idArrayToIntArray($settings->contactKeywords);
+            $inputData->owner       = $settings->taskOwner;
+            $lTypes                 = implode(',', $settings->leaderTypes);
             $inputData->leaderTypes = str_replace('mt', '', $lTypes);
         } else {
             http_response_code(Http::NOT_FOUND);
             echo json_encode([
-                'error'      => "Invalid Post Type.",
-                'error_i18n' => __("Invalid Post Type.", 'TouchPoint-WP')
-            ]);
+                                 'error'      => "Invalid Post Type.",
+                                 'error_i18n' => __("Invalid Post Type.", 'TouchPoint-WP')
+                             ]);
             exit;
         }
 
