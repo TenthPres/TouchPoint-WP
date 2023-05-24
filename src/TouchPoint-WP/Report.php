@@ -451,10 +451,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
             }
 
             $post = $report->getPost(true);
-
-            $content = self::cleanupContent($u->result);
-
-            $post->post_content = $content;
+            $post->post_content = self::cleanupContent($u->result);
             $submit = $report->submitUpdate();
 
             if (!in_array($post->ID, $postIdsToNotDelete)) {
