@@ -9,6 +9,7 @@ use DateTime;
 use Exception;
 use JsonSerializable;
 use tp\TouchPointWP\Utilities\Http;
+use WP_Error;
 use WP_Post;
 use WP_Query;
 
@@ -305,7 +306,14 @@ class Report implements api, module, JsonSerializable, updatesViaCron
     }
 
 
-    public function getPost($create = false): ?WP_Post
+    /**
+     * Get the WP_Post object corresponding to the Report.
+     *
+     * @param bool $create Set true if the post should be created if it doesn't exist.
+     *
+     * @return WP_Post|null
+     */
+    public function getPost(bool $create = false): ?WP_Post
     {
         if (!$this->_postLoaded) {
             $q = new WP_Query([
@@ -361,7 +369,12 @@ class Report implements api, module, JsonSerializable, updatesViaCron
         return $this->post;
     }
 
-    public function submitUpdate()
+    /**
+     * Save post changes back to database.
+     *
+     * @return int|WP_Error|null
+     */
+    protected function submitUpdate()
     {
         if (!$this->getPost()) {
             return null;
