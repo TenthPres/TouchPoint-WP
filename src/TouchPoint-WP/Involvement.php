@@ -1387,6 +1387,8 @@ class Involvement implements api, updatesViaCron, geo, module
         // Campuses
         if (in_array('campus', $filters) && TouchPointWP::instance()->settings->enable_campuses === "on") {
             $cName = TouchPointWP::instance()->settings->camp_name_singular;
+            if (strtolower($cName) == "language")
+                $cName = __("Language", 'TouchPoint-WP');
             $cList = get_terms(
                 [
                     'taxonomy'                              => TouchPointWP::TAX_CAMPUS,
