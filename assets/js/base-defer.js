@@ -169,6 +169,13 @@ function utilInit() {
         if (typeof ga === "function") {
             ga(command, hitType, category, action, label, value);
         }
+        if (typeof gtag === "function") {
+            gtag(hitType, action, {
+                'event_category': category,
+                'event_label': label,
+                'value': value
+            });
+        }
     }
 }
 utilInit();
