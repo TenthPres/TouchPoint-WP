@@ -491,14 +491,17 @@ class Report implements api, module, JsonSerializable, updatesViaCron
                               'nopaging'     => true,
                               'post__not_in' => $postIdsToNotDelete
                           ]);
-        $removals = 0;
         foreach ($q->get_posts() as $post) {
             set_time_limit(10);
             wp_delete_post($post->ID, true);
-            $removals++;
+            $updateCount++;
         }
 
-        return $updateCount + $removals;
+        if ($updateCount > 0) {
+            TouchPointWP::instance()->flushRewriteRules();
+        }
+
+        return $updateCount;
     }
 
 

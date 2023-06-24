@@ -717,7 +717,7 @@ class TouchPointWP
         self::instance()->registerTaxonomies();
 
         // If any slugs have changed, flush.  Only executes if already enqueued.
-        self::instance()->flushRewriteRules();
+        self::instance()->flushRewriteRules(false);
 
         // If the scripts need to be updated, do that.
         self::instance()->updateDeployedScripts();
@@ -1709,7 +1709,7 @@ class TouchPointWP
 
         self::clearScheduledHooks();
 
-        self::flushRewriteRules(true);
+        self::flushRewriteRules();
     }
 
     /**
@@ -2788,11 +2788,11 @@ class TouchPointWP
      * @param bool $force
      * @see queueFlushRewriteRules()
      */
-    public function flushRewriteRules(bool $force = false): void
+    public function flushRewriteRules(bool $force = true): void
     {
 	    $s = Session::instance();
         if ($s->flushRewriteOnNextLoad || $force) {
-            flush_rewrite_rules();
+            flush_rewrite_rules(true);
 	        $s->flushRewriteOnNextLoad = null;
         }
     }

@@ -499,6 +499,10 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
             TouchPointWP::instance()->settings->set('global_cron_last_run', time());
         }
 
+        if ($count > 0) {
+            TouchPointWP::instance()->flushRewriteRules();
+        }
+
         return $count;
     }
 

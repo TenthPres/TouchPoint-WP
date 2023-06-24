@@ -375,6 +375,10 @@ class Involvement implements api, updatesViaCron, geo, module
             echo "Updated $count items";
         }
 
+        if ($count > 0) {
+            TouchPointWP::instance()->flushRewriteRules();
+        }
+
         return $count;
     }
 
