@@ -2440,16 +2440,20 @@ class Involvement implements api, updatesViaCron, geo, module
                     /** @noinspection PhpRedundantOptionalArgumentInspection */
                     wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
                 }
+            }
 
-                // Handle Campuses  TODO move outside GEO requirement
-                if (TouchPointWP::instance()->settings->enable_campuses === "on") {
-                    if (property_exists($inv, "campusName") && $inv->campusName !== null) {
-                        /** @noinspection PhpRedundantOptionalArgumentInspection */
-                        wp_set_post_terms($post->ID, [$inv->campusName], TouchPointWP::TAX_CAMPUS, false);
-                    } else {
-                        /** @noinspection PhpRedundantOptionalArgumentInspection */
-                        wp_set_post_terms($post->ID, [], TouchPointWP::TAX_CAMPUS, false);
-                    }
+
+            ////////////////
+            //// Campus ////
+            ////////////////
+
+            if (TouchPointWP::instance()->settings->enable_campuses === "on") {
+                if (property_exists($inv, "campusName") && $inv->campusName !== null) {
+                    /** @noinspection PhpRedundantOptionalArgumentInspection */
+                    wp_set_post_terms($post->ID, [$inv->campusName], TouchPointWP::TAX_CAMPUS, false);
+                } else {
+                    /** @noinspection PhpRedundantOptionalArgumentInspection */
+                    wp_set_post_terms($post->ID, [], TouchPointWP::TAX_CAMPUS, false);
                 }
             }
 
