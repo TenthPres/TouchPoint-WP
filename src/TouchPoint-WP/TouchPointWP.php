@@ -28,7 +28,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.31";
+    public const VERSION = "0.0.32";
 
     /**
      * The Token
@@ -1142,7 +1142,7 @@ class TouchPointWP
      *
      * @return ?int
      *
-     * @since 0.0.31
+     * @since 0.0.32
      */
     public static function getTaxTermId(string $taxonomy, $value): ?int
     {
