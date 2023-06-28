@@ -15,7 +15,7 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
 }
 
 /**
- * The RSVP framework class.
+ * This class provides the RSVP functionality for Meetings.
  */
 abstract class Rsvp implements module
 {

@@ -10,7 +10,8 @@ if ( ! defined('ABSPATH')) {
 
 
 /**
- * Used for client-side instantiation
+ * Some items should be indexable by search engines using standards such as JSON-LD.  This trait provides the base
+ * variables and interface for standard generation of this markup.
  */
 trait jsonLd {
 

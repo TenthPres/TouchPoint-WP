@@ -15,14 +15,18 @@ if ( ! defined('ABSPATH')) {
 }
 
 /**
- * The Auth-handling class.
+ * Allows users to login to WordPress with their TouchPoint credentials, and provides other user management functionality.
  */
 abstract class Auth implements api, module
 {
-    protected const LOGIN_TIMEOUT_STANDARD = 30;    // number of seconds during which the user login tokens are valid.
-    protected const API_KEY_TIMEOUT = 86400;        // How long until an API key needs to be replaced.
-    protected const SESSION_TIMEOUT = 600;          // number of seconds during which the login link is valid (amount of time
-                                                    // before the login page (silently) expires).
+    /** @const Number of seconds during which the user login tokens are valid. */
+    protected const LOGIN_TIMEOUT_STANDARD = 30;
+
+    /** @const How long until an API key needs to be replaced. */
+    protected const API_KEY_TIMEOUT = 86400;
+
+    /** @const number of seconds during which the login link is valid (amount of time before the login page (silently) expires). */
+    protected const SESSION_TIMEOUT = 600;
     private static bool $_isLoaded = false;
 
     public static function init(): void

@@ -29,7 +29,7 @@ use WP_Term;
 use WP_User;
 
 /**
- * This Person Object connects a WordPress User with a TouchPoint Person.
+ * The Person class connects a WordPress User with a TouchPoint Person.
  *
  * @property ?object $picture       An object with the picture URLs and other metadata
  * @property-read int familyId      The Family ID

@@ -25,10 +25,6 @@ div.swal2-content table.tp-radio-list {
     width: 100%;
 }
 
-.tp-swal-container .no-wrap {
-    white-space: nowrap;
-}
-
 button[data-tp-action]:not([disabled]) {
     cursor: pointer;
 }

@@ -354,7 +354,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 },
                 cache: true
             },
-            placeholder: __('<?php _e("Select...", "TouchPoint-WP"); ?>', 'TouchPoint-WP'),
+            placeholder: '<?php _e("Select...", "TouchPoint-WP"); ?>',
             minimumInputLength: 1,
         });
 

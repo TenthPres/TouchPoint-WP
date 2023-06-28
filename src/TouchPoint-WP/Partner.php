@@ -23,7 +23,7 @@ use WP_Query;
 use WP_Term;
 
 /**
- * An Outreach partner, corresponding to a family in TouchPoint
+ * An Outreach partner, corresponding to a family in TouchPoint.
  */
 class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 {
@@ -497,6 +497,10 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 
         if ($count !== 0) {
             TouchPointWP::instance()->settings->set('global_cron_last_run', time());
+        }
+
+        if ($count > 0) {
+            TouchPointWP::instance()->flushRewriteRules();
         }
 
         return $count;

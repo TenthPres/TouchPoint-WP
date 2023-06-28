@@ -375,6 +375,10 @@ class Involvement implements api, updatesViaCron, geo, module
             echo "Updated $count items";
         }
 
+        if ($count > 0) {
+            TouchPointWP::instance()->flushRewriteRules();
+        }
+
         return $count;
     }
 
@@ -1387,6 +1391,8 @@ class Involvement implements api, updatesViaCron, geo, module
         // Campuses
         if (in_array('campus', $filters) && TouchPointWP::instance()->settings->enable_campuses === "on") {
             $cName = TouchPointWP::instance()->settings->camp_name_singular;
+            if (strtolower($cName) == "language")
+                $cName = __("Language", 'TouchPoint-WP');
             $cList = get_terms(
                 [
                     'taxonomy'                              => TouchPointWP::TAX_CAMPUS,
@@ -2434,16 +2440,20 @@ class Involvement implements api, updatesViaCron, geo, module
                     /** @noinspection PhpRedundantOptionalArgumentInspection */
                     wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
                 }
+            }
 
-                // Handle Campuses
-                if (TouchPointWP::instance()->settings->enable_campuses === "on") {
-                    if (property_exists($inv, "campusName") && $inv->campusName !== null) {
-                        /** @noinspection PhpRedundantOptionalArgumentInspection */
-                        wp_set_post_terms($post->ID, [$inv->campusName], TouchPointWP::TAX_CAMPUS, false);
-                    } else {
-                        /** @noinspection PhpRedundantOptionalArgumentInspection */
-                        wp_set_post_terms($post->ID, [], TouchPointWP::TAX_CAMPUS, false);
-                    }
+
+            ////////////////
+            //// Campus ////
+            ////////////////
+
+            if (TouchPointWP::instance()->settings->enable_campuses === "on") {
+                if (property_exists($inv, "campusName") && $inv->campusName !== null) {
+                    /** @noinspection PhpRedundantOptionalArgumentInspection */
+                    wp_set_post_terms($post->ID, [$inv->campusName], TouchPointWP::TAX_CAMPUS, false);
+                } else {
+                    /** @noinspection PhpRedundantOptionalArgumentInspection */
+                    wp_set_post_terms($post->ID, [], TouchPointWP::TAX_CAMPUS, false);
                 }
             }
 

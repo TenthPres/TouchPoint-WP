@@ -169,6 +169,13 @@ function utilInit() {
         if (typeof ga === "function") {
             ga(command, hitType, category, action, label, value);
         }
+        if (typeof gtag === "function") {
+            gtag(hitType, action, {
+                'event_category': category,
+                'event_label': label,
+                'value': value
+            });
+        }
     }
 }
 utilInit();
@@ -1006,7 +1013,7 @@ class TP_Involvement extends TP_Mappable {
     contactAction() {
         let inv = this,
             // translators: %s is the name of an involvement.  This is a heading for a modal.
-            title = sprintf(__("Contact the Leaders of %s", 'TouchPoint-WP'), `<span class="no-wrap">${inv.name}</span>`);
+            title = sprintf(__("Contact the Leaders of %s", 'TouchPoint-WP'), `<br />inv.name`);
 
         tpvm._utils.ga('send', 'event', inv.invType, 'contact btn click', inv.name);
 

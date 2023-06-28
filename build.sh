@@ -14,6 +14,8 @@ npm update
 rm -r build
 rm touchpoint-wp.zip
 mkdir build
+mkdir build/assets
+mkdir build/assets/js
 
 # install uglify and uglify the JS files.
 echo $(npm install -g uglify-js)
@@ -29,10 +31,10 @@ cd ..
 # compile translations
 wget -O wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
 
-cp -r i18n build/i18n
+cp -r ./i18n ./build/i18n
 
-php ./wp-cli.phar i18n make-json build/i18n
-php ./wp-cli.phar i18n make-mo build/i18n
+php ./wp-cli.phar i18n make-json ./build/i18n
+php ./wp-cli.phar i18n make-mo ./build/i18n
 cd ./build || exit
 zip -r ../touchpoint-wp.zip i18n
 cd ..

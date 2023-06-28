@@ -28,7 +28,7 @@ class TouchPointWP
     /**
      * Version number
      */
-    public const VERSION = "0.0.31";
+    public const VERSION = "0.0.32";
 
     /**
      * The Token
@@ -717,7 +717,7 @@ class TouchPointWP
         self::instance()->registerTaxonomies();
 
         // If any slugs have changed, flush.  Only executes if already enqueued.
-        self::instance()->flushRewriteRules();
+        self::instance()->flushRewriteRules(false);
 
         // If the scripts need to be updated, do that.
         self::instance()->updateDeployedScripts();
@@ -1142,7 +1142,7 @@ class TouchPointWP
      *
      * @return ?int
      *
-     * @since 0.0.31
+     * @since 0.0.32
      */
     public static function getTaxTermId(string $taxonomy, $value): ?int
     {
@@ -1219,14 +1219,17 @@ class TouchPointWP
             $resCodeTypesToApply = Involvement_PostTypeSettings::getPostTypesWithGeoEnabled();
         }
         $resCodeTypesToApply[] = 'user';
-        register_taxonomy(
+        $rt = register_taxonomy(
             self::TAX_RESCODE,
             $resCodeTypesToApply,
             [
                 'hierarchical'      => false,
                 'show_ui'           => false,
                 'description'       => __('Classify posts by their general locations.', 'TouchPoint-WP'),
-                'labels'            => getLabels($this->settings->rc_name_singular, $this->settings->rc_name_plural),
+                'labels'            => getLabels(
+                    $this->settings->rc_name_singular,
+                    $this->settings->rc_name_plural
+                ),
                 'public'            => true,
                 'show_in_rest'      => true,
                 'show_admin_column' => true,
@@ -1239,22 +1242,28 @@ class TouchPointWP
                 ],
             ]
         );
-        foreach ($this->getResCodes() as $rc) {
-            if ($rc->name !== null && !Utilities::termExists($rc->name, self::TAX_RESCODE)) {
-                $term = Utilities::insertTerm(
-                    $rc->name,
-                    self::TAX_RESCODE,
-                    [
-                        'description' => $rc->name,
-                        'slug'        => sanitize_title($rc->name)
-                    ]
-                );
-                update_term_meta($term['term_id'], self::TAXMETA_LOOKUP_ID, $rc->id);
+        if (! is_wp_error($rt)) {
+            foreach ($this->getResCodes() as $rc) {
+                if ($rc->name !== null && ! Utilities::termExists($rc->name, self::TAX_RESCODE)) {
+                    $term = Utilities::insertTerm(
+                        $rc->name,
+                        self::TAX_RESCODE,
+                        [
+                            'description' => $rc->name,
+                            'slug'        => sanitize_title($rc->name)
+                        ]
+                    );
+                    if (is_wp_error($term)) {
+                        new TouchPointWP_WPError($term);
+                    } else {
+                        update_term_meta($term['term_id'], self::TAXMETA_LOOKUP_ID, $rc->id);
+                    }
 
-                self::queueFlushRewriteRules();
+                    self::queueFlushRewriteRules();
+                }
             }
+            // TODO remove defunct res codes
         }
-        // TODO remove defunct res codes
 
         // Campuses
         if ($this->settings->enable_campuses === "on") {
@@ -1263,7 +1272,7 @@ class TouchPointWP
                 $campusesTypesToApply = Involvement_PostTypeSettings::getPostTypes();
             }
             $campusesTypesToApply[] = 'user';
-            register_taxonomy(
+            $rt = register_taxonomy(
                 self::TAX_CAMPUS,
                 $campusesTypesToApply,
                 [
@@ -1283,19 +1292,25 @@ class TouchPointWP
                     ],
                 ]
             );
-            foreach ($this->getCampuses() as $c) {
-                if ($c->name !== null && ! Utilities::termExists($c->name, self::TAX_CAMPUS)) {
-                    $term = Utilities::insertTerm(
-                        $c->name,
-                        self::TAX_CAMPUS,
-                        [
-                            'description' => $c->name,
-                            'slug'        => sanitize_title($c->code)
-                        ]
-                    );
-                    update_term_meta($term['term_id'], self::TAXMETA_LOOKUP_ID, $c->id);
+            if (! is_wp_error($rt)) {
+                foreach ($this->getCampuses() as $c) {
+                    if ($c->name !== null && ! Utilities::termExists($c->name, self::TAX_CAMPUS)) {
+                        $term = Utilities::insertTerm(
+                            $c->name,
+                            self::TAX_CAMPUS,
+                            [
+                                'description' => $c->name,
+                                'slug'        => sanitize_title($c->code)
+                            ]
+                        );
+                        if (is_wp_error($term)) {
+                            new TouchPointWP_WPError($term);
+                        } else {
+                            update_term_meta($term['term_id'], self::TAXMETA_LOOKUP_ID, $c->id);
+                        }
 
-                    self::queueFlushRewriteRules();
+                        self::queueFlushRewriteRules();
+                    }
                 }
             }
         }
@@ -1308,7 +1323,7 @@ class TouchPointWP
         }
         // TODO allow this taxonomy to be applied to other post types as an option.
         if (count($divisionTypesToApply) > 0) {
-            register_taxonomy(
+            $rt = register_taxonomy(
                 self::TAX_DIV,
                 $divisionTypesToApply,
                 [
@@ -1329,55 +1344,67 @@ class TouchPointWP
                     ],
                 ]
             );
-            $enabledDivisions = $this->settings->dv_divisions;
-            foreach ($this->getDivisions() as $d) {
-                if (in_array('div' . $d->id, $enabledDivisions)) {
-                    // Program
-                    $pTermInfo = Utilities::termExists($d->pName, self::TAX_DIV, 0);
-                    if ($pTermInfo === null && $d->pName !== null) {
-                        $pTermInfo = Utilities::insertTerm(
-                            $d->pName,
-                            self::TAX_DIV,
-                            [
-                                'description' => $d->pName,
-                                'slug'        => sanitize_title($d->pName)
-                            ]
-                        );
-                        update_term_meta($pTermInfo['term_id'], self::SETTINGS_PREFIX . 'programId', $d->proId);
-                        self::queueFlushRewriteRules();
-                    }
+            if (! is_wp_error($rt)) {
+                $enabledDivisions = $this->settings->dv_divisions;
+                foreach ($this->getDivisions() as $d) {
+                    if (in_array('div' . $d->id, $enabledDivisions)) {
+                        // Program
+                        $pTermInfo = Utilities::termExists($d->pName, self::TAX_DIV, 0);
+                        if ($pTermInfo === null && $d->pName !== null) {
+                            $pTermInfo = Utilities::insertTerm(
+                                $d->pName,
+                                self::TAX_DIV,
+                                [
+                                    'description' => $d->pName,
+                                    'slug'        => sanitize_title($d->pName)
+                                ]
+                            );
+                            if (is_wp_error($pTermInfo)) {
+                                new TouchPointWP_WPError($pTermInfo);
+                            } else {
+                                update_term_meta($pTermInfo['term_id'], self::SETTINGS_PREFIX . 'programId', $d->proId);
+                            }
 
-                    // Division
-                    $dTermInfo = Utilities::termExists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
-                    if ($dTermInfo === null && $d->dName !== null) {
-                        $dTermInfo = Utilities::insertTerm(
-                            $d->dName,
-                            self::TAX_DIV,
-                            [
-                                'description' => $d->dName,
-                                'parent'      => $pTermInfo['term_id'],
-                                'slug'        => sanitize_title($d->dName)
-                            ]
-                        );
-                        update_term_meta($dTermInfo['term_id'], self::SETTINGS_PREFIX . 'divId', $d->id);
-                        self::queueFlushRewriteRules();
-                    }
-                } else {
-                    // Remove terms that are disabled from importing.
-
-                    // Delete disabled divisions.  Get program, so we delete the right division.
-                    $pTermInfo = Utilities::termExists($d->pName, self::TAX_DIV, 0);
-                    if ($pTermInfo !== null) {
-                        $dTermInfo = Utilities::termExists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
-                        if ($dTermInfo !== null) {
-                            wp_delete_term($dTermInfo['term_id'], self::TAX_DIV);
                             self::queueFlushRewriteRules();
                         }
-                    }
 
-                    // Program
-                    // TODO remove programs that no longer have a division selected for use as a term.
-                    // TODO remove program & div terms that are no longer present in TouchPoint
+                        // Division
+                        $dTermInfo = Utilities::termExists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
+                        if ($dTermInfo === null && $d->dName !== null) {
+                            $dTermInfo = Utilities::insertTerm(
+                                $d->dName,
+                                self::TAX_DIV,
+                                [
+                                    'description' => $d->dName,
+                                    'parent'      => $pTermInfo['term_id'],
+                                    'slug'        => sanitize_title($d->dName)
+                                ]
+                            );
+                            if (is_wp_error($dTermInfo)) {
+                                new TouchPointWP_WPError($dTermInfo);
+                            } else {
+                                update_term_meta($dTermInfo['term_id'], self::SETTINGS_PREFIX . 'divId', $d->id);
+                            }
+
+                            self::queueFlushRewriteRules();
+                        }
+                    } else {
+                        // Remove terms that are disabled from importing.
+
+                        // Delete disabled divisions.  Get program, so we delete the right division.
+                        $pTermInfo = Utilities::termExists($d->pName, self::TAX_DIV, 0);
+                        if ($pTermInfo !== null) {
+                            $dTermInfo = Utilities::termExists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
+                            if ($dTermInfo !== null) {
+                                wp_delete_term($dTermInfo['term_id'], self::TAX_DIV);
+                                self::queueFlushRewriteRules();
+                            }
+                        }
+
+                        // Program
+                        // TODO remove programs that no longer have a division selected for use as a term.
+                        // TODO remove program & div terms that are no longer present in TouchPoint
+                    }
                 }
             }
         }
@@ -1385,7 +1412,7 @@ class TouchPointWP
         if ($this->settings->enable_involvements === "on") {
 
             // Weekdays
-            register_taxonomy(
+            $rt = register_taxonomy(
                 self::TAX_WEEKDAY,
                 Involvement_PostTypeSettings::getPostTypes(),
                 [
@@ -1405,23 +1432,25 @@ class TouchPointWP
                     ],
                 ]
             );
-            for ($di = 0; $di < 7; $di++) {
-                $name = Utilities::getPluralDayOfWeekNameForNumber_noI18n($di);
-                if (!Utilities::termExists($name, self::TAX_WEEKDAY)) {
-                    Utilities::insertTerm(
-                        $name,
-                        self::TAX_WEEKDAY,
-                        [
-                            'description' => $name,
-                            'slug'        => Utilities::getDayOfWeekShortForNumber_noI18n($di)
-                        ]
-                    );
-                    self::queueFlushRewriteRules();
+            if (! is_wp_error($rt)) {
+                for ($di = 0; $di < 7; $di++) {
+                    $name = Utilities::getPluralDayOfWeekNameForNumber_noI18n($di);
+                    if ( ! Utilities::termExists($name, self::TAX_WEEKDAY)) {
+                        Utilities::insertTerm(
+                            $name,
+                            self::TAX_WEEKDAY,
+                            [
+                                'description' => $name,
+                                'slug'        => Utilities::getDayOfWeekShortForNumber_noI18n($di)
+                            ]
+                        );
+                        self::queueFlushRewriteRules();
+                    }
                 }
             }
 
             // Tenses
-            register_taxonomy(
+            $rt = register_taxonomy(
                 self::TAX_TENSE,
                 Involvement_PostTypeSettings::getPostTypes(),
                 [
@@ -1441,27 +1470,31 @@ class TouchPointWP
                     ],
                 ]
             );
-            foreach ([
-                TouchPointWP::TAX_TENSE_FUTURE => 'Upcoming',
-                TouchPointWP::TAX_TENSE_PRESENT => 'Current',
-                TouchPointWP::TAX_TENSE_PAST => 'Past',
-            ] as $slug => $name) {
-                if (!Utilities::termExists($slug, self::TAX_TENSE)) {
-                    Utilities::insertTerm(
-                        $name,
-                        self::TAX_TENSE,
-                        [
-                            'description' => $name,
-                            'slug'        => $slug
-                        ]
-                    );
-                    self::queueFlushRewriteRules();
+            if (! is_wp_error($rt)) {
+                foreach (
+                    [
+                        TouchPointWP::TAX_TENSE_FUTURE => 'Upcoming',
+                        TouchPointWP::TAX_TENSE_PRESENT => 'Current',
+                        TouchPointWP::TAX_TENSE_PAST => 'Past',
+                    ] as $slug => $name
+                ) {
+                    if ( ! Utilities::termExists($slug, self::TAX_TENSE)) {
+                        Utilities::insertTerm(
+                            $name,
+                            self::TAX_TENSE,
+                            [
+                                'description' => $name,
+                                'slug'        => $slug
+                            ]
+                        );
+                        self::queueFlushRewriteRules();
+                    }
                 }
             }
 
             // Time of Day
             /** @noinspection SpellCheckingInspection */
-            register_taxonomy(
+            $rt = register_taxonomy(
                 self::TAX_DAYTIME,
                 Involvement_PostTypeSettings::getPostTypes(),
                 [
@@ -1481,28 +1514,30 @@ class TouchPointWP
                     ],
                 ]
             );
-            $timesOfDay = [
-                'Late Night',
-                'Early Morning',
-                'Morning',
-                'Midday',
-                'Afternoon',
-                'Evening',
-                'Night'
-            ];
-            foreach ($timesOfDay as $tod) {
-                if (!Utilities::termExists($tod, self::TAX_WEEKDAY)) {
-                    $slug = str_replace(" ", "", $tod);
-                    $slug = strtolower($slug);
-                    Utilities::insertTerm(
-                        $tod,
-                        self::TAX_DAYTIME,
-                        [
-                            'description' => $tod,
-                            'slug'        => $slug
-                        ]
-                    );
-                    self::queueFlushRewriteRules();
+            if (! is_wp_error($rt)) {
+                $timesOfDay = [
+                    'Late Night',
+                    'Early Morning',
+                    'Morning',
+                    'Midday',
+                    'Afternoon',
+                    'Evening',
+                    'Night'
+                ];
+                foreach ($timesOfDay as $tod) {
+                    if ( ! Utilities::termExists($tod, self::TAX_WEEKDAY)) {
+                        $slug = str_replace(" ", "", $tod);
+                        $slug = strtolower($slug);
+                        Utilities::insertTerm(
+                            $tod,
+                            self::TAX_DAYTIME,
+                            [
+                                'description' => $tod,
+                                'slug'        => $slug
+                            ]
+                        );
+                        self::queueFlushRewriteRules();
+                    }
                 }
             }
         }
@@ -1513,7 +1548,7 @@ class TouchPointWP
             $ageGroupTypesToApply = Involvement_PostTypeSettings::getPostTypes();
         }
         $ageGroupTypesToApply[] = 'user';
-        register_taxonomy(
+        $rt = register_taxonomy(
             self::TAX_AGEGROUP,
             $ageGroupTypesToApply,
             [
@@ -1533,24 +1568,26 @@ class TouchPointWP
                 ],
             ]
         );
-        foreach (["20s", "30s", "40s", "50s", "60s", "70+"] as $ag) {
-            if (!Utilities::termExists($ag, self::TAX_AGEGROUP)) {
-                Utilities::insertTerm(
-                    $ag,
-                    self::TAX_AGEGROUP,
-                    [
-                        'description' => $ag,
-                        'slug'        => sanitize_title($ag)
-                    ]
-                );
-                self::queueFlushRewriteRules();
+        if (! is_wp_error($rt)) {
+            foreach (["20s", "30s", "40s", "50s", "60s", "70+"] as $ag) {
+                if ( ! Utilities::termExists($ag, self::TAX_AGEGROUP)) {
+                    Utilities::insertTerm(
+                        $ag,
+                        self::TAX_AGEGROUP,
+                        [
+                            'description' => $ag,
+                            'slug'        => sanitize_title($ag)
+                        ]
+                    );
+                    self::queueFlushRewriteRules();
+                }
             }
         }
 
 
         // Involvement Marital Status
         if ($this->settings->enable_involvements === "on") {
-            register_taxonomy(
+            $rt = register_taxonomy(
                 self::TAX_INV_MARITAL,
                 Involvement_PostTypeSettings::getPostTypes(),
                 [
@@ -1570,17 +1607,19 @@ class TouchPointWP
                     ],
                 ]
             );
-            foreach (['mostly_single', 'mostly_married'] as $ms) {
-                if (!Utilities::termExists($ms, self::TAX_INV_MARITAL)) {
-                    Utilities::insertTerm(
-                        $ms,
-                        self::TAX_INV_MARITAL,
-                        [
-                            'description' => $ms,
-                            'slug'        => sanitize_title($ms)
-                        ]
-                    );
-                    self::queueFlushRewriteRules();
+            if (! is_wp_error($rt)) {
+                foreach (['mostly_single', 'mostly_married'] as $ms) {
+                    if ( ! Utilities::termExists($ms, self::TAX_INV_MARITAL)) {
+                        Utilities::insertTerm(
+                            $ms,
+                            self::TAX_INV_MARITAL,
+                            [
+                                'description' => $ms,
+                                'slug'        => sanitize_title($ms)
+                            ]
+                        );
+                        self::queueFlushRewriteRules();
+                    }
                 }
             }
         }
@@ -1709,7 +1748,7 @@ class TouchPointWP
 
         self::clearScheduledHooks();
 
-        self::flushRewriteRules(true);
+        self::flushRewriteRules();
     }
 
     /**
@@ -2788,11 +2827,11 @@ class TouchPointWP
      * @param bool $force
      * @see queueFlushRewriteRules()
      */
-    public function flushRewriteRules(bool $force = false): void
+    public function flushRewriteRules(bool $force = true): void
     {
 	    $s = Session::instance();
         if ($s->flushRewriteOnNextLoad || $force) {
-            flush_rewrite_rules();
+            flush_rewrite_rules(true);
 	        $s->flushRewriteOnNextLoad = null;
         }
     }
@@ -2805,7 +2844,7 @@ class TouchPointWP
     {
         wp_enqueue_style(
             TouchPointWP::SHORTCODE_PREFIX . 'partials-template-style',
-            self::instance()->assets_url . 'template/partials-template-style.css?v=' . TouchPointWP::VERSION,
+            self::instance()->assets_url . 'template/partials-template-style.css',
             [],
             TouchPointWP::VERSION
         );
@@ -2823,7 +2862,7 @@ class TouchPointWP
         if ($includeActionsStyle) {
             wp_enqueue_style(
                 TouchPointWP::SHORTCODE_PREFIX . 'actions-style',
-                self::instance()->assets_url . 'template/actions-style.css?v=' . TouchPointWP::VERSION,
+                self::instance()->assets_url . 'template/actions-style.css',
                 [],
                 TouchPointWP::VERSION
             );
