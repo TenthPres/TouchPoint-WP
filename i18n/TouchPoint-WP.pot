@@ -9,9 +9,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-05-26T13:15:42+00:00\n"
+"POT-Creation-Date: 2023-06-28T15:05:12+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"X-Generator: WP-CLI 2.7.1\n"
+"X-Generator: WP-CLI 2.8.1\n"
 "X-Domain: TouchPoint-WP\n"
 
 #. Plugin Name of the plugin
@@ -106,8 +106,8 @@ msgstr ""
 #: src/templates/admin/invKoForm.php:247
 #: src/templates/parts/involvement-nearby-list.php:2
 #: src/TouchPoint-WP/Rsvp.php:78
-#: assets/js/base-defer.js:181
-#: assets/js/base-defer.js:1106
+#: assets/js/base-defer.js:188
+#: assets/js/base-defer.js:1113
 msgid "Loading..."
 msgstr ""
 
@@ -140,14 +140,14 @@ msgid "Gender"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:169
-#: src/TouchPoint-WP/Involvement.php:1415
-#: src/TouchPoint-WP/TouchPointWP.php:1395
+#: src/TouchPoint-WP/Involvement.php:1419
+#: src/TouchPoint-WP/TouchPointWP.php:1422
 msgid "Weekday"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:173
-#: src/TouchPoint-WP/Involvement.php:1441
-#: src/TouchPoint-WP/TouchPointWP.php:1471
+#: src/TouchPoint-WP/Involvement.php:1445
+#: src/TouchPoint-WP/TouchPointWP.php:1504
 msgid "Time of Day"
 msgstr ""
 
@@ -156,7 +156,7 @@ msgid "Prevailing Marital Status"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:181
-#: src/TouchPoint-WP/TouchPointWP.php:1523
+#: src/TouchPoint-WP/TouchPointWP.php:1558
 msgid "Age Group"
 msgstr ""
 
@@ -222,7 +222,7 @@ msgstr ""
 
 #. translators: %s will be the plural post type (e.g. Small Groups)
 #: src/templates/parts/involvement-list-none.php:16
-#: src/TouchPoint-WP/Involvement.php:1647
+#: src/TouchPoint-WP/Involvement.php:1651
 msgid "No %s Found."
 msgstr ""
 
@@ -233,25 +233,25 @@ msgstr ""
 
 #. translators: number of miles
 #: src/templates/parts/involvement-nearby-list.php:10
-#: src/TouchPoint-WP/Involvement.php:2774
+#: src/TouchPoint-WP/Involvement.php:2782
 msgctxt "miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'"
 msgid "%2.1fmi"
 msgstr ""
 
 #. translators: %s is "what you call TouchPoint at your church", which is a setting
-#: src/TouchPoint-WP/Auth.php:133
+#: src/TouchPoint-WP/Auth.php:137
 msgid "Sign in with your %s account"
 msgstr ""
 
-#: src/TouchPoint-WP/Auth.php:388
+#: src/TouchPoint-WP/Auth.php:392
 msgid "Your login token expired."
 msgstr ""
 
-#: src/TouchPoint-WP/Auth.php:403
+#: src/TouchPoint-WP/Auth.php:407
 msgid "Your login token is invalid."
 msgstr ""
 
-#: src/TouchPoint-WP/Auth.php:415
+#: src/TouchPoint-WP/Auth.php:419
 msgid "Session could not be validated."
 msgstr ""
 
@@ -263,172 +263,172 @@ msgstr ""
 msgid "Multi-Day"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:429
+#: src/TouchPoint-WP/Involvement.php:433
 msgid "Currently Full"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:433
+#: src/TouchPoint-WP/Involvement.php:437
 msgid "Currently Closed"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:439
+#: src/TouchPoint-WP/Involvement.php:443
 msgid "Registration Not Open Yet"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:444
+#: src/TouchPoint-WP/Involvement.php:448
 msgid "Registration Closed"
 msgstr ""
 
 #. translators: "Mon at 7pm"  or  "Sundays at 9am & 11am"
-#: src/TouchPoint-WP/Involvement.php:683
-#: src/TouchPoint-WP/Involvement.php:703
+#: src/TouchPoint-WP/Involvement.php:687
+#: src/TouchPoint-WP/Involvement.php:707
 msgid "%1$s at %2$s"
 msgstr ""
 
 #. translators: {start date} through {end date}  e.g. February 14 through August 12
-#: src/TouchPoint-WP/Involvement.php:712
+#: src/TouchPoint-WP/Involvement.php:716
 msgid "%1$s through %2$s"
 msgstr ""
 
 #. translators: {schedule}, {start date} through {end date}  e.g. Sundays at 11am, February 14 through August 12
-#: src/TouchPoint-WP/Involvement.php:719
+#: src/TouchPoint-WP/Involvement.php:723
 msgid "%1$s, %2$s through %3$s"
 msgstr ""
 
 #. translators: Starts {start date}  e.g. Starts September 15
-#: src/TouchPoint-WP/Involvement.php:729
+#: src/TouchPoint-WP/Involvement.php:733
 msgid "Starts %1$s"
 msgstr ""
 
 #. translators: {schedule}, starting {start date}  e.g. Sundays at 11am, starting February 14
-#: src/TouchPoint-WP/Involvement.php:735
+#: src/TouchPoint-WP/Involvement.php:739
 msgid "%1$s, starting %2$s"
 msgstr ""
 
 #. translators: Through {end date}  e.g. Through September 15
-#: src/TouchPoint-WP/Involvement.php:744
+#: src/TouchPoint-WP/Involvement.php:748
 msgid "Through %1$s"
 msgstr ""
 
 #. translators: {schedule}, through {end date}  e.g. Sundays at 11am, through February 14
-#: src/TouchPoint-WP/Involvement.php:750
+#: src/TouchPoint-WP/Involvement.php:754
 msgid "%1$s, through %2$s"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1289
-#: src/TouchPoint-WP/Partner.php:740
+#: src/TouchPoint-WP/Involvement.php:1293
+#: src/TouchPoint-WP/Partner.php:744
 msgid "Any"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1348
+#: src/TouchPoint-WP/Involvement.php:1352
 msgid "Genders"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1391
+#: src/TouchPoint-WP/Involvement.php:1395
 msgid "Language"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1463
-#: src/TouchPoint-WP/TouchPointWP.php:1560
+#: src/TouchPoint-WP/Involvement.php:1467
+#: src/TouchPoint-WP/TouchPointWP.php:1597
 msgid "Marital Status"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1464
+#: src/TouchPoint-WP/Involvement.php:1468
 msgctxt "Marital status for a group of people"
 msgid "Mostly Single"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1465
+#: src/TouchPoint-WP/Involvement.php:1469
 msgctxt "Marital status for a group of people"
 msgid "Mostly Married"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1476
+#: src/TouchPoint-WP/Involvement.php:1480
 msgid "Age"
 msgstr ""
 
 #. translators: %s is for the user-provided term for the items on the map (e.g. Small Group or Partner)
-#: src/TouchPoint-WP/Involvement.php:1498
-#: src/TouchPoint-WP/Partner.php:760
+#: src/TouchPoint-WP/Involvement.php:1502
+#: src/TouchPoint-WP/Partner.php:764
 msgid "The %s listed are only those shown on the map."
 msgstr ""
 
 #. translators: %s is the link to "reset the map"
-#: src/TouchPoint-WP/Involvement.php:1506
-#: src/TouchPoint-WP/Partner.php:776
+#: src/TouchPoint-WP/Involvement.php:1510
+#: src/TouchPoint-WP/Partner.php:780
 msgid "Zoom out or %s to see more."
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1509
-#: src/TouchPoint-WP/Partner.php:779
+#: src/TouchPoint-WP/Involvement.php:1513
+#: src/TouchPoint-WP/Partner.php:783
 msgctxt "Zoom out or reset the map to see more."
 msgid "reset the map"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1593
+#: src/TouchPoint-WP/Involvement.php:1597
 msgid "This involvement type doesn't exist."
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1603
+#: src/TouchPoint-WP/Involvement.php:1607
 msgid "This involvement type doesn't have geographic locations enabled."
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:1622
+#: src/TouchPoint-WP/Involvement.php:1626
 msgid "Could not locate."
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2747
+#: src/TouchPoint-WP/Involvement.php:2755
 msgid "Men Only"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2750
+#: src/TouchPoint-WP/Involvement.php:2758
 msgid "Women Only"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2810
+#: src/TouchPoint-WP/Involvement.php:2818
 msgid "Contact Leaders"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2817
+#: src/TouchPoint-WP/Involvement.php:2825
 msgid "Register"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2822
+#: src/TouchPoint-WP/Involvement.php:2830
 msgid "Create Account"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2826
+#: src/TouchPoint-WP/Involvement.php:2834
 msgid "Schedule"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2831
+#: src/TouchPoint-WP/Involvement.php:2839
 msgid "Give"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2834
+#: src/TouchPoint-WP/Involvement.php:2842
 msgid "Manage Subscriptions"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2837
+#: src/TouchPoint-WP/Involvement.php:2845
 msgid "Record Attendance"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2840
+#: src/TouchPoint-WP/Involvement.php:2848
 msgid "Get Tickets"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2847
-#: assets/js/base-defer.js:974
+#: src/TouchPoint-WP/Involvement.php:2855
+#: assets/js/base-defer.js:981
 msgid "Join"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2856
-#: src/TouchPoint-WP/Partner.php:1208
+#: src/TouchPoint-WP/Involvement.php:2864
+#: src/TouchPoint-WP/Partner.php:1212
 msgid "Show on Map"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:2908
-#: src/TouchPoint-WP/Involvement.php:2946
+#: src/TouchPoint-WP/Involvement.php:2916
+#: src/TouchPoint-WP/Involvement.php:2954
 msgid "Invalid Post Type."
 msgstr ""
 
@@ -448,11 +448,11 @@ msgid "Invalid data provided."
 msgstr ""
 
 #. translators: %s is for the user-provided "Global Partner" and "Secure Partner" terms.
-#: src/TouchPoint-WP/Partner.php:767
+#: src/TouchPoint-WP/Partner.php:771
 msgid "The %1$s listed are only those shown on the map, as well as all %2$s."
 msgstr ""
 
-#: src/TouchPoint-WP/Partner.php:1167
+#: src/TouchPoint-WP/Partner.php:1171
 msgid "Not Shown on Map"
 msgstr ""
 
@@ -529,99 +529,99 @@ msgstr ""
 msgid "Classify posts by their general locations."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1272
+#: src/TouchPoint-WP/TouchPointWP.php:1281
 msgid "Classify posts by their church campus."
 msgstr ""
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/TouchPointWP.php:1318
+#: src/TouchPoint-WP/TouchPointWP.php:1333
 msgid "Classify things by %s."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1394
+#: src/TouchPoint-WP/TouchPointWP.php:1421
 msgid "Classify involvements by the day on which they meet."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1395
+#: src/TouchPoint-WP/TouchPointWP.php:1422
 msgid "Weekdays"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1430
+#: src/TouchPoint-WP/TouchPointWP.php:1459
 msgid "Classify involvements by tense (present, future, past)"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1431
+#: src/TouchPoint-WP/TouchPointWP.php:1460
 msgid "Tense"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1431
+#: src/TouchPoint-WP/TouchPointWP.php:1460
 msgid "Tenses"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1470
+#: src/TouchPoint-WP/TouchPointWP.php:1503
 msgid "Classify involvements by the portion of the day in which they meet."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1471
+#: src/TouchPoint-WP/TouchPointWP.php:1504
 msgid "Times of Day"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1522
+#: src/TouchPoint-WP/TouchPointWP.php:1557
 msgid "Classify involvements and users by their age groups."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1523
+#: src/TouchPoint-WP/TouchPointWP.php:1558
 msgid "Age Groups"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1559
+#: src/TouchPoint-WP/TouchPointWP.php:1596
 msgid "Classify involvements by whether participants are mostly single or married."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1560
+#: src/TouchPoint-WP/TouchPointWP.php:1597
 msgid "Marital Statuses"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1602
+#: src/TouchPoint-WP/TouchPointWP.php:1641
 msgid "Classify Partners by category chosen in settings."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2365
+#: src/TouchPoint-WP/TouchPointWP.php:2404
 msgid "Unknown Type"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2419
+#: src/TouchPoint-WP/TouchPointWP.php:2458
 msgid "Your Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2422
+#: src/TouchPoint-WP/TouchPointWP.php:2461
 msgid "Public Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2425
+#: src/TouchPoint-WP/TouchPointWP.php:2464
 msgid "Status Flags"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2430
-#: src/TouchPoint-WP/TouchPointWP.php:2431
+#: src/TouchPoint-WP/TouchPointWP.php:2469
+#: src/TouchPoint-WP/TouchPointWP.php:2470
 msgid "Current Value"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2558
-#: src/TouchPoint-WP/TouchPointWP.php:2596
+#: src/TouchPoint-WP/TouchPointWP.php:2597
+#: src/TouchPoint-WP/TouchPointWP.php:2635
 msgid "Invalid or incomplete API Settings."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2566
-#: src/TouchPoint-WP/TouchPointWP.php:2603
+#: src/TouchPoint-WP/TouchPointWP.php:2605
+#: src/TouchPoint-WP/TouchPointWP.php:2642
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2664
+#: src/TouchPoint-WP/TouchPointWP.php:2703
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2723
+#: src/TouchPoint-WP/TouchPointWP.php:2762
 msgid "People Query Failed"
 msgstr ""
 
@@ -1238,161 +1238,161 @@ msgctxt "Time of Day"
 msgid "Night"
 msgstr ""
 
-#: assets/js/base-defer.js:201
-#: assets/js/base-defer.js:1140
+#: assets/js/base-defer.js:208
+#: assets/js/base-defer.js:1147
 msgid "Your Location"
 msgstr ""
 
-#: assets/js/base-defer.js:222
+#: assets/js/base-defer.js:229
 msgid "User denied the request for Geolocation."
 msgstr ""
 
-#: assets/js/base-defer.js:226
+#: assets/js/base-defer.js:233
 msgid "Location information is unavailable."
 msgstr ""
 
-#: assets/js/base-defer.js:230
+#: assets/js/base-defer.js:237
 msgid "The request to get user location timed out."
 msgstr ""
 
-#: assets/js/base-defer.js:234
+#: assets/js/base-defer.js:241
 msgid "An unknown error occurred."
 msgstr ""
 
-#: assets/js/base-defer.js:270
-#: assets/js/base-defer.js:280
+#: assets/js/base-defer.js:277
+#: assets/js/base-defer.js:287
 msgid "No geolocation option available."
 msgstr ""
 
 #. translators: %s is the name of an involvement, like a particular small group
-#: assets/js/base-defer.js:899
+#: assets/js/base-defer.js:906
 msgid "Added to %s"
 msgstr ""
 
-#: assets/js/base-defer.js:902
-#: assets/js/base-defer.js:913
-#: assets/js/base-defer.js:933
-#: assets/js/base-defer.js:944
-#: assets/js/base-defer.js:1383
-#: assets/js/base-defer.js:1394
+#: assets/js/base-defer.js:909
+#: assets/js/base-defer.js:920
+#: assets/js/base-defer.js:940
+#: assets/js/base-defer.js:951
+#: assets/js/base-defer.js:1390
+#: assets/js/base-defer.js:1401
 #: assets/js/meeting-defer.js:175
 #: assets/js/meeting-defer.js:186
 msgid "OK"
 msgstr ""
 
-#: assets/js/base-defer.js:910
-#: assets/js/base-defer.js:941
-#: assets/js/base-defer.js:1391
+#: assets/js/base-defer.js:917
+#: assets/js/base-defer.js:948
+#: assets/js/base-defer.js:1398
 #: assets/js/meeting-defer.js:183
 msgid "Something strange happened."
 msgstr ""
 
-#: assets/js/base-defer.js:930
-#: assets/js/base-defer.js:1380
+#: assets/js/base-defer.js:937
+#: assets/js/base-defer.js:1387
 msgid "Your message has been sent."
 msgstr ""
 
 #. translators: %s is the name of an Involvement
-#: assets/js/base-defer.js:954
+#: assets/js/base-defer.js:961
 msgid "Join %s"
 msgstr ""
 
-#: assets/js/base-defer.js:970
+#: assets/js/base-defer.js:977
 msgid "Who is joining the group?"
 msgstr ""
 
-#: assets/js/base-defer.js:975
-#: assets/js/base-defer.js:1033
-#: assets/js/base-defer.js:1347
-#: assets/js/base-defer.js:1435
+#: assets/js/base-defer.js:982
+#: assets/js/base-defer.js:1040
+#: assets/js/base-defer.js:1354
+#: assets/js/base-defer.js:1442
 #: assets/js/meeting-defer.js:225
 msgid "Cancel"
 msgstr ""
 
-#: assets/js/base-defer.js:988
+#: assets/js/base-defer.js:995
 msgid "Select who should be added to the group."
 msgstr ""
 
 #. translators: %s is the name of an involvement.  This is a heading for a modal.
-#: assets/js/base-defer.js:1009
+#: assets/js/base-defer.js:1016
 msgid "Contact the Leaders of %s"
 msgstr ""
 
-#: assets/js/base-defer.js:1026
-#: assets/js/base-defer.js:1340
+#: assets/js/base-defer.js:1033
+#: assets/js/base-defer.js:1347
 msgid "From"
 msgstr ""
 
-#: assets/js/base-defer.js:1027
-#: assets/js/base-defer.js:1341
+#: assets/js/base-defer.js:1034
+#: assets/js/base-defer.js:1348
 msgid "Message"
 msgstr ""
 
-#: assets/js/base-defer.js:1032
-#: assets/js/base-defer.js:1346
+#: assets/js/base-defer.js:1039
+#: assets/js/base-defer.js:1353
 msgid "Send"
 msgstr ""
 
-#: assets/js/base-defer.js:1042
-#: assets/js/base-defer.js:1356
+#: assets/js/base-defer.js:1049
+#: assets/js/base-defer.js:1363
 msgid "Please provide a message."
 msgstr ""
 
-#: assets/js/base-defer.js:1126
-#: assets/js/base-defer.js:1128
+#: assets/js/base-defer.js:1133
+#: assets/js/base-defer.js:1135
 msgid "We don't know where you are."
 msgstr ""
 
-#: assets/js/base-defer.js:1126
-#: assets/js/base-defer.js:1136
+#: assets/js/base-defer.js:1133
+#: assets/js/base-defer.js:1143
 msgid "Click here to use your actual location."
 msgstr ""
 
-#: assets/js/base-defer.js:1286
-#: assets/js/base-defer.js:1303
+#: assets/js/base-defer.js:1293
+#: assets/js/base-defer.js:1310
 msgid "clear"
 msgstr ""
 
-#: assets/js/base-defer.js:1292
+#: assets/js/base-defer.js:1299
 msgid "Other Relatives..."
 msgstr ""
 
 #. translators: %s is a person's name.  This is a heading for a contact modal.
-#: assets/js/base-defer.js:1323
+#: assets/js/base-defer.js:1330
 msgid "Contact %s"
 msgstr ""
 
-#: assets/js/base-defer.js:1425
+#: assets/js/base-defer.js:1432
 msgid "Tell us about yourself."
 msgstr ""
 
-#: assets/js/base-defer.js:1427
-#: assets/js/base-defer.js:1468
+#: assets/js/base-defer.js:1434
+#: assets/js/base-defer.js:1475
 msgid "Email Address"
 msgstr ""
 
-#: assets/js/base-defer.js:1428
-#: assets/js/base-defer.js:1469
+#: assets/js/base-defer.js:1435
+#: assets/js/base-defer.js:1476
 msgid "Zip Code"
 msgstr ""
 
-#: assets/js/base-defer.js:1434
+#: assets/js/base-defer.js:1441
 msgid "Next"
 msgstr ""
 
-#: assets/js/base-defer.js:1466
+#: assets/js/base-defer.js:1473
 msgid "Our system doesn't recognize you,<br />so we need a little more info."
 msgstr ""
 
-#: assets/js/base-defer.js:1470
+#: assets/js/base-defer.js:1477
 msgid "First Name"
 msgstr ""
 
-#: assets/js/base-defer.js:1471
+#: assets/js/base-defer.js:1478
 msgid "Last Name"
 msgstr ""
 
-#: assets/js/base-defer.js:1473
+#: assets/js/base-defer.js:1480
 msgid "Phone"
 msgstr ""
 
