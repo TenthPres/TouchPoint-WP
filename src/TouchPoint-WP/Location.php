@@ -1,6 +1,12 @@
 <?php
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP;
 
+/**
+ * A Location is generally a physical place, with an internet connection.  These likely correspond to campuses, but don't necessarily need to.
+ */
 class Location implements geo
 {
 	protected static ?array $_locations = null;

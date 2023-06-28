@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 /**
- * Cleanup Used for data cleanliness tasks.
+ * Used for data cleanliness and maintenance tasks.
  */
 abstract class Cleanup implements api
 {

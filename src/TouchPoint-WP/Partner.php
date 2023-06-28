@@ -23,7 +23,7 @@ use WP_Query;
 use WP_Term;
 
 /**
- * An Outreach partner, corresponding to a family in TouchPoint
+ * An Outreach partner, corresponding to a family in TouchPoint.
  */
 class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 {

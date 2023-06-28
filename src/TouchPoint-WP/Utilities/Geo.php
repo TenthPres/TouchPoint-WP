@@ -1,7 +1,13 @@
 <?php
-
+/**
+ * @package TouchPointWP
+ */
 namespace tp\TouchPointWP\Utilities;
 
+/**
+ * Utility class for geographical attributes and calculations.  Not to be confused with the geo interface.
+ * @see \tp\TouchPointWP\geo
+ */
 abstract class Geo
 {
 	/**

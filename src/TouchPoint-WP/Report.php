@@ -23,7 +23,7 @@ if (!TOUCHPOINT_COMPOSER_ENABLED) {
 }
 
 /**
- * The Report object gets and processes a SQL or Python report from TouchPoint and presents it in the UX.
+ * The Report class gets and processes a SQL or Python report from TouchPoint and presents it in the UX.
  */
 class Report implements api, module, JsonSerializable, updatesViaCron
 {

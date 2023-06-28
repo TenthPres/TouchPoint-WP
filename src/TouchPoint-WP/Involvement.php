@@ -2441,7 +2441,7 @@ class Involvement implements api, updatesViaCron, geo, module
                     wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
                 }
 
-                // Handle Campuses
+                // Handle Campuses  TODO move outside GEO requirement
                 if (TouchPointWP::instance()->settings->enable_campuses === "on") {
                     if (property_exists($inv, "campusName") && $inv->campusName !== null) {
                         /** @noinspection PhpRedundantOptionalArgumentInspection */
