@@ -710,9 +710,22 @@ class TouchPointWP
         return $instance;
     }
 
+    /**
+     * @var bool True of the init process has run.  False if not.  Prevents things from happening twice, which can cause errors.
+     */
+    private static bool $_hasBeenInited = false;
+
+    /**
+     * Initialize the plugin.
+     *
+     * @return void
+     */
     public static function init(): void
     {
-	    self::instance()->loadLocalizations();
+	    if (self::$_hasBeenInited)
+            return;
+
+        self::instance()->loadLocalizations();
 
         self::instance()->registerTaxonomies();
 
@@ -721,6 +734,8 @@ class TouchPointWP
 
         // If the scripts need to be updated, do that.
         self::instance()->updateDeployedScripts();
+
+        self::$_hasBeenInited = true;
 
         self::requireScript("base");
 
