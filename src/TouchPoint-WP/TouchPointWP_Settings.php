@@ -181,6 +181,31 @@ class TouchPointWP_Settings
     }
 
     /**
+     * Used internally to determine if a particular setting should be auto-loaded.
+     *
+     * @param string $settingName
+     *
+     * @return bool
+     */
+    private function settingShouldBeAutoLoaded(string $settingName): bool
+    {
+        if (str_contains($settingName, '_cron_last_run')) {
+            return true;
+        }
+        foreach (self::settingsFields() as $page) {
+            foreach ($page['fields'] as $f) {
+                if ($f['id'] === $settingName) {
+                    if (isset($f['autoload'])) {
+                        return !!$f['autoload'];
+                    }
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Build settings fields
      *
      * @param bool|string $includeDetail Set to true to get options from TouchPoint, likely including the API calls. Set
@@ -213,6 +238,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                     'callback'    => fn($new) => $this->validation_updateScriptsIfChanged($new, 'enable_authentication'),
                 ],
                 [
@@ -221,6 +247,7 @@ class TouchPointWP_Settings
                     'description' => __('Add a crazy-simple RSVP button to WordPress event pages.', 'TouchPoint-WP'),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                 ],
                 [
                     'id'          => 'enable_involvements',
@@ -231,6 +258,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                 ],
                 [
                     'id'          => 'enable_people_lists',
@@ -241,6 +269,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                 ],
                 [
                     'id'          => 'enable_global',
@@ -251,6 +280,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                 ],
                 [
                     'id'          => 'enable_campuses',
@@ -261,6 +291,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                 ],
                 [
                     'id'          => 'system_name',
@@ -1174,15 +1205,17 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
     /**
      * @param string $what
      * @param mixed  $value
-     * @param bool   $autoload
+     * @param ?bool  $autoload
      *
      * @return false|mixed
      */
-    public function set(string $what, $value, bool $autoload = false): bool
+    public function set(string $what, $value, ?bool $autoload = null): bool
     {
+        if ($autoload === null) {
+            $autoload = $this->settingShouldBeAutoLoaded($what);
+        }
         return update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, $autoload); // TODO MULTI
     }
-
 
     /**
      * Migrate settings from version to version.  This may be called even when a migration isn't necessary.
@@ -1314,14 +1347,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 
 
         // 0.0.31 - Add lookup IDs to ResCodes
-        foreach (TouchPointWP::instance()->getResCodes() as $rc) {
-            $term = Utilities::termExists($rc->name, TouchPointWP::TAX_RESCODE);
-            if ($term !== null && isset($term['term_id'])) {
-                if (update_term_meta($term['term_id'], TouchPointWP::TAXMETA_LOOKUP_ID, $rc->id)) {
-                    TouchPointWP::queueFlushRewriteRules();
-                }
-            }
-        }
+        TouchPointWP::$forceTermLookupIdUpdate = true;
 
 
         // Update version string
