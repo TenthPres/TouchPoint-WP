@@ -129,18 +129,17 @@ abstract class Auth implements api, module
      */
     public static function printLoginLink()
     {
-        $html = '<p class="touchpoint-wp-auth-form-text">';
+        $html = '<p class="touchpoint-wp-auth-form">';
+        $url = self::getLoginUrl();
         /** @noinspection HtmlUnknownTarget */
-        $html .= '<a href="%s">';
+        $html .= "<a href=\"$url\" class=\"button button-secondary button-large\" style=\"width: 100%; text-align: center; margin-bottom: 1em;\">";
         $html .= sprintf(
             // translators: %s is "what you call TouchPoint at your church", which is a setting
             __('Sign in with your %s account', 'TouchPoint-WP'),
             htmlentities(TouchPointWP::instance()->settings->system_name)
         );
-        printf(
-            $html,
-            self::getLoginUrl()
-        );
+        $html .= '</a></p>';
+        echo $html;
     }
 
     /**
