@@ -88,7 +88,7 @@ class TouchPointWP_AdminAPI implements api {
                 if (!TouchPointWP::currentUserIsAdmin()) {
                     return false;
                 }
-                TouchPointWP::instance()->settings->migrate();
+                TouchPointWP::instance()->migrate(true);
                 exit;
 
             case "phpinfo":
