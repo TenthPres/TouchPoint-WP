@@ -189,7 +189,10 @@ class TouchPointWP_Settings
      */
     private function settingShouldBeAutoLoaded(string $settingName): bool
     {
-        if (str_contains($settingName, '_cron_last_run')) {
+        if (str_contains($settingName, '_cron_last_run')
+            || $settingName === "DEBUG"
+            || $settingName === "meta_familyEvFields" // because it's used when registering the taxonomies on every init.
+        ) {
             return true;
         }
         foreach (self::settingsFields() as $page) {
@@ -313,6 +316,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => '',
+                    'autoload'    => true,
                     'placeholder' => 'mychurch.tpsdb.com',
                     'callback'    => [$this, 'validation_lowercase']
                 ],
@@ -338,6 +342,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => '',
+                    'autoload'    => true,
                     'placeholder' => '',
                 ],
                 [
@@ -349,6 +354,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text_secret',
                     'default'     => '',
+                    'autoload'    => true,
                     'placeholder' => $this->passwordPlaceholder('api_pass'),
                     'callback'    => fn($new) => $this->validation_secret($new, 'api_pass')
                 ],
@@ -361,6 +367,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => 'WebApi',
+                    'autoload'    => true,
                     'placeholder' => '',
                 ],
                 [
@@ -372,6 +379,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => '',
+                    'autoload'    => true,
                     'placeholder' => '',
                 ],
                 [
@@ -389,7 +397,8 @@ class TouchPointWP_Settings
         ];
 
         // Add Script generation section if necessary settings are established.
-        if ($this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
+        if ($includeDetail
+            && $this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
             && $this->hasValidApiSettings()) {
             /** @noinspection HtmlUnknownTarget */
             $this->settings['basic']['fields'][] = [
@@ -535,6 +544,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         'type'        => 'textarea',
                         'label'       => __('Involvement Post Types', 'TouchPoint-WP'),
                         'default'     => '[]',
+                        'autoload'    => true,
                         'hidden'      => true,
                         'description' => !$includeThis ? "" : function() {
                             TouchPointWP::requireScript("base");
@@ -617,6 +627,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         ),
                         'type'        => 'text',
                         'default'     => 'partners',
+                        'autoload'    => true,
                         'placeholder' => 'partners',
                         'callback'    => fn($new) => $this->validation_slug($new, 'global_slug')
                     ],
@@ -708,6 +719,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         'type'        => 'select',
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('code', true) : [],
                         'default'     => [],
+                        'autoload'    => true,
                     ],
                 ],
             ];
@@ -764,6 +776,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'Divisions',
+                    'autoload'    => true,
                     'placeholder' => 'Divisions'
                 ],
                 [
@@ -775,6 +788,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'Division',
+                    'autoload'    => true,
                     'placeholder' => 'Division'
                 ],
                 [
@@ -786,6 +800,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'div',
+                    'autoload'    => true,
                     'placeholder' => 'div',
                     'callback'    => fn($new) => $this->validation_slug($new, 'dv_slug')
                 ],
@@ -844,6 +859,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         ),
                         'type'        => 'text',
                         'default'     => 'Campuses',
+                        'autoload'    => true,
                         'placeholder' => 'Campuses'
                     ],
                     [
@@ -855,6 +871,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         ),
                         'type'        => 'text',
                         'default'     => 'Campus',
+                        'autoload'    => true,
                         'placeholder' => 'Campus'
                     ],
                     [
@@ -866,6 +883,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         ),
                         'type'        => 'text',
                         'default'     => 'campus',
+                        'autoload'    => true,
                         'placeholder' => 'campus',
                         'callback'    => fn($new) => $this->validation_slug($new, 'camp_slug')
                     ]
@@ -886,6 +904,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'Resident Codes',
+                    'autoload'    => true,
                     'placeholder' => 'Resident Codes'
                 ],
                 [
@@ -897,6 +916,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'Resident Code',
+                    'autoload'    => true,
                     'placeholder' => 'Resident Code'
                 ],
                 [
@@ -908,6 +928,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'rescodes',
+                    'autoload'    => true,
                     'placeholder' => 'rescodes',
                     'callback'    => fn($new) => $this->validation_slug($new, 'rc_slug')
                 ]
