@@ -711,15 +711,15 @@ class Involvement implements api, updatesViaCron, geo, module
         // Convert start and end to string.
         if ($this->firstMeeting !== null && $this->lastMeeting !== null) {
             if ($dayStr === null) {
-                // translators: {start date} through {end date}  e.g. February 14 through August 12
                 $dayStr = wp_sprintf(
+                    // translators: {start date} through {end date}  e.g. February 14 through August 12
                     __('%1$s through %2$s', 'TouchPoint-WP'),
                     $this->firstMeeting->format($dateFormat),
                     $this->lastMeeting->format($dateFormat)
                 );
             } else {
-                // translators: {schedule}, {start date} through {end date}  e.g. Sundays at 11am, February 14 through August 12
                 $dayStr = wp_sprintf(
+                    // translators: {schedule}, {start date} through {end date}  e.g. Sundays at 11am, February 14 through August 12
                     __('%1$s, %2$s through %3$s', 'TouchPoint-WP'),
                     $dayStr,
                     $this->firstMeeting->format($dateFormat),
@@ -728,14 +728,14 @@ class Involvement implements api, updatesViaCron, geo, module
             }
         } elseif ($this->firstMeeting !== null) {
             if ($dayStr === null) {
-                // translators: Starts {start date}  e.g. Starts September 15
                 $dayStr = wp_sprintf(
+                    // translators: Starts {start date}  e.g. Starts September 15
                     __('Starts %1$s', 'TouchPoint-WP'),
                     $this->firstMeeting->format($dateFormat)
                 );
             } else {
-                // translators: {schedule}, starting {start date}  e.g. Sundays at 11am, starting February 14
                 $dayStr = wp_sprintf(
+                    // translators: {schedule}, starting {start date}  e.g. Sundays at 11am, starting February 14
                     __('%1$s, starting %2$s', 'TouchPoint-WP'),
                     $dayStr,
                     $this->firstMeeting->format($dateFormat)
@@ -743,14 +743,14 @@ class Involvement implements api, updatesViaCron, geo, module
             }
         } elseif ($this->lastMeeting !== null) {
             if ($dayStr === null) {
-                // translators: Through {end date}  e.g. Through September 15
                 $dayStr = wp_sprintf(
+                    // translators: Through {end date}  e.g. Through September 15
                     __('Through %1$s', 'TouchPoint-WP'),
                     $this->lastMeeting->format($dateFormat)
                 );
             } else {
-                // translators: {schedule}, through {end date}  e.g. Sundays at 11am, through February 14
                 $dayStr = wp_sprintf(
+                    // translators: {schedule}, through {end date}  e.g. Sundays at 11am, through February 14
                     __('%1$s, through %2$s', 'TouchPoint-WP'),
                     $dayStr,
                     $this->lastMeeting->format($dateFormat)

@@ -1013,7 +1013,7 @@ class TP_Involvement extends TP_Mappable {
     contactAction() {
         let inv = this,
             // translators: %s is the name of an involvement.  This is a heading for a modal.
-            title = sprintf(__("Contact the Leaders of %s", 'TouchPoint-WP'), `<br />inv.name`);
+            title = sprintf(__("Contact the Leaders of %s", 'TouchPoint-WP'), inv.name);
 
         tpvm._utils.ga('send', 'event', inv.invType, 'contact btn click', inv.name);
 
