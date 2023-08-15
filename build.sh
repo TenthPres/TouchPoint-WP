@@ -24,12 +24,13 @@ uglifyjs -o build/assets/js/meeting-defer.min.js -- assets/js/meeting-defer.js
 uglifyjs -o build/assets/js/partner-defer.min.js -- assets/js/partner-defer.js
 cp -r assets build
 cd ./build || exit
-#zip -r ../touchpoint-wp.zip assets
 cd ..
 
 
 # compile translations
-wget -O wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+if [ ! -f wp-cli.phar ]; then
+    wget -O wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+fi
 
 cp -r ./i18n ./build/i18n
 
