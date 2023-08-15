@@ -24,7 +24,7 @@ uglifyjs -o build/assets/js/meeting-defer.min.js -- assets/js/meeting-defer.js
 uglifyjs -o build/assets/js/partner-defer.min.js -- assets/js/partner-defer.js
 cp -r assets build
 cd ./build || exit
-zip -r ../touchpoint-wp.zip assets
+#zip -r ../touchpoint-wp.zip assets
 cd ..
 
 
@@ -35,15 +35,14 @@ cp -r ./i18n ./build/i18n
 
 php ./wp-cli.phar i18n make-json ./build/i18n
 php ./wp-cli.phar i18n make-mo ./build/i18n
+
+cp -r ./ext ./build/ext
+cp -r ./src ./build/src
+
+find . -maxdepth 1 -iname "*.php" -exec cp {} build/ \;
+find . -maxdepth 1 -iname "*.md" -exec cp {} build/ \;
+find . -maxdepth 1 -iname "*.json" -exec cp {} build/ \;
+
 cd ./build || exit
-zip -r ../touchpoint-wp.zip i18n
+find . -exec zip ../touchpoint-wp.zip {} \;
 cd ..
-
-zip -r touchpoint-wp.zip ./ext
-zip -r touchpoint-wp.zip ./src
-
-find . -maxdepth 1 -iname "*.php" -exec zip touchpoint-wp.zip {} \;
-find . -maxdepth 1 -iname "*.md" -exec zip touchpoint-wp.zip {} \;
-find . -maxdepth 1 -iname "*.json" -exec zip touchpoint-wp.zip {} \;
-
-rm -r build
