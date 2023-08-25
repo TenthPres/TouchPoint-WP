@@ -90,6 +90,13 @@ class TouchPointWP_AdminAPI implements api {
                 }
                 TouchPointWP::instance()->settings->migrate();
                 exit;
+
+            case "phpinfo":
+	            if (!TouchPointWP::currentUserIsAdmin()) {
+		            return false;
+	            }
+	            phpinfo();
+	            exit;
         }
 
         return false;
