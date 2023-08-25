@@ -66,6 +66,11 @@ if ( ! defined('ABSPATH')) {
  *
  * @property-read string ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.
  *
+ * @property-read string mc_slug            Slug for meetings in the meeting calendar (e.g. "events" for church.org/events)
+ * @property-read string mc_hist_months     Number of months of history to keep.
+ * @property-read string mc_future_months   Number of months into the future to import.
+ * @property-read string mc_deletion_method Determines how meetings should be handled in WordPress if they're deleted in TouchPoint
+ *
  * @property-read string rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
  * @property-read string rc_name_singular   What a resident code should be called, singular (e.g. "Resident Code" or "Zone")
  * @property-read string rc_slug            Slug for resident code taxonomy (e.g. "zones" for church.org/zones)
@@ -403,7 +408,7 @@ class TouchPointWP_Settings
                 'description' => strtr(
                     '<p>' . __('Once your settings on this page are set and saved, use this tool to generate
 the scripts needed for TouchPoint in a convenient installation package.  ', 'TouchPoint-WP') .
-'<a href="{uploadUrl}">' . __('Upload the package to {tpName} here', 'TouchPoint-WP') . '</a>.</p>
+'<a href="{uploadUrl}" target="_blank">' . __('Upload the package to {tpName} here', 'TouchPoint-WP') . '</a>.</p>
 <p><a href="{apiUrl}" class="button-secondary" target="tp_zipIfr">' . __('Generate Scripts', 'TouchPoint-WP') . '</a></p>
 <iframe name="tp_zipIfr" style="width:0; height:0; opacity:0;"></iframe>',
                     [
@@ -755,6 +760,60 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                 ],
             ];
         }
+
+		// TODO add some kind of conditional here
+		$includeThis = $includeDetail === true || $includeDetail === 'events';
+		$tribe = TouchPointWP::useTribeCalendar();
+		$this->settings['meetCal'] = [
+			'title'       => __('Meeting Calendars', 'TouchPoint-WP'),
+			'description' => __('Import Meetings from TouchPoint to a calendar on your website.', 'TouchPoint-WP'),
+			'fields'      => [
+				[
+					'id'          => 'mc_slug',
+					'label'       => __('Meetings Slug', 'TouchPoint-WP'),
+					'description' => __(
+						'The root path for Meetings',
+						'TouchPoint-WP'
+					),
+					'type'        => 'text',
+					'default'     => $tribe ? 'meetings' : 'events',
+					'autoload'    => true,
+					'placeholder' => $tribe ? 'meetings' : 'events',
+					'callback'    => fn($new) => $this->validation_slug($new, 'mc_slug')
+				],
+				[
+					'id'          => 'mc_hist_months',
+					'label'       => __( 'Months of History', 'TouchPoint-WP' ),
+					'description' => __( 'Meetings will be kept for the public calendar until the event is this many months in the past.  Note that due to limitations in TouchPoint\'s approach to events, Meetings cannot be fully updated once they occur.', 'TouchPoint-WP' ),
+					'type'        => 'number',
+					'default'     => 12,
+					'placeholder' => 12,
+					'max'         => 36,
+					'min'         => 0
+				],
+				[
+					'id'          => 'mc_future_months',
+					'label'       => __( 'Months of Future', 'TouchPoint-WP' ),
+					'description' => __( 'Meetings more than this many months in the future will not be imported.', 'TouchPoint-WP' ),
+					'type'        => 'number',
+					'default'     => 12,
+					'placeholder' => 12,
+					'max'         => 60,
+					'min'         => 0
+				],
+				[
+					'id'          => 'mc_deletion_method',
+					'label'       => __( 'Meeting Deletion Handling', 'TouchPoint-WP' ),
+					'description' => __( 'When a Meeting is deleted in TouchPoint that has already been imported to WordPress, how should that be handled?', 'TouchPoint-WP' ),
+					'type'        => 'select',
+					'options'     => [
+						'delete'    => 'Always delete from WordPress.',
+						'cancel'    => 'Mark the occurrence as cancelled.',
+					],
+					'default'     => 'delete',
+				],
+			],
+		];
 
         $includeThis = $includeDetail === true || $includeDetail === 'divisions';
         $this->settings['divisions'] = [
@@ -1428,6 +1487,19 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                 if ($field['type'] == 'instructions') {
                     $args['sanitize_callback'] = fn($new) => null;
                 }
+
+				if ($field['type'] == 'number' && !isset($args['sanitize_callback'])) {
+					$args['sanitize_callback'] = function($new) {
+						$new = intval($new);
+						if (isset($field['min'])) {
+							$new = max($new, $field['min']);
+						}
+						if (isset($field['max'])) {
+							$new = min($new, $field['max']);
+						}
+						return $new;
+					};
+				}
 
                 $option_name = TouchPointWP::SETTINGS_PREFIX . $field['id'];
                 register_setting($this->parent::TOKEN . '_Settings', $option_name, $args);
