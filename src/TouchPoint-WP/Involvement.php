@@ -2127,14 +2127,14 @@ class Involvement implements api, updatesViaCron, geo, module
             set_time_limit(15);
 			$count++;
 
-            if ($verbose) {
-                var_dump($inv);
-            }
-
 	        // TODO this is temp debugging code to allow only one post type to be synced during a force-sync.
 	        if ($verbose && isset($_GET['limit'])) {
 		        if ($count > intval($_GET['limit']))
 			        continue;
+	        }
+
+	        if ($verbose) {
+		        var_dump($inv);
 	        }
 
 
