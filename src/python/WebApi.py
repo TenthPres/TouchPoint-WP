@@ -18,8 +18,7 @@ def print_exception():  # From https://stackoverflow.com/a/20264059/2339939
     lineno = tb.tb_lineno
     filename = f.f_code.co_filename
     linecache.checkcache(filename)
-    line = linecache.getline(filename, lineno, f.f_globals)
-    print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj))
+    print('{} (L{})'.format(exc_obj, lineno))
 
 
 def get_person_info_for_sync(person_obj):
@@ -1166,6 +1165,9 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
                 model.Title = "Login"
                 model.Header = "Processing..."
 
+                if response == "":
+                    raise Exception("Could not communicate with WordPress server.")
+
                 response = json.loads(response)
 
                 if "error" in response:
@@ -1199,10 +1201,8 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
             print("<p>Please email the following error message to <b>" + model.Setting("AdminMail",
                                                                                        "the church staff") + "</b>.</p><pre>")
             print(response)
-            print("</pre>")
-            print("<!-- Exception Raised: ")
             print_exception()
-            print(" -->")
+            print("</pre>")
 
 if not apiCalled:
     model.Title = "Invalid Request"

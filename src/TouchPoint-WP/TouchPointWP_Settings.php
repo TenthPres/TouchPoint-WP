@@ -181,6 +181,34 @@ class TouchPointWP_Settings
     }
 
     /**
+     * Used internally to determine if a particular setting should be auto-loaded.
+     *
+     * @param string $settingName
+     *
+     * @return bool
+     */
+    private function settingShouldBeAutoLoaded(string $settingName): bool
+    {
+        if (str_contains($settingName, '_cron_last_run')
+            || $settingName === "DEBUG"
+            || $settingName === "meta_familyEvFields" // because it's used when registering the taxonomies on every init.
+        ) {
+            return true;
+        }
+        foreach (self::settingsFields() as $page) {
+            foreach ($page['fields'] as $f) {
+                if ($f['id'] === $settingName) {
+                    if (isset($f['autoload'])) {
+                        return !!$f['autoload'];
+                    }
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Build settings fields
      *
      * @param bool|string $includeDetail Set to true to get options from TouchPoint, likely including the API calls. Set
@@ -213,6 +241,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                     'callback'    => fn($new) => $this->validation_updateScriptsIfChanged($new, 'enable_authentication'),
                 ],
                 [
@@ -221,6 +250,7 @@ class TouchPointWP_Settings
                     'description' => __('Add a crazy-simple RSVP button to WordPress event pages.', 'TouchPoint-WP'),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                 ],
                 [
                     'id'          => 'enable_involvements',
@@ -231,6 +261,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                 ],
                 [
                     'id'          => 'enable_people_lists',
@@ -241,6 +272,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                 ],
                 [
                     'id'          => 'enable_global',
@@ -251,6 +283,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                 ],
                 [
                     'id'          => 'enable_campuses',
@@ -261,6 +294,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'checkbox',
                     'default'     => '',
+                    'autoload'    => true,
                 ],
                 [
                     'id'          => 'system_name',
@@ -282,6 +316,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => '',
+                    'autoload'    => true,
                     'placeholder' => 'mychurch.tpsdb.com',
                     'callback'    => [$this, 'validation_lowercase']
                 ],
@@ -307,6 +342,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => '',
+                    'autoload'    => true,
                     'placeholder' => '',
                 ],
                 [
@@ -318,6 +354,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text_secret',
                     'default'     => '',
+                    'autoload'    => true,
                     'placeholder' => $this->passwordPlaceholder('api_pass'),
                     'callback'    => fn($new) => $this->validation_secret($new, 'api_pass')
                 ],
@@ -330,6 +367,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => 'WebApi',
+                    'autoload'    => true,
                     'placeholder' => '',
                 ],
                 [
@@ -341,6 +379,7 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => '',
+                    'autoload'    => true,
                     'placeholder' => '',
                 ],
                 [
@@ -358,7 +397,8 @@ class TouchPointWP_Settings
         ];
 
         // Add Script generation section if necessary settings are established.
-        if ($this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
+        if ($includeDetail
+            && $this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
             && $this->hasValidApiSettings()) {
             /** @noinspection HtmlUnknownTarget */
             $this->settings['basic']['fields'][] = [
@@ -504,6 +544,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         'type'        => 'textarea',
                         'label'       => __('Involvement Post Types', 'TouchPoint-WP'),
                         'default'     => '[]',
+                        'autoload'    => true,
                         'hidden'      => true,
                         'description' => !$includeThis ? "" : function() {
                             TouchPointWP::requireScript("base");
@@ -586,6 +627,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         ),
                         'type'        => 'text',
                         'default'     => 'partners',
+                        'autoload'    => true,
                         'placeholder' => 'partners',
                         'callback'    => fn($new) => $this->validation_slug($new, 'global_slug')
                     ],
@@ -677,6 +719,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         'type'        => 'select',
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('code', true) : [],
                         'default'     => [],
+                        'autoload'    => true,
                     ],
                 ],
             ];
@@ -733,6 +776,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'Divisions',
+                    'autoload'    => true,
                     'placeholder' => 'Divisions'
                 ],
                 [
@@ -744,6 +788,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'Division',
+                    'autoload'    => true,
                     'placeholder' => 'Division'
                 ],
                 [
@@ -755,6 +800,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'div',
+                    'autoload'    => true,
                     'placeholder' => 'div',
                     'callback'    => fn($new) => $this->validation_slug($new, 'dv_slug')
                 ],
@@ -813,6 +859,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         ),
                         'type'        => 'text',
                         'default'     => 'Campuses',
+                        'autoload'    => true,
                         'placeholder' => 'Campuses'
                     ],
                     [
@@ -824,6 +871,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         ),
                         'type'        => 'text',
                         'default'     => 'Campus',
+                        'autoload'    => true,
                         'placeholder' => 'Campus'
                     ],
                     [
@@ -835,6 +883,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         ),
                         'type'        => 'text',
                         'default'     => 'campus',
+                        'autoload'    => true,
                         'placeholder' => 'campus',
                         'callback'    => fn($new) => $this->validation_slug($new, 'camp_slug')
                     ]
@@ -855,6 +904,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'Resident Codes',
+                    'autoload'    => true,
                     'placeholder' => 'Resident Codes'
                 ],
                 [
@@ -866,6 +916,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'Resident Code',
+                    'autoload'    => true,
                     'placeholder' => 'Resident Code'
                 ],
                 [
@@ -877,6 +928,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                     ),
                     'type'        => 'text',
                     'default'     => 'rescodes',
+                    'autoload'    => true,
                     'placeholder' => 'rescodes',
                     'callback'    => fn($new) => $this->validation_slug($new, 'rc_slug')
                 ]
@@ -1174,15 +1226,17 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
     /**
      * @param string $what
      * @param mixed  $value
-     * @param bool   $autoload
+     * @param ?bool  $autoload
      *
      * @return false|mixed
      */
-    public function set(string $what, $value, bool $autoload = false): bool
+    public function set(string $what, $value, ?bool $autoload = null): bool
     {
+        if ($autoload === null) {
+            $autoload = $this->settingShouldBeAutoLoaded($what);
+        }
         return update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, $autoload); // TODO MULTI
     }
-
 
     /**
      * Migrate settings from version to version.  This may be called even when a migration isn't necessary.
@@ -1314,14 +1368,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 
 
         // 0.0.31 - Add lookup IDs to ResCodes
-        foreach (TouchPointWP::instance()->getResCodes() as $rc) {
-            $term = Utilities::termExists($rc->name, TouchPointWP::TAX_RESCODE);
-            if ($term !== null && isset($term['term_id'])) {
-                if (update_term_meta($term['term_id'], TouchPointWP::TAXMETA_LOOKUP_ID, $rc->id)) {
-                    TouchPointWP::queueFlushRewriteRules();
-                }
-            }
-        }
+        TouchPointWP::$forceTermLookupIdUpdate = true;
 
 
         // Update version string
@@ -1354,7 +1401,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
      */
     public function registerSettings(): void
     {
-        $currentSection = false;
+        $currentSection = 'basic'; // basic is the default.
         if (isset($_POST['tab']) && $_POST['tab']) {
             $currentSection = $_POST['tab'];
         } elseif (isset($_GET['tab']) && $_GET['tab']) {
@@ -1364,7 +1411,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
         $this->settings = $this->settingsFields($currentSection);
         foreach ($this->settings as $section => $data) {
             // Check posted/selected tab.
-            if ($currentSection && $currentSection !== $section) {
+            if ($currentSection !== $section) {
                 continue;
             }
 

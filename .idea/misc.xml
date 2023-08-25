@@ -2,5 +2,5 @@
   <component name="PhpEntryPointsManager">
     <suppressed_annotations>@noinspection</suppressed_annotations>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_19" project-jdk-name="Python 3.8" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_19" project-jdk-name="Python 3.10 (TouchPointScripts)" project-jdk-type="Python SDK" />
 </project>

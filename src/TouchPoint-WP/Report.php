@@ -35,6 +35,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron
     public const NAME_META_KEY = self::META_PREFIX . "name";
     public const P1_META_KEY = self::META_PREFIX . "p1";
     public const DEFAULT_CONTENT = '';
+    public const FIGURE_CLASS_FILTER = TouchPointWP::SETTINGS_PREFIX . "rpt_figure_class";
+    public const FIGURE_CLASS_DEFAULT = "TouchPoint-report";
 
 
     public static bool $_isLoaded = false;
@@ -286,7 +288,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 
         // Add Figure elt with a unique ID
         $idAttr = "id=\"" . wp_unique_id('tp-report-') . "\"";
-        $rc = "<figure $idAttr>\n\t" . str_replace("\n", "\n\t", $rc);
+        $class = apply_filters(self::FIGURE_CLASS_FILTER, self::FIGURE_CLASS_DEFAULT);
+        $rc = "<figure $idAttr class=\"$class\">\n\t" . str_replace("\n", "\n\t", $rc);
 
         // If desired, add a caption that indicates when the table was last updated.
         if ($params['showupdated']) {
