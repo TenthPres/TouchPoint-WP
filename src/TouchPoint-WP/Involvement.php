@@ -364,6 +364,7 @@ class Involvement implements api, updatesViaCron, geo, module
                 $count += $update;
             }
         }
+		unset($type);
 
         if ($success && $count !== 0) {
             TouchPointWP::instance()->settings->set('inv_cron_last_run', time());
@@ -2087,6 +2088,7 @@ class Involvement implements api, updatesViaCron, geo, module
         } catch (TouchPointWP_Exception $e) {
             return false;
         }
+		unset($qOpts);
 
         $invData = $response->invs ?? []; // null coalesce for case where there is no data.
 
@@ -2512,8 +2514,10 @@ class Involvement implements api, updatesViaCron, geo, module
             if ($verbose) {
                 echo "<hr />";
             }
-        }
 
+			unset($post);
+        }
+		unset($inv);
 
         //////////////////
         //// Removals ////
