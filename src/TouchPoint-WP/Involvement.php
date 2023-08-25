@@ -345,7 +345,14 @@ class Involvement implements api, updatesViaCron, geo, module
 
         $verbose &= TouchPointWP::currentUserIsAdmin();
 
-        foreach (self::allTypeSettings() as $type) {
+        foreach (self::allTypeSettings() as $k => $type) {
+
+			// TODO this is temp debugging code to allow only one post type to be synced during a force-sync.
+			if ($verbose && isset($_GET['type'])) {
+				if (intval($k) !== intval($_GET['type']))
+					continue;
+			}
+
             if (count($type->importDivs) < 1) {
                 // Don't update if there aren't any divisions selected yet.
                 if ($verbose) {
@@ -356,7 +363,14 @@ class Involvement implements api, updatesViaCron, geo, module
 
             // Divisions
             $divs   = Utilities::idArrayToIntArray($type->importDivs, false);
-            $update = self::updateInvolvementPostsForType($type, $divs, $verbose);
+			try {
+				$update = self::updateInvolvementPostsForType($type, $divs, $verbose);
+			} catch (Exception $e) {
+				if ($verbose) {
+					echo "An exception occurred while syncing $type->namePlural: " . $e->getMessage();
+				}
+				continue;
+			}
 
             if ($update === false) {
                 $success = false;
@@ -2108,12 +2122,20 @@ class Involvement implements api, updatesViaCron, geo, module
             return false;
         }
 
+		$count = 0;
         foreach ($invData as $inv) {
             set_time_limit(15);
+			$count++;
 
             if ($verbose) {
                 var_dump($inv);
             }
+
+	        // TODO this is temp debugging code to allow only one post type to be synced during a force-sync.
+	        if ($verbose && isset($_GET['limit'])) {
+		        if ($count > intval($_GET['limit']))
+			        continue;
+	        }
 
 
             ////////////////////////
