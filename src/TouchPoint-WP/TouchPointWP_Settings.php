@@ -1401,7 +1401,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
      */
     public function registerSettings(): void
     {
-        $currentSection = false;
+        $currentSection = 'basic'; // basic is the default.
         if (isset($_POST['tab']) && $_POST['tab']) {
             $currentSection = $_POST['tab'];
         } elseif (isset($_GET['tab']) && $_GET['tab']) {
@@ -1411,7 +1411,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
         $this->settings = $this->settingsFields($currentSection);
         foreach ($this->settings as $section => $data) {
             // Check posted/selected tab.
-            if ($currentSection && $currentSection !== $section) {
+            if ($currentSection !== $section) {
                 continue;
             }
 
