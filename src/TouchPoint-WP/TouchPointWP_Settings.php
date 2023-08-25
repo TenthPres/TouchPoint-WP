@@ -316,7 +316,6 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => '',
-                    'autoload'    => true,
                     'placeholder' => 'mychurch.tpsdb.com',
                     'callback'    => [$this, 'validation_lowercase']
                 ],
@@ -342,7 +341,6 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => '',
-                    'autoload'    => true,
                     'placeholder' => '',
                 ],
                 [
@@ -354,7 +352,6 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text_secret',
                     'default'     => '',
-                    'autoload'    => true,
                     'placeholder' => $this->passwordPlaceholder('api_pass'),
                     'callback'    => fn($new) => $this->validation_secret($new, 'api_pass')
                 ],
@@ -367,7 +364,6 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => 'WebApi',
-                    'autoload'    => true,
                     'placeholder' => '',
                 ],
                 [
@@ -379,7 +375,6 @@ class TouchPointWP_Settings
                     ),
                     'type'        => 'text',
                     'default'     => '',
-                    'autoload'    => true,
                     'placeholder' => '',
                 ],
                 [
@@ -719,7 +714,6 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
                         'type'        => 'select',
                         'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('code', true) : [],
                         'default'     => [],
-                        'autoload'    => true,
                     ],
                 ],
             ];

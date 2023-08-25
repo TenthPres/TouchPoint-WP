@@ -1552,7 +1552,7 @@ class TouchPointWP
                 }
                 $idUpdate = true;
             }
-            // Update the term meta if term is new, or if id update is forced.
+	        // Update the term meta if term is new, or if id update is forced.
             if ($term !== null && isset($term['term_id']) && $idUpdate) {
                 update_term_meta($term['term_id'], self::TAXMETA_LOOKUP_ID, $i->id);
             }
