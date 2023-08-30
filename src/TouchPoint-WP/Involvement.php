@@ -2347,7 +2347,8 @@ class Involvement implements api, updatesViaCron, geo, module
                 update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd", $inv->regEnd);
             }
 
-            Utilities::updatePostImageFromUrl($post->ID, $inv->imageUrl, $post->post_title);
+            // TODO restore
+	        // Utilities::updatePostImageFromUrl($post->ID, $inv->imageUrl, $post->post_title);
 
 
             ////////////////////
