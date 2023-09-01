@@ -381,7 +381,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
         if (is_string($params)) {
             $params = explode(",", $params);
         }
-        $params = array_change_key_case($params, CASE_LOWER);
+        $params = array_change_key_case($params);
 
         // set some defaults
         /** @noinspection SpellCheckingInspection */
@@ -1329,20 +1329,25 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
         }
     }
 
-    /**
-     * Take an array of Person-ish objects and return a nicely human-readable list of names.
-     *
-     * @param Person[]|PersonArray $people  TODO make api compliant with Person object--remove coalesces.  (#120)
-     *
-     * @return ?string  Returns a human-readable list of names, nicely formatted with commas and such.
-     */
-    public static function arrangeNamesForPeople($people): ?string
+	/**
+	 * Take an array of Person-ish objects and return a nicely human-readable list of names.
+	 *
+	 * @param Person[]|PersonArray $people TODO make api compliant with Person object--remove coalesces.  (#120)
+	 * @param int                  $familyLimit  A limit on the number of families to list.  If more than this, will add "and others".
+	 *
+	 * @return ?string  Returns a human-readable list of names, nicely formatted with commas and such.
+	 */
+    public static function arrangeNamesForPeople($people, int $familyLimit = 3): ?string
     {
         $people = self::groupByFamily($people);
         if (count($people) === 0) {
             return null;
         }
-
+		$andOthers = false;
+		if ($familyLimit < count($people)) {
+			$andOthers = true;
+			$people = array_slice($people, 0, $familyLimit);
+		}
         $familyNames = [];
         $comma = ', ';
         $and = ' & ';
@@ -1359,15 +1364,20 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
             }
             $familyNames[] = $fn;
         }
-        $last = array_pop($familyNames);
-        $str = implode($comma, $familyNames);
-        if (count($familyNames) > 0) {
-            if ($useOxford)
-                $str .= trim($comma);
-            $str .= $and;
-        }
-        $str .= $last;
-        return $str;
+		if ($andOthers) {
+			$last = _x("others", "list of people, and *others*", "TouchPoint-WP");
+		} else {
+			$last = array_pop($familyNames);
+		}
+	    $str = implode($comma, $familyNames);
+	    if (count($familyNames) > 0) {
+		    if ($useOxford) {
+			    $str .= trim($comma);
+		    }
+		    $str .= $and;
+	    }
+	    $str .= $last;
+	    return $str;
     }
 
     /**

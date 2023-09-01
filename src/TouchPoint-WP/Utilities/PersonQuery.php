@@ -43,7 +43,7 @@ class PersonQuery extends WP_User_Query
     }
 
 	/**
-	 * @return PersonArray|array Generally, a Person array.  Individual elements may be
+	 * @return PersonArray|Person[] Generally, a Person array.  Individual elements may be
 	 *          TouchPointWP_Exception objects if the person could not be found.
 	 */
     public function get_results()

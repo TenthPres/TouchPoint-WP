@@ -18,6 +18,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string $namePlural
  * @property-read string $slug
  * @property-read string[] $importDivs
+ * @property-read bool $useImages
  * @property-read bool $useGeo
  * @property-read bool $hierarchical
  * @property-read string $groupBy
@@ -39,6 +40,7 @@ class Involvement_PostTypeSettings {
     protected string $namePlural;
     protected string $slug;
     protected array $importDivs = [];
+    protected bool $useImages = false;
     protected bool $useGeo = false;
     protected bool $hierarchical = false;
     protected string $groupBy = "";
