@@ -2,10 +2,12 @@
 /**
  * @package TouchPointWP
  */
+
 namespace tp\TouchPointWP;
 
 /**
- * A Location is generally a physical place, with an internet connection.  These likely correspond to campuses, but don't necessarily need to.
+ * A Location is generally a physical place, with an internet connection.  These likely correspond to campuses, but
+ * don't necessarily need to.
  */
 class Location implements geo
 {
@@ -20,8 +22,8 @@ class Location implements geo
 	protected function __construct($data)
 	{
 		$this->ipAddresses = $data->ipAddresses ?? [];
-		$this->lat = Utilities::toFloatOrNull($data->lat);
-		$this->lng = Utilities::toFloatOrNull($data->lng);
+		$this->lat         = Utilities::toFloatOrNull($data->lat);
+		$this->lng         = Utilities::toFloatOrNull($data->lng);
 
 		$this->name = $data->name;
 
@@ -44,6 +46,7 @@ class Location implements geo
 				self::$_locations[] = new Location($l);
 			}
 		}
+
 		return self::$_locations;
 	}
 
@@ -52,7 +55,7 @@ class Location implements geo
 		$ipAddress = $ipAddress ?? TouchPointWP::getClientIp();
 
 		$s = TouchPointWP::instance()->settings->locations_json;
-		if (!str_contains($s, "\"" . $ipAddress . "\"")) {
+		if ( ! str_contains($s, "\"" . $ipAddress . "\"")) {
 			return null;
 		}
 
@@ -62,6 +65,7 @@ class Location implements geo
 				return $l;
 			}
 		}
+
 		return null;
 	}
 
@@ -85,6 +89,7 @@ class Location implements geo
 				'type'  => $type
 			];
 		}
+
 		return null;
 	}
 
@@ -97,23 +102,28 @@ class Location implements geo
 				return $l;
 			}
 		}
+
 		return null;
 	}
 
-	public static function validateSetting(string $settings) {
+	public static function validateSetting(string $settings)
+	{
 		$d = json_decode($settings);
 		foreach ($d as $l) {
 			foreach ($l as $k => $v) {
-				if (!property_exists(self::class, $k)) {
+				if ( ! property_exists(self::class, $k)) {
 					unset($l->$k);
 				}
 			}
-			$l->lat = Utilities::toFloatOrNull($l->lat);
-			$l->lng = Utilities::toFloatOrNull($l->lng);
+			$l->lat    = Utilities::toFloatOrNull($l->lat);
+			$l->lng    = Utilities::toFloatOrNull($l->lng);
 			$l->radius = Utilities::toFloatOrNull($l->radius, 1);
 
-			$l->ipAddresses = array_values(array_filter($l->ipAddresses, fn($ip) => filter_var($ip, FILTER_VALIDATE_IP)));
+			$l->ipAddresses = array_values(
+				array_filter($l->ipAddresses, fn($ip) => filter_var($ip, FILTER_VALIDATE_IP))
+			);
 		}
+
 		return json_encode($d);
 	}
 }
