@@ -2,73 +2,75 @@
 /**
  * @package TouchPointWP
  */
+
 namespace tp\TouchPointWP;
 
 use tp\TouchPointWP\Utilities\Http;
 use WP_Post;
 use ZipArchive;
 
-if (!TOUCHPOINT_COMPOSER_ENABLED) {
-    require_once 'api.php';
+if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
+	require_once 'api.php';
 }
 
 if ( ! defined('ABSPATH')) {
-    exit;
+	exit;
 }
 
 /**
  * Admin API class.
  */
-class TouchPointWP_AdminAPI implements api {
+class TouchPointWP_AdminAPI implements api
+{
+	public const API_ENDPOINT_SCRIPTZIP = "scriptzip";
 
-    public const API_ENDPOINT_SCRIPTZIP = "scriptzip";
-
-    /**
-     * Constructor function
-     */
-    public function __construct() {
+	/**
+	 * Constructor function
+	 */
+	public function __construct()
+	{
 //        add_action( 'save_post', array( $this, 'save_meta_boxes' ), 10, 1 );
 	}
 
-    /**
-     * Handle API requests
-     *
-     * @param array $uri The request URI already parsed by parse_url()
-     *
-     * @return bool False if endpoint is not found.  Should print the result.
-     */
-    public static function api(array $uri): bool
-    {
-        switch (strtolower($uri['path'][2])) {
-            case "memtypes":
-                header('Content-Type: application/json');
-                $divs = explode(",", $_GET['divs']);
-                $mt = TouchPointWP::instance()->getMemberTypesForDivisions($divs);
-                echo json_encode($mt);
-                exit;
+	/**
+	 * Handle API requests
+	 *
+	 * @param array $uri The request URI already parsed by parse_url()
+	 *
+	 * @return bool False if endpoint is not found.  Should print the result.
+	 */
+	public static function api(array $uri): bool
+	{
+		switch (strtolower($uri['path'][2])) {
+			case "memtypes":
+				header('Content-Type: application/json');
+				$divs = explode(",", $_GET['divs']);
+				$mt   = TouchPointWP::instance()->getMemberTypesForDivisions($divs);
+				echo json_encode($mt);
+				exit;
 
-            case self::API_ENDPOINT_SCRIPTZIP:
-                if (!TouchPointWP::currentUserIsAdmin()) {
-                    return false;
-                }
-                if (!TouchPointWP::instance()->admin()->generateAndEchoPython()) {
-                    // something went wrong...
-                    return false;
-                }
-                exit;
+			case self::API_ENDPOINT_SCRIPTZIP:
+				if ( ! TouchPointWP::currentUserIsAdmin()) {
+					return false;
+				}
+				if ( ! TouchPointWP::instance()->admin()->generateAndEchoPython()) {
+					// something went wrong...
+					return false;
+				}
+				exit;
 
-            case "script-update":
-                if (!TouchPointWP::currentUserIsAdmin()) {
-                    return false;
-                }
-                try {
-                    TouchPointWP::instance()->settings->updateDeployedScripts();
-                    echo "Success";
-                } catch (TouchPointWP_Exception $e) {
-                    http_response_code(Http::SERVER_ERROR);
-                    echo "Failed: " . $e->getMessage();
-                }
-                exit;
+			case "script-update":
+				if ( ! TouchPointWP::currentUserIsAdmin()) {
+					return false;
+				}
+				try {
+					TouchPointWP::instance()->settings->updateDeployedScripts();
+					echo "Success";
+				} catch (TouchPointWP_Exception $e) {
+					http_response_code(Http::SERVER_ERROR);
+					echo "Failed: " . $e->getMessage();
+				}
+				exit;
 
 			case "debug-enable":
 				if (TouchPointWP::currentUserIsAdmin()) {
@@ -86,13 +88,13 @@ class TouchPointWP_AdminAPI implements api {
 
 				return false;
 
-            case "force-migrate":
-                if (!TouchPointWP::currentUserIsAdmin()) {
-                    return false;
-                }
-                TouchPointWP::instance()->settings->migrate();
-                exit;
-        }
+			case "force-migrate":
+				if ( ! TouchPointWP::currentUserIsAdmin()) {
+					return false;
+				}
+				TouchPointWP::instance()->settings->migrate();
+				exit;
+		}
 
 		return false;
 	}
@@ -364,47 +366,48 @@ class TouchPointWP_AdminAPI implements api {
 		return '';
 	}
 
-    /**
-     * Generate the python scripts to be uploaded to TouchPoint.
-     *
-     * @param bool  $toZip Set true to combine into a Zip file.
-     * @param array $filenames  Indicate which files should be included, based on their repo name.
-     * Add '*' to the array to include all files regardless of name.
-     *
-     * @return string|array If toZip is true, returns the file path of the zip file.  If toZip is false, returns an array of filename => content.
-     * @throws TouchPointWP_Exception
-     */
-    public function generatePython(bool $toZip, array $filenames = ['*'])
-    {
-        if ($toZip && !class_exists('\ZipArchive')) {
-            throw new TouchPointWP_Exception("ZipArchive extension is not enabled.");
-        }
+	/**
+	 * Generate the python scripts to be uploaded to TouchPoint.
+	 *
+	 * @param bool  $toZip Set true to combine into a Zip file.
+	 * @param array $filenames Indicate which files should be included, based on their repo name.
+	 * Add '*' to the array to include all files regardless of name.
+	 *
+	 * @return string|array If toZip is true, returns the file path of the zip file.  If toZip is false, returns an
+	 *     array of filename => content.
+	 * @throws TouchPointWP_Exception
+	 */
+	public function generatePython(bool $toZip, array $filenames = ['*'])
+	{
+		if ($toZip && ! class_exists('\ZipArchive')) {
+			throw new TouchPointWP_Exception("ZipArchive extension is not enabled.");
+		}
 
-        $out = [];
-        $za = null;
-        if ($toZip) {
-            $out = tempnam(sys_get_temp_dir(), 'TouchPoint-WP-Scripts.zip');
-            $za  = new ZipArchive();
-            if ($out === false || ! $za->open($out, ZipArchive::CREATE)) {
-                throw new TouchPointWP_Exception("Could not create a zip file for the scripts");
-            }
-        }
+		$out = [];
+		$za  = null;
+		if ($toZip) {
+			$out = tempnam(sys_get_temp_dir(), 'TouchPoint-WP-Scripts.zip');
+			$za  = new ZipArchive();
+			if ($out === false || ! $za->open($out, ZipArchive::CREATE)) {
+				throw new TouchPointWP_Exception("Could not create a zip file for the scripts");
+			}
+		}
 
 		$directory = str_replace('\\', '/', __DIR__ . "/../python/");
 		$fnIndex   = strlen($directory);
 
-        // Static Python files
-        foreach (glob($directory . '*.py') as $file ) {
-            $fn = substr($file, $fnIndex, -3);
+		// Static Python files
+		foreach (glob($directory . '*.py') as $file) {
+			$fn = substr($file, $fnIndex, -3);
 
 			// $fn = repo file name w/o extension
 
-            if (str_starts_with($fn, '.')) {
-                continue;
-            }
-            if (!in_array('*', $filenames) && !in_array($fn, $filenames)) {
-                continue;
-            }
+			if (str_starts_with($fn, '.')) {
+				continue;
+			}
+			if ( ! in_array('*', $filenames) && ! in_array($fn, $filenames)) {
+				continue;
+			}
 
 			$outFn = self::getTpFilenameForRepoFilename($fn);
 
@@ -415,21 +418,21 @@ class TouchPointWP_AdminAPI implements api {
 			}
 		}
 
-        // Python files generated via PHP
-        ob_start();
-        // Set variables for scripts
-        $host = get_site_url();
-        foreach ( glob($directory . '*.php') as $file ) {
-            $fn = substr($file, $fnIndex, -4);
+		// Python files generated via PHP
+		ob_start();
+		// Set variables for scripts
+		$host = get_site_url();
+		foreach (glob($directory . '*.php') as $file) {
+			$fn = substr($file, $fnIndex, -4);
 
 			// $fn = repo file name w/o extension
 
-            if (str_starts_with($fn, '.')) {
-                continue;
-            }
-            if (!in_array('*', $filenames) && !in_array($fn, $filenames)) {
-                continue;
-            }
+			if (str_starts_with($fn, '.')) {
+				continue;
+			}
+			if ( ! in_array('*', $filenames) && ! in_array($fn, $filenames)) {
+				continue;
+			}
 
 			include $file; // TODO SOMEDAY This really should be in a sandbox if that were possible.
 			$content = ob_get_clean();
@@ -479,18 +482,16 @@ class TouchPointWP_AdminAPI implements api {
 		return $newFn;
 	}
 
-    /**
-     * Display an error when there's something wrong with the TouchPoint connection.
-     */
-    public static function showError($message)
-    {
-        add_action('admin_notices',
-            function() use ($message) {
-                $class = 'notice notice-error';
-                printf( '<div class="%1$s"><p><b>TouchPoint-WP:</b> %2$s</p></div>', esc_attr($class), $message);
-            }, 10, 2
-        );
-
-    }
-
+	/**
+	 * Display an error when there's something wrong with the TouchPoint connection.
+	 */
+	public static function showError($message)
+	{
+		add_action('admin_notices',
+			function () use ($message) {
+				$class = 'notice notice-error';
+				printf('<div class="%1$s"><p><b>TouchPoint-WP:</b> %2$s</p></div>', esc_attr($class), $message);
+			}, 10, 2
+		);
+	}
 }
