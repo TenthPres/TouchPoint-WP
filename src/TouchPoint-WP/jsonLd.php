@@ -2,10 +2,11 @@
 /**
  * @package TouchPointWP
  */
+
 namespace tp\TouchPointWP;
 
 if ( ! defined('ABSPATH')) {
-    exit(1);
+	exit(1);
 }
 
 
@@ -13,37 +14,40 @@ if ( ! defined('ABSPATH')) {
  * Some items should be indexable by search engines using standards such as JSON-LD.  This trait provides the base
  * variables and interface for standard generation of this markup.
  */
-trait jsonLd {
+trait jsonLd
+{
 
 	/** @var jsonLd[] */
-    protected static array $queueForJsonLd = [];
+	protected static array $queueForJsonLd = [];
 
 	public int $post_id;
 
-    /**
-     * Add to a queue for instantiation.
-     *
-     * @return bool True if added to queue, false if already in queue.
-     */
-    protected function enqueueForJsonLdInstantiation(): bool
-    {
+	/**
+	 * Add to a queue for instantiation.
+	 *
+	 * @return bool True if added to queue, false if already in queue.
+	 */
+	protected function enqueueForJsonLdInstantiation(): bool
+	{
 		$link = $this->getPermalink();
-        if (!isset(static::$queueForJsonLd[$link])) {
-            static::$queueForJsonLd[$link] = $this;
-            return true;
-        }
-        return false;
-    }
+		if ( ! isset(static::$queueForJsonLd[$link])) {
+			static::$queueForJsonLd[$link] = $this;
 
-    /**
-     * Returns the permalink corresponding to the JSON-LD object.
-     *
-     * @return string
-     */
-    public function getPermalink(): string
-    {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Returns the permalink corresponding to the JSON-LD object.
+	 *
+	 * @return string
+	 */
+	public function getPermalink(): string
+	{
 		return get_permalink($this->post_id);
-    }
+	}
 
 	/**
 	 * Return an object that turns into JSON-LD as an event, compliant with schema.org.  Return null if the object can't
@@ -51,15 +55,15 @@ trait jsonLd {
 	 *
 	 * @return ?object
 	 */
-    public abstract function toJsonLD(): ?array;
+	public abstract function toJsonLD(): ?array;
 
-    /**
-     * Print the full JSON-LD info, including script tags.
-     *
-     * @return void
-     */
-    public static function printJsonLd(): void
-    {
+	/**
+	 * Print the full JSON-LD info, including script tags.
+	 *
+	 * @return void
+	 */
+	public static function printJsonLd(): void
+	{
 		$r = array_map(fn($j) => $j->toJsonLD(), static::$queueForJsonLd);
 		$r = array_filter($r, 'is_array');
 		$r = array_values($r);
@@ -69,5 +73,5 @@ trait jsonLd {
 			print json_encode($r);
 			echo "</script>";
 		}
-    }
+	}
 }

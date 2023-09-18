@@ -64,6 +64,16 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 
         <tr>
             <th>
+                <label for="it-useImages" data-bind="attr: { for: 'it-' + slug() + '-useImages'}"><?php _e("Import Images from TouchPoint", "TouchPoint-WP"); ?></label>
+            </th>
+            <td colspan="2">
+                <input id="it-useImages" type="checkbox" data-bind="checked: useImages, attr: { id: 'it-' + slug() + '-useImages'}" />
+                <label for="it-useImages" data-bind="attr: { for: 'it-' + slug() + '-useImages'}"><?php _e("Importing images sometimes conflicts with other plugins. Disabling image imports can help.", "TouchPoint-WP"); ?></label>
+            </td>
+        </tr>
+
+        <tr>
+            <th>
                 <label for="it-useGeo" data-bind="attr: { for: 'it-' + slug() + '-useGeo'}"><?php _e("Use Geographic Location", "TouchPoint-WP"); ?></label>
             </th>
             <td colspan="2"><input id="it-useGeo" type="checkbox" data-bind="checked: useGeo, attr: { id: 'it-' + slug() + '-useGeo'}" /></td>
