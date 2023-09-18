@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# # !/usr/bin/env bash
 
 # Assumes PHP CLI, curl, and zip are already installed.
 

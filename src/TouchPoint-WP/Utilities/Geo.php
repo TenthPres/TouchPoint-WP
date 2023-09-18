@@ -2,6 +2,7 @@
 /**
  * @package TouchPointWP
  */
+
 namespace tp\TouchPointWP\Utilities;
 
 /**
@@ -28,7 +29,7 @@ abstract class Geo
 		$lngB_r = deg2rad($lngB);
 
 		return round(3959 * acos(
-			             cos($latA_r) * cos($latB_r) * cos($lngB_r - $lngA_r) + sin($latA_r) * sin($latB_r)
-		             ), 1);
+				cos($latA_r) * cos($latB_r) * cos($lngB_r - $lngA_r) + sin($latA_r) * sin($latB_r)
+		), 1);
 	}
 }
