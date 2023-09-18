@@ -2,12 +2,14 @@
 /**
  * @package TouchPointWP
  */
+
 namespace tp\TouchPointWP\Utilities;
 
 /**
  * Utility class for HTTP status codes. Functionally an enum.
  */
-abstract class Http {
+abstract class Http
+{
 	/* 100s - Informational */
 	const CONTINUE_ = 100; // Continue is a reserved word.  Thus, adding the _.
 	const SWITCHING_PROTOCOLS = 101;

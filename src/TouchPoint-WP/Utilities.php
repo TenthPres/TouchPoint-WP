@@ -2,6 +2,7 @@
 /**
  * @package TouchPointWP
  */
+
 namespace tp\TouchPointWP;
 
 use DateTimeImmutable;
@@ -18,16 +19,16 @@ abstract class Utilities
 	public const PLUGIN_UPDATE_TRANSIENT_TTL = 43200; // 12 hours
 
 	/**
-	 * @param mixed $numeric
-	 * @param bool|int  $round  False to skip rounding. Otherwise, precision passed to round().
-	 *
-	 * @see round()
+	 * @param mixed    $numeric
+	 * @param bool|int $round False to skip rounding. Otherwise, precision passed to round().
 	 *
 	 * @return float|null
+	 * @see round()
+	 *
 	 */
 	public static function toFloatOrNull($numeric, $round = false): ?float
 	{
-		if (!is_numeric($numeric)) {
+		if ( ! is_numeric($numeric)) {
 			return null;
 		}
 
@@ -46,10 +47,13 @@ abstract class Utilities
 		if (self::$_dateTimeNow === null) {
 			try {
 				self::$_dateTimeNow = new DateTimeImmutable('now', wp_timezone());
-			} catch (Exception $e) {}
+			} catch (Exception $e) {
+			}
 		}
+
 		return self::$_dateTimeNow;
 	}
+
 	private static ?DateTimeImmutable $_dateTimeNow = null;
 
 	/**
@@ -190,26 +194,28 @@ abstract class Utilities
 	{
 		$concat = implode('', $strings);
 
-		$comma = ', ';
-		$and = ' & ';
+		$comma     = ', ';
+		$and       = ' & ';
 		$useOxford = false;
 		if (strpos($concat, ', ') !== false) {
 			$comma     = '; ';
 			$useOxford = true;
 		}
 		if (strpos($concat, ' & ') !== false) {
-			$and = ' ' . __('and', 'TouchPoint-WP') . ' ';
+			$and       = ' ' . __('and', 'TouchPoint-WP') . ' ';
 			$useOxford = true;
 		}
 
 		$last = array_pop($strings);
-		$str = implode($comma, $strings);
+		$str  = implode($comma, $strings);
 		if (count($strings) > 0) {
-			if ($useOxford)
+			if ($useOxford) {
 				$str .= trim($comma);
+			}
 			$str .= $and;
 		}
 		$str .= $last;
+
 		return $str;
 	}
 
@@ -231,6 +237,7 @@ abstract class Utilities
 		if ($explode) {
 			return json_decode("[" . $r . "]");
 		}
+
 		return $r;
 	}
 
@@ -239,11 +246,14 @@ abstract class Utilities
 	 *
 	 * @param $shortcode
 	 *
+	 * TODO MULTI: does not update for all sites in the network.
+	 *
 	 * @return object[]
 	 */
-	public static function getPostContentWithShortcode($shortcode): array // TODO MULTI: does not update for all sites in the network.
+	public static function getPostContentWithShortcode($shortcode): array
 	{
 		global $wpdb;
+
 		/** @noinspection SqlResolve */
 		return $wpdb->get_results("SELECT post_content FROM $wpdb->posts WHERE post_content LIKE '%$shortcode%' AND post_status <> 'inherit'");
 	}
@@ -253,8 +263,9 @@ abstract class Utilities
 	/**
 	 * Arbitrarily pick a unique-ish color for a value.
 	 *
-	 * @param string $itemName  The name of the item.  e.g. PA
-	 * @param string $setName   The name of the set to which the item belongs, within which there should be uniqueness. e.g. States
+	 * @param string $itemName The name of the item.  e.g. PA
+	 * @param string $setName The name of the set to which the item belongs, within which there should be uniqueness.
+	 *     e.g. States
 	 *
 	 * @return string The color in hex, starting with '#'.
 	 */
@@ -263,7 +274,7 @@ abstract class Utilities
 		// TODO add hook for custom color algorithm.
 
 		// If the set is new...
-		if (!isset(self::$colorAssignments[$setName])) {
+		if ( ! isset(self::$colorAssignments[$setName])) {
 			self::$colorAssignments[$setName] = [];
 		}
 
@@ -272,11 +283,11 @@ abstract class Utilities
 
 		// If not in set...
 		if ($idx === false) {
-			$idx = count(self::$colorAssignments[$setName]);
+			$idx                                = count(self::$colorAssignments[$setName]);
 			self::$colorAssignments[$setName][] = $itemName;
 		}
 
-		// Calc color! (This method generates 24 colors and then repeats. 8 hues * 3 lums)
+		// Calc color! (This method generates 24 colors and then repeats. (8 hues * 3 lums)
 		$h = ($idx * 135) % 360;
 		$l = ((($idx >> 3) + 1) * 25) % 75 + 25;
 
@@ -300,9 +311,10 @@ abstract class Utilities
 		$l /= 100;
 		$a = $s * min($l, 1 - $l) / 100;
 
-		$f = function($n) use ($h, $l, $a) {
-			$k = ($n + $h / 30) % 12;
+		$f = function ($n) use ($h, $l, $a) {
+			$k     = ($n + $h / 30) % 12;
 			$color = $l - $a * max(min($k - 3, 9 - $k, 1), -1);
+
 			return round(255 * $color);
 		};
 
@@ -315,13 +327,14 @@ abstract class Utilities
 	/**
 	 * Wrapper for the WordPress term_exists function to reduce database calls
 	 *
-	 * @param int|string $term     The term to check. Accepts term ID, slug, or name.
+	 * @param int|string $term The term to check. Accepts term ID, slug, or name.
 	 * @param string     $taxonomy Optional. The taxonomy name to use.
-	 * @param int|null   $parent   Optional. ID of parent term under which to confine the exists search.
+	 * @param int|null   $parent Optional. ID of parent term under which to confine the exists search.
 	 *
 	 * @return mixed Returns null if the term does not exist.
 	 *               Returns the term ID if no taxonomy is specified and the term ID exists.
-	 *               Returns an array of the term ID and the term taxonomy ID if the taxonomy is specified and the pairing exists.
+	 *               Returns an array of the term ID and the term taxonomy ID if the taxonomy is specified and the
+	 *                  pairing exists.
 	 *               Returns 0 if term ID 0 is passed to the function.
 	 *
 	 * @see term_exists()
@@ -329,11 +342,13 @@ abstract class Utilities
 	public static function termExists($term, string $taxonomy = "", ?int $parent = null)
 	{
 		$key = $term . "|" . $taxonomy . "|" . $parent;
-		if (!array_key_exists($key, self::$termExistsCache)) {
+		if ( ! array_key_exists($key, self::$termExistsCache)) {
 			self::$termExistsCache[$key] = term_exists($term, $taxonomy, $parent);
 		}
+
 		return self::$termExistsCache[$key];
 	}
+
 	private static array $termExistsCache = [];
 
 
@@ -364,22 +379,22 @@ abstract class Utilities
 	 * If the term already exists on the same hierarchical level,
 	 * or the term slug and name are not unique, a WP_Error object will be returned.
 	 *
-	 * @param string       $term     The term name to add.
+	 * @param string       $term The term name to add.
 	 * @param string       $taxonomy The taxonomy to which to add the term.
 	 * @param array|string $args {
 	 *     Optional. Array or query string of arguments for inserting a term.
 	 *
-	 *     @type string    $alias_of    Slug of the term to make this term an alias of.
+	 * @type string        $alias_of Slug of the term to make this term an alias of.
 	 *                               Default empty string. Accepts a term slug.
-	 *     @type string    $description The term description. Default empty string.
-	 *     @type int       $parent      The id of the parent term. Default 0.
-	 *     @type string    $slug        The term slug to use. Default empty string.
+	 * @type string        $description The term description. Default empty string.
+	 * @type int           $parent The id of the parent term. Default 0.
+	 * @type string        $slug The term slug to use. Default empty string.
 	 * }
 	 * @return array|WP_Error {
 	 *     An array of the new term data, WP_Error otherwise.
 	 *
-	 *     @type int        $term_id          The new term ID.
-	 *     @type int|string $term_taxonomy_id The new term taxonomy ID. Can be a numeric string.
+	 * @type int           $term_id The new term ID.
+	 * @type int|string    $term_taxonomy_id The new term taxonomy ID. Can be a numeric string.
 	 * }
 	 *
 	 * @see wp_insert_term()
@@ -387,11 +402,12 @@ abstract class Utilities
 	public static function insertTerm(string $term, string $taxonomy, $args = [])
 	{
 		$parent = $args['parent'] ?? null;
-		$key = $term . "|" . $taxonomy . "|" . $parent;
-		$r = wp_insert_term($term, $taxonomy, $args);
-		if (! is_wp_error($r)) {
+		$key    = $term . "|" . $taxonomy . "|" . $parent;
+		$r      = wp_insert_term($term, $taxonomy, $args);
+		if ( ! is_wp_error($r)) {
 			self::$termExistsCache[$key] = $r;
 		}
+
 		return $r;
 	}
 
@@ -426,6 +442,7 @@ abstract class Utilities
 				$headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
 			}
 		}
+
 		return $headers;
 	}
 
@@ -485,7 +502,7 @@ abstract class Utilities
 	}
 
 	/**
-	 * @param int    $maxAllowed  1 to 6, corresponding to h1 to h6.
+	 * @param int    $maxAllowed 1 to 6, corresponding to h1 to h6.
 	 * @param string $input The string within which headings should be standardized.
 	 *
 	 * @return string
@@ -494,15 +511,15 @@ abstract class Utilities
 	{
 		$maxAllowed = min(max($maxAllowed, 1), 6);
 
-		$deltas = [0,0,0,0,0,0];
-		$indexes = [0,0,0,0,0,0];
-		$o = 0;
-		$i = 1;
+		$deltas  = [0, 0, 0, 0, 0, 0];
+		$indexes = [0, 0, 0, 0, 0, 0];
+		$o       = 0;
+		$i       = 1;
 		for (; $i <= 6;) {
-			$deltas[$i-1] = 0;
+			$deltas[$i - 1] = 0;
 			if (str_contains($input, "<h$i ") || str_contains($input, "<h$i>")) {
-				$deltas[$i-1] = $maxAllowed - $i + $o;
-				$indexes[$i-1] = $deltas[$i-1] * $i;
+				$deltas[$i - 1]  = $maxAllowed - $i + $o;
+				$indexes[$i - 1] = $deltas[$i - 1] * $i;
 				$o++;
 			}
 			$i++;
@@ -512,16 +529,21 @@ abstract class Utilities
 
 		foreach ($indexes as $ix => $x) {
 			$delta = $deltas[$ix];
-			if ($delta === 0)
+			if ($delta === 0) {
 				continue;
+			}
 
 			$i = $ix + 1;
 			$o = $i + $delta;
 
 			if ($o < 7) {
-				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"], ["<h$o ", "<h$o>", "</h$o>"], $input);
+				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"],
+				                      ["<h$o ", "<h$o>", "</h$o>"],
+				                      $input);
 			} else {
-				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"], ["<p><strong ", "<p><strong>", "</strong></p>"], $input);
+				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"],
+				                      ["<p><strong ", "<p><strong>", "</strong></p>"],
+				                      $input);
 			}
 		}
 
@@ -529,8 +551,8 @@ abstract class Utilities
 	}
 
 	/**
-	 * @param string  $html  The HTML to be standardized.
-	 * @param ?string $context  A context string to pass to hooks.
+	 * @param string  $html The HTML to be standardized.
+	 * @param ?string $context A context string to pass to hooks.
 	 *
 	 * @return string
 	 */
@@ -538,10 +560,11 @@ abstract class Utilities
 	{
 		// The tp_standardize_html filter would completely replace the pre-defined process.
 		$o = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_html', $html, $context);
-		if ($o !== $html)
+		if ($o !== $html) {
 			return $o;
+		}
 
-		$html = apply_filters(TouchPointWP::HOOK_PREFIX . 'pre_standardize_html', $html, $context);
+		$html      = apply_filters(TouchPointWP::HOOK_PREFIX . 'pre_standardize_html', $html, $context);
 		$maxHeader = intval(apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_h_tags_max_h', 2, $context));
 
 		$allowedTags = [
@@ -554,6 +577,7 @@ abstract class Utilities
 		$html = self::standardizeHTags($maxHeader, $html);
 		$html = strip_tags($html, $allowedTags);
 		$html = trim($html);
+
 		return apply_filters(TouchPointWP::HOOK_PREFIX . 'post_standardize_html', $html, $context);
 	}
 
@@ -572,16 +596,19 @@ abstract class Utilities
 		}
 		$ghData = json_decode(wp_remote_retrieve_body($ghData));
 
-		if (!property_exists($ghData, 'tag_name'))
+		if ( ! property_exists($ghData, 'tag_name')) {
 			return null;
+		}
 
 		$tag = $ghData->tag_name;
 
-		if ($tag == null)
+		if ($tag == null) {
 			return null;
+		}
 
-		if ($tag[0] !== "v")
+		if ($tag[0] !== "v") {
 			return null;
+		}
 
 		$newV = substr($tag, 1);
 
@@ -621,9 +648,10 @@ abstract class Utilities
 
 		$up = $pluginTransient ?: self::checkForUpdate();
 
-		if (!$pluginTransient) {
-			if ($up == null)
+		if ( ! $pluginTransient) {
+			if ($up == null) {
 				$up = "error";
+			}
 			set_transient(self::PLUGIN_UPDATE_TRANSIENT, $up, self::PLUGIN_UPDATE_TRANSIENT_TTL);
 		}
 
@@ -655,8 +683,9 @@ abstract class Utilities
 		$keys = array_keys($headers);
 		foreach ($data as $line) {
 			$line = explode(":", $line, 2);
-			if (count($line) < 2)
+			if (count($line) < 2) {
 				continue;
+			}
 
 			if (in_array($line[0], $keys)) {
 				$headers[$line[0]] = trim($line[1]);
