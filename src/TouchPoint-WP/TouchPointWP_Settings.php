@@ -383,6 +383,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on") { // TODO MULTI
 			$includeThis              = $includeDetail === true || $includeDetail === 'people';
+			$urlParts = wp_parse_url(home_url());
+			$defaultUserPev = $urlParts['host'] . " User ID";
 			$this->settings['people'] = [
 				'title'       => __('People', 'TouchPoint-WP'),
 				'description' => __('Manage how people are synchronized between TouchPoint and WordPress.', 'TouchPoint-WP'),
@@ -407,8 +409,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 							'TouchPoint-WP'
 						),
 						'type'        => 'text',
-						'default'     => 'WordPress User ID',
-						'placeholder' => 'WordPress User ID'
+						'default'     => $defaultUserPev,
+						'placeholder' => $defaultUserPev
 					],
 					[
 						'id'          => 'people_ev_bio',

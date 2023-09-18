@@ -865,12 +865,14 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		// Find person by WordPress ID, if provided.
 		$wpId = null;
-		foreach ($pData->PeopleEV as $pev) {
-			if ($pev->field === TouchPointWP::instance()->settings->people_ev_wpId && $pev->type === "Int") {
-				if (intval($pev->value) !== 0) {
-					$wpId = intval($pev->value);
+		if (isset($pData->PeopleEV)) {
+			foreach ($pData->PeopleEV as $pev) {
+				if ($pev->field === TouchPointWP::instance()->settings->people_ev_wpId && $pev->type === "Int") {
+					if (intval($pev->value) !== 0) {
+						$wpId = intval($pev->value);
+					}
+					break;
 				}
-				break;
 			}
 		}
 		if ($wpId !== null) {
