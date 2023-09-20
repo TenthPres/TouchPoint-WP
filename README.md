@@ -6,6 +6,7 @@ plugin is not developed or supported by TouchPoint.  While their support team is
 help you with this.
 
 [See the Wiki for Installation instructions and other documentation.](https://github.com/TenthPres/TouchPoint-WP/wiki)
+[Sign up here for occasional, non-annoying email updates.](https://my.tenth.org/OnePageReg/396)
 
 ## Features
 ### Involvement Lists & Small Group Finder
