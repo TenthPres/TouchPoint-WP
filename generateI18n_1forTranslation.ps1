@@ -7,5 +7,5 @@ if (!(test-path $pharFile -newerThan $compareDt))
     Invoke-WebRequest https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -OutFile $pharFile
 }
 
-php .\wp-cli.phar i18n make-pot . i18n/TouchPoint-WP.pot
+php .\wp-cli.phar i18n make-pot . --exclude="build" i18n/TouchPoint-WP.pot
 php .\wp-cli.phar i18n update-po i18n/TouchPoint-WP.pot
