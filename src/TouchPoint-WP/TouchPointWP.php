@@ -970,7 +970,7 @@ class TouchPointWP
 	 * @return stdClass|false An object with 'lat', 'lng', and 'human' attributes, if a location could be identified.
 	 *     Or, false if not available.
 	 */
-	public function geolocate(bool $useApi = true)
+	public function geolocate(bool $useApi = true, bool $includeRaw = false)
 	{
 		$ip = self::getClientIp();
 
@@ -991,27 +991,24 @@ class TouchPointWP
 			return false;
 		}
 
-		if ($return === false || ! is_string($return)) {
+		if ($return === false || !is_string($return)) {
 			return false;
 		}
 
 		$d = json_decode($return);
 
-		if ( ! is_object($d)) {
+		if (!is_object($d)) {
 			new TouchPointWP_Exception("Geolocation Object is Invalid", 178004);
-
 			return false;
 		}
 
 		if (property_exists($d, 'error')) {
 			new TouchPointWP_Exception("Geolocation Error: " . $d->reason ?? "", 178002);
-
 			return false;
 		}
 
-		if ( ! isset($d->latitude) || ! isset($d->longitude) || ! isset($d->city)) {
+		if (!isset($d->latitude) || !isset($d->longitude) || !isset($d->city)) {
 			new TouchPointWP_Exception("Geolocation Data Not Provided", 178003);
-
 			return false;
 		}
 
@@ -1022,13 +1019,24 @@ class TouchPointWP
 			$human = $d->city . ", " . $d->country_name;
 		}
 
-		/** @see geo::asGeoIFace() */
-		return (object)[
-			'lat'   => $d->latitude,
-			'lng'   => $d->longitude,
-			'human' => $human,
-			'type'  => 'ip'
-		];
+		if ($includeRaw) {
+			/** @see geo::asGeoIFace() */
+			return (object)[
+				'lat' => $d->latitude,
+				'lng' => $d->longitude,
+				'human' => $human,
+				'type' => 'ip',
+				'raw'  => $d
+			];
+		} else {
+			/** @see geo::asGeoIFace() */
+			return (object)[
+				'lat' => $d->latitude,
+				'lng' => $d->longitude,
+				'human' => $human,
+				'type' => 'ip'
+			];
+		}
 	}
 
 	/**
