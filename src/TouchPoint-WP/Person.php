@@ -1673,6 +1673,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$inputData = TouchPointWP::postHeadersAndFiltering();
 		$inputData = json_decode($inputData);
 
+		$rawInputs = $inputData;
+
 		if (!self::allowContact()) {
 			echo json_encode([
 				'error'      => "Contact Prohibited.",
@@ -1684,6 +1686,20 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$kw                  = TouchPointWP::instance()->settings->people_contact_keywords;
 		$inputData->keywords = Utilities::idArrayToIntArray($kw);
 
+		// CleanTalk Spam Filter.  Will call die() if appropriate.
+		apply_filters('ct_ajax_hook', [
+			'post_content' => $inputData->message,
+			'post_type' => $inputData->invType
+		]);
+
+		// Akismet Spam Filter.  Will call die() if appropriate.
+		$akismetArgs = [];
+		foreach((array)$rawInputs as $k => $v) {
+			$akismetArgs['POST_' . $k] = $v;
+		}
+		do_action('preprocess_comment', $akismetArgs);
+
+		// Submit the contact
 		try {
 			$data = TouchPointWP::instance()->apiPost('person_contact', $inputData);
 		} catch (Exception $ex) {

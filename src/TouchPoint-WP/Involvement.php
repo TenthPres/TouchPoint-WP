@@ -2979,6 +2979,8 @@ class Involvement implements api, updatesViaCron, geo, module
 		$inputData           = json_decode($inputData);
 		$inputData->keywords = [];
 
+		$rawInputs = $inputData;
+
 		$settings = self::getSettingsForPostType($inputData->invType);
 		if (!!$settings) {
 			if (!self::allowContact($inputData->invType)) {
@@ -3002,6 +3004,20 @@ class Involvement implements api, updatesViaCron, geo, module
 			exit;
 		}
 
+		// CleanTalk Spam Filter.  Will call die() if appropriate.
+		apply_filters('ct_ajax_hook', [
+			'post_content' => $inputData->message,
+			'post_type' => $inputData->invType
+		]);
+
+		// Akismet Spam Filter.  Will call die() if appropriate.
+		$akismetArgs = [];
+		foreach((array)$rawInputs as $k => $v) {
+			$akismetArgs['POST_' . $k] = $v;
+		}
+		do_action('preprocess_comment', $akismetArgs);
+
+		// Submit the contact
 		try {
 			$data = TouchPointWP::instance()->apiPost('inv_contact', $inputData);
 		} catch (TouchPointWP_Exception $ex) {
