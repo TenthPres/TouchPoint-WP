@@ -812,14 +812,14 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	/**
 	 * Deletes a user and optionally reassigns their posts to a different user. Does not re-map meta fields.
 	 *
-	 * @param $userId   int ID of the user to delete
-	 * @param $reassign ?int ID of the user to whom the deleted author's work should be assigned.
+	 * @param $userId   int WordPress ID of the user to delete
+	 * @param $reassign ?int WordPress ID of the user to whom the deleted author's work should be assigned.
 	 *
 	 * @return bool
 	 */
-	protected static function deleteUser($userId, $reassign = null): bool
+	protected static function deleteUser(int $userId, ?int $reassign = null): bool
 	{
-		require_once './wp-admin/includes/user.php';
+		require_once(ABSPATH . 'wp-admin/includes/user.php');
 
 		return wp_delete_user($userId, $reassign);
 	}
@@ -857,7 +857,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 						if ($p === $person) {
 							continue;
 						}
-						self::deleteUser($p->ID, $person->ID);
+						$pid = $person->ID ?? null;
+						self::deleteUser($p->ID, $pid);
 					}
 				}
 			}
@@ -1169,10 +1170,13 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			$btnClass = " class=\"$btnClass\"";
 		}
 
-		$text = __("Contact", "TouchPoint-WP");
-		TouchPointWP::enqueueActionsStyle('person-contact');
-		self::enqueueUsersForJsInstantiation();
-		$ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
+		$ret = "";
+		if (self::allowContact()) {
+			$text = __("Contact", "TouchPoint-WP");
+			TouchPointWP::enqueueActionsStyle('person-contact');
+			self::enqueueUsersForJsInstantiation();
+			$ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
+		}
 
 		return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context, $btnClass);
 	}
@@ -1265,6 +1269,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$out .= "\t\tTP_Person.fromObjArray($listStr);\n";
 
 		if (self::$_enqueueUsersForJsInstantiation) {
+			TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
+
 			$s     = Session::instance();
 			$pFids = json_encode($s->primaryFam ?? []);
 			$sFids = json_encode($s->secondaryFam ?? []);
@@ -1321,7 +1327,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		// Better.  Concat of full name.  Does not intersect with above, which uses first initials, probably.
 		$try = strtolower($pData->DisplayName);
-		$try = preg_replace('/[^\w\d]+/', '', $try);
+		$try = preg_replace('/\W+/', '', $try);
 		if ( ! username_exists($try)) {
 			return $try;
 		}
@@ -1647,6 +1653,17 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
+	 * Whether this client should be allowed to contact this set of people.
+	 *
+	 * @return bool
+	 */
+	protected static function allowContact(): bool
+	{
+		$allowed = !!apply_filters(TouchPointWP::HOOK_PREFIX . 'allow_contact', true);
+		return !!apply_filters(TouchPointWP::HOOK_PREFIX . 'person_allow_contact', $allowed);
+	}
+
+	/**
 	 * Handles the API call to send a message through a contact form.
 	 */
 	private static function ajaxContact(): void
@@ -1655,6 +1672,14 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		$inputData = TouchPointWP::postHeadersAndFiltering();
 		$inputData = json_decode($inputData);
+
+		if (!self::allowContact()) {
+			echo json_encode([
+				'error'      => "Contact Prohibited.",
+				'error_i18n' => __("Contact Prohibited.", 'TouchPoint-WP')
+			]);
+			exit;
+		}
 
 		$kw                  = TouchPointWP::instance()->settings->people_contact_keywords;
 		$inputData->keywords = Utilities::idArrayToIntArray($kw);

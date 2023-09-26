@@ -470,9 +470,13 @@ class Involvement implements api, updatesViaCron, geo, module
 	 */
 	public function useRegistrationForm(): bool
 	{
-		return (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", true) === '1' ||
-		        intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) !== 1);
+		if (!isset($this->_useRegistrationForm)) {
+			$this->_useRegistrationForm = (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", true) === '1' ||
+			        intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) !== 1);
+		}
+		return $this->_useRegistrationForm;
 	}
+	private bool $_useRegistrationForm;
 
 	/**
 	 * @return stdClass[]
@@ -1091,8 +1095,7 @@ class Involvement implements api, updatesViaCron, geo, module
 
 				usort($posts, [Involvement::class, 'sortPosts']);
 
-				while ($q->have_posts()) {
-					$q->the_post();
+				foreach ($posts as $post) {
 					$loadedPart = get_template_part('list-item', 'involvement-list-item');
 					if ($loadedPart === false) {
 						require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
@@ -2832,10 +2835,14 @@ class Involvement implements api, updatesViaCron, geo, module
 			$btnClass = " class=\"$btnClass\"";
 		}
 
-		$text = __("Contact Leaders", 'TouchPoint-WP');
-		$ret  = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button> ";
-		TouchPointWP::enqueueActionsStyle('inv-contact');
-		$count = 1;
+		$ret = "";
+		$count = 0;
+		if (self::allowContact($this->invType)) {
+			$text = __("Contact Leaders", 'TouchPoint-WP');
+			$ret  = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button> ";
+			TouchPointWP::enqueueActionsStyle('inv-contact');
+			$count++;
+		}
 
 		if ($this->acceptingNewMembers() === true) {
 			if ($this->useRegistrationForm()) {
@@ -2948,6 +2955,20 @@ class Involvement implements api, updatesViaCron, geo, module
 	}
 
 	/**
+	 * Whether this client should be allowed to contact this set of Involvement leaders.  This is NOT
+	 * involvement-specific.
+	 *
+	 * @param string $invType
+	 *
+	 * @return bool
+	 */
+	protected static function allowContact(string $invType): bool
+	{
+		$allowed = !!apply_filters(TouchPointWP::HOOK_PREFIX . 'allow_contact', true);
+		return !!apply_filters(TouchPointWP::HOOK_PREFIX . 'inv_allow_contact', $allowed, $invType);
+	}
+
+	/**
 	 * Handles the API call to send a message through a contact form.
 	 */
 	private static function ajaxContact(): void
@@ -2959,7 +2980,15 @@ class Involvement implements api, updatesViaCron, geo, module
 		$inputData->keywords = [];
 
 		$settings = self::getSettingsForPostType($inputData->invType);
-		if ( ! ! $settings) {
+		if (!!$settings) {
+			if (!self::allowContact($inputData->invType)) {
+				echo json_encode([
+					'error'      => "Contact Prohibited.",
+					'error_i18n' => __("Contact Prohibited.", 'TouchPoint-WP')
+				]);
+				exit;
+			}
+
 			$inputData->keywords    = Utilities::idArrayToIntArray($settings->contactKeywords);
 			$inputData->owner       = $settings->taskOwner;
 			$lTypes                 = implode(',', $settings->leaderTypes);

@@ -902,7 +902,7 @@ if "people_get" in Data.a and model.HttpMethod == "post":
 
     # Prep SQL for People Extra Values
     pevSql = ''
-    if inData.has_key('meta') and isinstance(inData['meta'], dict) and inData['meta'].has_key('pev'):
+    if inData.has_key('meta') and isinstance(inData['meta'], dict) and inData['meta'].has_key('pev') and len(inData['meta']['pev']) > 0:
         pevSql = []
         for pev in inData['meta']['pev']:
             pevSql.append("([Field] = '{}' AND [Type] = '{}')".format(pev['field'], pev['type']))

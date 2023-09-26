@@ -1861,7 +1861,7 @@ class TouchPointWP
 	public static function useTribeCalendarPro(): bool
 	{
 		if ( ! function_exists('is_plugin_active')) {
-			require_once(ABSPATH . '/wp-admin/includes/plugin.php');
+			require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 		}
 
 		return is_plugin_active('events-calendar-pro/events-calendar-pro.php');
@@ -2801,7 +2801,7 @@ class TouchPointWP
 			throw new TouchPointWP_Exception(__("People Query Failed", "TouchPoint-WP"), 179004);
 		}
 
-		/** @noinspection PhpCastIsUnnecessaryInspection -- It actually is. */
+		/** @noinspection PhpCastIsUnnecessaryInspection -- It actually is necessary. */
 		$data->people = (array)$data->people;
 
 		if ($verbose) {
