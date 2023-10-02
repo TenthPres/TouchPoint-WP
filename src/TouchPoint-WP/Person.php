@@ -1685,17 +1685,27 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$inputData->keywords = Utilities::idArrayToIntArray($kw);
 
 		// CleanTalk Spam Filter.  Will call die() if appropriate.
+		// TODO this is totally untested.
 		apply_filters('ct_ajax_hook', [
-			'post_content' => $inputData->message,
-			'post_type' => $inputData->invType
+			'post_content' => $inputData->message
 		]);
 
 		// Akismet Spam Filter.  Will call die() if appropriate.
-		$akismetArgs = [];
+		$akismetArgs = [
+			'comment_post_ID' => null,
+			'comment_author' => $inputData->fromPerson->displayName,
+			'comment_content' => $inputData->message,
+			'comment_author_url' =>
+				'https://' . TouchPointWP::instance()->settings->host . '/Person2/' . $inputData->fromPerson->peopleId,
+			'comment_author_email' => null
+		];
 		foreach((array)$rawInputs as $k => $v) {
 			$akismetArgs['POST_' . $k] = $v;
 		}
-		do_action('preprocess_comment', $akismetArgs);
+		// TODO does not work.
+		do_action('preprocess_comment', $akismetArgs); // this does not work as expected.
+
+		// TODO once these are resolved, copy logic to Involvement contact.
 
 		// Submit the contact
 		try {
