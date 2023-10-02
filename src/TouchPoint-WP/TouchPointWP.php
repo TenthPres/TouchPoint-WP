@@ -777,9 +777,9 @@ class TouchPointWP
 
 		wp_register_script(
 			self::SHORTCODE_PREFIX . 'swal2-defer',
-			"//cdn.jsdelivr.net/npm/sweetalert2@10",
+			"https://cdn.jsdelivr.net/npm/sweetalert2@10",
 			[],
-			self::VERSION,
+			'2@10',
 			true
 		);
 

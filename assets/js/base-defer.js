@@ -1465,6 +1465,19 @@ class TP_Person {
                         Swal.showLoading();
 
                         let result = await tpvm.postData('person/ident', data);
+
+                        // Handle an error if it happened.
+                        if (result.hasOwnProperty('error')) {
+                            Swal.hideLoading();
+                            Swal.update({
+                                icon: 'error',
+                                title: __("Something went wrong.", 'TouchPoint-WP'),
+                                text: result.error,
+                                timer: 3000
+                            });
+                            return false;
+                        }
+
                         if (result.people.length > 0) {
                             return result;
                         } else {

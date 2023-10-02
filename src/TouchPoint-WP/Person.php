@@ -119,7 +119,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 
 	/**
-	 * @param int    $id
+	 * @param int    $id  WordPress UserId
 	 * @param string $name
 	 * @param string $site_id
 	 */
@@ -1199,7 +1199,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
-	 * Call this function if users (and immediate family members, probably) should be automatically instantiated in JS
+	 * Call this function if user (and immediate family members, probably) should be automatically instantiated in JS
 	 * on page load.  (e.g. if the page contains an RSVP button)
 	 *
 	 * @return void
@@ -1269,8 +1269,6 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$out .= "\t\tTP_Person.fromObjArray($listStr);\n";
 
 		if (self::$_enqueueUsersForJsInstantiation) {
-			TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
-
 			$s     = Session::instance();
 			$pFids = json_encode($s->primaryFam ?? []);
 			$sFids = json_encode($s->secondaryFam ?? []);
