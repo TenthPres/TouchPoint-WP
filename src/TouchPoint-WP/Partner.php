@@ -748,7 +748,9 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 		$any = __("Any", "TouchPoint-WP");
 
 		// Partner Category
-		if (in_array('partner_category', $filters)) {
+		if (in_array('partner_category', $filters)
+		    && TouchPointWP::instance()->settings->global_primary_tax !== "") {
+
 			$tax     = get_taxonomy(TouchPointWP::TAX_GP_CATEGORY);
 			$name    = substr($tax->name, strlen(TouchPointWP::SETTINGS_PREFIX));
 			$content .= "<select class=\"$class-filter\" data-partner-filter=\"$name\">";

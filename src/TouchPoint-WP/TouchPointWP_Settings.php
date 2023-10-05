@@ -678,7 +678,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 						),
 						'type'        => 'select',
 						'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('code', true) : [],
-						'default'     => [],
+						'default'     => "",
 					],
 				],
 			];
