@@ -387,21 +387,23 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 			$post->post_excerpt = self::getFamEvAsContent($summaryEv, $f, null);
 
 			// Partner Category
-			$category = $f->familyEV->$categoryEv->value ?? null;
-			// Insert Term if new
-			if ($category !== null && ! Utilities::termExists($category, TouchPointWP::TAX_GP_CATEGORY)) {
-				Utilities::insertTerm(
-					$category,
-					TouchPointWP::TAX_GP_CATEGORY,
-					[
-						'description' => $category,
-						'slug'        => sanitize_title($category)
-					]
-				);
-				TouchPointWP::queueFlushRewriteRules();
+			if ($categoryEv !== '') {
+				$category = $f->familyEV->$categoryEv->value ?? null;
+				// Insert Term if new
+				if ($category !== null && ! Utilities::termExists($category, TouchPointWP::TAX_GP_CATEGORY)) {
+					Utilities::insertTerm(
+						$category,
+						TouchPointWP::TAX_GP_CATEGORY,
+						[
+							'description' => $category,
+							'slug'        => sanitize_title($category)
+						]
+					);
+					TouchPointWP::queueFlushRewriteRules();
+				}
+				// Apply term to post
+				wp_set_post_terms($post->ID, $category, TouchPointWP::TAX_GP_CATEGORY, false);
 			}
-			// Apply term to post
-			wp_set_post_terms($post->ID, $category, TouchPointWP::TAX_GP_CATEGORY, false);
 
 			// Title & Slug
 			if ($post->post_title != $title) { // only update if there's a change.  Otherwise, urls increment.
