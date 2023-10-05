@@ -810,7 +810,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
-	 * Deletes a user and optionally reassigns their posts to a different user. Does not re-map meta fields.
+	 * Deletes a user and optionally reassigns their posts to a different user. Does NOT re-map meta fields.
+	 *
+	 * Will NOT delete users who are WP admins, nor users who don't have a People ID (and therefore probably weren't
+	 * imported through TouchPoint-WP)
 	 *
 	 * @param $userId   int ID of the user to delete
 	 * @param $reassign ?int ID of the user to whom the deleted author's work should be assigned.
@@ -819,6 +822,14 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 */
 	protected static function deleteUser($userId, $reassign = null): bool
 	{
+		if (user_can($userId, 'administrator')) {
+			return false;
+		}
+
+		if (intval(get_user_meta($userId, self::META_PEOPLEID, true)) < 1) {
+			return false;
+		}
+
 		require_once './wp-admin/includes/user.php';
 
 		return wp_delete_user($userId, $reassign);
