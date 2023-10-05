@@ -678,7 +678,7 @@ class TouchPointWP_Settings
 						),
 						'type'        => 'select',
 						'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('code', true) : [],
-						'default'     => [],
+						'default'     => "",
 					],
 				],
 			];
