@@ -400,7 +400,7 @@ class TouchPointWP
 				$reqUri['path'] = substr($reqUri['path'], 0, -1);
 			}
 			
-			if (isset($_GET['locale'])) {
+			if (isset($_GET['locale']) && strlen($_GET['locale']) > 1) {
 				$l = $_GET['locale'];
 				add_filter('locale', fn() => $l, 1);
 				do_action( 'wpml_switch_language', substr($l, 0, 2));

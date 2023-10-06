@@ -1612,7 +1612,12 @@ class Involvement implements api, updatesViaCron, geo, module
 	{
 		header('Content-Type: application/json');
 
-		$settings = self::getSettingsForPostType($_GET['type']);
+		$type  = $_GET['type'] ?? "";
+		$lat   = $_GET['lat'] ?? null;
+		$lng   = $_GET['lng'] ?? null;
+		$limit = $_GET['limit'] ?? null;
+
+		$settings = self::getSettingsForPostType($type);
 
 		if ( ! $settings) {
 			http_response_code(Http::NOT_FOUND);
@@ -1639,8 +1644,8 @@ class Involvement implements api, updatesViaCron, geo, module
 
 		$r = [];
 
-		if ($_GET['lat'] === "null" || $_GET['lng'] === "null" ||
-		    $_GET['lat'] === null || $_GET['lng'] === null) {
+		if ($lat === "null" || $lng === "null" ||
+		    $lat === null || $lng === null) {
 			$geoObj = TouchPointWP::instance()->geolocate();
 
 			if ($geoObj === false) {
@@ -1654,19 +1659,19 @@ class Involvement implements api, updatesViaCron, geo, module
 				exit;
 			}
 
-			$_GET['lat'] = $geoObj->lat;
-			$_GET['lng'] = $geoObj->lng;
+			$lat = $geoObj->lat;
+			$lng = $geoObj->lng;
 
 			$r['geo'] = $geoObj;
 		} else {
-			$geoObj = TouchPointWP::instance()->reverseGeocode($_GET['lat'], $_GET['lng']);
+			$geoObj = TouchPointWP::instance()->reverseGeocode($lat, $lng);
 
 			if ($geoObj !== false) {
 				$r['geo'] = $geoObj;
 			}
 		}
 
-		$invs = self::getInvsNear($_GET['lat'], $_GET['lng'], $settings->postType, $_GET['limit'] ?? 4);
+		$invs = self::getInvsNear($lat, $lng, $settings->postType, $limit);
 
 		if ($invs === null) {
 			http_response_code(Http::NOT_FOUND);
