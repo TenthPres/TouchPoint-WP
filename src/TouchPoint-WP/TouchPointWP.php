@@ -399,6 +399,12 @@ class TouchPointWP
 			if (substr($reqUri['path'], -1) === '/') {
 				$reqUri['path'] = substr($reqUri['path'], 0, -1);
 			}
+			
+			if (isset($_GET['locale'])) {
+				$l = $_GET['locale'];
+				add_filter('locale', fn() => $l, 1);
+				do_action( 'wpml_switch_language', substr($l, 0, 2));
+			}
 
 			// Explode by slashes
 			$reqUri['path'] = explode("/", $reqUri['path'] ?? "");
@@ -1040,13 +1046,14 @@ class TouchPointWP
 	}
 
 	/**
-	 * @param float $lat Latitude
-	 * @param float $lng Longitude
+	 * @param float   $lat Latitude
+	 * @param float   $lng Longitude
+	 * @param bool    $includeIpLoc  Whether to use IP geolocation as a fallback data source.
 	 *
 	 * @return object|false An object with a 'human' attribute, if a location could be identified. Or, false if not
 	 *     available.
 	 */
-	public function reverseGeocode(float $lat, float $lng, $includeIpLoc = true)
+	public function reverseGeocode(float $lat, float $lng, bool $includeIpLoc = true)
 	{
 		if ($lat === 0.0 && $lng === 0.0) {
 			return false; // avoiding an easy error case.

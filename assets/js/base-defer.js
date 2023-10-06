@@ -1122,6 +1122,7 @@ class TP_Involvement extends TP_Mappable {
                 lng: TP_DataGeo.loc.lng,
                 type: type,
                 limit: count,
+                locale: tpvm.locale
             }).then(handleNearbyLoaded);
         }
 

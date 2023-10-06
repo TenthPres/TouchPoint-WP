@@ -36,6 +36,8 @@ cp -r ./i18n ./build/i18n
 
 php ./wp-cli.phar i18n make-json ./build/i18n
 php ./wp-cli.phar i18n make-mo ./build/i18n
+cp ./wpml-config.xml ./build/wpml-config.xml
+cp ./composer.json ./build/composer.json
 
 cp -r ./ext ./build/ext
 cp -r ./src ./build/src

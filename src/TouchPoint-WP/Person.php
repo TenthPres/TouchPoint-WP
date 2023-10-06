@@ -1577,12 +1577,28 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		];
 	}
 
+	/**
+	 * Return JSON for a people search, validating that the person has access to those people.
+	 *
+	 * @return void
+	 */
 	private static function ajaxSrc(): void
 	{
 		header('Content-Type: application/json');
 
-		$q['q']       = $_GET['q'] ?? '';
-		$q['context'] = 'src';
+		$onBehalfOf = TouchPointWP::currentUserPerson();
+		if ($onBehalfOf === null) {
+			http_response_code(Http::UNAUTHORIZED);
+			echo json_encode([
+				                 "error"      => "Not Authorized.",
+				                 "error_i18n" => __("You may need to sign in.", 'TouchPoint-WP')
+			                 ]);
+			exit;
+		}
+
+		$q['q']          = $_GET['q'] ?? '';
+		$q['context']    = 'src';
+		$q['onBehalfOf'] = $onBehalfOf->peopleId;
 
 		if ($q['q'] !== '') {
 			try {
@@ -1598,7 +1614,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		}
 
 		$out = [];
-		if ($_GET['fmt'] == "s2") {
+		if (isset($_GET['fmt']) && $_GET['fmt'] == "s2") {
 			$out['fmt']        = "select2";
 			$out['pagination'] = [
 				'more' => false

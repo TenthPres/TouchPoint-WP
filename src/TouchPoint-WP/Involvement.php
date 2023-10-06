@@ -48,7 +48,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	public const CRON_OFFSET = 86400 + 3600;
 
 	public const SCHEDULE_STRING_CACHE_EXPIRATION = 3600 * 8; // 8 hours.  Automatically deleted during sync.
-	public const SCHED_STRING_CACHE_KEY = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
+	public const SCHEDULE_STRING_CACHE_GROUP = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
 
 	protected static bool $_hasUsedMap = false;
 	protected static bool $_hasArchiveMap = false;
@@ -514,25 +514,38 @@ class Involvement implements api, updatesViaCron, geo, module
 	 * Get a description of the meeting schedule in a human-friendly phrase, e.g. Sundays at 11:00am, starting January
 	 * 14.
 	 *
+	 * This is separated out to a static method to prevent involvement from being instantiated (with those database hits)
+	 * when the content is cached.  (10x faster or more)
+	 *
+	 * @param int           $invId
+	 * @param ?Involvement  $inv
+	 *
 	 * @return string
 	 */
-	public function scheduleString(): ?string
+	public static function scheduleString(int $invId, $inv = null): ?string
 	{
-		if ( ! isset($this->_scheduleString)) {
-			$cacheGroup            = $this->invId . "_" . get_locale();
-			$this->_scheduleString = wp_cache_get(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
-			if ( ! $this->_scheduleString) {
-				$this->_scheduleString = $this->scheduleString_calc();
-				wp_cache_set(
-					self::SCHED_STRING_CACHE_KEY,
-					$this->_scheduleString,
-					$cacheGroup,
-					self::SCHEDULE_STRING_CACHE_EXPIRATION
-				);
+		$cacheKey = $invId . "_" . get_locale();
+		$schStr = wp_cache_get($cacheKey, self::SCHEDULE_STRING_CACHE_GROUP);
+		if (!! $schStr) {
+			return $schStr;
+		}
+		if (! $inv) {
+			try {
+				$inv = self::fromInvId($invId);
+			} catch (TouchPointWP_Exception $e) {
+				return null;
 			}
 		}
-
-		return $this->_scheduleString;
+		if (! isset($inv->_scheduleString)) {
+			$inv->_scheduleString = $inv->scheduleString_calc();
+			wp_cache_set(
+				$cacheKey,
+				$inv->_scheduleString,
+				self::SCHEDULE_STRING_CACHE_GROUP,
+				self::SCHEDULE_STRING_CACHE_EXPIRATION
+			);
+		}
+		return $inv->_scheduleString;
 	}
 
 	/**
@@ -1653,7 +1666,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 		}
 
-		$invs = self::getInvsNear($_GET['lat'], $_GET['lng'], $settings->postType, $_GET['limit']);
+		$invs = self::getInvsNear($_GET['lat'], $_GET['lng'], $settings->postType, $_GET['limit'] ?? 4);
 
 		if ($invs === null) {
 			http_response_code(Http::NOT_FOUND);
@@ -1667,15 +1680,10 @@ class Involvement implements api, updatesViaCron, geo, module
 
 		$errorMessage = null;
 		foreach ($invs as $g) {
-			try {
-				$inv        = self::fromObj($g);
-				$g->name    = html_entity_decode($inv->name);
-				$g->invType = $settings->postTypeWithoutPrefix();
-				$g->path    = get_permalink($inv->post_id);
-			} catch (TouchPointWP_Exception $ex) {
-				http_response_code(Http::SERVER_ERROR);
-				$errorMessage = $ex->getMessage();
-			}
+			$g->name     = html_entity_decode($g->name);
+			$g->schedule = self::scheduleString($g->invId);
+			$g->invType  = $settings->postTypeWithoutPrefix();
+			$g->path     = get_permalink($g->post_id);
 		}
 
 		$r['invList'] = $invs;
@@ -1745,22 +1753,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			$limit
 		);
 
-		$r = $wpdb->get_results($q, 'OBJECT');
-		foreach ($r as $iObj) {
-			$cacheGroup = $iObj->invId . "_" . get_locale();
-			$sch        = wp_cache_get(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
-			if ( ! $sch) {
-				try {
-					$i   = self::fromInvId($iObj->invId);
-					$sch = $i !== null ? $i->scheduleString() : null;
-				} catch (TouchPointWP_Exception $e) {
-					$sch = null;
-				}
-			}
-			$iObj->schedule = $sch;
-		}
-
-		return $r;
+		return $wpdb->get_results($q, 'OBJECT');
 	}
 
 
@@ -2401,8 +2394,8 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 
 			// Clear Cached Schedule String
-			$cacheGroup = $inv->involvementId . "_" . get_locale();
-			wp_cache_delete(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
+			$cacheKey = $inv->involvementId . "_" . get_locale();
+			wp_cache_delete($cacheKey, self::SCHEDULE_STRING_CACHE_GROUP);
 
 			// Tense
 			if ($inv->firstMeeting !== null) {
@@ -2579,13 +2572,7 @@ class Involvement implements api, updatesViaCron, geo, module
 				$post = get_post($post);
 			}
 
-			try {
-				$inv = self::fromPost($post);
-			} catch (TouchPointWP_Exception $e) {
-				return $theDate;
-			}
-
-			$theDate = $inv->scheduleString() ?? "";
+			$theDate = self::scheduleString(intval($post->{self::INVOLVEMENT_META_KEY})) ?? "";
 		}
 
 		return $theDate;
@@ -2753,9 +2740,11 @@ class Involvement implements api, updatesViaCron, geo, module
 	{
 		$r = [];
 
-		if ($this->scheduleString()) {
-			$r[] = $this->scheduleString();
+		$schStr = self::scheduleString($this->invId, $this);
+		if ($schStr) {
+			$r[] = $schStr;
 		}
+		unset($schStr);
 
 		if ($this->locationName) {
 			$r[] = $this->locationName;
