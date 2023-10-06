@@ -3,12 +3,14 @@
     <properties>
       <sourceFilesUrls>
         <item url="file://$PROJECT_DIR$/build/assets/js/base-defer.js" />
-        <item url="file://$PROJECT_DIR$/build/assets/js/base-defer.min.js" />
+        <item url="file://$PROJECT_DIR$/build/assets/js/meeting-defer.js" />
+        <item url="file://$PROJECT_DIR$/build/assets/js/partner-defer.js" />
       </sourceFilesUrls>
     </properties>
     <CLASSES>
       <root url="file://$PROJECT_DIR$/build/assets/js/base-defer.js" />
-      <root url="file://$PROJECT_DIR$/build/assets/js/base-defer.min.js" />
+      <root url="file://$PROJECT_DIR$/build/assets/js/meeting-defer.js" />
+      <root url="file://$PROJECT_DIR$/build/assets/js/partner-defer.js" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

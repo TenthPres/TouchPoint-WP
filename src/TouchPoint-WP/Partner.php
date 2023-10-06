@@ -700,6 +700,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 		if ( ! self::$filterJsAdded) {
 			wp_add_inline_script(
 				TouchPointWP::SHORTCODE_PREFIX . 'base-defer',
+				// language=javascript
 				"
                 tpvm.addEventListener('Partner_fromObjArray', function() {
                     TP_Partner.initFilters();

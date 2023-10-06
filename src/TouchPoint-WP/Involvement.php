@@ -979,6 +979,7 @@ class Involvement implements api, updatesViaCron, geo, module
 		if ( ! self::$filterJsAdded) {
 			wp_add_inline_script(
 				TouchPointWP::SHORTCODE_PREFIX . 'base-defer',
+				// language=javascript
 				"
                 tpvm.addEventListener('Involvement_fromObjArray', function() {
                     TP_Involvement.initFilters();
@@ -1740,13 +1741,19 @@ class Involvement implements api, updatesViaCron, geo, module
                          p.post_title,
                          p.post_type,
                          CAST(pmLat.meta_value AS DECIMAL(10, 7)) as lat,
-                         CAST(pmLng.meta_value AS DECIMAL(10, 7)) as lng
+                         CAST(pmLng.meta_value AS DECIMAL(10, 7)) as lng,
+                         pmFull.meta_value as full,
+                         pmClosed.meta_value as closed
                   FROM $wpdb->posts as p
                            JOIN
                        $wpdb->postmeta as pmLat ON p.ID = pmLat.post_id AND pmLat.meta_key = '{$settingsPrefix}geo_lat'
                            JOIN
                        $wpdb->postmeta as pmLng ON p.ID = pmLng.post_id AND pmLng.meta_key = '{$settingsPrefix}geo_lng'
-                WHERE p.post_type = %s
+                  		   LEFT JOIN
+                       $wpdb->postmeta as pmFull ON p.ID = pmFull.post_id AND pmFull.meta_key = '{$settingsPrefix}groupFull'
+                  		   LEFT JOIN
+                       $wpdb->postmeta as pmClosed ON p.ID = pmClosed.post_id AND pmClosed.meta_key = '{$settingsPrefix}groupClosed'
+                WHERE p.post_type = %s AND pmClosed.meta_value != 1 AND pmFull.meta_value != 1
                  ) as l
                     JOIN $wpdb->postmeta as pmInv ON l.ID = pmInv.post_id AND pmInv.meta_key = '{$settingsPrefix}invId'
             ORDER BY distance LIMIT %d

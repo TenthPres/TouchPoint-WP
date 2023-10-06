@@ -19,9 +19,9 @@ mkdir build/assets/js
 
 # install uglify and uglify the JS files.
 echo $(npm install -g uglify-js)
-uglifyjs -o build/assets/js/base-defer.min.js -- assets/js/base-defer.js
-uglifyjs -o build/assets/js/meeting-defer.min.js -- assets/js/meeting-defer.js
-uglifyjs -o build/assets/js/partner-defer.min.js -- assets/js/partner-defer.js
+uglifyjs assets/js/base-defer.js -o build/assets/js/base-defer.min.js --source-map
+uglifyjs assets/js/meeting-defer.js -o build/assets/js/meeting-defer.min.js --source-map
+uglifyjs assets/js/partner-defer.js -o build/assets/js/partner-defer.min.js --source-map
 cp -r assets build
 cd ./build || exit
 cd ..

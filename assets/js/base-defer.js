@@ -1147,6 +1147,7 @@ class TP_Involvement extends TP_Mappable {
             } else {
                 tpvm._invNear.labelStr(__("Your Location", 'TouchPoint-WP'));
             }
+            setTimeout(getNearbyInvolvements, 600000); // 10 minutes
         }
     }
 }

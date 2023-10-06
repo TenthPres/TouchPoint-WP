@@ -22,14 +22,14 @@
       <envs />
     </TaskOptions>
     <TaskOptions isEnabled="true">
-      <option name="arguments" value="$/FilePathRelativeToProjectRoot$ -o build/$/FileDirRelativeToProjectRoot$/$FileNameWithoutAllExtensions$.min.js" />
+      <option name="arguments" value="$/FilePathRelativeToProjectRoot$ -o build/$/FileDirRelativeToProjectRoot$/$FileNameWithoutAllExtensions$.min.js --source-map" />
       <option name="checkSyntaxErrors" value="true" />
       <option name="description" />
       <option name="exitCodeBehavior" value="ERROR" />
       <option name="fileExtension" value="js" />
       <option name="immediateSync" value="true" />
       <option name="name" value="UglifyJS to Build" />
-      <option name="output" value="build/$/FileDirRelativeToProjectRoot$/$FileNameWithoutAllExtensions$.min.js" />
+      <option name="output" value="build/$/FileDirRelativeToProjectRoot$/" />
       <option name="outputFilters">
         <array />
       </option>
