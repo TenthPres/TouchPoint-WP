@@ -6,8 +6,6 @@ class TP_Partner extends TP_Mappable {
 
     static actions = [];
 
-    static _secureCount = 0;
-
     constructor(obj) {
         super(obj);
 
@@ -62,6 +60,7 @@ class TP_Partner extends TP_Mappable {
         return this.post_id !== 0;
     }
 
+    // noinspection JSUnusedGlobalSymbols  Called by inline.
     static initFilters() {
         const filtOptions = document.querySelectorAll("[data-partner-filter]");
         for (const ei in filtOptions) {

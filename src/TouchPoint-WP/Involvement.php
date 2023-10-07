@@ -48,7 +48,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	public const CRON_OFFSET = 86400 + 3600;
 
 	public const SCHEDULE_STRING_CACHE_EXPIRATION = 3600 * 8; // 8 hours.  Automatically deleted during sync.
-	public const SCHED_STRING_CACHE_KEY = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
+	public const SCHEDULE_STRING_CACHE_GROUP = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
 
 	protected static bool $_hasUsedMap = false;
 	protected static bool $_hasArchiveMap = false;
@@ -470,9 +470,13 @@ class Involvement implements api, updatesViaCron, geo, module
 	 */
 	public function useRegistrationForm(): bool
 	{
-		return (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", true) === '1' ||
-		        intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) !== 1);
+		if (!isset($this->_useRegistrationForm)) {
+			$this->_useRegistrationForm = (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", true) === '1' ||
+			        intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) !== 1);
+		}
+		return $this->_useRegistrationForm;
 	}
+	private bool $_useRegistrationForm;
 
 	/**
 	 * @return stdClass[]
@@ -510,25 +514,38 @@ class Involvement implements api, updatesViaCron, geo, module
 	 * Get a description of the meeting schedule in a human-friendly phrase, e.g. Sundays at 11:00am, starting January
 	 * 14.
 	 *
+	 * This is separated out to a static method to prevent involvement from being instantiated (with those database hits)
+	 * when the content is cached.  (10x faster or more)
+	 *
+	 * @param int           $invId
+	 * @param ?Involvement  $inv
+	 *
 	 * @return string
 	 */
-	public function scheduleString(): ?string
+	public static function scheduleString(int $invId, $inv = null): ?string
 	{
-		if ( ! isset($this->_scheduleString)) {
-			$cacheGroup            = $this->invId . "_" . get_locale();
-			$this->_scheduleString = wp_cache_get(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
-			if ( ! $this->_scheduleString) {
-				$this->_scheduleString = $this->scheduleString_calc();
-				wp_cache_set(
-					self::SCHED_STRING_CACHE_KEY,
-					$this->_scheduleString,
-					$cacheGroup,
-					self::SCHEDULE_STRING_CACHE_EXPIRATION
-				);
+		$cacheKey = $invId . "_" . get_locale();
+		$schStr = wp_cache_get($cacheKey, self::SCHEDULE_STRING_CACHE_GROUP);
+		if (!! $schStr) {
+			return $schStr;
+		}
+		if (! $inv) {
+			try {
+				$inv = self::fromInvId($invId);
+			} catch (TouchPointWP_Exception $e) {
+				return null;
 			}
 		}
-
-		return $this->_scheduleString;
+		if (! isset($inv->_scheduleString)) {
+			$inv->_scheduleString = $inv->scheduleString_calc();
+			wp_cache_set(
+				$cacheKey,
+				$inv->_scheduleString,
+				self::SCHEDULE_STRING_CACHE_GROUP,
+				self::SCHEDULE_STRING_CACHE_EXPIRATION
+			);
+		}
+		return $inv->_scheduleString;
 	}
 
 	/**
@@ -962,6 +979,7 @@ class Involvement implements api, updatesViaCron, geo, module
 		if ( ! self::$filterJsAdded) {
 			wp_add_inline_script(
 				TouchPointWP::SHORTCODE_PREFIX . 'base-defer',
+				// language=javascript
 				"
                 tpvm.addEventListener('Involvement_fromObjArray', function() {
                     TP_Involvement.initFilters();
@@ -1091,8 +1109,7 @@ class Involvement implements api, updatesViaCron, geo, module
 
 				usort($posts, [Involvement::class, 'sortPosts']);
 
-				while ($q->have_posts()) {
-					$q->the_post();
+				foreach ($posts as $post) {
 					$loadedPart = get_template_part('list-item', 'involvement-list-item');
 					if ($loadedPart === false) {
 						require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
@@ -1596,7 +1613,12 @@ class Involvement implements api, updatesViaCron, geo, module
 	{
 		header('Content-Type: application/json');
 
-		$settings = self::getSettingsForPostType($_GET['type']);
+		$type  = $_GET['type'] ?? "";
+		$lat   = $_GET['lat'] ?? null;
+		$lng   = $_GET['lng'] ?? null;
+		$limit = $_GET['limit'] ?? null;
+
+		$settings = self::getSettingsForPostType($type);
 
 		if ( ! $settings) {
 			http_response_code(Http::NOT_FOUND);
@@ -1623,8 +1645,8 @@ class Involvement implements api, updatesViaCron, geo, module
 
 		$r = [];
 
-		if ($_GET['lat'] === "null" || $_GET['lng'] === "null" ||
-		    $_GET['lat'] === null || $_GET['lng'] === null) {
+		if ($lat === "null" || $lng === "null" ||
+		    $lat === null || $lng === null) {
 			$geoObj = TouchPointWP::instance()->geolocate();
 
 			if ($geoObj === false) {
@@ -1638,19 +1660,19 @@ class Involvement implements api, updatesViaCron, geo, module
 				exit;
 			}
 
-			$_GET['lat'] = $geoObj->lat;
-			$_GET['lng'] = $geoObj->lng;
+			$lat = $geoObj->lat;
+			$lng = $geoObj->lng;
 
 			$r['geo'] = $geoObj;
 		} else {
-			$geoObj = TouchPointWP::instance()->reverseGeocode($_GET['lat'], $_GET['lng']);
+			$geoObj = TouchPointWP::instance()->reverseGeocode($lat, $lng);
 
 			if ($geoObj !== false) {
 				$r['geo'] = $geoObj;
 			}
 		}
 
-		$invs = self::getInvsNear($_GET['lat'], $_GET['lng'], $settings->postType, $_GET['limit']);
+		$invs = self::getInvsNear($lat, $lng, $settings->postType, $limit);
 
 		if ($invs === null) {
 			http_response_code(Http::NOT_FOUND);
@@ -1664,15 +1686,10 @@ class Involvement implements api, updatesViaCron, geo, module
 
 		$errorMessage = null;
 		foreach ($invs as $g) {
-			try {
-				$inv        = self::fromObj($g);
-				$g->name    = html_entity_decode($inv->name);
-				$g->invType = $settings->postTypeWithoutPrefix();
-				$g->path    = get_permalink($inv->post_id);
-			} catch (TouchPointWP_Exception $ex) {
-				http_response_code(Http::SERVER_ERROR);
-				$errorMessage = $ex->getMessage();
-			}
+			$g->name     = html_entity_decode($g->name);
+			$g->schedule = self::scheduleString($g->invId);
+			$g->invType  = $settings->postTypeWithoutPrefix();
+			$g->path     = get_permalink($g->post_id);
 		}
 
 		$r['invList'] = $invs;
@@ -1724,13 +1741,19 @@ class Involvement implements api, updatesViaCron, geo, module
                          p.post_title,
                          p.post_type,
                          CAST(pmLat.meta_value AS DECIMAL(10, 7)) as lat,
-                         CAST(pmLng.meta_value AS DECIMAL(10, 7)) as lng
+                         CAST(pmLng.meta_value AS DECIMAL(10, 7)) as lng,
+                         pmFull.meta_value as full,
+                         pmClosed.meta_value as closed
                   FROM $wpdb->posts as p
                            JOIN
                        $wpdb->postmeta as pmLat ON p.ID = pmLat.post_id AND pmLat.meta_key = '{$settingsPrefix}geo_lat'
                            JOIN
                        $wpdb->postmeta as pmLng ON p.ID = pmLng.post_id AND pmLng.meta_key = '{$settingsPrefix}geo_lng'
-                WHERE p.post_type = %s
+                  		   LEFT JOIN
+                       $wpdb->postmeta as pmFull ON p.ID = pmFull.post_id AND pmFull.meta_key = '{$settingsPrefix}groupFull'
+                  		   LEFT JOIN
+                       $wpdb->postmeta as pmClosed ON p.ID = pmClosed.post_id AND pmClosed.meta_key = '{$settingsPrefix}groupClosed'
+                WHERE p.post_type = %s AND pmClosed.meta_value != 1 AND pmFull.meta_value != 1
                  ) as l
                     JOIN $wpdb->postmeta as pmInv ON l.ID = pmInv.post_id AND pmInv.meta_key = '{$settingsPrefix}invId'
             ORDER BY distance LIMIT %d
@@ -1742,22 +1765,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			$limit
 		);
 
-		$r = $wpdb->get_results($q, 'OBJECT');
-		foreach ($r as $iObj) {
-			$cacheGroup = $iObj->invId . "_" . get_locale();
-			$sch        = wp_cache_get(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
-			if ( ! $sch) {
-				try {
-					$i   = self::fromInvId($iObj->invId);
-					$sch = $i !== null ? $i->scheduleString() : null;
-				} catch (TouchPointWP_Exception $e) {
-					$sch = null;
-				}
-			}
-			$iObj->schedule = $sch;
-		}
-
-		return $r;
+		return $wpdb->get_results($q, 'OBJECT');
 	}
 
 
@@ -2398,8 +2406,8 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 
 			// Clear Cached Schedule String
-			$cacheGroup = $inv->involvementId . "_" . get_locale();
-			wp_cache_delete(self::SCHED_STRING_CACHE_KEY, $cacheGroup);
+			$cacheKey = $inv->involvementId . "_" . get_locale();
+			wp_cache_delete($cacheKey, self::SCHEDULE_STRING_CACHE_GROUP);
 
 			// Tense
 			if ($inv->firstMeeting !== null) {
@@ -2576,13 +2584,7 @@ class Involvement implements api, updatesViaCron, geo, module
 				$post = get_post($post);
 			}
 
-			try {
-				$inv = self::fromPost($post);
-			} catch (TouchPointWP_Exception $e) {
-				return $theDate;
-			}
-
-			$theDate = $inv->scheduleString() ?? "";
+			$theDate = self::scheduleString(intval($post->{self::INVOLVEMENT_META_KEY})) ?? "";
 		}
 
 		return $theDate;
@@ -2750,9 +2752,11 @@ class Involvement implements api, updatesViaCron, geo, module
 	{
 		$r = [];
 
-		if ($this->scheduleString()) {
-			$r[] = $this->scheduleString();
+		$schStr = self::scheduleString($this->invId, $this);
+		if ($schStr) {
+			$r[] = $schStr;
 		}
+		unset($schStr);
 
 		if ($this->locationName) {
 			$r[] = $this->locationName;
@@ -2832,10 +2836,14 @@ class Involvement implements api, updatesViaCron, geo, module
 			$btnClass = " class=\"$btnClass\"";
 		}
 
-		$text = __("Contact Leaders", 'TouchPoint-WP');
-		$ret  = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button> ";
-		TouchPointWP::enqueueActionsStyle('inv-contact');
-		$count = 1;
+		$ret = "";
+		$count = 0;
+		if (self::allowContact($this->invType)) {
+			$text = __("Contact Leaders", 'TouchPoint-WP');
+			$ret  = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button> ";
+			TouchPointWP::enqueueActionsStyle('inv-contact');
+			$count++;
+		}
 
 		if ($this->acceptingNewMembers() === true) {
 			if ($this->useRegistrationForm()) {
@@ -2948,6 +2956,20 @@ class Involvement implements api, updatesViaCron, geo, module
 	}
 
 	/**
+	 * Whether this client should be allowed to contact this set of Involvement leaders.  This is NOT
+	 * involvement-specific.
+	 *
+	 * @param string $invType
+	 *
+	 * @return bool
+	 */
+	protected static function allowContact(string $invType): bool
+	{
+		$allowed = !!apply_filters(TouchPointWP::HOOK_PREFIX . 'allow_contact', true);
+		return !!apply_filters(TouchPointWP::HOOK_PREFIX . 'inv_allow_contact', $allowed, $invType);
+	}
+
+	/**
 	 * Handles the API call to send a message through a contact form.
 	 */
 	private static function ajaxContact(): void
@@ -2958,8 +2980,33 @@ class Involvement implements api, updatesViaCron, geo, module
 		$inputData           = json_decode($inputData);
 		$inputData->keywords = [];
 
+		// Clean Talk filter
+		$result   = "Contact Blocked for Spam.";
+		$validate = Utilities::validateMessage(
+			$inputData->fromPerson->displayName,
+			$inputData->fromEmail,
+			$inputData->message,
+			$result
+		);
+		if (!$validate) {
+			http_response_code(Http::BAD_REQUEST);
+			echo json_encode([
+				                 'error'      => $result,
+				                 'error_i18n' => __("Contact Blocked for Spam.", 'TouchPoint-WP')
+			                 ]);
+			exit;
+		}
+
 		$settings = self::getSettingsForPostType($inputData->invType);
-		if ( ! ! $settings) {
+		if (!!$settings) {
+			if (!self::allowContact($inputData->invType)) {
+				echo json_encode([
+					                 'error'      => "Contact Prohibited.",
+					                 'error_i18n' => __("Contact Prohibited.", 'TouchPoint-WP')
+				                 ]);
+				exit;
+			}
+
 			$inputData->keywords    = Utilities::idArrayToIntArray($settings->contactKeywords);
 			$inputData->owner       = $settings->taskOwner;
 			$lTypes                 = implode(',', $settings->leaderTypes);
@@ -2973,6 +3020,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			exit;
 		}
 
+		// Submit the contact
 		try {
 			$data = TouchPointWP::instance()->apiPost('inv_contact', $inputData);
 		} catch (TouchPointWP_Exception $ex) {

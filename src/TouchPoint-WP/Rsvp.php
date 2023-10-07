@@ -62,8 +62,6 @@ abstract class Rsvp implements module
 	 * @param string $content
 	 *
 	 * @return string
-	 *
-	 * TODO resolve how this works with AppEvents
 	 */
 	public static function shortcode(array $params, string $content): string
 	{

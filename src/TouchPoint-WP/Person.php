@@ -15,6 +15,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "jsInstantiation.php";
 	require_once "updatesViaCron.php";
 	require_once "InvolvementMembership.php";
+	require_once "Utilities.php";
 	require_once "Utilities/PersonQuery.php";
 	require_once "Utilities/Session.php";
 }
@@ -119,7 +120,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 
 	/**
-	 * @param int    $id
+	 * @param int    $id  WordPress UserId
 	 * @param string $name
 	 * @param string $site_id
 	 */
@@ -810,16 +811,27 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
-	 * Deletes a user and optionally reassigns their posts to a different user. Does not re-map meta fields.
+	 * Deletes a user and optionally reassigns their posts to a different user. Does NOT re-map meta fields.
 	 *
-	 * @param $userId   int ID of the user to delete
-	 * @param $reassign ?int ID of the user to whom the deleted author's work should be assigned.
+	 * Will NOT delete users who are WP admins, nor users who don't have a People ID (and therefore probably weren't
+	 * imported through TouchPoint-WP)
+	 *
+	 * @param $userId   int WordPress ID of the user to delete
+	 * @param $reassign ?int WordPress ID of the user to whom the deleted author's work should be assigned.
 	 *
 	 * @return bool
 	 */
-	protected static function deleteUser($userId, $reassign = null): bool
+	protected static function deleteUser(int $userId, ?int $reassign = null): bool
 	{
-		require_once './wp-admin/includes/user.php';
+		if (user_can($userId, 'administrator')) {
+			return false;
+		}
+
+		if (intval(get_user_meta($userId, self::META_PEOPLEID, true)) < 1) {
+			return false;
+		}
+
+		require_once(ABSPATH . 'wp-admin/includes/user.php');
 
 		return wp_delete_user($userId, $reassign);
 	}
@@ -857,7 +869,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 						if ($p === $person) {
 							continue;
 						}
-						self::deleteUser($p->ID, $person->ID);
+						$pid = $person->ID ?? null;
+						self::deleteUser($p->ID, $pid);
 					}
 				}
 			}
@@ -865,12 +878,14 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		// Find person by WordPress ID, if provided.
 		$wpId = null;
-		foreach ($pData->PeopleEV as $pev) {
-			if ($pev->field === TouchPointWP::instance()->settings->people_ev_wpId && $pev->type === "Int") {
-				if (intval($pev->value) !== 0) {
-					$wpId = intval($pev->value);
+		if (isset($pData->PeopleEV)) {
+			foreach ($pData->PeopleEV as $pev) {
+				if ($pev->field === TouchPointWP::instance()->settings->people_ev_wpId && $pev->type === "Int") {
+					if (intval($pev->value) !== 0) {
+						$wpId = intval($pev->value);
+					}
+					break;
 				}
-				break;
 			}
 		}
 		if ($wpId !== null) {
@@ -1167,10 +1182,13 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			$btnClass = " class=\"$btnClass\"";
 		}
 
-		$text = __("Contact", "TouchPoint-WP");
-		TouchPointWP::enqueueActionsStyle('person-contact');
-		self::enqueueUsersForJsInstantiation();
-		$ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
+		$ret = "";
+		if (self::allowContact()) {
+			$text = __("Contact", "TouchPoint-WP");
+			TouchPointWP::enqueueActionsStyle('person-contact');
+			self::enqueueUsersForJsInstantiation();
+			$ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
+		}
 
 		return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context, $btnClass);
 	}
@@ -1193,7 +1211,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
-	 * Call this function if users (and immediate family members, probably) should be automatically instantiated in JS
+	 * Call this function if user (and immediate family members, probably) should be automatically instantiated in JS
 	 * on page load.  (e.g. if the page contains an RSVP button)
 	 *
 	 * @return void
@@ -1319,7 +1337,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		// Better.  Concat of full name.  Does not intersect with above, which uses first initials, probably.
 		$try = strtolower($pData->DisplayName);
-		$try = preg_replace('/[^\w\d]+/', '', $try);
+		$try = preg_replace('/\W+/', '', $try);
 		if ( ! username_exists($try)) {
 			return $try;
 		}
@@ -1513,10 +1531,24 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 */
 	public static function ident($inputData): array
 	{
+		// user validation.
+		$comment = "";
+		$valid = Utilities::validateRegistrantEmailAddress("", $inputData->email, $comment);
+		if (!$valid) {
+			http_response_code(Http::BAD_REQUEST);
+			echo json_encode([
+				                 'error'      => $comment,
+				                 'error_i18n' => __("Registration Blocked for Spam.", 'TouchPoint-WP')
+			                 ]);
+			exit;
+		}
+		unset($valid, $comment);
+
 		try {
 			$inputData->context = "ident";
 			$data               = TouchPointWP::instance()->apiPost('ident', $inputData, 30);
 		} catch (Exception $ex) {
+			http_response_code(Http::SERVER_ERROR);
 			echo json_encode(['error' => $ex->getMessage()]);
 			exit;
 		}
@@ -1560,12 +1592,28 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		];
 	}
 
+	/**
+	 * Return JSON for a people search, validating that the person has access to those people.
+	 *
+	 * @return void
+	 */
 	private static function ajaxSrc(): void
 	{
 		header('Content-Type: application/json');
 
-		$q['q']       = $_GET['q'] ?? '';
-		$q['context'] = 'src';
+		$onBehalfOf = TouchPointWP::currentUserPerson();
+		if ($onBehalfOf === null) {
+			http_response_code(Http::UNAUTHORIZED);
+			echo json_encode([
+				                 "error"      => "Not Authorized.",
+				                 "error_i18n" => __("You may need to sign in.", 'TouchPoint-WP')
+			                 ]);
+			exit;
+		}
+
+		$q['q']          = $_GET['q'] ?? '';
+		$q['context']    = 'src';
+		$q['onBehalfOf'] = $onBehalfOf->peopleId;
 
 		if ($q['q'] !== '') {
 			try {
@@ -1581,7 +1629,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		}
 
 		$out = [];
-		if ($_GET['fmt'] == "s2") {
+		if (isset($_GET['fmt']) && $_GET['fmt'] == "s2") {
 			$out['fmt']        = "select2";
 			$out['pagination'] = [
 				'more' => false
@@ -1645,6 +1693,17 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
+	 * Whether this client should be allowed to contact this set of people.
+	 *
+	 * @return bool
+	 */
+	protected static function allowContact(): bool
+	{
+		$allowed = !!apply_filters(TouchPointWP::HOOK_PREFIX . 'allow_contact', true);
+		return !!apply_filters(TouchPointWP::HOOK_PREFIX . 'person_allow_contact', $allowed);
+	}
+
+	/**
 	 * Handles the API call to send a message through a contact form.
 	 */
 	private static function ajaxContact(): void
@@ -1654,9 +1713,36 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$inputData = TouchPointWP::postHeadersAndFiltering();
 		$inputData = json_decode($inputData);
 
+		if (!self::allowContact()) {
+			http_response_code(Http::BAD_REQUEST);
+			echo json_encode([
+				'error'      => "Contact Prohibited.",
+				'error_i18n' => __("Contact Prohibited.", 'TouchPoint-WP')
+			]);
+			exit;
+		}
+
+		// Clean Talk filter
+		$result   = "Contact Blocked for Spam.";
+		$validate = Utilities::validateMessage(
+			$inputData->fromPerson->displayName,
+			$inputData->fromEmail,
+			$inputData->message,
+			$result
+		);
+		if (!$validate) {
+			http_response_code(Http::BAD_REQUEST);
+			echo json_encode([
+				                 'error'      => $result,
+				                 'error_i18n' => __("Contact Blocked for Spam.", 'TouchPoint-WP')
+			                 ]);
+			exit;
+		}
+
 		$kw                  = TouchPointWP::instance()->settings->people_contact_keywords;
 		$inputData->keywords = Utilities::idArrayToIntArray($kw);
 
+		// Submit the contact
 		try {
 			$data = TouchPointWP::instance()->apiPost('person_contact', $inputData);
 		} catch (Exception $ex) {

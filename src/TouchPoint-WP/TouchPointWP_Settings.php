@@ -330,8 +330,7 @@ class TouchPointWP_Settings
 					'id'          => 'host_deeplink',
 					'label'       => __('Custom Mobile App Deeplink Host Name', 'TouchPoint-WP'),
 					'description' => __(
-						"The domain for your mobile app deeplinks, without the https or any slashes.  If you aren't 
-                        using the custom mobile app, leave this blank.",
+						"The domain for your mobile app deeplinks, without the https or any slashes.  If you aren't using the custom mobile app, leave this blank.",
 						'TouchPoint-WP'
 					),
 					'type'        => 'text',
@@ -412,9 +411,8 @@ class TouchPointWP_Settings
 				'label'       => __('Generate Scripts', 'TouchPoint-WP'),
 				'type'        => 'instructions',
 				'description' => strtr(
-					'<p>' . __('Once your settings on this page are set and saved, use this tool to generate
-the scripts needed for TouchPoint in a convenient installation package.  ', 'TouchPoint-WP') .
-					'<a href="{uploadUrl}" target="_blank">' . __('Upload the package to {tpName} here', 'TouchPoint-WP') . '</a>.</p>
+					'<p>' . __('Once your settings on this page are set and saved, use this tool to generate the scripts needed for TouchPoint in a convenient installation package.', 'TouchPoint-WP') .
+					'  <a href="{uploadUrl}">' . __('Upload the package to {tpName} here', 'TouchPoint-WP') . '</a>.</p>
 <p><a href="{apiUrl}" class="button-secondary" target="tp_zipIfr">' . __('Generate Scripts', 'TouchPoint-WP') . '</a></p>
 <iframe name="tp_zipIfr" style="width:0; height:0; opacity:0;"></iframe>',
 					[
@@ -428,6 +426,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_people_lists') === "on") { // TODO MULTI
 			$includeThis              = $includeDetail === true || $includeDetail === 'people';
+			$urlParts = wp_parse_url(home_url());
+			$defaultUserPev = $urlParts['host'] . " User ID";
 			$this->settings['people'] = [
 				'title'       => __('People', 'TouchPoint-WP'),
 				'description' => __('Manage how people are synchronized between TouchPoint and WordPress.', 'TouchPoint-WP'),
@@ -452,8 +452,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 							'TouchPoint-WP'
 						),
 						'type'        => 'text',
-						'default'     => 'WordPress User ID',
-						'placeholder' => 'WordPress User ID'
+						'default'     => $defaultUserPev,
+						'placeholder' => $defaultUserPev
 					],
 					[
 						'id'          => 'people_ev_bio',
@@ -491,8 +491,8 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 					[
 						'id'          => 'auth_default',
 						'label'       => __('Make TouchPoint the default authentication method.', 'TouchPoint-WP'),
-						'description' => __( // TODO change to a single translation string
-							'By checking this box, the TouchPoint login page will become the default.  To prevent the redirect and reach the standard TouchPoint login page, add \'' . TouchPointWP::HOOK_PREFIX . 'no_redirect\' as a URL parameter.',
+						'description' => __(
+							'By checking this box, the TouchPoint login page will become the default.  To prevent the redirect and reach the standard WordPress login page, add \'tp_no_redirect\' as a URL parameter.',
 							'TouchPoint-WP'
 						),
 						'type'        => 'checkbox',
@@ -725,7 +725,7 @@ the scripts needed for TouchPoint in a convenient installation package.  ', 'Tou
 						),
 						'type'        => 'select',
 						'options'     => $includeThis ? $this->parent->getFamilyEvFieldsAsKVArray('code', true) : [],
-						'default'     => [],
+						'default'     => "",
                         'autoload'    => true,
 					],
 				],

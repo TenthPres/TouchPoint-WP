@@ -1,4 +1,4 @@
-# # !/usr/bin/env bash
+#!/usr/bin/env bash
 
 # Assumes PHP CLI, curl, and zip are already installed.
 
@@ -19,9 +19,9 @@ mkdir build/assets/js
 
 # install uglify and uglify the JS files.
 echo $(npm install -g uglify-js)
-uglifyjs -o build/assets/js/base-defer.min.js -- assets/js/base-defer.js
-uglifyjs -o build/assets/js/meeting-defer.min.js -- assets/js/meeting-defer.js
-uglifyjs -o build/assets/js/partner-defer.min.js -- assets/js/partner-defer.js
+uglifyjs assets/js/base-defer.js -o build/assets/js/base-defer.min.js --source-map
+uglifyjs assets/js/meeting-defer.js -o build/assets/js/meeting-defer.min.js --source-map
+uglifyjs assets/js/partner-defer.js -o build/assets/js/partner-defer.min.js --source-map
 cp -r assets build
 cd ./build || exit
 cd ..
@@ -36,6 +36,8 @@ cp -r ./i18n ./build/i18n
 
 php ./wp-cli.phar i18n make-json ./build/i18n
 php ./wp-cli.phar i18n make-mo ./build/i18n
+cp ./wpml-config.xml ./build/wpml-config.xml
+cp ./composer.json ./build/composer.json
 
 cp -r ./ext ./build/ext
 cp -r ./src ./build/src

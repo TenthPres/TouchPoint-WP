@@ -1,11 +1,12 @@
 <script>
 const tpvm = {
     DEBUG: false,
+    userEmail: null,
     involvements: [],
     partners: [],
     meetings: [],
     people: {},
-    locale: '<?php echo str_replace('_', '-', get_locale()); ?>' ?? 'en-US',
+    locale: '<?php echo str_replace('_', '-', get_locale() ?? 'en-US'); ?>',
     _actions: {}, // collection of actions that have been registered that can be linked via location.hash.
     _utils: {},
     _vmContext: {},
