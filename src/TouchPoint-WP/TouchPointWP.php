@@ -20,6 +20,10 @@ if ( ! defined('ABSPATH')) {
 	exit;
 }
 
+if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
+	require_once "Utilities.php";
+}
+
 
 /**
  * Main plugin class.
@@ -945,31 +949,6 @@ class TouchPointWP
 		exit;
 	}
 
-	protected static ?string $_clientIp = null;
-
-	public static function getClientIp(): ?string
-	{
-		if (self::$_clientIp === null) {
-			$ipHeaderKeys = [
-				'HTTP_CLIENT_IP',
-				'HTTP_X_FORWARDED_FOR',
-				'HTTP_X_FORWARDED',
-				'HTTP_FORWARDED_FOR',
-				'HTTP_FORWARDED',
-				'REMOTE_ADDR'
-			];
-
-			foreach ($ipHeaderKeys as $k) {
-				if ( ! empty($_SERVER[$k]) && filter_var($_SERVER[$k], FILTER_VALIDATE_IP)) {
-					self::$_clientIp = $_SERVER[$k];
-					break;
-				}
-			}
-		}
-
-		return self::$_clientIp;
-	}
-
 	/**
 	 * @param bool $useApi Set false to only use cached data, and not the IP API.
 	 *
@@ -978,7 +957,7 @@ class TouchPointWP
 	 */
 	public function geolocate(bool $useApi = true, bool $includeRaw = false)
 	{
-		$ip = self::getClientIp();
+		$ip = Utilities::getClientIp();
 
 		// If no IP, we can't go any further.
 		if ($ip === '' || $ip === null) {

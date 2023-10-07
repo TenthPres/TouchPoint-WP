@@ -1,6 +1,7 @@
 <script>
 const tpvm = {
     DEBUG: false,
+    userEmail: null,
     involvements: [],
     partners: [],
     meetings: [],

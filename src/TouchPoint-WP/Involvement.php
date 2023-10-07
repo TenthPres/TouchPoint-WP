@@ -2980,15 +2980,30 @@ class Involvement implements api, updatesViaCron, geo, module
 		$inputData           = json_decode($inputData);
 		$inputData->keywords = [];
 
-		$rawInputs = $inputData;
+		// Clean Talk filter
+		$result   = "Contact Blocked for Spam.";
+		$validate = Utilities::validateMessage(
+			$inputData->fromPerson->displayName,
+			$inputData->fromEmail,
+			$inputData->message,
+			$result
+		);
+		if (!$validate) {
+			http_response_code(Http::BAD_REQUEST);
+			echo json_encode([
+				                 'error'      => $result,
+				                 'error_i18n' => __("Contact Blocked for Spam.", 'TouchPoint-WP')
+			                 ]);
+			exit;
+		}
 
 		$settings = self::getSettingsForPostType($inputData->invType);
 		if (!!$settings) {
 			if (!self::allowContact($inputData->invType)) {
 				echo json_encode([
-					'error'      => "Contact Prohibited.",
-					'error_i18n' => __("Contact Prohibited.", 'TouchPoint-WP')
-				]);
+					                 'error'      => "Contact Prohibited.",
+					                 'error_i18n' => __("Contact Prohibited.", 'TouchPoint-WP')
+				                 ]);
 				exit;
 			}
 
@@ -3004,19 +3019,6 @@ class Involvement implements api, updatesViaCron, geo, module
 			                 ]);
 			exit;
 		}
-
-		// CleanTalk Spam Filter.  Will call die() if appropriate.
-		apply_filters('ct_ajax_hook', [
-			'post_content' => $inputData->message,
-			'post_type' => $inputData->invType
-		]);
-
-		// Akismet Spam Filter.  Will call die() if appropriate.
-		$akismetArgs = [];
-		foreach((array)$rawInputs as $k => $v) {
-			$akismetArgs['POST_' . $k] = $v;
-		}
-		do_action('preprocess_comment', $akismetArgs);
 
 		// Submit the contact
 		try {

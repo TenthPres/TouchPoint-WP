@@ -84,7 +84,7 @@ msgstr "Tipos de miembros de líder"
 #: src/templates/parts/involvement-nearby-list.php:2
 #: src/TouchPoint-WP/Rsvp.php:77
 #: assets/js/base-defer.js:188
-#: assets/js/base-defer.js:1113
+#: assets/js/base-defer.js:1119
 msgid "Loading..."
 msgstr "Cargando..."
 
@@ -117,14 +117,14 @@ msgid "Gender"
 msgstr "Género"
 
 #: src/templates/admin/invKoForm.php:179
-#: src/TouchPoint-WP/Involvement.php:1444
-#: src/TouchPoint-WP/TouchPointWP.php:1466
+#: src/TouchPoint-WP/Involvement.php:1445
+#: src/TouchPoint-WP/TouchPointWP.php:1445
 msgid "Weekday"
 msgstr "Día laborable"
 
 #: src/templates/admin/invKoForm.php:183
-#: src/TouchPoint-WP/Involvement.php:1470
-#: src/TouchPoint-WP/TouchPointWP.php:1548
+#: src/TouchPoint-WP/Involvement.php:1471
+#: src/TouchPoint-WP/TouchPointWP.php:1527
 msgid "Time of Day"
 msgstr "Hora del día"
 
@@ -133,7 +133,7 @@ msgid "Prevailing Marital Status"
 msgstr "Estado civil prevaleciente"
 
 #: src/templates/admin/invKoForm.php:191
-#: src/TouchPoint-WP/TouchPointWP.php:1602
+#: src/TouchPoint-WP/TouchPointWP.php:1581
 msgid "Age Group"
 msgstr "Grupo de edad"
 
@@ -167,7 +167,7 @@ msgstr "Seleccione..."
 
 #. translators: %s will be the plural post type (e.g. Small Groups)
 #: src/templates/parts/involvement-list-none.php:16
-#: src/TouchPoint-WP/Involvement.php:1676
+#: src/TouchPoint-WP/Involvement.php:1682
 msgid "No %s Found."
 msgstr "No se encontraron %s"
 
@@ -217,85 +217,85 @@ msgstr "Registro aún no abierto"
 msgid "Registration Closed"
 msgstr "Registro cerrado"
 
-#: src/TouchPoint-WP/Involvement.php:1317
-#: src/TouchPoint-WP/Partner.php:748
+#: src/TouchPoint-WP/Involvement.php:1318
+#: src/TouchPoint-WP/Partner.php:749
 msgid "Any"
 msgstr "Cualquier"
 
 #. translators: %s is for the user-provided term for the items on the map (e.g. Small Group or Partner)
-#: src/TouchPoint-WP/Involvement.php:1527
-#: src/TouchPoint-WP/Partner.php:770
+#: src/TouchPoint-WP/Involvement.php:1528
+#: src/TouchPoint-WP/Partner.php:771
 msgid "The %s listed are only those shown on the map."
 msgstr "Los %s enumerados son solo los que se muestran en el mapa."
 
-#: src/TouchPoint-WP/Involvement.php:2764
+#: src/TouchPoint-WP/Involvement.php:2776
 msgid "Men Only"
 msgstr "Solo hombres"
 
-#: src/TouchPoint-WP/Involvement.php:2767
+#: src/TouchPoint-WP/Involvement.php:2779
 msgid "Women Only"
 msgstr "Solo mujeres"
 
-#: src/TouchPoint-WP/Involvement.php:2830
+#: src/TouchPoint-WP/Involvement.php:2842
 msgid "Contact Leaders"
 msgstr "Contacta con las líderes"
 
-#: src/TouchPoint-WP/Involvement.php:2838
+#: src/TouchPoint-WP/Involvement.php:2850
 msgid "Register"
 msgstr "Regístrate ahora"
 
-#: src/TouchPoint-WP/Involvement.php:2843
+#: src/TouchPoint-WP/Involvement.php:2855
 msgid "Create Account"
 msgstr "Crear cuenta"
 
-#: src/TouchPoint-WP/Involvement.php:2847
+#: src/TouchPoint-WP/Involvement.php:2859
 msgid "Schedule"
 msgstr "Programe"
 
-#: src/TouchPoint-WP/Involvement.php:2852
+#: src/TouchPoint-WP/Involvement.php:2864
 msgid "Give"
 msgstr "Dar"
 
-#: src/TouchPoint-WP/Involvement.php:2855
+#: src/TouchPoint-WP/Involvement.php:2867
 msgid "Manage Subscriptions"
 msgstr "Administrar suscripciones"
 
-#: src/TouchPoint-WP/Involvement.php:2858
+#: src/TouchPoint-WP/Involvement.php:2870
 msgid "Record Attendance"
 msgstr "Registre su asistencia"
 
-#: src/TouchPoint-WP/Involvement.php:2861
+#: src/TouchPoint-WP/Involvement.php:2873
 msgid "Get Tickets"
 msgstr "Obtener boletos"
 
-#: src/TouchPoint-WP/Involvement.php:2868
-#: assets/js/base-defer.js:981
+#: src/TouchPoint-WP/Involvement.php:2880
+#: assets/js/base-defer.js:987
 msgid "Join"
 msgstr "Únete"
 
-#: src/TouchPoint-WP/Involvement.php:2877
-#: src/TouchPoint-WP/Partner.php:1226
+#: src/TouchPoint-WP/Involvement.php:2889
+#: src/TouchPoint-WP/Partner.php:1227
 msgid "Show on Map"
 msgstr "Muestra en el mapa"
 
 #. translators: %s is for the user-provided "Global Partner" and "Secure Partner" terms.
-#: src/TouchPoint-WP/Partner.php:777
+#: src/TouchPoint-WP/Partner.php:778
 msgid "The %1$s listed are only those shown on the map, as well as all %2$s."
 msgstr "Los %1$s enumerados son solo los que se muestran en el mapa, así como todos los %2$s."
 
-#: src/TouchPoint-WP/Partner.php:1183
+#: src/TouchPoint-WP/Partner.php:1184
 msgid "Not Shown on Map"
 msgstr "No se muestra en el mapa"
 
-#: src/TouchPoint-WP/Person.php:148
+#: src/TouchPoint-WP/Person.php:149
 msgid "No WordPress User ID provided for initializing a person object."
 msgstr "No se proporcionó una identificación de usuario de WordPress para inicializar un objeto de persona."
 
-#: src/TouchPoint-WP/Person.php:640
+#: src/TouchPoint-WP/Person.php:641
 msgid "TouchPoint People ID"
 msgstr "ID de Personas de TouchPoint"
 
-#: src/TouchPoint-WP/Person.php:1186
+#: src/TouchPoint-WP/Person.php:1187
 msgid "Contact"
 msgstr "Contacta"
 
@@ -303,38 +303,38 @@ msgstr "Contacta"
 msgid "RSVP"
 msgstr "RSVP"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2452
+#: src/TouchPoint-WP/TouchPointWP.php:2431
 msgid "Unknown Type"
 msgstr "Tipo desconocido"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2509
+#: src/TouchPoint-WP/TouchPointWP.php:2488
 msgid "Your Searches"
 msgstr "Tus búsquedas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2512
+#: src/TouchPoint-WP/TouchPointWP.php:2491
 msgid "Public Searches"
 msgstr "Búsquedas públicas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2515
+#: src/TouchPoint-WP/TouchPointWP.php:2494
 msgid "Status Flags"
 msgstr "Indicadores de Estado"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2520
-#: src/TouchPoint-WP/TouchPointWP.php:2521
+#: src/TouchPoint-WP/TouchPointWP.php:2499
+#: src/TouchPoint-WP/TouchPointWP.php:2500
 msgid "Current Value"
 msgstr "Valor actual"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2649
-#: src/TouchPoint-WP/TouchPointWP.php:2689
+#: src/TouchPoint-WP/TouchPointWP.php:2628
+#: src/TouchPoint-WP/TouchPointWP.php:2668
 msgid "Invalid or incomplete API Settings."
 msgstr "Configuración de API no válida o incompleta."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2657
-#: src/TouchPoint-WP/TouchPointWP.php:2696
+#: src/TouchPoint-WP/TouchPointWP.php:2636
+#: src/TouchPoint-WP/TouchPointWP.php:2675
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr "Parece que falta el host en la configuración de TouchPoint-WP."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2816
+#: src/TouchPoint-WP/TouchPointWP.php:2795
 msgid "People Query Failed"
 msgstr "Consulta de registros de personas fallida"
 
@@ -809,14 +809,14 @@ msgstr "Configuración de TouchPoint-WP"
 msgid "Save Settings"
 msgstr "Guardar ajustes"
 
-#: src/TouchPoint-WP/Person.php:1397
+#: src/TouchPoint-WP/Person.php:1398
 #: src/TouchPoint-WP/Utilities.php:205
 #: assets/js/base-defer.js:18
 msgid "and"
 msgstr "y"
 
 #: assets/js/base-defer.js:208
-#: assets/js/base-defer.js:1148
+#: assets/js/base-defer.js:1154
 msgid "Your Location"
 msgstr "Tu ubicación"
 
@@ -842,94 +842,94 @@ msgid "No geolocation option available."
 msgstr "No hay opción de geolocalización disponible."
 
 #: assets/js/base-defer.js:917
-#: assets/js/base-defer.js:948
-#: assets/js/base-defer.js:1399
+#: assets/js/base-defer.js:954
+#: assets/js/base-defer.js:1411
 #: assets/js/meeting-defer.js:183
 msgid "Something strange happened."
 msgstr "Algo extraño sucedió."
 
-#: assets/js/base-defer.js:937
-#: assets/js/base-defer.js:1388
+#: assets/js/base-defer.js:943
+#: assets/js/base-defer.js:1400
 msgid "Your message has been sent."
 msgstr "Tu mensaje ha sido enviado."
 
-#: assets/js/base-defer.js:977
+#: assets/js/base-defer.js:983
 msgid "Who is joining the group?"
 msgstr "¿Quién se une al grupo?"
 
-#: assets/js/base-defer.js:982
-#: assets/js/base-defer.js:1040
-#: assets/js/base-defer.js:1355
-#: assets/js/base-defer.js:1443
+#: assets/js/base-defer.js:988
+#: assets/js/base-defer.js:1046
+#: assets/js/base-defer.js:1362
+#: assets/js/base-defer.js:1455
 #: assets/js/meeting-defer.js:225
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: assets/js/base-defer.js:995
+#: assets/js/base-defer.js:1001
 msgid "Select who should be added to the group."
 msgstr "Seleccione quién debe agregarse al grupo."
 
-#: assets/js/base-defer.js:1033
-#: assets/js/base-defer.js:1348
+#: assets/js/base-defer.js:1039
+#: assets/js/base-defer.js:1355
 msgid "From"
 msgstr "De"
 
-#: assets/js/base-defer.js:1034
-#: assets/js/base-defer.js:1349
+#: assets/js/base-defer.js:1040
+#: assets/js/base-defer.js:1356
 msgid "Message"
 msgstr "Mensaje"
 
-#: assets/js/base-defer.js:1049
-#: assets/js/base-defer.js:1364
+#: assets/js/base-defer.js:1055
+#: assets/js/base-defer.js:1371
 msgid "Please provide a message."
 msgstr "Proporcione un mensaje."
 
-#: assets/js/base-defer.js:1134
-#: assets/js/base-defer.js:1136
+#: assets/js/base-defer.js:1140
+#: assets/js/base-defer.js:1142
 msgid "We don't know where you are."
 msgstr "No sabemos dónde estás."
 
-#: assets/js/base-defer.js:1134
-#: assets/js/base-defer.js:1144
+#: assets/js/base-defer.js:1140
+#: assets/js/base-defer.js:1150
 msgid "Click here to use your actual location."
 msgstr "Haga clic aquí para usar su ubicación real."
 
-#: assets/js/base-defer.js:1294
-#: assets/js/base-defer.js:1311
+#: assets/js/base-defer.js:1301
+#: assets/js/base-defer.js:1318
 msgid "clear"
 msgstr "borrar"
 
-#: assets/js/base-defer.js:1300
+#: assets/js/base-defer.js:1307
 msgid "Other Relatives..."
 msgstr "Otros familiares..."
 
-#: assets/js/base-defer.js:1433
+#: assets/js/base-defer.js:1445
 msgid "Tell us about yourself."
 msgstr "Dinos sobre ti."
 
-#: assets/js/base-defer.js:1435
-#: assets/js/base-defer.js:1489
+#: assets/js/base-defer.js:1447
+#: assets/js/base-defer.js:1502
 msgid "Email Address"
 msgstr "Correo electrónico"
 
-#: assets/js/base-defer.js:1436
-#: assets/js/base-defer.js:1490
+#: assets/js/base-defer.js:1448
+#: assets/js/base-defer.js:1503
 msgid "Zip Code"
 msgstr "Condigo postal"
 
-#: assets/js/base-defer.js:1487
+#: assets/js/base-defer.js:1500
 msgid "Our system doesn't recognize you,<br />so we need a little more info."
 msgstr "Nuestro sistema no te reconoce.<br />Necesitamos un poco más de información."
 
-#: assets/js/base-defer.js:1491
+#: assets/js/base-defer.js:1504
 msgid "First Name"
 msgstr "Primer nombre"
 
-#: assets/js/base-defer.js:1492
+#: assets/js/base-defer.js:1505
 msgid "Last Name"
 msgstr "Apellido"
 
-#: assets/js/base-defer.js:1494
+#: assets/js/base-defer.js:1507
 msgid "Phone"
 msgstr "Teléfono"
 
@@ -973,7 +973,7 @@ msgstr "Enviar"
 msgid "Nothing to submit."
 msgstr "Nada que enviar."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2757
+#: src/TouchPoint-WP/TouchPointWP.php:2736
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr "Los scripts en TouchPoint que interactúan con este complemento están desactualizados y falló una actualización automática."
 
@@ -994,50 +994,50 @@ msgid "Added to %s"
 msgstr "Añadido a %s"
 
 #. translators: %s is the name of an Involvement
-#: assets/js/base-defer.js:961
+#: assets/js/base-defer.js:967
 msgid "Join %s"
 msgstr "Únete %s"
 
 #. translators: %s is a person's name.  This is a heading for a contact modal.
-#: assets/js/base-defer.js:1331
+#: assets/js/base-defer.js:1338
 msgid "Contact %s"
 msgstr "Contactar a %s"
 
 #. translators: %s is the name of an involvement.  This is a heading for a modal.
-#: assets/js/base-defer.js:1016
+#: assets/js/base-defer.js:1022
 msgid "Contact the Leaders of %s"
 msgstr "Contacta a los líderes de %s"
 
-#: assets/js/base-defer.js:1039
-#: assets/js/base-defer.js:1354
+#: assets/js/base-defer.js:1045
+#: assets/js/base-defer.js:1361
 msgid "Send"
 msgstr "Envía"
 
 #: assets/js/base-defer.js:909
 #: assets/js/base-defer.js:920
-#: assets/js/base-defer.js:940
-#: assets/js/base-defer.js:951
-#: assets/js/base-defer.js:1391
-#: assets/js/base-defer.js:1402
+#: assets/js/base-defer.js:946
+#: assets/js/base-defer.js:957
+#: assets/js/base-defer.js:1403
+#: assets/js/base-defer.js:1414
 #: assets/js/meeting-defer.js:175
 #: assets/js/meeting-defer.js:186
 msgid "OK"
 msgstr "OK"
 
-#: assets/js/base-defer.js:1442
+#: assets/js/base-defer.js:1454
 msgid "Next"
 msgstr "Siguiente"
 
-#: src/TouchPoint-WP/Involvement.php:1492
-#: src/TouchPoint-WP/TouchPointWP.php:1641
+#: src/TouchPoint-WP/Involvement.php:1493
+#: src/TouchPoint-WP/TouchPointWP.php:1620
 msgid "Marital Status"
 msgstr "Estado civil"
 
-#: src/TouchPoint-WP/Involvement.php:1505
+#: src/TouchPoint-WP/Involvement.php:1506
 msgid "Age"
 msgstr "Años"
 
-#: src/TouchPoint-WP/Involvement.php:1376
+#: src/TouchPoint-WP/Involvement.php:1377
 msgid "Genders"
 msgstr "Géneros"
 
@@ -1199,24 +1199,24 @@ msgctxt "Time of Day"
 msgid "Night"
 msgstr "Noche"
 
-#: src/TouchPoint-WP/Involvement.php:1493
+#: src/TouchPoint-WP/Involvement.php:1494
 msgctxt "Marital status for a group of people"
 msgid "Mostly Single"
 msgstr "Mayoría solteras"
 
-#: src/TouchPoint-WP/Involvement.php:1494
+#: src/TouchPoint-WP/Involvement.php:1495
 msgctxt "Marital status for a group of people"
 msgid "Mostly Married"
 msgstr "Mayoría casadas"
 
 #. translators: %s is the link to "reset the map"
-#: src/TouchPoint-WP/Involvement.php:1535
-#: src/TouchPoint-WP/Partner.php:786
+#: src/TouchPoint-WP/Involvement.php:1536
+#: src/TouchPoint-WP/Partner.php:787
 msgid "Zoom out or %s to see more."
 msgstr "Alejar o %s para ver más."
 
-#: src/TouchPoint-WP/Involvement.php:1538
-#: src/TouchPoint-WP/Partner.php:789
+#: src/TouchPoint-WP/Involvement.php:1539
+#: src/TouchPoint-WP/Partner.php:790
 msgctxt "Zoom out or reset the map to see more."
 msgid "reset the map"
 msgstr "restablecer el mapa"
@@ -1259,7 +1259,7 @@ msgstr "%1$s, hasta el %2$s"
 
 #. translators: number of miles
 #: src/templates/parts/involvement-nearby-list.php:10
-#: src/TouchPoint-WP/Involvement.php:2791
+#: src/TouchPoint-WP/Involvement.php:2803
 msgctxt "miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'"
 msgid "%2.1fmi"
 msgstr "%2.1fmi"
@@ -1276,35 +1276,35 @@ msgstr "La participación tiene un tipo de registro de \"No Online Registration\
 msgid "Involvement registration has ended (end date is past)"
 msgstr "El registro de participación ha finalizado (la fecha de finalización ya pasó)"
 
-#: src/TouchPoint-WP/Involvement.php:1622
+#: src/TouchPoint-WP/Involvement.php:1628
 msgid "This involvement type doesn't exist."
 msgstr "Este tipo de participación no existe."
 
-#: src/TouchPoint-WP/Involvement.php:1632
+#: src/TouchPoint-WP/Involvement.php:1638
 msgid "This involvement type doesn't have geographic locations enabled."
 msgstr "Este tipo de participación no tiene habilitadas las ubicaciones geográficas."
 
-#: src/TouchPoint-WP/Involvement.php:1651
+#: src/TouchPoint-WP/Involvement.php:1657
 msgid "Could not locate."
 msgstr "No se pudo localizar."
 
 #: src/TouchPoint-WP/Meeting.php:91
-#: src/TouchPoint-WP/TouchPointWP.php:936
+#: src/TouchPoint-WP/TouchPointWP.php:940
 msgid "Only GET requests are allowed."
 msgstr "Solo se permiten solicitudes GET."
 
 #: src/TouchPoint-WP/Meeting.php:119
-#: src/TouchPoint-WP/TouchPointWP.php:365
+#: src/TouchPoint-WP/TouchPointWP.php:369
 msgid "Only POST requests are allowed."
 msgstr "Solo se permiten solicitudes POST."
 
 #: src/TouchPoint-WP/Meeting.php:129
-#: src/TouchPoint-WP/TouchPointWP.php:374
+#: src/TouchPoint-WP/TouchPointWP.php:378
 msgid "Invalid data provided."
 msgstr "Datos proporcionados no válidos."
 
-#: src/TouchPoint-WP/Involvement.php:2929
-#: src/TouchPoint-WP/Involvement.php:2991
+#: src/TouchPoint-WP/Involvement.php:2941
+#: src/TouchPoint-WP/Involvement.php:3018
 msgid "Invalid Post Type."
 msgstr "Tipo de publicación no válida."
 
@@ -1312,64 +1312,64 @@ msgstr "Tipo de publicación no válida."
 msgid "Enable Campuses"
 msgstr "Habilitar Campus"
 
-#: src/TouchPoint-WP/TouchPointWP.php:1273
+#: src/TouchPoint-WP/TouchPointWP.php:1252
 msgid "Classify posts by their general locations."
 msgstr "clasificar las publicaciones por sus ubicaciones generales."
 
-#: src/TouchPoint-WP/TouchPointWP.php:1326
+#: src/TouchPoint-WP/TouchPointWP.php:1305
 msgid "Classify posts by their church campus."
 msgstr "Clasifique las publicaciones por el campus."
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/TouchPointWP.php:1378
+#: src/TouchPoint-WP/TouchPointWP.php:1357
 msgid "Classify things by %s."
 msgstr "Clasifica las cosas por %s."
 
-#: src/TouchPoint-WP/TouchPointWP.php:1465
+#: src/TouchPoint-WP/TouchPointWP.php:1444
 msgid "Classify involvements by the day on which they meet."
 msgstr "Clasificar las participaciones por el día en que se reúnen."
 
-#: src/TouchPoint-WP/TouchPointWP.php:1466
+#: src/TouchPoint-WP/TouchPointWP.php:1445
 msgid "Weekdays"
 msgstr "Días de semana"
 
-#: src/TouchPoint-WP/TouchPointWP.php:1503
+#: src/TouchPoint-WP/TouchPointWP.php:1482
 msgid "Classify involvements by tense (present, future, past)"
 msgstr "Clasificar las implicaciones por tiempo (presente, futuro, pasado)"
 
-#: src/TouchPoint-WP/TouchPointWP.php:1504
+#: src/TouchPoint-WP/TouchPointWP.php:1483
 msgid "Tense"
 msgstr "Tiempo"
 
-#: src/TouchPoint-WP/TouchPointWP.php:1504
+#: src/TouchPoint-WP/TouchPointWP.php:1483
 msgid "Tenses"
 msgstr "Tiempos"
 
-#: src/TouchPoint-WP/TouchPointWP.php:1547
+#: src/TouchPoint-WP/TouchPointWP.php:1526
 msgid "Classify involvements by the portion of the day in which they meet."
 msgstr "Clasifique las participaciones por la parte del día en que se reúnen."
 
-#: src/TouchPoint-WP/TouchPointWP.php:1548
+#: src/TouchPoint-WP/TouchPointWP.php:1527
 msgid "Times of Day"
 msgstr "Tiempos del Día"
 
-#: src/TouchPoint-WP/TouchPointWP.php:1601
+#: src/TouchPoint-WP/TouchPointWP.php:1580
 msgid "Classify involvements and users by their age groups."
 msgstr "Clasifica las implicaciones y los usuarios por sus grupos de edad."
 
-#: src/TouchPoint-WP/TouchPointWP.php:1602
+#: src/TouchPoint-WP/TouchPointWP.php:1581
 msgid "Age Groups"
 msgstr "Grupos de Edad"
 
-#: src/TouchPoint-WP/TouchPointWP.php:1640
+#: src/TouchPoint-WP/TouchPointWP.php:1619
 msgid "Classify involvements by whether participants are mostly single or married."
 msgstr "Clasifique las participaciones según si los participantes son en su mayoría solteros o casados."
 
-#: src/TouchPoint-WP/TouchPointWP.php:1641
+#: src/TouchPoint-WP/TouchPointWP.php:1620
 msgid "Marital Statuses"
 msgstr "Estados Civiles"
 
-#: src/TouchPoint-WP/TouchPointWP.php:1685
+#: src/TouchPoint-WP/TouchPointWP.php:1664
 msgid "Classify Partners by category chosen in settings."
 msgstr "Clasifique a los ministeriales por categoría elegida en la configuración."
 
@@ -1378,32 +1378,32 @@ msgid "Import campuses as a taxonomy. (You probably want to do this if you're mu
 msgstr "Importar campus como taxonomía. (Probablemente quieras hacer esto si tienes varios campus)."
 
 #. translators: %s: taxonomy name, plural
-#: src/TouchPoint-WP/TouchPointWP.php:1246
+#: src/TouchPoint-WP/TouchPointWP.php:1225
 msgid "Search %s"
 msgstr "Buscar %s"
 
 #. translators: %s: taxonomy name, plural
-#: src/TouchPoint-WP/TouchPointWP.php:1248
+#: src/TouchPoint-WP/TouchPointWP.php:1227
 msgid "All %s"
 msgstr "Todos los %s"
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/TouchPointWP.php:1250
+#: src/TouchPoint-WP/TouchPointWP.php:1229
 msgid "Edit %s"
 msgstr "Editar %s"
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/TouchPointWP.php:1252
+#: src/TouchPoint-WP/TouchPointWP.php:1231
 msgid "Update %s"
 msgstr "Actualizar %s"
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/TouchPointWP.php:1254
+#: src/TouchPoint-WP/TouchPointWP.php:1233
 msgid "Add New %s"
 msgstr "Agregar Nuevo %s"
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/TouchPointWP.php:1256
+#: src/TouchPoint-WP/TouchPointWP.php:1235
 msgid "New %s"
 msgstr "Nuevo %s"
 
@@ -1420,11 +1420,11 @@ msgstr "Informe de TouchPoint"
 msgid "Updated on %1$s at %2$s"
 msgstr "Actualizada %1$s %2$s"
 
-#: src/TouchPoint-WP/TouchPointWP.php:270
+#: src/TouchPoint-WP/TouchPointWP.php:274
 msgid "Every 15 minutes"
 msgstr "Cada 15 minutos"
 
-#: src/TouchPoint-WP/Involvement.php:1419
+#: src/TouchPoint-WP/Involvement.php:1420
 msgid "Language"
 msgstr "Idioma"
 
@@ -1436,13 +1436,13 @@ msgstr "Importar imágenes desde TouchPoint"
 msgid "Importing images sometimes conflicts with other plugins. Disabling image imports can help."
 msgstr "La importación de imágenes a veces entra en conflicto con otros complementos. Deshabilitar las importaciones de imágenes puede ayudar."
 
-#: src/TouchPoint-WP/Person.php:1403
+#: src/TouchPoint-WP/Person.php:1404
 msgctxt "list of people, and *others*"
 msgid "others"
 msgstr "otros"
 
-#: src/TouchPoint-WP/Involvement.php:2978
-#: src/TouchPoint-WP/Person.php:1706
+#: src/TouchPoint-WP/Involvement.php:3005
+#: src/TouchPoint-WP/Person.php:1720
 msgid "Contact Prohibited."
 msgstr "Contacto prohibido."
 
@@ -1458,10 +1458,19 @@ msgstr "El dominio de los enlaces profundos de su aplicación móvil, sin https 
 msgid "Once your settings on this page are set and saved, use this tool to generate the scripts needed for TouchPoint in a convenient installation package."
 msgstr "Una vez que haya configurado y guardado la configuración en esta página, utilice esta herramienta para generar los scripts necesarios para TouchPoint en un paquete de instalación conveniente."
 
-#: assets/js/base-defer.js:1475
+#: assets/js/base-defer.js:1488
 msgid "Something went wrong."
 msgstr "Algo salió mal."
 
-#: src/TouchPoint-WP/Person.php:1594
+#: src/TouchPoint-WP/Person.php:1609
 msgid "You may need to sign in."
 msgstr "Es posible que tengas que iniciar sesión."
+
+#: src/TouchPoint-WP/Involvement.php:2995
+#: src/TouchPoint-WP/Person.php:1737
+msgid "Contact Blocked for Spam."
+msgstr "Contacto bloqueado por spam."
+
+#: src/TouchPoint-WP/Person.php:1541
+msgid "Registration Blocked for Spam."
+msgstr "Registro bloqueado por spam."

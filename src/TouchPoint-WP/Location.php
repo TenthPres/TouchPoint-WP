@@ -52,7 +52,7 @@ class Location implements geo
 
 	public static function getLocationForIP(string $ipAddress = null): ?Location
 	{
-		$ipAddress = $ipAddress ?? TouchPointWP::getClientIp();
+		$ipAddress = $ipAddress ?? Utilities::getClientIp();
 
 		$s = TouchPointWP::instance()->settings->locations_json;
 		if ( ! str_contains($s, "\"" . $ipAddress . "\"")) {

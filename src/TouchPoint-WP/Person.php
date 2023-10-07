@@ -15,6 +15,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "jsInstantiation.php";
 	require_once "updatesViaCron.php";
 	require_once "InvolvementMembership.php";
+	require_once "Utilities.php";
 	require_once "Utilities/PersonQuery.php";
 	require_once "Utilities/Session.php";
 }
@@ -1530,10 +1531,24 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 */
 	public static function ident($inputData): array
 	{
+		// user validation.
+		$comment = "";
+		$valid = Utilities::validateRegistrantEmailAddress("", $inputData->email, $comment);
+		if (!$valid) {
+			http_response_code(Http::BAD_REQUEST);
+			echo json_encode([
+				                 'error'      => $comment,
+				                 'error_i18n' => __("Registration Blocked for Spam.", 'TouchPoint-WP')
+			                 ]);
+			exit;
+		}
+		unset($valid, $comment);
+
 		try {
 			$inputData->context = "ident";
 			$data               = TouchPointWP::instance()->apiPost('ident', $inputData, 30);
 		} catch (Exception $ex) {
+			http_response_code(Http::SERVER_ERROR);
 			echo json_encode(['error' => $ex->getMessage()]);
 			exit;
 		}
@@ -1698,9 +1713,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$inputData = TouchPointWP::postHeadersAndFiltering();
 		$inputData = json_decode($inputData);
 
-		$rawInputs = $inputData;
-
 		if (!self::allowContact()) {
+			http_response_code(Http::BAD_REQUEST);
 			echo json_encode([
 				'error'      => "Contact Prohibited.",
 				'error_i18n' => __("Contact Prohibited.", 'TouchPoint-WP')
@@ -1708,31 +1722,25 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			exit;
 		}
 
+		// Clean Talk filter
+		$result   = "Contact Blocked for Spam.";
+		$validate = Utilities::validateMessage(
+			$inputData->fromPerson->displayName,
+			$inputData->fromEmail,
+			$inputData->message,
+			$result
+		);
+		if (!$validate) {
+			http_response_code(Http::BAD_REQUEST);
+			echo json_encode([
+				                 'error'      => $result,
+				                 'error_i18n' => __("Contact Blocked for Spam.", 'TouchPoint-WP')
+			                 ]);
+			exit;
+		}
+
 		$kw                  = TouchPointWP::instance()->settings->people_contact_keywords;
 		$inputData->keywords = Utilities::idArrayToIntArray($kw);
-
-		// CleanTalk Spam Filter.  Will call die() if appropriate.
-		// TODO this is totally untested.
-		apply_filters('ct_ajax_hook', [
-			'post_content' => $inputData->message
-		]);
-
-		// Akismet Spam Filter.  Will call die() if appropriate.
-		$akismetArgs = [
-			'comment_post_ID' => null,
-			'comment_author' => $inputData->fromPerson->displayName,
-			'comment_content' => $inputData->message,
-			'comment_author_url' =>
-				'https://' . TouchPointWP::instance()->settings->host . '/Person2/' . $inputData->fromPerson->peopleId,
-			'comment_author_email' => null
-		];
-		foreach((array)$rawInputs as $k => $v) {
-			$akismetArgs['POST_' . $k] = $v;
-		}
-		// TODO does not work.
-		do_action('preprocess_comment', $akismetArgs); // this does not work as expected.
-
-		// TODO once these are resolved, copy logic to Involvement contact.
 
 		// Submit the contact
 		try {
