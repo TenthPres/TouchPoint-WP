@@ -174,8 +174,8 @@ abstract class EventsCalendar implements api, module
 		foreach ($eventsList as $i => $eo) {
 			echo "<h2>{$eo['title']}</h2>";
 			$url = get_site_url() . "/" .
-			       TouchPointWP::API_ENDPOINT . "/" .
-			       TouchPointWP::API_ENDPOINT_APP_EVENTS . "/" . $i;
+				   TouchPointWP::API_ENDPOINT . "/" .
+				   TouchPointWP::API_ENDPOINT_APP_EVENTS . "/" . $i;
 			echo "<iframe src='$url' style='width:500px; height:500px;'></iframe>";
 		}
 	}
@@ -197,8 +197,8 @@ abstract class EventsCalendar implements api, module
 
 		// Preview list
 		if (count($uri['path']) === 3 &&
-		    strtolower($uri['path'][2]) === 'preview' &&
-		    TouchPointWP::currentUserIsAdmin()
+			strtolower($uri['path'][2]) === 'preview' &&
+			TouchPointWP::currentUserIsAdmin()
 		) {
 			EventsCalendar::previewAppList($uri['query']);
 			exit;
@@ -206,8 +206,8 @@ abstract class EventsCalendar implements api, module
 
 		// Preview items
 		if (count($uri['path']) === 3 &&
-		    is_numeric($uri['path'][2]) &&
-		    TouchPointWP::currentUserIsAdmin()
+			is_numeric($uri['path'][2]) &&
+			TouchPointWP::currentUserIsAdmin()
 		) {
 			EventsCalendar::previewAppListItem($uri['query'], intval($uri['path'][2]));
 			exit;

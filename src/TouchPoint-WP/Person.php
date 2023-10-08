@@ -41,7 +41,7 @@ use WP_User;
  * @property-read ?WP_Term resCode  The ResCode taxonomy, if present
  * @property ?int          rescode_term_id   The ResCode term ID
  * @property ?string       $loginSessionToken  A token that is saved on the Session variable and used to ensure links
- *     aren't used between sessions.
+ *	 aren't used between sessions.
  * @property ?string       $loginToken    A token used to validate the user.
  */
 class Person extends WP_User implements api, JsonSerializable, module, updatesViaCron
@@ -105,7 +105,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		'user_activation_key',
 		'spam',
 		'show_admin_bar_front',
-//        'role', // Excluding prevents this from being set through __set
+//		'role', // Excluding prevents this from being set through __set
 		'locale'
 	];
 
@@ -435,7 +435,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 				self::$_indexingQueries['inv'][$iid] = [
 					'invId'          => $iid,
 					'memTypes'       => null,
-//                    'subGroups' => null,
+//					'subGroups' => null,
 					'with_subGroups' => false // populated below
 				];
 			}
@@ -723,11 +723,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 						self::$_indexingQueries['inv'][$iid] = [
 							'invId'          => $iid,
 							'memTypes'       => $type->leaderTypeInts(),
-//                           'subGroups' => null,
+//						   'subGroups' => null,
 							'with_subGroups' => false
 						];
 					} elseif (is_array(self::$_indexingQueries['inv'][$iid]['memTypes'])) {
-						$r                                               = array_merge(
+						$r = array_merge(
 							self::$_indexingQueries['inv'][$iid]['memTypes'],
 							$type->leaderTypeInts()
 						);
@@ -1168,7 +1168,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @param ?string $context A reference to where the action buttons are meant to be used.
 	 * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button
-	 *     elements.
+	 *	 elements.
 	 *
 	 * @return string
 	 */
@@ -1537,9 +1537,9 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		if (!$valid) {
 			http_response_code(Http::BAD_REQUEST);
 			echo json_encode([
-				                 'error'      => $comment,
-				                 'error_i18n' => __("Registration Blocked for Spam.", 'TouchPoint-WP')
-			                 ]);
+								 'error'      => $comment,
+								 'error_i18n' => __("Registration Blocked for Spam.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 		unset($valid, $comment);
@@ -1605,9 +1605,9 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		if ($onBehalfOf === null) {
 			http_response_code(Http::UNAUTHORIZED);
 			echo json_encode([
-				                 "error"      => "Not Authorized.",
-				                 "error_i18n" => __("You may need to sign in.", 'TouchPoint-WP')
-			                 ]);
+								 "error"      => "Not Authorized.",
+								 "error_i18n" => __("You may need to sign in.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 
@@ -1733,9 +1733,9 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		if (!$validate) {
 			http_response_code(Http::BAD_REQUEST);
 			echo json_encode([
-				                 'error'      => $result,
-				                 'error_i18n' => __("Contact Blocked for Spam.", 'TouchPoint-WP')
-			                 ]);
+								 'error'      => $result,
+								 'error_i18n' => __("Contact Blocked for Spam.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 

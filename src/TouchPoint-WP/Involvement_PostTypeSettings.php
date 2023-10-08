@@ -167,11 +167,11 @@ class Involvement_PostTypeSettings
 		$prefixLength = strlen(self::POST_TYPE_PREFIX);
 		foreach (self::instance() as $type) {
 			if ($type->postType === $postType ||
-			    $type->__get('postType') === $postType ||
-			    (
-				    substr($type->postType, 0, $prefixLength) === self::POST_TYPE_PREFIX &&
-				    substr($type->postType, $prefixLength) === $postType
-			    )
+				$type->__get('postType') === $postType ||
+				(
+					substr($type->postType, 0, $prefixLength) === self::POST_TYPE_PREFIX &&
+					substr($type->postType, $prefixLength) === $postType
+				)
 			) {
 				return $type;
 			}

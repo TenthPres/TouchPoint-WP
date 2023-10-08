@@ -87,12 +87,12 @@ class TouchPointWP_Exception extends Exception
 	public function toJson(): string
 	{
 		return json_encode([
-			                   'error' => [
-				                   'status'   => 'failure',
-				                   'code'     => $this->getCode(),
-				                   'message'  => $this->getMessage(),
-				                   'location' => $this->getFile() . " @ L" . $this->getLine()
-			                   ]
-		                   ]);
+							   'error' => [
+								   'status'   => 'failure',
+								   'code'     => $this->getCode(),
+								   'message'  => $this->getMessage(),
+								   'location' => $this->getFile() . " @ L" . $this->getLine()
+							   ]
+						   ]);
 	}
 }

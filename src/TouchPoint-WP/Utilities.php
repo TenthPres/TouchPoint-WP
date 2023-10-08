@@ -319,9 +319,9 @@ abstract class Utilities
 		};
 
 		return "#" .
-		       str_pad(dechex($f(0)), 2, 0, STR_PAD_LEFT) .
-		       str_pad(dechex($f(8)), 2, 0, STR_PAD_LEFT) .
-		       str_pad(dechex($f(4)), 2, 0, STR_PAD_LEFT);
+			   str_pad(dechex($f(0)), 2, 0, STR_PAD_LEFT) .
+			   str_pad(dechex($f(8)), 2, 0, STR_PAD_LEFT) .
+			   str_pad(dechex($f(4)), 2, 0, STR_PAD_LEFT);
 	}
 
 	/**
@@ -332,10 +332,10 @@ abstract class Utilities
 	 * @param int|null   $parent Optional. ID of parent term under which to confine the exists search.
 	 *
 	 * @return mixed Returns null if the term does not exist.
-	 *               Returns the term ID if no taxonomy is specified and the term ID exists.
-	 *               Returns an array of the term ID and the term taxonomy ID if the taxonomy is specified and the
-	 *                  pairing exists.
-	 *               Returns 0 if term ID 0 is passed to the function.
+	 *			   Returns the term ID if no taxonomy is specified and the term ID exists.
+	 *			   Returns an array of the term ID and the term taxonomy ID if the taxonomy is specified and the
+	 *				  pairing exists.
+	 *			   Returns 0 if term ID 0 is passed to the function.
 	 *
 	 * @see term_exists()
 	 */
@@ -423,10 +423,10 @@ abstract class Utilities
 		$hyphen = chr(45); // "-"
 
 		return substr($char, 0, 8) . $hyphen
-		       . substr($char, 8, 4) . $hyphen
-		       . substr($char, 12, 4) . $hyphen
-		       . substr($char, 16, 4) . $hyphen
-		       . substr($char, 20, 12);
+			   . substr($char, 8, 4) . $hyphen
+			   . substr($char, 12, 4) . $hyphen
+			   . substr($char, 16, 4) . $hyphen
+			   . substr($char, 20, 12);
 	}
 
 	/**
@@ -538,12 +538,12 @@ abstract class Utilities
 
 			if ($o < 7) {
 				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"],
-				                      ["<h$o ", "<h$o>", "</h$o>"],
-				                      $input);
+									  ["<h$o ", "<h$o>", "</h$o>"],
+									  $input);
 			} else {
 				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"],
-				                      ["<p><strong ", "<p><strong>", "</strong></p>"],
-				                      $input);
+									  ["<p><strong ", "<p><strong>", "</strong></p>"],
+									  $input);
 			}
 		}
 
@@ -733,7 +733,7 @@ abstract class Utilities
 	public static function validateRegistrantEmailAddress(string $nickname, string $emailAddress, string &$resultComment = null): bool {
 		// CleanTalk filter
 		if (file_exists(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php')
-		    || function_exists('ct_test_registration')) {
+			|| function_exists('ct_test_registration')) {
 
 			if ( ! function_exists('ct_test_registration')) {
 				include_once(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php');
@@ -767,7 +767,7 @@ abstract class Utilities
 	{
 		// CleanTalk filter
 		if (file_exists(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php')
-		    || function_exists('ct_test_message')) {
+			|| function_exists('ct_test_message')) {
 
 			if ( ! function_exists('ct_test_message')) {
 				include_once(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php');

@@ -127,23 +127,23 @@ abstract class Auth implements api, module
 		// echo to print in footer
 	}
 
-    /**
-     * Renders the link used to log in through TouchPoint.
-     */
-    public static function printLoginLink()
-    {
-        $html = '<p class="touchpoint-wp-auth-form">';
-        $url = self::getLoginUrl();
-        /** @noinspection HtmlUnknownTarget */
-        $html .= "<a href=\"$url\" class=\"button button-secondary button-large\" style=\"width: 100%; text-align: center; margin-bottom: 1em;\">";
-        $html .= sprintf(
-            // translators: %s is "what you call TouchPoint at your church", which is a setting
-            __('Sign in with your %s account', 'TouchPoint-WP'),
-            htmlentities(TouchPointWP::instance()->settings->system_name)
-        );
-        $html .= '</a></p>';
-        echo $html;
-    }
+	/**
+	 * Renders the link used to log in through TouchPoint.
+	 */
+	public static function printLoginLink()
+	{
+		$html = '<p class="touchpoint-wp-auth-form">';
+		$url = self::getLoginUrl();
+		/** @noinspection HtmlUnknownTarget */
+		$html .= "<a href=\"$url\" class=\"button button-secondary button-large\" style=\"width: 100%; text-align: center; margin-bottom: 1em;\">";
+		$html .= sprintf(
+			// translators: %s is "what you call TouchPoint at your church", which is a setting
+			__('Sign in with your %s account', 'TouchPoint-WP'),
+			htmlentities(TouchPointWP::instance()->settings->system_name)
+		);
+		$html .= '</a></p>';
+		echo $html;
+	}
 
 	/**
 	 * Generates the URL used to initiate a sign-in with TouchPoint.
@@ -283,8 +283,8 @@ abstract class Auth implements api, module
 	public static function removeAdminBarMaybe()
 	{
 		$removeBar = (TouchPointWP::instance()->settings->auth_prevent_admin_bar === 'on')
-		             && ! is_admin()
-		             && ! current_user_can('edit_posts');
+					 && ! is_admin()
+					 && ! current_user_can('edit_posts');
 
 		$removeBar = apply_filters(TouchPointWP::HOOK_PREFIX . 'prevent_admin_bar', $removeBar);
 
@@ -424,9 +424,9 @@ abstract class Auth implements api, module
 			$s = Session::instance();
 			if ( ! $lst === $s->auth_sessionToken) {
 				return new WP_Error([
-					                    177004,
-					                    __('Session could not be validated.', 'TouchPoint-WP')
-				                    ]);
+										177004,
+										__('Session could not be validated.', 'TouchPoint-WP')
+									]);
 			}
 
 			$p->setLoginTokens(null, null);
