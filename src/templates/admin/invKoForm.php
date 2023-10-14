@@ -146,8 +146,8 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             <td colspan="2">
                 <select id="it-tense" data-bind="value: groupBy, attr: { id: 'it-' + slug() + '-tense'}">
                     <option value=""><?php _e("No Grouping", "TouchPoint-WP"); ?></option>
-                    <option value="-<?php echo TouchPointWP::TAX_TENSE; ?>"><?php _e("Upcoming / Current", "TouchPoint-WP"); ?></option>
-                    <option value="<?php echo TouchPointWP::TAX_TENSE; ?>"><?php _e("Current / Upcoming", "TouchPoint-WP"); ?></option>
+                    <option value="-<?php echo Taxonomies::TAX_TENSE; ?>"><?php _e("Upcoming / Current", "TouchPoint-WP"); ?></option>
+                    <option value="<?php echo Taxonomies::TAX_TENSE; ?>"><?php _e("Current / Upcoming", "TouchPoint-WP"); ?></option>
                 </select>
             </td>
         </tr>

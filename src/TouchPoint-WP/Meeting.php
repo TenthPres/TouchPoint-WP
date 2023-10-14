@@ -21,6 +21,8 @@ use tp\TouchPointWP\Utilities\Http;
  */
 abstract class Meeting implements api, module
 {
+	public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "meeting";
+	
 	/**
 	 * Register scripts and styles to be used on display pages.
 	 */

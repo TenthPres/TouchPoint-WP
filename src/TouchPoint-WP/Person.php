@@ -948,11 +948,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$person->picture = $pData->Picture;
 
 		// resCodes and Campuses
-		$person->rescode_term_id = TouchPointWP::getTaxTermId(TouchPointWP::TAX_RESCODE, $pData->ResCode);
+		$person->rescode_term_id = Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, $pData->ResCode);
 		if (TouchPointWP::instance()->settings->enable_campuses !== "on") {
 			$person->campus_term_id = null;
 		} else {
-			$person->campus_term_id = TouchPointWP::getTaxTermId(TouchPointWP::TAX_CAMPUS, $pData->CampusId);
+			$person->campus_term_id = Taxonomies::getTaxTermId(Taxonomies::TAX_CAMPUS, $pData->CampusId);
 		}
 
 		// Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
@@ -1135,7 +1135,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			if ($this->campus_term_id === null) {
 				$this->_campus = null;
 			} else {
-				$this->_campus = WP_Term::get_instance($this->campus_term_id, TouchPointWP::TAX_CAMPUS);
+				$this->_campus = WP_Term::get_instance($this->campus_term_id, Taxonomies::TAX_CAMPUS);
 			}
 			$this->_campusLoaded = true;
 		}
@@ -1154,7 +1154,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			if ($this->rescode_term_id === null) {
 				$this->_resCode = null;
 			} else {
-				$this->_resCode = WP_Term::get_instance($this->rescode_term_id, TouchPointWP::TAX_RESCODE);
+				$this->_resCode = WP_Term::get_instance($this->rescode_term_id, Taxonomies::TAX_RESCODE);
 			}
 			$this->_resCodeLoaded = true;
 		}

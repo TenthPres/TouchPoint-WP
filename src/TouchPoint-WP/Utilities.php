@@ -8,7 +8,7 @@ namespace tp\TouchPointWP;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Exception;
-use WP_Error;
+use WP_Post_Type;
 
 /**
  * A few tools for managing things.
@@ -325,91 +325,27 @@ abstract class Utilities
 	}
 
 	/**
-	 * Wrapper for the WordPress term_exists function to reduce database calls
+	 * Get the registered post types as a Key-Value array.  Excludes post types that start with 'tp_'.
 	 *
-	 * @param int|string $term The term to check. Accepts term ID, slug, or name.
-	 * @param string     $taxonomy Optional. The taxonomy name to use.
-	 * @param int|null   $parent Optional. ID of parent term under which to confine the exists search.
-	 *
-	 * @return mixed Returns null if the term does not exist.
-	 *			   Returns the term ID if no taxonomy is specified and the term ID exists.
-	 *			   Returns an array of the term ID and the term taxonomy ID if the taxonomy is specified and the
-	 *				  pairing exists.
-	 *			   Returns 0 if term ID 0 is passed to the function.
-	 *
-	 * @see term_exists()
+	 * @return string[]
 	 */
-	public static function termExists($term, string $taxonomy = "", ?int $parent = null)
-	{
-		$key = $term . "|" . $taxonomy . "|" . $parent;
-		if ( ! array_key_exists($key, self::$termExistsCache)) {
-			self::$termExistsCache[$key] = term_exists($term, $taxonomy, $parent);
+	public static function getRegisteredPostTypesAsKVArray(): array{
+		global $wp_post_types;
+		$r = [];
+		$strLen = strlen(TouchPointWP::HOOK_PREFIX);
+		foreach ($wp_post_types as $key => $object) {
+			/** @var $object WP_Post_Type */
+
+			if (substr($key, 0, 3) === 'wp_' ||
+				substr($key, 0, $strLen) === TouchPointWP::HOOK_PREFIX ||
+				$object->show_ui === false) {
+				continue;
+			}
+			$r[$key] = $object->label;
 		}
-
-		return self::$termExistsCache[$key];
-	}
-
-	private static array $termExistsCache = [];
-
-
-	/**
-	 * Wrapper for the WordPress wp_insert_term function to reduce database calls
-	 *
-	 * Add a new term to the database.
-	 *
-	 * A non-existent term is inserted in the following sequence:
-	 * 1. The term is added to the term table, then related to the taxonomy.
-	 * 2. If everything is correct, several actions are fired.
-	 * 3. The 'term_id_filter' is evaluated.
-	 * 4. The term cache is cleaned.
-	 * 5. Several more actions are fired.
-	 * 6. An array is returned containing the `term_id` and `term_taxonomy_id`.
-	 *
-	 * If the 'slug' argument is not empty, then it is checked to see if the term
-	 * is invalid. If it is not a valid, existing term, it is added and the term_id
-	 * is given.
-	 *
-	 * If the taxonomy is hierarchical, and the 'parent' argument is not empty,
-	 * the term is inserted and the term_id will be given.
-	 *
-	 * Error handling:
-	 * If `$taxonomy` does not exist or `$term` is empty,
-	 * a WP_Error object will be returned.
-	 *
-	 * If the term already exists on the same hierarchical level,
-	 * or the term slug and name are not unique, a WP_Error object will be returned.
-	 *
-	 * @param string       $term The term name to add.
-	 * @param string       $taxonomy The taxonomy to which to add the term.
-	 * @param array|string $args {
-	 *     Optional. Array or query string of arguments for inserting a term.
-	 *
-	 * @type string        $alias_of Slug of the term to make this term an alias of.
-	 *                               Default empty string. Accepts a term slug.
-	 * @type string        $description The term description. Default empty string.
-	 * @type int           $parent The id of the parent term. Default 0.
-	 * @type string        $slug The term slug to use. Default empty string.
-	 * }
-	 * @return array|WP_Error {
-	 *     An array of the new term data, WP_Error otherwise.
-	 *
-	 * @type int           $term_id The new term ID.
-	 * @type int|string    $term_taxonomy_id The new term taxonomy ID. Can be a numeric string.
-	 * }
-	 *
-	 * @see wp_insert_term()
-	 */
-	public static function insertTerm(string $term, string $taxonomy, $args = [])
-	{
-		$parent = $args['parent'] ?? null;
-		$key    = $term . "|" . $taxonomy . "|" . $parent;
-		$r      = wp_insert_term($term, $taxonomy, $args);
-		if ( ! is_wp_error($r)) {
-			self::$termExistsCache[$key] = $r;
-		}
-
 		return $r;
 	}
+
 
 	/**
 	 * Generates a Microsoft-friendly globally unique identifier (Guid).

@@ -121,7 +121,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 		$terms = wp_get_post_terms(
 			$this->post_id,
 			[
-				TouchPointWP::TAX_GP_CATEGORY
+				Taxonomies::TAX_GP_CATEGORY
 			]
 		);
 
@@ -148,7 +148,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 
 			// Primary category
 			if (TouchPointWP::instance()->settings->global_primary_tax !== "") {
-				$this->category = array_filter($terms, fn($t) => $t->taxonomy === TouchPointWP::TAX_GP_CATEGORY);
+				$this->category = array_filter($terms, fn($t) => $t->taxonomy === Taxonomies::TAX_GP_CATEGORY);
 			}
 		}
 
@@ -332,6 +332,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 
 		$postsToKeep = [];
 		$count       = 0;
+		$termsToKeep = [];
 
 		foreach ($familyData->people as $f) {
 			/** @var object $f */
@@ -386,14 +387,15 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 			// Excerpt / Summary
 			$post->post_excerpt = self::getFamEvAsContent($summaryEv, $f, null);
 
-			// Partner Category
+			// Partner Category  This can't be moved to Taxonomy class because values aren't know.n.
 			if ($categoryEv !== '') {
 				$category = $f->familyEV->$categoryEv->value ?? null;
 				// Insert Term if new
-				if ($category !== null && ! Utilities::termExists($category, TouchPointWP::TAX_GP_CATEGORY)) {
-					Utilities::insertTerm(
+				$term = Taxonomies::termExists($category, Taxonomies::TAX_GP_CATEGORY);
+				if ($category !== null && ! $term) {
+					$term = Taxonomies::insertTerm(
 						$category,
-						TouchPointWP::TAX_GP_CATEGORY,
+						Taxonomies::TAX_GP_CATEGORY,
 						[
 							'description' => $category,
 							'slug'        => sanitize_title($category)
@@ -401,8 +403,11 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 					);
 					TouchPointWP::queueFlushRewriteRules();
 				}
-				// Apply term to post
-				wp_set_post_terms($post->ID, $category, TouchPointWP::TAX_GP_CATEGORY, false);
+				if ( !! $term && ! ! $term['term_id']) {
+					$termsToKeep[] = $term['term_id'];
+					// Apply term to post
+					wp_set_post_terms($post->ID, $term['term_id'], Taxonomies::TAX_GP_CATEGORY, false);
+				}
 			}
 
 			// Title & Slug
@@ -491,11 +496,16 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 				'post__not_in' => $postsToKeep
 			]
 		);
-
 		foreach ($q->get_posts() as $post) {
 			set_time_limit(10);
 			wp_delete_post($post->ID, true);
 			$count++;
+		}
+
+		// Delete terms that are no longer used
+		$terms = get_terms(['taxonomy' => Taxonomies::TAX_GP_CATEGORY, 'hide_empty' => false, 'exclude' => $termsToKeep]);
+		foreach ($terms as $term) {
+			wp_delete_term($term->term_id, Taxonomies::TAX_GP_CATEGORY);
 		}
 
 		if ($count !== 0) {
@@ -752,12 +762,12 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 		if (in_array('partner_category', $filters)
 		    && TouchPointWP::instance()->settings->global_primary_tax !== "") {
 
-			$tax     = get_taxonomy(TouchPointWP::TAX_GP_CATEGORY);
+			$tax     = get_taxonomy(Taxonomies::TAX_GP_CATEGORY);
 			$name    = substr($tax->name, strlen(TouchPointWP::SETTINGS_PREFIX));
 			$content .= "<select class=\"$class-filter\" data-partner-filter=\"$name\">";
 			$content .= "<option disabled selected>$tax->label</option>";
 			$content .= "<option value=\"\">$any</option>";
-			foreach (get_terms(TouchPointWP::TAX_GP_CATEGORY) as $t) {
+			foreach (get_terms(Taxonomies::TAX_GP_CATEGORY) as $t) {
 				$content .= "<option value=\"$t->slug\">$t->name</option>";
 			}
 			$content .= "</select>";

@@ -17,6 +17,7 @@ if ( ! defined('ABSPATH')) {
  *
  * @property-read string       enable_authentication  Whether the Authentication module is included.
  * @property-read string       enable_involvements  Whether the Involvement module is included.
+ * @property-read string       enable_meeting_cal  Whether the Meeting Calendar module is included.
  * @property-read string       enable_people_lists  Whether to allow public People Lists.
  * @property-read string       enable_rsvp        Whether the RSVP module is included.
  * @property-read string       enable_global      Whether to import Global partners.
@@ -67,14 +68,15 @@ if ( ! defined('ABSPATH')) {
  *
  * @property-read string       ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.
  *
- * @property-read string mc_slug            Slug for meetings in the meeting calendar (e.g. "events" for church.org/events)
- * @property-read string mc_hist_months     Number of months of history to keep.
- * @property-read string mc_future_months   Number of months into the future to import.
- * @property-read string mc_deletion_method Determines how meetings should be handled in WordPress if they're deleted in TouchPoint
+ * @property-read string       mc_slug            Slug for meetings in the meeting calendar (e.g. "events" for church.org/events)
+ * @property-read string       mc_hist_months     Number of months of history to keep.
+ * @property-read string       mc_future_months   Number of months into the future to import.
+ * @property-read string       mc_deletion_method Determines how meetings should be handled in WordPress if they're deleted in TouchPoint
  *
  * @property-read string       rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
  * @property-read string       rc_name_singular   What a resident code should be called, singular (e.g. "Resident Code" or "Zone")
  * @property-read string       rc_slug            Slug for resident code taxonomy (e.g. "zones" for church.org/zones)
+ * @property-read array        rc_additional_post_types  Which post types should have the division taxonomy.
  *
  * @property-read string       camp_name_plural   What campuses should be called, plural (e.g. "Campuses" or "Languages")
  * @property-read string       camp_name_singular What a campus should be called, singular (e.g. "Campus" or "Language")
@@ -84,6 +86,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string       dv_name_singular   What a division should be called, singular (e.g. "Division" or "Ministry")
  * @property-read string       dv_slug            Slug for division taxonomy (e.g. "ministries" for church.org/ministries)
  * @property-read array        dv_divisions       Which divisions should be imported
+ * @property-read array        dv_additional_post_types  Which post types should have the division taxonomy.
  */
 class TouchPointWP_Settings
 {
@@ -263,6 +266,17 @@ class TouchPointWP_Settings
 					'label'       => __('Enable Involvements', 'TouchPoint-WP'),
 					'description' => __(
 						'Load Involvements from TouchPoint for involvement listings and entries native in your website.',
+						'TouchPoint-WP'
+					),
+					'type'        => 'checkbox',
+					'default'     => '',
+					'autoload'    => true,
+				],
+				[
+					'id'          => 'enable_meeting_cal',
+					'label'       => __('Enable Meeting Calendar', 'TouchPoint-WP'),
+					'description' => __(
+						'Load Meetings from TouchPoint for a calendar, native in your website.',
 						'TouchPoint-WP'
 					),
 					'type'        => 'checkbox',
@@ -877,6 +891,19 @@ class TouchPointWP_Settings
 					'default'     => [],
 					'callback'    => function($new) { sort($new); return $new; }
 				],
+				[
+					'id'          => 'dv_additional_post_types',
+					'label'       => __('Post Types', 'TouchPoint-WP'),
+					'description' => __(
+						'Select post types which should have Divisions available as a native taxonomy.',
+						'TouchPoint-WP'
+					),
+					'type'        => 'checkbox_multi',
+					'options'     => $includeThis ? Utilities::getRegisteredPostTypesAsKVArray() : [],
+					'autoload'    => true,
+					'default'     => [],
+					'callback'    => fn($new) => $this->validation_postTypes($new)
+				],
 			],
 		];
 
@@ -953,6 +980,7 @@ class TouchPointWP_Settings
 			];
 		}
 
+		$includeThis = $includeDetail === true || $includeDetail === 'resident_codes';
 		$this->settings['resident_codes'] = [
 			'title'       => __('Resident Codes', 'TouchPoint-WP'),
 			'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements that have locations.', 'TouchPoint-WP'),
@@ -993,7 +1021,20 @@ class TouchPointWP_Settings
 					'autoload'    => true,
 					'placeholder' => 'rescodes',
 					'callback'    => fn($new) => $this->validation_slug($new, 'rc_slug')
-				]
+				],
+				[
+					'id'          => 'rc_additional_post_types',
+					'label'       => __('Post Types', 'TouchPoint-WP'),
+					'description' => __(
+						'Select post types which should have Resident Codes available as a native taxonomy.',
+						'TouchPoint-WP'
+					),
+					'type'        => 'checkbox_multi',
+					'options'     => $includeThis ? Utilities::getRegisteredPostTypesAsKVArray() : [],
+					'autoload'    => true,
+					'default'     => [],
+					'callback'    => fn($new) => $this->validation_postTypes($new)
+				],
 			],
 		];
 
@@ -1430,10 +1471,9 @@ class TouchPointWP_Settings
 			rename("../../touchpoint-wp/TouchPoint-WP.php", "../../touchpoint-wp/touchpoint-wp.php");
 		}
 
-
 		// 0.0.31 - Add lookup IDs to ResCodes
-		TouchPointWP::$forceTermLookupIdUpdate = true;
-
+		// 0.0.36 - Cleanup possible duplicate terms
+		Taxonomies::$forceTermLookupIdUpdate = true;
 
 		// Update version string
 		$this->set('version', TouchPointWP::VERSION);
@@ -1682,6 +1722,27 @@ class TouchPointWP_Settings
 		}
 
 		return $new;
+	}
+
+
+	/**
+	 * Validate that selected post types are actually post types that exist.
+	 *
+	 * @param mixed  $new The new value.
+	 *
+	 * @return string[]
+	 */
+	protected function validation_postTypes(array $new): array
+	{
+		$types = array_keys(Utilities::getRegisteredPostTypesAsKVArray());
+		$r = [];
+		sort($new);
+		foreach ($new as $k => $t) {
+			if (in_array($t, $types)) {
+				$r[] = $t;
+			}
+		}
+		return $r;
 	}
 
 	/**

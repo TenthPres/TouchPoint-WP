@@ -148,16 +148,16 @@ class Involvement implements api, updatesViaCron, geo, module
 		}
 
 		$postTerms = [
-			TouchPointWP::TAX_RESCODE,
-			TouchPointWP::TAX_AGEGROUP,
-			TouchPointWP::TAX_WEEKDAY,
-			TouchPointWP::TAX_TENSE,
-			TouchPointWP::TAX_DAYTIME,
-			TouchPointWP::TAX_INV_MARITAL,
-			TouchPointWP::TAX_DIV
+			Taxonomies::TAX_RESCODE,
+			Taxonomies::TAX_AGEGROUP,
+			Taxonomies::TAX_WEEKDAY,
+			Taxonomies::TAX_TENSE,
+			Taxonomies::TAX_DAYTIME,
+			Taxonomies::TAX_INV_MARITAL,
+			Taxonomies::TAX_DIV
 		];
 		if (TouchPointWP::instance()->settings->enable_campuses === "on") {
-			$postTerms[] = TouchPointWP::TAX_CAMPUS;
+			$postTerms[] = Taxonomies::TAX_CAMPUS;
 		}
 
 		$terms = wp_get_post_terms(
@@ -810,7 +810,7 @@ class Involvement implements api, updatesViaCron, geo, module
 				];
 			}
 
-			$this->divisions = wp_get_post_terms($this->post_id, TouchPointWP::TAX_DIV, ['meta_query' => $mq]);
+			$this->divisions = wp_get_post_terms($this->post_id, Taxonomies::TAX_DIV, ['meta_query' => $mq]);
 		}
 
 		$out = [];
@@ -1060,7 +1060,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 			if (count($divs) > 0) {
 				$taxQuery[] = [
-					'taxonomy' => TouchPointWP::TAX_DIV,
+					'taxonomy' => Taxonomies::TAX_DIV,
 					'field'    => 'ID',
 					'terms'    => $divs
 				];
@@ -1344,7 +1344,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 			$dvName = TouchPointWP::instance()->settings->dv_name_singular;
 			$dvList = get_terms([
-									'taxonomy'                              => TouchPointWP::TAX_DIV,
+									'taxonomy'                              => Taxonomies::TAX_DIV,
 									'hide_empty'                            => true,
 									'meta_query'                            => $mq,
 									TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
@@ -1392,7 +1392,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			$rcName = TouchPointWP::instance()->settings->rc_name_singular;
 			$rcList = get_terms(
 				[
-					'taxonomy'                              => TouchPointWP::TAX_RESCODE,
+					'taxonomy'                              => Taxonomies::TAX_RESCODE,
 					'hide_empty'                            => true,
 					TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
 				]
@@ -1419,7 +1419,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 			$cList = get_terms(
 				[
-					'taxonomy'                              => TouchPointWP::TAX_CAMPUS,
+					'taxonomy'                              => Taxonomies::TAX_CAMPUS,
 					'hide_empty'                            => true,
 					TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
 				]
@@ -1443,7 +1443,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			$wdName = __("Weekday", 'TouchPoint-WP');
 			$wdList = get_terms(
 				[
-					'taxonomy'                              => TouchPointWP::TAX_WEEKDAY,
+					'taxonomy'                              => Taxonomies::TAX_WEEKDAY,
 					'hide_empty'                            => true,
 					'orderby'                               => 'id',
 					TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
@@ -1469,7 +1469,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			$todName = __("Time of Day", 'TouchPoint-WP');
 			$todList = get_terms(
 				[
-					'taxonomy'                              => TouchPointWP::TAX_DAYTIME,
+					'taxonomy'                              => Taxonomies::TAX_DAYTIME,
 					'hide_empty'                            => true,
 					'orderby'                               => 'id',
 					TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
@@ -1503,7 +1503,7 @@ class Involvement implements api, updatesViaCron, geo, module
 		if (in_array('agegroup', $filters)) {
 			$agName = __("Age", 'TouchPoint-WP');
 			$agList = get_terms([
-									'taxonomy'                              => TouchPointWP::TAX_AGEGROUP,
+									'taxonomy'                              => Taxonomies::TAX_AGEGROUP,
 									'hide_empty'                            => true,
 									'orderby'                               => 't.id',
 									TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
@@ -2384,7 +2384,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 
 			// Start and end dates
-			$tense = TouchPointWP::TAX_TENSE_PRESENT;
+			$tense = Taxonomies::TAX_TENSE_PRESENT;
 			if ($inv->firstMeeting !== null && $inv->firstMeeting < $now) { // First meeting already happened.
 				$inv->firstMeeting = null; // We don't need to list info from the past.
 			}
@@ -2409,10 +2409,10 @@ class Involvement implements api, updatesViaCron, geo, module
 
 			// Tense
 			if ($inv->firstMeeting !== null) {
-				$tense = TouchPointWP::TAX_TENSE_FUTURE;
+				$tense = Taxonomies::TAX_TENSE_FUTURE;
 			}
 			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, [$tense], TouchPointWP::TAX_TENSE, false);
+			wp_set_post_terms($post->ID, [$tense], Taxonomies::TAX_TENSE, false);
 
 			// Update meetings and schedules
 			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetings", $inv->meetings);
@@ -2424,11 +2424,11 @@ class Involvement implements api, updatesViaCron, geo, module
 				$dayTerms[] = Utilities::getDayOfWeekShortForNumber_noI18n(intval($k[1]));
 			}
 			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, $dayTerms, TouchPointWP::TAX_WEEKDAY, false);
+			wp_set_post_terms($post->ID, $dayTerms, Taxonomies::TAX_WEEKDAY, false);
 
 			// Time of day taxonomy
 			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, $timeTerms, TouchPointWP::TAX_DAYTIME, false);
+			wp_set_post_terms($post->ID, $timeTerms, Taxonomies::TAX_DAYTIME, false);
 
 
 			////////////////
@@ -2456,10 +2456,10 @@ class Involvement implements api, updatesViaCron, geo, module
 				// Handle Resident Code
 				if (property_exists($inv, "resCodeName") && $inv->resCodeName !== null) {
 					/** @noinspection PhpRedundantOptionalArgumentInspection */
-					wp_set_post_terms($post->ID, [$inv->resCodeName], TouchPointWP::TAX_RESCODE, false);
+					wp_set_post_terms($post->ID, [$inv->resCodeName], Taxonomies::TAX_RESCODE, false);
 				} else {
 					/** @noinspection PhpRedundantOptionalArgumentInspection */
-					wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
+					wp_set_post_terms($post->ID, [], Taxonomies::TAX_RESCODE, false);
 				}
 			}
 
@@ -2471,10 +2471,10 @@ class Involvement implements api, updatesViaCron, geo, module
 			if (TouchPointWP::instance()->settings->enable_campuses === "on") {
 				if (property_exists($inv, "campusName") && $inv->campusName !== null) {
 					/** @noinspection PhpRedundantOptionalArgumentInspection */
-					wp_set_post_terms($post->ID, [$inv->campusName], TouchPointWP::TAX_CAMPUS, false);
+					wp_set_post_terms($post->ID, [$inv->campusName], Taxonomies::TAX_CAMPUS, false);
 				} else {
 					/** @noinspection PhpRedundantOptionalArgumentInspection */
-					wp_set_post_terms($post->ID, [], TouchPointWP::TAX_CAMPUS, false);
+					wp_set_post_terms($post->ID, [], Taxonomies::TAX_CAMPUS, false);
 				}
 			}
 
@@ -2494,15 +2494,15 @@ class Involvement implements api, updatesViaCron, geo, module
 				}
 			}
 			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, $maritalTax, TouchPointWP::TAX_INV_MARITAL, false);
+			wp_set_post_terms($post->ID, $maritalTax, Taxonomies::TAX_INV_MARITAL, false);
 
 			// Handle Age Groups
 			if ($inv->age_groups === null) {
 				/** @noinspection PhpRedundantOptionalArgumentInspection */
-				wp_set_post_terms($post->ID, [], TouchPointWP::TAX_AGEGROUP, false);
+				wp_set_post_terms($post->ID, [], Taxonomies::TAX_AGEGROUP, false);
 			} else {
 				/** @noinspection PhpRedundantOptionalArgumentInspection */
-				wp_set_post_terms($post->ID, $inv->age_groups, TouchPointWP::TAX_AGEGROUP, false);
+				wp_set_post_terms($post->ID, $inv->age_groups, Taxonomies::TAX_AGEGROUP, false);
 			}
 
 
@@ -2521,7 +2521,7 @@ class Involvement implements api, updatesViaCron, geo, module
 				}
 			}
 			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, $divs, TouchPointWP::TAX_DIV, false);
+			wp_set_post_terms($post->ID, $divs, Taxonomies::TAX_DIV, false);
 
 			if ($verbose) {
 				echo "<p>Division Terms:</p>";
