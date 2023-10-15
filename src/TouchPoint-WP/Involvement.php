@@ -345,7 +345,7 @@ class Involvement implements api, updatesViaCron, geo, module
 
 		$verbose &= TouchPointWP::currentUserIsAdmin();
 
-		foreach (self::allTypeSettings() as $k => $type) {
+		foreach (self::allTypeSettings() as $type) {
 			if (count($type->importDivs) < 1) {
 				// Don't update if there aren't any divisions selected yet.
 				if ($verbose) {
@@ -1766,7 +1766,6 @@ class Involvement implements api, updatesViaCron, geo, module
 		return $wpdb->get_results($q, 'OBJECT');
 	}
 
-
 	/**
 	 * Create a Involvement object from an object from a database query.
 	 *
@@ -2074,11 +2073,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 *
 	 * @return false|int  False on failure.  Otherwise, the number of updates.
 	 */
-	final protected static function updateInvolvementPostsForType(
-		Involvement_PostTypeSettings $typeSets,
-		$divs,
-		bool $verbose
-	) {
+	final protected static function updateInvolvementPostsForType(Involvement_PostTypeSettings $typeSets, $divs, bool $verbose) {
 		$siteTz = wp_timezone();
 
 		set_time_limit(180);

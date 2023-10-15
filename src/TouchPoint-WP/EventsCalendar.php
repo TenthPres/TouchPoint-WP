@@ -18,6 +18,8 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 /**
  * Provides an interface to bridge the gap between The Events Calendar plugin (by ModernTribe) and the TouchPoint
  * mobile app.
+ *
+ * @deprecated since 0.0.36
  */
 abstract class EventsCalendar implements api, module
 {

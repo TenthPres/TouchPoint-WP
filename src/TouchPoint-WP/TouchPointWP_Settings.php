@@ -69,8 +69,9 @@ if ( ! defined('ABSPATH')) {
  * @property-read string       ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.
  *
  * @property-read string       mc_slug            Slug for meetings in the meeting calendar (e.g. "events" for church.org/events)
- * @property-read string       mc_hist_months     Number of months of history to keep.
- * @property-read string       mc_future_months   Number of months into the future to import.
+ * @property-read string       mc_future_days     Number of days into the future to import.
+ * @property-read string       mc_archive_days    Number of days to wait to move something to history.
+ * @property-read string       mc_hist_days       Number of days of history to keep.
  * @property-read string       mc_deletion_method Determines how meetings should be handled in WordPress if they're deleted in TouchPoint
  *
  * @property-read string       rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
@@ -804,33 +805,43 @@ class TouchPointWP_Settings
 					'callback'    => fn($new) => $this->validation_slug($new, 'mc_slug')
 				],
 				[
-					'id'          => 'mc_hist_months',
-					'label'       => __( 'Months of History', 'TouchPoint-WP' ),
-					'description' => __( 'Meetings will be kept for the public calendar until the event is this many months in the past.  Note that due to limitations in TouchPoint\'s approach to events, Meetings cannot be fully updated once they occur.', 'TouchPoint-WP' ),
+					'id'          => 'mc_future_days',
+					'label'       => __('Days of Future', 'TouchPoint-WP'),
+					'description' => __('Meetings more than this many days in the future will not be imported.', 'TouchPoint-WP'),
 					'type'        => 'number',
-					'default'     => 12,
-					'placeholder' => 12,
-					'max'         => 36,
+					'default'     => 365,
+					'placeholder' => 365,
+					'max'         => 1825,
 					'min'         => 0
 				],
 				[
-					'id'          => 'mc_future_months',
-					'label'       => __( 'Months of Future', 'TouchPoint-WP' ),
-					'description' => __( 'Meetings more than this many months in the future will not be imported.', 'TouchPoint-WP' ),
+					'id'          => 'mc_archive_days',
+					'label'       => __('Archive After Days', 'TouchPoint-WP'),
+					'description' => __('Meetings more than this many days in the past will be moved to the Events Archive.  Once this date passes, meeting information will no longer update.', 'TouchPoint-WP'),
 					'type'        => 'number',
-					'default'     => 12,
-					'placeholder' => 12,
-					'max'         => 60,
+					'default'     => 7,
+					'placeholder' => 7,
+					'max'         => 365,
+					'min'         => 0
+				],
+				[
+					'id'          => 'mc_hist_days',
+					'label'       => __('Days of History', 'TouchPoint-WP'),
+					'description' => __('Meetings will be kept for the public calendar until the event is this many days in the past.', 'TouchPoint-WP'),
+					'type'        => 'number',
+					'default'     => 365,
+					'placeholder' => 365,
+					'max'         => 1825,
 					'min'         => 0
 				],
 				[
 					'id'          => 'mc_deletion_method',
-					'label'       => __( 'Meeting Deletion Handling', 'TouchPoint-WP' ),
-					'description' => __( 'When a Meeting is deleted in TouchPoint that has already been imported to WordPress, how should that be handled?', 'TouchPoint-WP' ),
+					'label'       => __('Meeting Deletion Handling', 'TouchPoint-WP'),
+					'description' => __('When a Meeting is deleted in TouchPoint that has already been imported to WordPress, how should that be handled?', 'TouchPoint-WP'),
 					'type'        => 'select',
 					'options'     => [
-						'delete'    => __( 'Always delete from WordPress', 'TouchPoint-WP' ),
-						'cancel'    => __( 'Mark the occurrence as cancelled', 'TouchPoint-WP' ),
+						'delete'    => __('Always delete from WordPress', 'TouchPoint-WP'),
+						'cancel'    => __('Mark the occurrence as cancelled', 'TouchPoint-WP'),
 					],
 					'default'     => 'delete',
 				],

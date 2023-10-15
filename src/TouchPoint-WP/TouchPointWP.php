@@ -32,7 +32,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.35";
+	public const VERSION = "0.0.36";
 
 	/**
 	 * The Token
@@ -169,6 +169,10 @@ class TouchPointWP
 	 */
 	protected ?bool $global = null;
 
+	/**
+	 * @var ?bool True after the Meeting/Events Calendar feature is loaded.
+	 */
+	protected ?bool $meeting = null;
 
 	/**
 	 * @var ?bool True after the People feature is loaded.
@@ -695,7 +699,15 @@ class TouchPointWP
 			$instance->people = Person::load();
 		}
 
-		// Load Events if enabled (by presence of Events Calendar plugin)
+		// Load Meetings / Events Calendar
+		if ($instance->settings->enable_meeting_cal === "on") {
+			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
+				require_once 'Meeting.php';
+			}
+			$instance->meeting = Meeting::load();
+		}
+
+		// Load Tribe module if enabled (by presence of Events Calendar plugin)
 		if (self::useTribeCalendar()
 			&& ! class_exists("tp\TouchPointWP\EventsCalendar")) {
 			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
@@ -1318,6 +1330,8 @@ class TouchPointWP
 	 * Indicates that Tribe Calendar is enabled.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated since 0.0.36 -- Will not be necessary once mobile 3.0 exists.
 	 */
 	public static function useTribeCalendar(): bool
 	{
