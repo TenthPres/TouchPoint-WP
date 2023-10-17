@@ -104,8 +104,10 @@ abstract class Taxonomies
 
 		// Delete any terms that are no longer current.
 		$terms = get_terms(['taxonomy' => $taxonomy, 'hide_empty' => false, 'exclude' => $existingIds]);
-		foreach ($terms as $term) {
-			wp_delete_term($term->term_id, $taxonomy);
+		if (!is_wp_error($terms)) {
+			foreach ($terms as $term) {
+				wp_delete_term($term->term_id, $taxonomy);
+			}
 		}
 	}
 
@@ -158,8 +160,10 @@ abstract class Taxonomies
 
 		// Delete any terms that are no longer current.
 		$terms = get_terms(['taxonomy' => $taxonomy, 'hide_empty' => false, 'exclude' => $existingIds]);
-		foreach ($terms as $term) {
-			wp_delete_term($term->term_id, $taxonomy);
+		if (!is_wp_error($terms)) {
+			foreach ($terms as $term) {
+				wp_delete_term($term->term_id, $taxonomy);
+			}
 		}
 	}
 
@@ -379,8 +383,10 @@ abstract class Taxonomies
 
 			// Delete any terms that are no longer current.
 			$terms = get_terms(['taxonomy' => self::TAX_DIV, 'hide_empty' => false, 'exclude' => $existingIds]);
-			foreach ($terms as $term) {
-				wp_delete_term($term->term_id, self::TAX_DIV);
+			if (!is_wp_error($terms)) {
+				foreach ($terms as $term) {
+					wp_delete_term($term->term_id, self::TAX_DIV);
+				}
 			}
 		}
 
