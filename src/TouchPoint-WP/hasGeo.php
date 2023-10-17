@@ -13,7 +13,7 @@ if ( ! defined('ABSPATH')) {
 /**
  * For classes that have geographic attributes, or potential geographic attributes
  */
-interface geo
+interface hasGeo
 {
 
 	/**
@@ -31,5 +31,5 @@ interface geo
 	 *
 	 * @return object|null
 	 */
-	public function asGeoIFace(string $type = "unknown"): ?object;
+	public function asGeoIFace(string $type = "unknown"): ?Geo;
 }

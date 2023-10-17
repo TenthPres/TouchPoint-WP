@@ -959,7 +959,7 @@ class TouchPointWP
 	/**
 	 * @param bool $useApi Set false to only use cached data, and not the IP API.
 	 *
-	 * @return stdClass|false An object with 'lat', 'lng', and 'human' attributes, if a location could be identified.
+	 * @return Geo|false An object with 'lat', 'lng', and 'human' attributes, if a location could be identified.
 	 *	 Or, false if not available.
 	 */
 	public function geolocate(bool $useApi = true, bool $includeRaw = false)
@@ -974,7 +974,7 @@ class TouchPointWP
 		$return = Location::getLocationForIP($ip);
 
 		if ($return !== null && $return->lat !== null && $return->lng !== null) {
-			return $return->asGeoIFace('ip');
+			return $return->asGeoIFace('loc');
 		}
 
 		try {
@@ -1011,24 +1011,18 @@ class TouchPointWP
 			$human = $d->city . ", " . $d->country_name;
 		}
 
+		$r = new Geo(
+			$d->latitude,
+			$d->longitude,
+			$human,
+			'ip'
+		);
+
 		if ($includeRaw) {
-			/** @see geo::asGeoIFace() */
-			return (object)[
-				'lat' => $d->latitude,
-				'lng' => $d->longitude,
-				'human' => $human,
-				'type' => 'ip',
-				'raw'  => $d
-			];
-		} else {
-			/** @see geo::asGeoIFace() */
-			return (object)[
-				'lat' => $d->latitude,
-				'lng' => $d->longitude,
-				'human' => $human,
-				'type' => 'ip'
-			];
+			$r->raw = $d;
 		}
+
+		return $r;
 	}
 
 	/**
@@ -1036,7 +1030,7 @@ class TouchPointWP
 	 * @param float   $lng Longitude
 	 * @param bool    $includeIpLoc  Whether to use IP geolocation as a fallback data source.
 	 *
-	 * @return object|false An object with a 'human' attribute, if a location could be identified. Or, false if not
+	 * @return Geo|false An object with a 'human' attribute, if a location could be identified. Or, false if not
 	 *	 available.
 	 */
 	public function reverseGeocode(float $lat, float $lng, bool $includeIpLoc = true)
@@ -1048,6 +1042,13 @@ class TouchPointWP
 		$r = Location::getLocationForLatLng($lat, $lng);
 		if ($r !== null) {
 			return $r->asGeoIFace('loc');
+		}
+
+		if ($includeIpLoc) {
+			$r = Location::getLocationForIP();
+			if ($r !== null) {
+				return $r->asGeoIFace('ip');
+			}
 		}
 
 		if ($this->settings->google_geo_api_key !== "") {
@@ -1083,16 +1084,12 @@ class TouchPointWP
 					$human = $out['locality'] . ", " . $out['country_long'];
 				}
 
-				$out['human'] = $human;
-
-				return (object)$out;
-			}
-		}
-
-		if ($includeIpLoc) {
-			$r = Location::getLocationForIP();
-			if ($r !== null) {
-				return $r->asGeoIFace('loc');
+				return new Geo(
+					$out['lat'],
+					$out['lng'],
+					$human,
+					'nav',
+				);
 			}
 		}
 

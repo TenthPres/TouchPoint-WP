@@ -15,7 +15,6 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "jsonLd.php";
 	require_once "updatesViaCron.php";
 	require_once "Utilities.php";
-	require_once "Utilities/Geo.php";
 	require_once "Involvement_PostTypeSettings.php";
 }
 
@@ -34,7 +33,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement implements api, updatesViaCron, geo, module
+class Involvement implements api, updatesViaCron, hasGeo, module
 {
 	use jsInstantiation;
 	use jsonLd;
@@ -1658,6 +1657,10 @@ class Involvement implements api, updatesViaCron, geo, module
 				exit;
 			}
 
+			if ($geoObj->type == "loc") {
+				$geoObj->type = "ip";
+			}
+
 			$lat = $geoObj->lat;
 			$lng = $geoObj->lng;
 
@@ -1666,6 +1669,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			$geoObj = TouchPointWP::instance()->reverseGeocode($lat, $lng);
 
 			if ($geoObj !== false) {
+				$geoObj->type = "nav";
 				$r['geo'] = $geoObj;
 			}
 		}
@@ -1897,7 +1901,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			return $useHiForFalse ? 25000 : false;
 		}
 
-		return Utilities\Geo::distance(
+		return Geo::distance(
 			$this->geo->lat,
 			$this->geo->lng,
 			self::$compareGeo->lat,
@@ -2049,15 +2053,15 @@ class Involvement implements api, updatesViaCron, geo, module
 		return $this->geo !== null && $this->geo->lat !== null && $this->geo->lng !== null;
 	}
 
-	public function asGeoIFace(string $type = "unknown"): ?object
+	public function asGeoIFace(string $type = "unknown"): ?Geo
 	{
 		if ($this->hasGeo()) {
-			return (object)[
-				'lat'   => $this->geo->lat,
-				'lng'   => $this->geo->lng,
-				'human' => $this->name,
-				'type'  => $type
-			];
+			return new Geo(
+				$this->geo->lat,
+				$this->geo->lng,
+				$this->name,
+				$type
+			);
 		}
 
 		return null;

@@ -9,14 +9,14 @@ namespace tp\TouchPointWP;
  * A Location is generally a physical place, with an internet connection.  These likely correspond to campuses, but
  * don't necessarily need to.
  */
-class Location implements geo
+class Location implements hasGeo
 {
 	protected static ?array $_locations = null;
 
 	public string $name;
 	public ?float $lat;
 	public ?float $lng;
-	public float $radius;
+	public float $radius; // miles
 	public array $ipAddresses;
 
 	protected function __construct($data)
@@ -79,15 +79,15 @@ class Location implements geo
 		return $this->lat !== null && $this->lng !== null;
 	}
 
-	public function asGeoIFace(string $type = "unknown"): ?object
+	public function asGeoIFace(string $type = "unknown"): ?Geo
 	{
 		if ($this->hasGeo()) {
-			return (object)[
-				'lat'   => $this->lat,
-				'lng'   => $this->lng,
-				'human' => $this->name,
-				'type'  => $type
-			];
+			return new Geo(
+				$this->lat,
+				$this->lng,
+				$this->name,
+				$type
+			);
 		}
 
 		return null;
@@ -97,7 +97,7 @@ class Location implements geo
 	{
 		$locs = self::getLocations();
 		foreach ($locs as $l) {
-			$d = Utilities\Geo::distance($lat, $lng, $l->lat, $l->lng);
+			$d = Geo::distance($lat, $lng, $l->lat, $l->lng);
 			if ($d <= $l->radius) {
 				return $l;
 			}

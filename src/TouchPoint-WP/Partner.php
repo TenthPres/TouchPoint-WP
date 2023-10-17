@@ -26,7 +26,7 @@ use WP_Term;
 /**
  * An Outreach partner, corresponding to a family in TouchPoint.
  */
-class Partner implements api, JsonSerializable, updatesViaCron, geo, module
+class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 {
 	use jsInstantiation {
 		jsInstantiation::enqueueForJsInstantiation as protected enqueueForJsInstantiationTrait;
@@ -1385,15 +1385,15 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 		return $this->geo !== null;
 	}
 
-	public function asGeoIFace(string $type = "unknown"): ?object
+	public function asGeoIFace(string $type = "unknown"): ?Geo
 	{
 		if ($this->hasGeo()) {
-			return (object)[
-				'lat'   => $this->geo->lat,
-				'lng'   => $this->geo->lng,
-				'human' => $this->name,
-				'type'  => $type
-			];
+			return new Geo(
+				$this->geo->lat,
+				$this->geo->lng,
+				$this->name,
+				$type
+			);
 		}
 
 		return null;
