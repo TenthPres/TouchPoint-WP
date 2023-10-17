@@ -402,7 +402,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	{
 		if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
 			$postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
-			$templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
+			$templateFilesToOverwrite = self::TEMPLATES_TO_OVERWRITE;
 
 			if (count($postTypesToFilter) == 0) {
 				return $template;

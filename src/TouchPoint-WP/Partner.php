@@ -540,7 +540,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 	{
 		if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
 			$postTypesToFilter        = self::POST_TYPE;
-			$templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
+			$templateFilesToOverwrite = self::TEMPLATES_TO_OVERWRITE;
 
 			if ( ! in_array(ltrim(strrchr($template, '/'), '/'), $templateFilesToOverwrite)) {
 				return $template;
