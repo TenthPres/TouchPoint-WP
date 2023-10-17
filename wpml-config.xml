@@ -1,0 +1,49 @@
+<wpml-config>
+    <custom-types>
+        <custom-type translate="0">tp_partner</custom-type>
+        <custom-type translate="0">tp_report</custom-type>
+    </custom-types>
+    <taxonomies>
+        <taxonomy translate="1" display-as-translated="1">tp_rescode</taxonomy>
+        <taxonomy translate="1" display-as-translated="1">tp_campus</taxonomy>
+        <taxonomy translate="1" display-as-translated="1">tp_div</taxonomy>
+        <taxonomy translate="1" display-as-translated="1">tp_weekday</taxonomy>
+        <taxonomy translate="1" display-as-translated="1">tp_tense</taxonomy>
+        <taxonomy translate="1" display-as-translated="1">tp_timeofday</taxonomy>
+        <taxonomy translate="1" display-as-translated="1">tp_agegroup</taxonomy>
+        <taxonomy translate="1" display-as-translated="1">tp_inv_marital</taxonomy>
+    </taxonomies>
+    <custom-fields>
+        <custom-field action="ignore">tp_invid</custom-field>
+        <custom-field action="translate">tp_locationname</custom-field>
+        <custom-field action="ignore">tp_membercount</custom-field>
+        <custom-field action="ignore">tp_genderid</custom-field>
+        <custom-field action="ignore">tp_groupfull</custom-field>
+        <custom-field action="ignore">tp_groupclosed</custom-field>
+        <custom-field action="ignore">tp_hasregquestions</custom-field>
+        <custom-field action="ignore">tp_regtypeid</custom-field>
+        <custom-field action="ignore">tp_meetings</custom-field>
+        <custom-field action="ignore">tp_schedules</custom-field>
+        <custom-field action="ignore">tp_geo_lat</custom-field>
+        <custom-field action="ignore">tp_geo_lng</custom-field>
+        <custom-field action="ignore">tp_regend</custom-field>
+        <custom-field action="ignore">tp_lastmeeting</custom-field>
+        <custom-field action="ignore">tp_regstart</custom-field>
+        <custom-field action="ignore">tp_famid</custom-field>
+        <custom-field action="ignore">tp_geo_decouple</custom-field>
+        <custom-field action="translate">tp_location</custom-field>
+    </custom-fields>
+    <admin-texts>
+        <key name="tp_camp_name_plural"/>
+        <key name="tp_camp_name_singular"/>
+        <key name="tp_dv_name_plural"/>
+        <key name="tp_dv_name_singular"/>
+        <key name="tp_global_name_plural"/>
+        <key name="tp_global_name_plural_decoupled"/>
+        <key name="tp_global_name_singular"/>
+        <key name="tp_global_name_singular_decoupled"/>
+        <key name="tp_rc_name_plural"/>
+        <key name="tp_rc_name_singular"/>
+        <key name="tp_system_name"/>
+    </admin-texts>
+</wpml-config>

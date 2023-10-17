@@ -239,6 +239,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.slug = ko.observable(data.slug ?? "smallgroup").extend({slug: 0});
         this.importDivs = ko.observable(data.importDivs ?? []);
         this.useGeo = ko.observable(data.useGeo ?? false);
+        this.useImages = ko.observable(data.useImages ?? true);
         this.excludeIf = ko.observable(data.excludeIf ?? []);
         this.hierarchical = ko.observable(data.hierarchical ?? false);
         this.groupBy = ko.observable(data.groupBy ?? "");

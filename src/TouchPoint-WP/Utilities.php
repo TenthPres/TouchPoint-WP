@@ -695,4 +695,95 @@ abstract class Utilities
 		return $headers;
 	}
 
+	protected static ?string $_clientIp = null;
+
+	public static function getClientIp(): ?string
+	{
+		if (self::$_clientIp === null) {
+			$ipHeaderKeys = [
+				'HTTP_CLIENT_IP',
+				'HTTP_X_FORWARDED_FOR',
+				'HTTP_X_FORWARDED',
+				'HTTP_FORWARDED_FOR',
+				'HTTP_FORWARDED',
+				'REMOTE_ADDR'
+			];
+
+			foreach ($ipHeaderKeys as $k) {
+				if ( ! empty($_SERVER[$k]) && filter_var($_SERVER[$k], FILTER_VALIDATE_IP)) {
+					self::$_clientIp = $_SERVER[$k];
+					break;
+				}
+			}
+		}
+
+		return self::$_clientIp;
+	}
+
+	/**
+	 * Determine if an email address or user should be accepted as a new registrant. (e.g. informal auth)
+	 *
+	 * @param string $nickname
+	 * @param string $emailAddress
+	 * @param ?string $resultComment If a spam provider provides a comment about why content was allowed or rejected,
+	 *     it goes here.
+	 *
+	 * @return bool  True if acceptable, false if not acceptable.
+	 */
+	public static function validateRegistrantEmailAddress(string $nickname, string $emailAddress, string &$resultComment = null): bool {
+		// CleanTalk filter
+		if (file_exists(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php')
+		    || function_exists('ct_test_registration')) {
+
+			if ( ! function_exists('ct_test_registration')) {
+				include_once(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php');
+			}
+			if (function_exists('ct_test_registration')) {
+				$res = ct_test_registration($nickname, $emailAddress, self::getClientIp());
+				if ($resultComment !== null) {
+					$resultComment = $res['comment'];
+				}
+				if ($res['allow'] < 1) {
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Determine if an email address or user should be accepted as a new registrant. (e.g. informal auth)
+	 *
+	 * @param string  $nickname
+	 * @param string  $emailAddress
+	 * @param string  $message
+	 * @param ?string $resultComment If a spam provider provides a comment about why content was allowed or rejected,
+	 *     it goes here.
+	 *
+	 * @return bool  True if acceptable, false if not acceptable.
+	 */
+	public static function validateMessage(string $nickname, string $emailAddress, string $message, string &$resultComment = null): bool
+	{
+		// CleanTalk filter
+		if (file_exists(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php')
+		    || function_exists('ct_test_message')) {
+
+			if ( ! function_exists('ct_test_message')) {
+				include_once(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php');
+			}
+			if (function_exists('ct_test_message')) {
+				$res = ct_test_message($nickname, $emailAddress, self::getClientIp(), $message);
+				if ($resultComment !== null) {
+					$resultComment = $res['comment'];
+				}
+
+				if ($res['allow'] < 1) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
 }

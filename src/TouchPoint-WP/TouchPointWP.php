@@ -20,6 +20,10 @@ if ( ! defined('ABSPATH')) {
 	exit;
 }
 
+if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
+	require_once "Utilities.php";
+}
+
 
 /**
  * Main plugin class.
@@ -29,7 +33,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.34";
+	public const VERSION = "0.0.35";
 
 	/**
 	 * The Token
@@ -398,6 +402,12 @@ class TouchPointWP
 			// Remove trailing slash if it exists (and, it probably does)
 			if (substr($reqUri['path'], -1) === '/') {
 				$reqUri['path'] = substr($reqUri['path'], 0, -1);
+			}
+			
+			if (isset($_GET['locale']) && strlen($_GET['locale']) > 1) {
+				$l = $_GET['locale'];
+				add_filter('locale', fn() => $l, 1);
+				do_action( 'wpml_switch_language', substr($l, 0, 2));
 			}
 
 			// Explode by slashes
@@ -777,9 +787,9 @@ class TouchPointWP
 
 		wp_register_script(
 			self::SHORTCODE_PREFIX . 'swal2-defer',
-			"//cdn.jsdelivr.net/npm/sweetalert2@10",
+			"https://cdn.jsdelivr.net/npm/sweetalert2@10",
 			[],
-			self::VERSION,
+			'2@10',
 			true
 		);
 
@@ -939,40 +949,15 @@ class TouchPointWP
 		exit;
 	}
 
-	protected static ?string $_clientIp = null;
-
-	public static function getClientIp(): ?string
-	{
-		if (self::$_clientIp === null) {
-			$ipHeaderKeys = [
-				'HTTP_CLIENT_IP',
-				'HTTP_X_FORWARDED_FOR',
-				'HTTP_X_FORWARDED',
-				'HTTP_FORWARDED_FOR',
-				'HTTP_FORWARDED',
-				'REMOTE_ADDR'
-			];
-
-			foreach ($ipHeaderKeys as $k) {
-				if ( ! empty($_SERVER[$k]) && filter_var($_SERVER[$k], FILTER_VALIDATE_IP)) {
-					self::$_clientIp = $_SERVER[$k];
-					break;
-				}
-			}
-		}
-
-		return self::$_clientIp;
-	}
-
 	/**
 	 * @param bool $useApi Set false to only use cached data, and not the IP API.
 	 *
 	 * @return stdClass|false An object with 'lat', 'lng', and 'human' attributes, if a location could be identified.
 	 *     Or, false if not available.
 	 */
-	public function geolocate(bool $useApi = true)
+	public function geolocate(bool $useApi = true, bool $includeRaw = false)
 	{
-		$ip = self::getClientIp();
+		$ip = Utilities::getClientIp();
 
 		// If no IP, we can't go any further.
 		if ($ip === '' || $ip === null) {
@@ -991,27 +976,24 @@ class TouchPointWP
 			return false;
 		}
 
-		if ($return === false || ! is_string($return)) {
+		if ($return === false || !is_string($return)) {
 			return false;
 		}
 
 		$d = json_decode($return);
 
-		if ( ! is_object($d)) {
+		if (!is_object($d)) {
 			new TouchPointWP_Exception("Geolocation Object is Invalid", 178004);
-
 			return false;
 		}
 
 		if (property_exists($d, 'error')) {
 			new TouchPointWP_Exception("Geolocation Error: " . $d->reason ?? "", 178002);
-
 			return false;
 		}
 
-		if ( ! isset($d->latitude) || ! isset($d->longitude) || ! isset($d->city)) {
+		if (!isset($d->latitude) || !isset($d->longitude) || !isset($d->city)) {
 			new TouchPointWP_Exception("Geolocation Data Not Provided", 178003);
-
 			return false;
 		}
 
@@ -1022,23 +1004,35 @@ class TouchPointWP
 			$human = $d->city . ", " . $d->country_name;
 		}
 
-		/** @see geo::asGeoIFace() */
-		return (object)[
-			'lat'   => $d->latitude,
-			'lng'   => $d->longitude,
-			'human' => $human,
-			'type'  => 'ip'
-		];
+		if ($includeRaw) {
+			/** @see geo::asGeoIFace() */
+			return (object)[
+				'lat' => $d->latitude,
+				'lng' => $d->longitude,
+				'human' => $human,
+				'type' => 'ip',
+				'raw'  => $d
+			];
+		} else {
+			/** @see geo::asGeoIFace() */
+			return (object)[
+				'lat' => $d->latitude,
+				'lng' => $d->longitude,
+				'human' => $human,
+				'type' => 'ip'
+			];
+		}
 	}
 
 	/**
-	 * @param float $lat Latitude
-	 * @param float $lng Longitude
+	 * @param float   $lat Latitude
+	 * @param float   $lng Longitude
+	 * @param bool    $includeIpLoc  Whether to use IP geolocation as a fallback data source.
 	 *
 	 * @return object|false An object with a 'human' attribute, if a location could be identified. Or, false if not
 	 *     available.
 	 */
-	public function reverseGeocode(float $lat, float $lng, $includeIpLoc = true)
+	public function reverseGeocode(float $lat, float $lng, bool $includeIpLoc = true)
 	{
 		if ($lat === 0.0 && $lng === 0.0) {
 			return false; // avoiding an easy error case.
@@ -1861,7 +1855,7 @@ class TouchPointWP
 	public static function useTribeCalendarPro(): bool
 	{
 		if ( ! function_exists('is_plugin_active')) {
-			require_once(ABSPATH . '/wp-admin/includes/plugin.php');
+			require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 		}
 
 		return is_plugin_active('events-calendar-pro/events-calendar-pro.php');
@@ -2801,7 +2795,7 @@ class TouchPointWP
 			throw new TouchPointWP_Exception(__("People Query Failed", "TouchPoint-WP"), 179004);
 		}
 
-		/** @noinspection PhpCastIsUnnecessaryInspection -- It actually is. */
+		/** @noinspection PhpCastIsUnnecessaryInspection -- It actually is necessary. */
 		$data->people = (array)$data->people;
 
 		if ($verbose) {
