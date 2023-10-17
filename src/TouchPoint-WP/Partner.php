@@ -118,12 +118,15 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 			throw new TouchPointWP_Exception("Could not construct a Partner with the information provided.");
 		}
 
-		$terms = wp_get_post_terms(
-			$this->post_id,
-			[
-				Taxonomies::TAX_GP_CATEGORY
-			]
-		);
+		$terms = [];
+		if (TouchPointWP::instance()->settings->global_primary_tax !== "") {
+			$terms = wp_get_post_terms(
+				$this->post_id,
+				[
+					Taxonomies::TAX_GP_CATEGORY
+				]
+			);
+		}
 
 		if (is_array($terms) && count($terms) > 0) {
 			$hookLength = strlen(TouchPointWP::HOOK_PREFIX);
@@ -503,9 +506,15 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 		}
 
 		// Delete terms that are no longer used
-		$terms = get_terms(['taxonomy' => Taxonomies::TAX_GP_CATEGORY, 'hide_empty' => false, 'exclude' => $termsToKeep]);
-		foreach ($terms as $term) {
-			wp_delete_term($term->term_id, Taxonomies::TAX_GP_CATEGORY);
+		if (TouchPointWP::instance()->settings->global_primary_tax !== "") {
+			$terms = get_terms(
+				['taxonomy' => Taxonomies::TAX_GP_CATEGORY, 'hide_empty' => false, 'exclude' => $termsToKeep]
+			);
+			if (!is_wp_error($terms)) {
+				foreach ($terms as $term) {
+					wp_delete_term($term->term_id, Taxonomies::TAX_GP_CATEGORY);
+				}
+			}
 		}
 
 		if ($count !== 0) {
