@@ -55,14 +55,6 @@ class TouchPointWP
 	public const API_ENDPOINT_CLEANUP = "cleanup";
 	public const API_ENDPOINT_GEOLOCATE = "geolocate";
 
-	public const TEMPLATES_TO_OVERWRITE = [
-		'archive.php',
-		'singular.php',
-		'single.php',
-		'index.php',
-		'template-canvas.php'
-	];
-
 	/**
 	 * Prefix to use for all shortcodes.
 	 */
