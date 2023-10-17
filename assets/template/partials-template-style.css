@@ -84,13 +84,20 @@ article.inv-list-item h2 a {
     text-align: right;
 }
 
+.partner-actions button,
+.partner-actions a.button,
+.involvement-actions button,
+.involvement-actions a.button {
+    display: inline-block;
+}
+
 .partner-list-item .partner-actions button,
 .partner-list-item .partner-actions a.button,
 .inv-list-item .involvement-actions button,
 .inv-list-item .involvement-actions a.button,
 .inv-list-item .child-involvements a {
-    position:relative;
-    z-index:10;
+    position: relative;
+    z-index: 10;
 }
 
 .partner-list-item div.post-meta-single,
