@@ -1108,7 +1108,10 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 
 				usort($posts, [Involvement::class, 'sortPosts']);
 
-				foreach ($posts as $post) {
+				foreach ($posts as $postI) {
+					global $post;
+					$post = $postI;
+
 					$loadedPart = get_template_part('list-item', 'involvement-list-item');
 					if ($loadedPart === false) {
 						require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
