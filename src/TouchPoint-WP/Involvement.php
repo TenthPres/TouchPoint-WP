@@ -571,22 +571,11 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			// schedules
 			foreach ($this->schedules() as $s) {
 				$mdt = $s->next;
-				if ($mdt > $now) {
-					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
-						$this->_nextMeeting = $mdt;
-					}
+				if ($mdt <= $now) { // If "next meeting" is past, add a week and re-check.
+					$mdt = $mdt->modify("+1 week");
 				}
-			}
-		}
-
-		// schedules + 1 week (assumes schedules are recurring weekly)
-		if ($this->_nextMeeting === null) { // really only needed if we don't have a date yet.
-			foreach ($this->schedules() as $s) {
-				$mdt = $s->next->modify("+1 week");
-				if ($mdt > $now) {
-					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
-						$this->_nextMeeting = $mdt;
-					}
+				if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
+					$this->_nextMeeting = $mdt;
 				}
 			}
 		}
