@@ -16,4 +16,12 @@ interface module
 	 * @return bool
 	 */
 	public static function load(): bool;
+
+	public const TEMPLATES_TO_OVERWRITE = [
+		'archive.php',
+		'singular.php',
+		'single.php',
+		'index.php',
+		'template-canvas.php'
+	];
 }

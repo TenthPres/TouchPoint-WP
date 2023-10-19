@@ -1,6 +1,6 @@
 {
   "name": "touchpoint-wp",
-  "version": "0.0.35",
+  "version": "0.0.36",
   "description": "A WordPress Plugin for integrating with TouchPoint Church Management Software.",
   "directories": {
     "doc": "docs"

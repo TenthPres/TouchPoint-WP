@@ -15,7 +15,6 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "jsonLd.php";
 	require_once "updatesViaCron.php";
 	require_once "Utilities.php";
-	require_once "Utilities/Geo.php";
 	require_once "Involvement_PostTypeSettings.php";
 }
 
@@ -34,7 +33,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement implements api, updatesViaCron, geo, module
+class Involvement implements api, updatesViaCron, hasGeo, module
 {
 	use jsInstantiation;
 	use jsonLd;
@@ -96,7 +95,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 * Involvement constructor.
 	 *
 	 * @param $object WP_Post|object an object representing the involvement's post.
-	 *                  Must have post_id AND inv id attributes.
+	 *				  Must have post_id AND inv id attributes.
 	 *
 	 * @throws TouchPointWP_Exception
 	 */
@@ -148,16 +147,16 @@ class Involvement implements api, updatesViaCron, geo, module
 		}
 
 		$postTerms = [
-			TouchPointWP::TAX_RESCODE,
-			TouchPointWP::TAX_AGEGROUP,
-			TouchPointWP::TAX_WEEKDAY,
-			TouchPointWP::TAX_TENSE,
-			TouchPointWP::TAX_DAYTIME,
-			TouchPointWP::TAX_INV_MARITAL,
-			TouchPointWP::TAX_DIV
+			Taxonomies::TAX_RESCODE,
+			Taxonomies::TAX_AGEGROUP,
+			Taxonomies::TAX_WEEKDAY,
+			Taxonomies::TAX_TENSE,
+			Taxonomies::TAX_DAYTIME,
+			Taxonomies::TAX_INV_MARITAL,
+			Taxonomies::TAX_DIV
 		];
 		if (TouchPointWP::instance()->settings->enable_campuses === "on") {
-			$postTerms[] = TouchPointWP::TAX_CAMPUS;
+			$postTerms[] = Taxonomies::TAX_CAMPUS;
 		}
 
 		$terms = wp_get_post_terms(
@@ -210,8 +209,8 @@ class Involvement implements api, updatesViaCron, geo, module
 		// Geo
 		if (self::getSettingsForPostType($this->invType)->useGeo) {
 			if (property_exists($object, 'geo_lat') &&
-			    $object->geo_lat !== null &&
-			    $object->geo_lat !== '') {
+				$object->geo_lat !== null &&
+				$object->geo_lat !== '') {
 				// Probably a database query result
 				$this->geo = (object)[
 					'lat' => Utilities::toFloatOrNull($object->geo_lat),
@@ -402,7 +401,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	{
 		if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
 			$postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
-			$templateFilesToOverwrite = TouchPointWP::TEMPLATES_TO_OVERWRITE;
+			$templateFilesToOverwrite = self::TEMPLATES_TO_OVERWRITE;
 
 			if (count($postTypesToFilter) == 0) {
 				return $template;
@@ -472,7 +471,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	{
 		if (!isset($this->_useRegistrationForm)) {
 			$this->_useRegistrationForm = (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", true) === '1' ||
-			        intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) !== 1);
+					intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) !== 1);
 		}
 		return $this->_useRegistrationForm;
 	}
@@ -572,22 +571,11 @@ class Involvement implements api, updatesViaCron, geo, module
 			// schedules
 			foreach ($this->schedules() as $s) {
 				$mdt = $s->next;
-				if ($mdt > $now) {
-					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
-						$this->_nextMeeting = $mdt;
-					}
+				if ($mdt <= $now) { // If "next meeting" is past, add a week and re-check.
+					$mdt = $mdt->modify("+1 week");
 				}
-			}
-		}
-
-		// schedules + 1 week (assumes schedules are recurring weekly)
-		if ($this->_nextMeeting === null) { // really only needed if we don't have a date yet.
-			foreach ($this->schedules() as $s) {
-				$mdt = $s->next->modify("+1 week");
-				if ($mdt > $now) {
-					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
-						$this->_nextMeeting = $mdt;
-					}
+				if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
+					$this->_nextMeeting = $mdt;
 				}
 			}
 		}
@@ -810,7 +798,7 @@ class Involvement implements api, updatesViaCron, geo, module
 				];
 			}
 
-			$this->divisions = wp_get_post_terms($this->post_id, TouchPointWP::TAX_DIV, ['meta_query' => $mq]);
+			$this->divisions = wp_get_post_terms($this->post_id, Taxonomies::TAX_DIV, ['meta_query' => $mq]);
 		}
 
 		$out = [];
@@ -1023,8 +1011,8 @@ class Involvement implements api, updatesViaCron, geo, module
 		// CSS
 		/** @noinspection SpellCheckingInspection */
 		$params['includecss'] = ! isset($params['includecss']) ||
-		                        $params['includecss'] === true ||
-		                        $params['includecss'] === 'true';
+								$params['includecss'] === true ||
+								$params['includecss'] === 'true';
 
 		// Only group for single post types.
 		$groupBy = null;
@@ -1038,12 +1026,12 @@ class Involvement implements api, updatesViaCron, geo, module
 
 			if ($groupBy !== "" && taxonomy_exists($groupBy)) {
 				$terms = get_terms([
-					                   'taxonomy'   => $groupBy,
-					                   'order'      => $groupByOrder,
-					                   'orderby'    => 'name',
-					                   'hide_empty' => true,
-					                   'fields'     => 'id=>name'
-				                   ]);
+									   'taxonomy'   => $groupBy,
+									   'order'      => $groupByOrder,
+									   'orderby'    => 'name',
+									   'hide_empty' => true,
+									   'fields'     => 'id=>name'
+								   ]);
 			}
 		}
 
@@ -1060,7 +1048,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 			if (count($divs) > 0) {
 				$taxQuery[] = [
-					'taxonomy' => TouchPointWP::TAX_DIV,
+					'taxonomy' => Taxonomies::TAX_DIV,
 					'field'    => 'ID',
 					'terms'    => $divs
 				];
@@ -1109,7 +1097,10 @@ class Involvement implements api, updatesViaCron, geo, module
 
 				usort($posts, [Involvement::class, 'sortPosts']);
 
-				foreach ($posts as $post) {
+				foreach ($posts as $postI) {
+					global $post;
+					$post = $postI;
+
 					$loadedPart = get_template_part('list-item', 'involvement-list-item');
 					if ($loadedPart === false) {
 						require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
@@ -1141,12 +1132,12 @@ class Involvement implements api, updatesViaCron, geo, module
 		$involvementId = (string)$involvementId;
 
 		$q      = new WP_Query([
-			                       'post_type'   => $postType,
-			                       'meta_key'    => self::INVOLVEMENT_META_KEY,
-			                       'meta_value'  => $involvementId,
-			                       'numberposts' => 2
-			                       // only need one, but if there's two, there should be an error condition.
-		                       ]);
+								   'post_type'   => $postType,
+								   'meta_key'    => self::INVOLVEMENT_META_KEY,
+								   'meta_value'  => $involvementId,
+								   'numberposts' => 2
+								   // only need one, but if there's two, there should be an error condition.
+							   ]);
 		$posts  = $q->get_posts();
 		$counts = count($posts);
 		if ($counts > 1) {  // multiple posts match, which isn't great.
@@ -1322,9 +1313,7 @@ class Involvement implements api, updatesViaCron, geo, module
 		// Division
 		if (in_array('div', $filters)) {
 			$exclude = $settings->importDivs;
-			if (count(
-				    $exclude
-			    ) == 1) { // Exclude the imported div if there's only one, as all invs would have that div.
+			if (count($exclude) == 1) { // Exclude the imported div if there's only one as all would have it.
 				$mq = ['relation' => "AND"];
 				foreach ($exclude as $e) {
 					$mq[] = [
@@ -1346,11 +1335,11 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 			$dvName = TouchPointWP::instance()->settings->dv_name_singular;
 			$dvList = get_terms([
-				                    'taxonomy'                              => TouchPointWP::TAX_DIV,
-				                    'hide_empty'                            => true,
-				                    'meta_query'                            => $mq,
-				                    TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
-			                    ]);
+									'taxonomy'                              => Taxonomies::TAX_DIV,
+									'hide_empty'                            => true,
+									'meta_query'                            => $mq,
+									TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
+								]);
 			$dvList = TouchPointWP::orderHierarchicalTerms($dvList, true);
 			if (count($dvList) > 1) {
 				$content .= "<select class=\"$class-filter\" data-involvement-filter=\"div\">";
@@ -1394,7 +1383,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			$rcName = TouchPointWP::instance()->settings->rc_name_singular;
 			$rcList = get_terms(
 				[
-					'taxonomy'                              => TouchPointWP::TAX_RESCODE,
+					'taxonomy'                              => Taxonomies::TAX_RESCODE,
 					'hide_empty'                            => true,
 					TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
 				]
@@ -1421,7 +1410,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 			$cList = get_terms(
 				[
-					'taxonomy'                              => TouchPointWP::TAX_CAMPUS,
+					'taxonomy'                              => Taxonomies::TAX_CAMPUS,
 					'hide_empty'                            => true,
 					TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
 				]
@@ -1445,7 +1434,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			$wdName = __("Weekday", 'TouchPoint-WP');
 			$wdList = get_terms(
 				[
-					'taxonomy'                              => TouchPointWP::TAX_WEEKDAY,
+					'taxonomy'                              => Taxonomies::TAX_WEEKDAY,
 					'hide_empty'                            => true,
 					'orderby'                               => 'id',
 					TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
@@ -1471,7 +1460,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			$todName = __("Time of Day", 'TouchPoint-WP');
 			$todList = get_terms(
 				[
-					'taxonomy'                              => TouchPointWP::TAX_DAYTIME,
+					'taxonomy'                              => Taxonomies::TAX_DAYTIME,
 					'hide_empty'                            => true,
 					'orderby'                               => 'id',
 					TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
@@ -1505,11 +1494,11 @@ class Involvement implements api, updatesViaCron, geo, module
 		if (in_array('agegroup', $filters)) {
 			$agName = __("Age", 'TouchPoint-WP');
 			$agList = get_terms([
-				                    'taxonomy'                              => TouchPointWP::TAX_AGEGROUP,
-				                    'hide_empty'                            => true,
-				                    'orderby'                               => 't.id',
-				                    TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
-			                    ]);
+									'taxonomy'                              => Taxonomies::TAX_AGEGROUP,
+									'hide_empty'                            => true,
+									'orderby'                               => 't.id',
+									TouchPointWP::HOOK_PREFIX . 'post_type' => $postType
+								]);
 			if (is_array($agList) && count($agList) > 1) {
 				$content .= "<select class=\"$class-filter\" data-involvement-filter=\"agegroup\">";
 				$content .= "<option disabled selected>$agName</option><option value=\"\">$any</option>";
@@ -1623,41 +1612,45 @@ class Involvement implements api, updatesViaCron, geo, module
 		if ( ! $settings) {
 			http_response_code(Http::NOT_FOUND);
 			echo json_encode([
-				                 "invList"    => [],
-				                 "error"      => "This involvement type doesn't exist.",
-				                 "error_i18n" => __("This involvement type doesn't exist.", 'TouchPoint-WP')
-			                 ]);
+								 "invList"    => [],
+								 "error"      => "This involvement type doesn't exist.",
+								 "error_i18n" => __("This involvement type doesn't exist.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 
 		if ( ! $settings->useGeo) {
 			http_response_code(Http::EXPECTATION_FAILED);
 			echo json_encode([
-				                 "invList"    => [],
-				                 "error"      => "This involvement type doesn't have geographic locations enabled.",
-				                 "error_i18n" => __(
-					                 "This involvement type doesn't have geographic locations enabled.",
-					                 'TouchPoint-WP'
-				                 )
-			                 ]);
+								 "invList"    => [],
+								 "error"      => "This involvement type doesn't have geographic locations enabled.",
+								 "error_i18n" => __(
+									 "This involvement type doesn't have geographic locations enabled.",
+									 'TouchPoint-WP'
+								 )
+							 ]);
 			exit;
 		}
 
 		$r = [];
 
 		if ($lat === "null" || $lng === "null" ||
-		    $lat === null || $lng === null) {
+			$lat === null || $lng === null) {
 			$geoObj = TouchPointWP::instance()->geolocate();
 
 			if ($geoObj === false) {
 				http_response_code(Http::PRECONDITION_FAILED);
 				echo json_encode([
-					                 "invList"    => [],
-					                 "error"      => "Could not locate.",
-					                 "error_i18n" => __("Could not locate.", 'TouchPoint-WP'),
-					                 "geo"        => false
-				                 ]);
+									 "invList"    => [],
+									 "error"      => "Could not locate.",
+									 "error_i18n" => __("Could not locate.", 'TouchPoint-WP'),
+									 "geo"        => false
+								 ]);
 				exit;
+			}
+
+			if ($geoObj->type == "loc") {
+				$geoObj->type = "ip";
 			}
 
 			$lat = $geoObj->lat;
@@ -1668,6 +1661,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			$geoObj = TouchPointWP::instance()->reverseGeocode($lat, $lng);
 
 			if ($geoObj !== false) {
+				$geoObj->type = "nav";
 				$r['geo'] = $geoObj;
 			}
 		}
@@ -1677,10 +1671,10 @@ class Involvement implements api, updatesViaCron, geo, module
 		if ($invs === null) {
 			http_response_code(Http::NOT_FOUND);
 			echo json_encode([
-				                 "invList"    => [],
-				                 "error"      => sprintf("No %s Found.", $settings->namePlural),
-				                 "error_i18n" => sprintf(__("No %s Found.", "TouchPoint-WP"), $settings->namePlural)
-			                 ]);
+								 "invList"    => [],
+								 "error"      => sprintf("No %s Found.", $settings->namePlural),
+								 "error_i18n" => sprintf(__("No %s Found.", "TouchPoint-WP"), $settings->namePlural)
+							 ]);
 			exit;
 		}
 
@@ -1714,12 +1708,12 @@ class Involvement implements api, updatesViaCron, geo, module
 	 * @param int    $limit Number of results to return.  0-100 inclusive.
 	 *
 	 * @return object[]|null  An array of database query result objects, or null if the location isn't provided or
-	 *     valid.
+	 *	 valid.
 	 */
 	private static function getInvsNear(float $lat, float $lng, string $postType, int $limit = 3): ?array
 	{
 		if ($lat > 90 || $lat < -90 ||
-		    $lng > 180 || $lng < -180
+			$lng > 180 || $lng < -180
 		) {
 			return null;
 		}
@@ -1767,7 +1761,6 @@ class Involvement implements api, updatesViaCron, geo, module
 
 		return $wpdb->get_results($q, 'OBJECT');
 	}
-
 
 	/**
 	 * Create a Involvement object from an object from a database query.
@@ -1895,12 +1888,12 @@ class Involvement implements api, updatesViaCron, geo, module
 	public function getDistance(bool $useHiForFalse = false)
 	{
 		if ( ! isset(self::$compareGeo->lat) || ! isset(self::$compareGeo->lng) ||
-		     ! isset($this->geo->lat) || ! isset($this->geo->lng) ||
-		     $this->geo->lat === null || $this->geo->lng === null) {
+			 ! isset($this->geo->lat) || ! isset($this->geo->lng) ||
+			 $this->geo->lat === null || $this->geo->lng === null) {
 			return $useHiForFalse ? 25000 : false;
 		}
 
-		return Utilities\Geo::distance(
+		return Geo::distance(
 			$this->geo->lat,
 			$this->geo->lng,
 			self::$compareGeo->lat,
@@ -2052,15 +2045,15 @@ class Involvement implements api, updatesViaCron, geo, module
 		return $this->geo !== null && $this->geo->lat !== null && $this->geo->lng !== null;
 	}
 
-	public function asGeoIFace(string $type = "unknown"): ?object
+	public function asGeoIFace(string $type = "unknown"): ?Geo
 	{
 		if ($this->hasGeo()) {
-			return (object)[
-				'lat'   => $this->geo->lat,
-				'lng'   => $this->geo->lng,
-				'human' => $this->name,
-				'type'  => $type
-			];
+			return new Geo(
+				$this->geo->lat,
+				$this->geo->lng,
+				$this->name,
+				$type
+			);
 		}
 
 		return null;
@@ -2076,11 +2069,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 *
 	 * @return false|int  False on failure.  Otherwise, the number of updates.
 	 */
-	final protected static function updateInvolvementPostsForType(
-		Involvement_PostTypeSettings $typeSets,
-		$divs,
-		bool $verbose
-	) {
+	final protected static function updateInvolvementPostsForType(Involvement_PostTypeSettings $typeSets, $divs, bool $verbose) {
 		$siteTz = wp_timezone();
 
 		set_time_limit(180);
@@ -2230,7 +2219,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 
 			if (in_array("registrationEnded", $typeSets->excludeIf) &&
-			    $inv->regEnd !== null && $inv->regEnd < $now) {
+				$inv->regEnd !== null && $inv->regEnd < $now) {
 				if ($verbose) {
 					echo "<p>Stopping processing because Involvements whose registrations have ended are excluded.  Involvement will be deleted from WordPress.</p>";
 				}
@@ -2386,7 +2375,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			}
 
 			// Start and end dates
-			$tense = TouchPointWP::TAX_TENSE_PRESENT;
+			$tense = Taxonomies::TAX_TENSE_PRESENT;
 			if ($inv->firstMeeting !== null && $inv->firstMeeting < $now) { // First meeting already happened.
 				$inv->firstMeeting = null; // We don't need to list info from the past.
 			}
@@ -2411,10 +2400,10 @@ class Involvement implements api, updatesViaCron, geo, module
 
 			// Tense
 			if ($inv->firstMeeting !== null) {
-				$tense = TouchPointWP::TAX_TENSE_FUTURE;
+				$tense = Taxonomies::TAX_TENSE_FUTURE;
 			}
 			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, [$tense], TouchPointWP::TAX_TENSE, false);
+			wp_set_post_terms($post->ID, [$tense], Taxonomies::TAX_TENSE, false);
 
 			// Update meetings and schedules
 			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetings", $inv->meetings);
@@ -2426,11 +2415,11 @@ class Involvement implements api, updatesViaCron, geo, module
 				$dayTerms[] = Utilities::getDayOfWeekShortForNumber_noI18n(intval($k[1]));
 			}
 			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, $dayTerms, TouchPointWP::TAX_WEEKDAY, false);
+			wp_set_post_terms($post->ID, $dayTerms, Taxonomies::TAX_WEEKDAY, false);
 
 			// Time of day taxonomy
 			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, $timeTerms, TouchPointWP::TAX_DAYTIME, false);
+			wp_set_post_terms($post->ID, $timeTerms, Taxonomies::TAX_DAYTIME, false);
 
 
 			////////////////
@@ -2447,7 +2436,7 @@ class Involvement implements api, updatesViaCron, geo, module
 			if ($typeSets->useGeo) {
 				// Handle locations
 				if (property_exists($inv, "lat") && $inv->lat !== null &&
-				    property_exists($inv, "lng") && $inv->lng !== null) {
+					property_exists($inv, "lng") && $inv->lng !== null) {
 					update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", $inv->lat);
 					update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", $inv->lng);
 				} else {
@@ -2458,10 +2447,10 @@ class Involvement implements api, updatesViaCron, geo, module
 				// Handle Resident Code
 				if (property_exists($inv, "resCodeName") && $inv->resCodeName !== null) {
 					/** @noinspection PhpRedundantOptionalArgumentInspection */
-					wp_set_post_terms($post->ID, [$inv->resCodeName], TouchPointWP::TAX_RESCODE, false);
+					wp_set_post_terms($post->ID, [$inv->resCodeName], Taxonomies::TAX_RESCODE, false);
 				} else {
 					/** @noinspection PhpRedundantOptionalArgumentInspection */
-					wp_set_post_terms($post->ID, [], TouchPointWP::TAX_RESCODE, false);
+					wp_set_post_terms($post->ID, [], Taxonomies::TAX_RESCODE, false);
 				}
 			}
 
@@ -2473,10 +2462,10 @@ class Involvement implements api, updatesViaCron, geo, module
 			if (TouchPointWP::instance()->settings->enable_campuses === "on") {
 				if (property_exists($inv, "campusName") && $inv->campusName !== null) {
 					/** @noinspection PhpRedundantOptionalArgumentInspection */
-					wp_set_post_terms($post->ID, [$inv->campusName], TouchPointWP::TAX_CAMPUS, false);
+					wp_set_post_terms($post->ID, [$inv->campusName], Taxonomies::TAX_CAMPUS, false);
 				} else {
 					/** @noinspection PhpRedundantOptionalArgumentInspection */
-					wp_set_post_terms($post->ID, [], TouchPointWP::TAX_CAMPUS, false);
+					wp_set_post_terms($post->ID, [], Taxonomies::TAX_CAMPUS, false);
 				}
 			}
 
@@ -2496,15 +2485,15 @@ class Involvement implements api, updatesViaCron, geo, module
 				}
 			}
 			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, $maritalTax, TouchPointWP::TAX_INV_MARITAL, false);
+			wp_set_post_terms($post->ID, $maritalTax, Taxonomies::TAX_INV_MARITAL, false);
 
 			// Handle Age Groups
 			if ($inv->age_groups === null) {
 				/** @noinspection PhpRedundantOptionalArgumentInspection */
-				wp_set_post_terms($post->ID, [], TouchPointWP::TAX_AGEGROUP, false);
+				wp_set_post_terms($post->ID, [], Taxonomies::TAX_AGEGROUP, false);
 			} else {
 				/** @noinspection PhpRedundantOptionalArgumentInspection */
-				wp_set_post_terms($post->ID, $inv->age_groups, TouchPointWP::TAX_AGEGROUP, false);
+				wp_set_post_terms($post->ID, $inv->age_groups, Taxonomies::TAX_AGEGROUP, false);
 			}
 
 
@@ -2523,7 +2512,7 @@ class Involvement implements api, updatesViaCron, geo, module
 				}
 			}
 			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, $divs, TouchPointWP::TAX_DIV, false);
+			wp_set_post_terms($post->ID, $divs, Taxonomies::TAX_DIV, false);
 
 			if ($verbose) {
 				echo "<p>Division Terms:</p>";
@@ -2546,10 +2535,10 @@ class Involvement implements api, updatesViaCron, geo, module
 
 		// Delete posts that are no longer current
 		$q        = new WP_Query([
-			                         'post_type'    => $typeSets->postType,
-			                         'nopaging'     => true,
-			                         'post__not_in' => $postsToKeep
-		                         ]);
+									 'post_type'    => $typeSets->postType,
+									 'nopaging'     => true,
+									 'post__not_in' => $postsToKeep
+								 ]);
 		$removals = 0;
 		foreach ($q->get_posts() as $post) {
 			set_time_limit(10);
@@ -2744,7 +2733,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 * Get notable attributes, such as gender restrictions, as strings.
 	 *
 	 * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent inv, not needed
-	 *     here.)
+	 *	 here.)
 	 *
 	 * @return string[]
 	 */
@@ -2789,13 +2778,13 @@ class Involvement implements api, updatesViaCron, geo, module
 		$r = array_filter($r, fn($i) => ! in_array($i, $exclude));
 
 		if ($this->hasGeo() &&
-		    (
-			    $exclude === [] ||
-			    (
-				    $this->locationName !== null &&
-				    ! in_array($this->locationName, $exclude)
-			    )
-		    )
+			(
+				$exclude === [] ||
+				(
+					$this->locationName !== null &&
+					! in_array($this->locationName, $exclude)
+				)
+			)
 		) {
 			$dist = $this->getDistance();
 			if ($dist !== false) {
@@ -2909,7 +2898,7 @@ class Involvement implements api, updatesViaCron, geo, module
 		$listStr = json_encode($queue);
 
 		return "\ttpvm.addEventListener('Involvement_class_loaded', function() {
-        TP_Involvement.fromObjArray($listStr);\n\t});\n";
+		TP_Involvement.fromObjArray($listStr);\n\t});\n";
 	}
 
 	public function getTouchPointId(): int
@@ -2937,9 +2926,9 @@ class Involvement implements api, updatesViaCron, geo, module
 		} else {
 			http_response_code(Http::NOT_FOUND);
 			echo json_encode([
-				                 'error'      => "Invalid Post Type.",
-				                 'error_i18n' => __("Invalid Post Type.", 'TouchPoint-WP')
-			                 ]);
+								 'error'      => "Invalid Post Type.",
+								 'error_i18n' => __("Invalid Post Type.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 
@@ -2991,9 +2980,9 @@ class Involvement implements api, updatesViaCron, geo, module
 		if (!$validate) {
 			http_response_code(Http::BAD_REQUEST);
 			echo json_encode([
-				                 'error'      => $result,
-				                 'error_i18n' => __("Contact Blocked for Spam.", 'TouchPoint-WP')
-			                 ]);
+								 'error'      => $result,
+								 'error_i18n' => __("Contact Blocked for Spam.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 
@@ -3001,9 +2990,9 @@ class Involvement implements api, updatesViaCron, geo, module
 		if (!!$settings) {
 			if (!self::allowContact($inputData->invType)) {
 				echo json_encode([
-					                 'error'      => "Contact Prohibited.",
-					                 'error_i18n' => __("Contact Prohibited.", 'TouchPoint-WP')
-				                 ]);
+									 'error'      => "Contact Prohibited.",
+									 'error_i18n' => __("Contact Prohibited.", 'TouchPoint-WP')
+								 ]);
 				exit;
 			}
 
@@ -3014,9 +3003,9 @@ class Involvement implements api, updatesViaCron, geo, module
 		} else {
 			http_response_code(Http::NOT_FOUND);
 			echo json_encode([
-				                 'error'      => "Invalid Post Type.",
-				                 'error_i18n' => __("Invalid Post Type.", 'TouchPoint-WP')
-			                 ]);
+								 'error'      => "Invalid Post Type.",
+								 'error_i18n' => __("Invalid Post Type.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 

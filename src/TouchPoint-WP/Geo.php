@@ -3,14 +3,32 @@
  * @package TouchPointWP
  */
 
-namespace tp\TouchPointWP\Utilities;
+namespace tp\TouchPointWP;
+
+use stdClass;
+
+if ( ! defined('ABSPATH')) {
+	exit(1);
+}
+
 
 /**
- * Utility class for geographical attributes and calculations.  Not to be confused with the geo interface.
- * @see \tp\TouchPointWP\geo
+ * A standardized set of fields for geographical information.
  */
-abstract class Geo
+class Geo extends stdClass
 {
+	public ?float $lat = null;
+	public ?float $lng = null;
+	public ?string $human = null;
+	public ?string $type = null;
+
+	public function __construct(?float $lat = null, ?float $lng = null, ?string $human = null, ?string $type = null) {
+		$this->lat = $lat;
+		$this->lng = $lng;
+		$this->human = $human;
+		$this->type = $type;
+	}
+
 	/**
 	 * Get distance between two geographic points by lat/lng pairs.  Returns a number in miles.
 	 *
@@ -28,8 +46,11 @@ abstract class Geo
 		$latB_r = deg2rad($latB);
 		$lngB_r = deg2rad($lngB);
 
-		return round(3959 * acos(
+		return round(
+			3959 * acos(
 				cos($latA_r) * cos($latB_r) * cos($lngB_r - $lngA_r) + sin($latA_r) * sin($latB_r)
-		), 1);
+			),
+			1
+		);
 	}
 }

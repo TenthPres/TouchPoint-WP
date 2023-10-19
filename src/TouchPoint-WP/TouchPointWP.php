@@ -6,14 +6,13 @@
 namespace tp\TouchPointWP;
 
 use stdClass;
+use tp\TouchPointWP\Utilities\Cleanup;
+use tp\TouchPointWP\Utilities\Http;
+use tp\TouchPointWP\Utilities\Session;
 use WP;
 use WP_Error;
 use WP_Http;
 use WP_Term;
-
-use tp\TouchPointWP\Utilities\Cleanup;
-use tp\TouchPointWP\Utilities\Session;
-use tp\TouchPointWP\Utilities\Http;
 
 
 if ( ! defined('ABSPATH')) {
@@ -33,7 +32,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.35";
+	public const VERSION = "0.0.36";
 
 	/**
 	 * The Token
@@ -56,14 +55,6 @@ class TouchPointWP
 	public const API_ENDPOINT_CLEANUP = "cleanup";
 	public const API_ENDPOINT_GEOLOCATE = "geolocate";
 
-	public const TEMPLATES_TO_OVERWRITE = [
-		'archive.php',
-		'singular.php',
-		'single.php',
-		'index.php',
-		'template-canvas.php'
-	];
-
 	/**
 	 * Prefix to use for all shortcodes.
 	 */
@@ -80,20 +71,6 @@ class TouchPointWP
 	 * Prefix to use for all settings.
 	 */
 	public const SETTINGS_PREFIX = "tp_";
-
-	public const TAX_RESCODE = self::HOOK_PREFIX . "rescode";
-	public const TAX_CAMPUS = self::HOOK_PREFIX . "campus";
-	public const TAX_DIV = self::HOOK_PREFIX . "div";
-	public const TAX_WEEKDAY = self::HOOK_PREFIX . "weekday";
-	public const TAX_TENSE = self::HOOK_PREFIX . "tense";
-	public const TAX_TENSE_PAST = "past";
-	public const TAX_TENSE_PRESENT = "present";
-	public const TAX_TENSE_FUTURE = "future";
-	public const TAX_DAYTIME = self::HOOK_PREFIX . "timeOfDay";
-	public const TAX_AGEGROUP = self::HOOK_PREFIX . "agegroup";
-	public const TAX_INV_MARITAL = self::HOOK_PREFIX . "inv_marital";
-	public const TAX_GP_CATEGORY = self::HOOK_PREFIX . "partner_category";
-	public const TAXMETA_LOOKUP_ID = self::HOOK_PREFIX . "lookup_id";
 
 	/**
 	 * Table Names
@@ -184,6 +161,10 @@ class TouchPointWP
 	 */
 	protected ?bool $global = null;
 
+	/**
+	 * @var ?bool True after the Meeting/Events Calendar feature is loaded.
+	 */
+	protected ?bool $meeting = null;
 
 	/**
 	 * @var ?bool True after the People feature is loaded.
@@ -243,16 +224,16 @@ class TouchPointWP
 //		add_action( 'admin_enqueue_scripts', [$this, 'admin_enqueue_styles'], 10, 1 ); // TODO restore?
 
 		// Load API for generic admin functions.
-//        if (is_admin()) {
-//            $this->admin(); // SOMEDAY if we ever need to interact with other post types, this should be uncommented.
-//        }
+//		if (is_admin()) {
+//			$this->admin(); // SOMEDAY if we ever need to interact with other post types, this should be uncommented.
+//		}
 
 		add_filter('do_parse_request', [$this, 'parseRequest'], 10, 3);
 
 		// Adds async and defer attributes to script tags.
 		add_filter('script_loader_tag', [$this, 'filterByTag'], 10, 2);
 
-		add_filter('terms_clauses', [$this, 'getTermsClauses'], 10, 3);
+		add_filter('terms_clauses', [Taxonomies::class, 'getTermsClauses'], 10, 3);
 
 		add_filter('site_transient_update_plugins', [Utilities::class, 'checkForUpdate_transient']);
 
@@ -284,7 +265,6 @@ class TouchPointWP
 	 * @param string|mixed $text The text to be modified. (should be a string, but this is WordPress, so maybe not.)
 	 *
 	 * @return string The modified text.
-	 * @noinspection SpellCheckingInspection
 	 * @since 0.0.23
 	 *
 	 */
@@ -365,18 +345,18 @@ class TouchPointWP
 
 		if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 			echo json_encode([
-				                 'error'      => 'Only POST requests are allowed.',
-				                 'error_i18n' => __("Only POST requests are allowed.", 'TouchPoint-WP')
-			                 ]);
+								 'error'      => 'Only POST requests are allowed.',
+								 'error_i18n' => __("Only POST requests are allowed.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 
 		$inputData = file_get_contents('php://input');
 		if ($inputData[0] !== '{') {
 			echo json_encode([
-				                 'error'      => 'Invalid data provided.',
-				                 'error_i18n' => __("Invalid data provided.", 'TouchPoint-WP')
-			                 ]);
+								 'error'      => 'Invalid data provided.',
+								 'error_i18n' => __("Invalid data provided.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 
@@ -427,7 +407,7 @@ class TouchPointWP
 
 			// App Events Endpoint
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_APP_EVENTS &&
-			    TouchPointWP::useTribeCalendar()
+				TouchPointWP::useTribeCalendar()
 			) {
 				if ( ! EventsCalendar::api($reqUri)) {
 					return $continue;
@@ -436,7 +416,7 @@ class TouchPointWP
 
 			// Involvement endpoint
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_INVOLVEMENT &&
-			    $this->settings->enable_involvements === "on"
+				$this->settings->enable_involvements === "on"
 			) {
 				if ( ! Involvement::api($reqUri)) {
 					return $continue;
@@ -445,7 +425,7 @@ class TouchPointWP
 
 			// Global Partner endpoint
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_GLOBAL &&
-			    $this->settings->enable_global === "on"
+				$this->settings->enable_global === "on"
 			) {
 				if ( ! Partner::api($reqUri)) {
 					return $continue;
@@ -475,7 +455,7 @@ class TouchPointWP
 
 			// Auth endpoints
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_AUTH &&
-			    $this->settings->enable_authentication === "on"
+				$this->settings->enable_authentication === "on"
 			) {
 				if ( ! Auth::api($reqUri)) {
 					return $continue;
@@ -499,7 +479,7 @@ class TouchPointWP
 
 			// Geolocate via IP
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_GEOLOCATE &&
-			    count($reqUri['path']) === 2) {
+				count($reqUri['path']) === 2) {
 				$this->ajaxGeolocate();
 			}
 		}
@@ -521,45 +501,6 @@ class TouchPointWP
 		}
 
 		return current_user_can('manage_options');
-	}
-
-	/**
-	 * Filter to add a tp_post_type option to get_terms that takes either a string of one post type or an array of post
-	 * types.
-	 *
-	 * @param $clauses
-	 * @param $taxonomy
-	 * @param $args
-	 *
-	 * Hat tip https://dfactory.eu/wp-how-to-get-terms-post-type/
-	 *
-	 * @return mixed
-	 * @noinspection PhpUnusedParameterInspection  WordPress API
-	 */
-	public function getTermsClauses($clauses, $taxonomy, $args): array
-	{
-		if (isset($args[self::HOOK_PREFIX . 'post_type']) && ! empty($args[self::HOOK_PREFIX . 'post_type']) && $args['fields'] !== 'count') {
-			global $wpdb;
-
-			$post_types = [];
-
-			if (is_array($args[self::HOOK_PREFIX . 'post_type'])) {
-				foreach ($args[self::HOOK_PREFIX . 'post_type'] as $cpt) {
-					$post_types[] = "'" . $cpt . "'";
-				}
-			} else {
-				$post_types[] = "'" . $args[self::HOOK_PREFIX . 'post_type'] . "'";
-			}
-
-			if ( ! empty($post_types)) {
-				$clauses['fields'] = 'DISTINCT ' . str_replace( 'tt.*', 'tt.term_taxonomy_id, tt.taxonomy, tt.description, tt.parent', $clauses['fields'] ) . ', COUNT(p.post_type) AS count';
-				$clauses['join']    .= ' LEFT JOIN ' . $wpdb->term_relationships . ' AS r ON r.term_taxonomy_id = tt.term_taxonomy_id LEFT JOIN ' . $wpdb->posts . ' AS p ON p.ID = r.object_id';
-				$clauses['where'] .= ' AND (p.post_type IN (' . implode( ',', $post_types ) . ') OR (tt.parent = 0 AND tt.count = 0))';
-				$clauses['orderby'] = 'GROUP BY t.term_id ' . $clauses['orderby'];
-			}
-		}
-
-		return $clauses;
 	}
 
 	/**
@@ -653,13 +594,43 @@ class TouchPointWP
 	}
 
 	/**
+	 * Create or update database tables
+	 */
+	protected function createTables(): void
+	{
+		global $wpdb;
+		require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+
+		// IP Geo Caching table
+		$tableName = $wpdb->base_prefix . TouchPointWP::TABLE_IP_GEO;
+		$sql = "CREATE TABLE $tableName (
+			id int(10) unsigned NOT NULL auto_increment,
+			ip varbinary(16) NOT NULL UNIQUE,
+			updatedDT datetime DEFAULT NOW(),
+			data text NOT NULL,
+			PRIMARY KEY  (id)
+		)";
+		dbDelta($sql);
+	}
+
+	/**
 	 * Compare the version numbers to determine if a migration is needed.
 	 */
-	public function checkMigrations(): void
+	public function migrate($force = false): void
 	{
-		if ($this->settings->version !== self::VERSION) {
-			$this->settings->migrate();
+		if ($this->settings->version === self::VERSION && !$force) {
+			return;
 		}
+
+		$this->createTables();
+
+		if (self::$_hasBeenInited) {
+			Taxonomies::insertTerms($this);
+		} else {
+			add_action(self::INIT_ACTION_HOOK, [Taxonomies::class, 'insertTerms']);
+		}
+
+		$this->settings->migrate();
 	}
 
 	/**
@@ -676,7 +647,7 @@ class TouchPointWP
 		if (is_null($instance->settings)) {
 			$instance->settings = TouchPointWP_Settings::instance($instance);
 			if (is_admin()) {
-				$instance->checkMigrations();
+				$instance->migrate();
 			}
 		}
 
@@ -720,9 +691,17 @@ class TouchPointWP
 			$instance->people = Person::load();
 		}
 
-		// Load Events if enabled (by presence of Events Calendar plugin)
+		// Load Meetings / Events Calendar
+		if ($instance->settings->enable_meeting_cal === "on") {
+			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
+				require_once 'Meeting.php';
+			}
+			$instance->meeting = Meeting::load();
+		}
+
+		// Load Tribe module if enabled (by presence of Events Calendar plugin)
 		if (self::useTribeCalendar()
-		    && ! class_exists("tp\TouchPointWP\EventsCalendar")) {
+			&& ! class_exists("tp\TouchPointWP\EventsCalendar")) {
 			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 				require_once 'EventsCalendar.php';
 			}
@@ -731,7 +710,7 @@ class TouchPointWP
 		// Load Reports (feature is always enabled)
 		$instance->reports = Report::load();
 
-		add_action('init', [self::class, 'init']);
+		add_action('init', [self::class, 'init'], 10);
 
 		add_filter('the_content', [self::class, 'capitalPyScript'], 11);
 		add_filter('widget_text_content', [self::class, 'capitalPyScript'], 11);
@@ -739,11 +718,24 @@ class TouchPointWP
 		return $instance;
 	}
 
+	/**
+	 * @var bool True of the init process has run.  False if not.  Prevents things from happening twice, which can cause errors.
+	 */
+	private static bool $_hasBeenInited = false;
+
+	/**
+	 * Initialize the plugin.
+	 *
+	 * @return void
+	 */
 	public static function init(): void
 	{
+		if (self::$_hasBeenInited)
+			return;
+
 		self::instance()->loadLocalizations();
 
-		self::instance()->registerTaxonomies();
+		Taxonomies::registerTaxonomies(self::instance());
 
 		// If any slugs have changed, flush.  Only executes if already enqueued.
 		self::instance()->flushRewriteRules(false);
@@ -751,11 +743,19 @@ class TouchPointWP
 		// If the scripts need to be updated, do that.
 		self::instance()->updateDeployedScripts();
 
+		self::$_hasBeenInited = true;
+
 		self::requireScript("base");
 
 		do_action(self::INIT_ACTION_HOOK);
 	}
 
+	/**
+	 * Prints the inline 'base' script.  This is meant to be called in the wp_head and admin_head, and should only be
+	 * called once on a page, but that is not automatically validated.
+	 *
+	 * @return void
+	 */
 	public static function renderBaseInlineScript(): void
 	{
 		include self::instance()->assets_dir . '/js/base-inline.php';
@@ -781,8 +781,7 @@ class TouchPointWP
 		);
 		wp_set_script_translations(
 			self::SHORTCODE_PREFIX . 'base-defer',
-			'TouchPoint-WP',
-			$this->getJsLocalizationDir()
+			'TouchPoint-WP', $this->getJsLocalizationDir()
 		);
 
 		wp_register_script(
@@ -843,9 +842,9 @@ class TouchPointWP
 			Partner::registerScriptsAndStyles();
 		}
 
-//        if ( ! ! $this->auth) {
-//            Auth::registerScriptsAndStyles();
-//        }
+//		if ( ! ! $this->auth) {
+//			Auth::registerScriptsAndStyles();
+//		}
 
 		if ( ! ! $this->rsvp) {
 			Meeting::registerScriptsAndStyles();
@@ -916,11 +915,11 @@ class TouchPointWP
 	public function filterByTag(?string $tag, ?string $handle): string
 	{
 		if (strpos($tag, 'async') !== false &&
-		    strpos($handle, '-async') > 0) {
+			strpos($handle, '-async') > 0) {
 			$tag = str_replace(' src=', ' async="async" src=', $tag);
 		}
 		if (strpos($tag, 'defer') !== false &&
-		    strpos($handle, '-defer') > 0
+			strpos($handle, '-defer') > 0
 		) {
 			$tag = str_replace('<script ', '<script defer ', $tag);
 		}
@@ -936,9 +935,9 @@ class TouchPointWP
 		if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 			http_response_code(Http::METHOD_NOT_ALLOWED);
 			echo json_encode([
-				                 'error'      => 'Only GET requests are allowed.',
-				                 'error_i18n' => __("Only GET requests are allowed.", 'TouchPoint-WP')
-			                 ]);
+								 'error'      => 'Only GET requests are allowed.',
+								 'error_i18n' => __("Only GET requests are allowed.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 
@@ -952,8 +951,8 @@ class TouchPointWP
 	/**
 	 * @param bool $useApi Set false to only use cached data, and not the IP API.
 	 *
-	 * @return stdClass|false An object with 'lat', 'lng', and 'human' attributes, if a location could be identified.
-	 *     Or, false if not available.
+	 * @return Geo|false An object with 'lat', 'lng', and 'human' attributes, if a location could be identified.
+	 *	 Or, false if not available.
 	 */
 	public function geolocate(bool $useApi = true, bool $includeRaw = false)
 	{
@@ -967,7 +966,7 @@ class TouchPointWP
 		$return = Location::getLocationForIP($ip);
 
 		if ($return !== null && $return->lat !== null && $return->lng !== null) {
-			return $return->asGeoIFace('ip');
+			return $return->asGeoIFace('loc');
 		}
 
 		try {
@@ -1004,24 +1003,18 @@ class TouchPointWP
 			$human = $d->city . ", " . $d->country_name;
 		}
 
+		$r = new Geo(
+			$d->latitude,
+			$d->longitude,
+			$human,
+			'ip'
+		);
+
 		if ($includeRaw) {
-			/** @see geo::asGeoIFace() */
-			return (object)[
-				'lat' => $d->latitude,
-				'lng' => $d->longitude,
-				'human' => $human,
-				'type' => 'ip',
-				'raw'  => $d
-			];
-		} else {
-			/** @see geo::asGeoIFace() */
-			return (object)[
-				'lat' => $d->latitude,
-				'lng' => $d->longitude,
-				'human' => $human,
-				'type' => 'ip'
-			];
+			$r->raw = $d;
 		}
+
+		return $r;
 	}
 
 	/**
@@ -1029,8 +1022,8 @@ class TouchPointWP
 	 * @param float   $lng Longitude
 	 * @param bool    $includeIpLoc  Whether to use IP geolocation as a fallback data source.
 	 *
-	 * @return object|false An object with a 'human' attribute, if a location could be identified. Or, false if not
-	 *     available.
+	 * @return Geo|false An object with a 'human' attribute, if a location could be identified. Or, false if not
+	 *	 available.
 	 */
 	public function reverseGeocode(float $lat, float $lng, bool $includeIpLoc = true)
 	{
@@ -1041,6 +1034,13 @@ class TouchPointWP
 		$r = Location::getLocationForLatLng($lat, $lng);
 		if ($r !== null) {
 			return $r->asGeoIFace('loc');
+		}
+
+		if ($includeIpLoc) {
+			$r = Location::getLocationForIP();
+			if ($r !== null) {
+				return $r->asGeoIFace('ip');
+			}
 		}
 
 		if ($this->settings->google_geo_api_key !== "") {
@@ -1076,16 +1076,12 @@ class TouchPointWP
 					$human = $out['locality'] . ", " . $out['country_long'];
 				}
 
-				$out['human'] = $human;
-
-				return (object)$out;
-			}
-		}
-
-		if ($includeIpLoc) {
-			$r = Location::getLocationForIP();
-			if ($r !== null) {
-				return $r->asGeoIFace('loc');
+				return new Geo(
+					$out['lat'],
+					$out['lng'],
+					$human,
+					'nav',
+				);
 			}
 		}
 
@@ -1150,7 +1146,7 @@ class TouchPointWP
 		$this->ipData = $return;
 
 		/** @noinspection SqlResolve */
-        $q = $wpdb->prepare( "
+		$q = $wpdb->prepare( "
 			INSERT INTO $tableName (ip, updatedDt, data)
 			VALUES ('$ip_pton', NOW(), %s) ON DUPLICATE KEY UPDATE updatedDt = NOW(), data = %s;",
 			$return, $return);
@@ -1159,526 +1155,6 @@ class TouchPointWP
 		return $return;
 	}
 
-	/**
-	 * Get the term id for a given taxonomy and value.
-	 *
-	 * @param $taxonomy string Taxonomy name
-	 * @param $value int|string The Lookup ID or name or slug of the term.
-	 *
-	 * @return ?int
-	 *
-	 * @since 0.0.32
-	 */
-	public static function getTaxTermId(string $taxonomy, $value): ?int
-	{
-		$args = [
-			'taxonomy'   => $taxonomy,
-			'hide_empty' => false,
-			'fields'     => 'ids'
-		];
-
-		if (is_numeric($value)) {
-			// by lookup id
-			$args['meta_key']   = self::TAXMETA_LOOKUP_ID;
-			$args['meta_value'] = $value;
-		} else {
-			// by name
-			$args['name'] = $value;
-			$t            = get_terms($args);
-			if (count($t) > 0) {
-				return $t[0];
-			}
-
-			// by slug
-			unset($args['name']);
-			$args['slug'] = $value;
-		}
-		$t = get_terms($args);
-		if (count($t) > 0) {
-			return $t[0];
-		}
-
-		return null;
-	}
-
-	/**
-	 * Register the taxonomies.
-	 *
-	 * @return void
-	 */
-	public function registerTaxonomies(): void
-	{
-		/**
-		 * Create the label strings for taxonomies, just in case they ever become visible to the user.
-		 *
-		 * @param string $singular
-		 * @param string $plural
-		 *
-		 * @return array
-		 */
-		function getLabels(string $singular, string $plural): array
-		{
-			return [
-				'name'          => $singular,
-				'singular_name' => $plural,
-				/* translators: %s: taxonomy name, plural */
-				'search_items'  => sprintf(__('Search %s', 'TouchPoint-WP'), $plural),
-				/* translators: %s: taxonomy name, plural */
-				'all_items'     => sprintf(__('All %s', 'TouchPoint-WP'), $plural),
-				/* translators: %s: taxonomy name, singular */
-				'edit_item'     => sprintf(__('Edit %s', 'TouchPoint-WP'), $singular),
-				/* translators: %s: taxonomy name, singular */
-				'update_item'   => sprintf(__('Update %s', 'TouchPoint-WP'), $singular),
-				/* translators: %s: taxonomy name, singular */
-				'add_new_item'  => sprintf(__('Add New %s', 'TouchPoint-WP'), $singular),
-				/* translators: %s: taxonomy name, singular */
-				'new_item_name' => sprintf(__('New %s', 'TouchPoint-WP'), $singular),
-				'menu_name'     => $plural
-			];
-		}
-
-		// Resident Codes
-		$resCodeTypesToApply = [];
-		if ($this->settings->enable_involvements === "on") {
-			$resCodeTypesToApply = Involvement_PostTypeSettings::getPostTypesWithGeoEnabled();
-		}
-		$resCodeTypesToApply[] = 'user';
-		$rt                    = register_taxonomy(
-			self::TAX_RESCODE,
-			$resCodeTypesToApply,
-			[
-				'hierarchical'      => false,
-				'show_ui'           => false,
-				'description'       => __('Classify posts by their general locations.', 'TouchPoint-WP'),
-				'labels'            => getLabels(
-					$this->settings->rc_name_singular,
-					$this->settings->rc_name_plural
-				),
-				'public'            => true,
-				'show_in_rest'      => true,
-				'show_admin_column' => true,
-
-				// Control the slugs used for this taxonomy
-				'rewrite'           => [
-					'slug'         => $this->settings->rc_slug,
-					'with_front'   => false,
-					'hierarchical' => false
-				],
-			]
-		);
-		if ( ! is_wp_error($rt)) {
-			foreach ($this->getResCodes() as $rc) {
-				if ($rc->name !== null && ! Utilities::termExists($rc->name, self::TAX_RESCODE)) {
-					$term = Utilities::insertTerm(
-						$rc->name,
-						self::TAX_RESCODE,
-						[
-							'description' => $rc->name,
-							'slug'        => sanitize_title($rc->name)
-						]
-					);
-					if (is_wp_error($term)) {
-						new TouchPointWP_WPError($term);
-					} else {
-						update_term_meta($term['term_id'], self::TAXMETA_LOOKUP_ID, $rc->id);
-					}
-
-					self::queueFlushRewriteRules();
-				}
-			}
-			// TODO remove defunct res codes
-		}
-
-		// Campuses
-		if ($this->settings->enable_campuses === "on") {
-			$campusesTypesToApply = [];
-			if ($this->settings->enable_involvements === "on") {
-				$campusesTypesToApply = Involvement_PostTypeSettings::getPostTypes();
-			}
-			$campusesTypesToApply[] = 'user';
-			$rt                     = register_taxonomy(
-				self::TAX_CAMPUS,
-				$campusesTypesToApply,
-				[
-					'hierarchical'      => false,
-					'show_ui'           => false,
-					'description'       => __('Classify posts by their church campus.', 'TouchPoint-WP'),
-					'labels'            => getLabels($this->settings->camp_name_singular, $this->settings->camp_name_plural),
-					'public'            => true,
-					'show_in_rest'      => true,
-					'show_admin_column' => true,
-
-					// Control the slugs used for this taxonomy
-					'rewrite'           => [
-						'slug'         => $this->settings->camp_slug,
-						'with_front'   => false,
-						'hierarchical' => false
-					],
-				]
-			);
-			if ( ! is_wp_error($rt)) {
-				foreach ($this->getCampuses() as $c) {
-					if ($c->name !== null && ! Utilities::termExists($c->name, self::TAX_CAMPUS)) {
-						$term = Utilities::insertTerm(
-							$c->name,
-							self::TAX_CAMPUS,
-							[
-								'description' => $c->name,
-								'slug'        => sanitize_title($c->code)
-							]
-						);
-						if (is_wp_error($term)) {
-							new TouchPointWP_WPError($term);
-						} else {
-							update_term_meta($term['term_id'], self::TAXMETA_LOOKUP_ID, $c->id);
-						}
-
-						self::queueFlushRewriteRules();
-					}
-				}
-			}
-		}
-		// TODO remove defunct campuses (including all of them, if disabled)
-
-		// Divisions & Programs
-		$divisionTypesToApply = [];
-		if ($this->settings->enable_involvements === "on") {
-			$divisionTypesToApply = Involvement_PostTypeSettings::getPostTypes();
-		}
-		// TODO allow this taxonomy to be applied to other post types as an option.
-		if (count($divisionTypesToApply) > 0) {
-			$rt = register_taxonomy(
-				self::TAX_DIV,
-				$divisionTypesToApply,
-				[
-					'hierarchical'      => true,
-					'show_ui'           => true,
-					/* translators: %s: taxonomy name, singular */
-					'description'       => sprintf(__('Classify things by %s.', 'TouchPoint-WP'), $this->settings->dv_name_singular),
-					'labels'            => getLabels($this->settings->dv_name_singular, $this->settings->dv_name_plural),
-					'public'            => true,
-					'show_in_rest'      => true,
-					'show_admin_column' => false,
-
-					// Control the slugs used for this taxonomy
-					'rewrite'           => [
-						'slug'         => $this->settings->dv_slug,
-						'with_front'   => false,
-						'hierarchical' => true
-					],
-				]
-			);
-			if ( ! is_wp_error($rt)) {
-				$enabledDivisions = $this->settings->dv_divisions;
-				foreach ($this->getDivisions() as $d) {
-					if (in_array('div' . $d->id, $enabledDivisions)) {
-						// Program
-						$pTermInfo = Utilities::termExists($d->pName, self::TAX_DIV, 0);
-						if ($pTermInfo === null && $d->pName !== null) {
-							$pTermInfo = Utilities::insertTerm(
-								$d->pName,
-								self::TAX_DIV,
-								[
-									'description' => $d->pName,
-									'slug'        => sanitize_title($d->pName)
-								]
-							);
-							if (is_wp_error($pTermInfo)) {
-								new TouchPointWP_WPError($pTermInfo);
-							} else {
-								update_term_meta($pTermInfo['term_id'], self::SETTINGS_PREFIX . 'programId', $d->proId);
-							}
-
-							self::queueFlushRewriteRules();
-						}
-
-						// Division
-						$dTermInfo = Utilities::termExists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
-						if ($dTermInfo === null && $d->dName !== null) {
-							$dTermInfo = Utilities::insertTerm(
-								$d->dName,
-								self::TAX_DIV,
-								[
-									'description' => $d->dName,
-									'parent'      => $pTermInfo['term_id'],
-									'slug'        => sanitize_title($d->dName)
-								]
-							);
-							if (is_wp_error($dTermInfo)) {
-								new TouchPointWP_WPError($dTermInfo);
-							} else {
-								update_term_meta($dTermInfo['term_id'], self::SETTINGS_PREFIX . 'divId', $d->id);
-							}
-
-							self::queueFlushRewriteRules();
-						}
-					} else {
-						// Remove terms that are disabled from importing.
-
-						// Delete disabled divisions.  Get program, so we delete the right division.
-						$pTermInfo = Utilities::termExists($d->pName, self::TAX_DIV, 0);
-						if ($pTermInfo !== null) {
-							$dTermInfo = Utilities::termExists($d->dName, self::TAX_DIV, $pTermInfo['term_id']);
-							if ($dTermInfo !== null) {
-								wp_delete_term($dTermInfo['term_id'], self::TAX_DIV);
-								self::queueFlushRewriteRules();
-							}
-						}
-
-						// Program
-						// TODO remove programs that no longer have a division selected for use as a term.
-						// TODO remove program & div terms that are no longer present in TouchPoint
-					}
-				}
-			}
-		}
-
-		if ($this->settings->enable_involvements === "on") {
-			// Weekdays
-			$rt = register_taxonomy(
-				self::TAX_WEEKDAY,
-				Involvement_PostTypeSettings::getPostTypes(),
-				[
-					'hierarchical'      => false,
-					'show_ui'           => false,
-					'description'       => __('Classify involvements by the day on which they meet.', 'TouchPoint-WP'),
-					'labels'            => getLabels(__('Weekday', 'TouchPoint-WP'), __('Weekdays', 'TouchPoint-WP')),
-					'public'            => true,
-					'show_in_rest'      => true,
-					'show_admin_column' => true,
-
-					// Control the slugs used for this taxonomy
-					'rewrite'           => [
-						'slug'         => 'weekday',
-						'with_front'   => false,
-						'hierarchical' => false
-					],
-				]
-			);
-			if ( ! is_wp_error($rt)) {
-				for ($di = 0; $di < 7; $di++) {
-					$name = Utilities::getPluralDayOfWeekNameForNumber_noI18n($di);
-					if ( ! Utilities::termExists($name, self::TAX_WEEKDAY)) {
-						Utilities::insertTerm(
-							$name,
-							self::TAX_WEEKDAY,
-							[
-								'description' => $name,
-								'slug'        => Utilities::getDayOfWeekShortForNumber_noI18n($di)
-							]
-						);
-						self::queueFlushRewriteRules();
-					}
-				}
-			}
-
-			// Tenses
-			$rt = register_taxonomy(
-				self::TAX_TENSE,
-				Involvement_PostTypeSettings::getPostTypes(),
-				[
-					'hierarchical'      => false,
-					'show_ui'           => false,
-					'description'       => __('Classify involvements by tense (present, future, past)', 'TouchPoint-WP'),
-					'labels'            => getLabels(__("Tense", 'TouchPoint-WP'), __("Tenses", 'TouchPoint-WP')),
-					'public'            => true,
-					'show_in_rest'      => false,
-					'show_admin_column' => false,
-
-					// Control the slugs used for this taxonomy
-					'rewrite'           => [
-						'slug'         => 'tense',
-						'with_front'   => false,
-						'hierarchical' => false
-					],
-				]
-			);
-			if ( ! is_wp_error($rt)) {
-				foreach (
-					[
-						TouchPointWP::TAX_TENSE_FUTURE  => 'Upcoming',
-						TouchPointWP::TAX_TENSE_PRESENT => 'Current',
-						TouchPointWP::TAX_TENSE_PAST    => 'Past',
-					] as $slug => $name
-				) {
-					if ( ! Utilities::termExists($slug, self::TAX_TENSE)) {
-						Utilities::insertTerm(
-							$name,
-							self::TAX_TENSE,
-							[
-								'description' => $name,
-								'slug'        => $slug
-							]
-						);
-						self::queueFlushRewriteRules();
-					}
-				}
-			}
-
-			// Time of Day
-			/** @noinspection SpellCheckingInspection */
-			$rt = register_taxonomy(
-				self::TAX_DAYTIME,
-				Involvement_PostTypeSettings::getPostTypes(),
-				[
-					'hierarchical'      => false,
-					'show_ui'           => false,
-					'description'       => __('Classify involvements by the portion of the day in which they meet.', 'TouchPoint-WP'),
-					'labels'            => getLabels(__('Time of Day', 'TouchPoint-WP'), __('Times of Day', 'TouchPoint-WP')),
-					'public'            => true,
-					'show_in_rest'      => true,
-					'show_admin_column' => true,
-
-					// Control the slugs used for this taxonomy
-					'rewrite'           => [
-						'slug'         => 'timeofday',
-						'with_front'   => false,
-						'hierarchical' => false
-					],
-				]
-			);
-			if ( ! is_wp_error($rt)) {
-				$timesOfDay = [
-					'Late Night',
-					'Early Morning',
-					'Morning',
-					'Midday',
-					'Afternoon',
-					'Evening',
-					'Night'
-				];
-				foreach ($timesOfDay as $tod) {
-					if ( ! Utilities::termExists($tod, self::TAX_WEEKDAY)) {
-						$slug = str_replace(" ", "", $tod);
-						$slug = strtolower($slug);
-						Utilities::insertTerm(
-							$tod,
-							self::TAX_DAYTIME,
-							[
-								'description' => $tod,
-								'slug'        => $slug
-							]
-						);
-						self::queueFlushRewriteRules();
-					}
-				}
-			}
-		}
-
-		// Age Groups
-		$ageGroupTypesToApply = [];
-		if ($this->settings->enable_involvements === "on") {
-			$ageGroupTypesToApply = Involvement_PostTypeSettings::getPostTypes();
-		}
-		$ageGroupTypesToApply[] = 'user';
-		$rt                     = register_taxonomy(
-			self::TAX_AGEGROUP,
-			$ageGroupTypesToApply,
-			[
-				'hierarchical'      => false,
-				'show_ui'           => false,
-				'description'       => __('Classify involvements and users by their age groups.', 'TouchPoint-WP'),
-				'labels'            => getLabels(__('Age Group', 'TouchPoint-WP'), __('Age Groups', 'TouchPoint-WP')),
-				'public'            => true,
-				'show_in_rest'      => true,
-				'show_admin_column' => true,
-
-				// Control the slugs used for this taxonomy
-				'rewrite'           => [
-					'slug'         => self::TAX_AGEGROUP,
-					'with_front'   => false,
-					'hierarchical' => false
-				],
-			]
-		);
-		if ( ! is_wp_error($rt)) {
-			foreach (["20s", "30s", "40s", "50s", "60s", "70+"] as $ag) {
-				if ( ! Utilities::termExists($ag, self::TAX_AGEGROUP)) {
-					Utilities::insertTerm(
-						$ag,
-						self::TAX_AGEGROUP,
-						[
-							'description' => $ag,
-							'slug'        => sanitize_title($ag)
-						]
-					);
-					self::queueFlushRewriteRules();
-				}
-			}
-		}
-
-
-		// Involvement Marital Status
-		if ($this->settings->enable_involvements === "on") {
-			$rt = register_taxonomy(
-				self::TAX_INV_MARITAL,
-				Involvement_PostTypeSettings::getPostTypes(),
-				[
-					'hierarchical'      => false,
-					'show_ui'           => false,
-					'description'       => __('Classify involvements by whether participants are mostly single or married.', 'TouchPoint-WP'),
-					'labels'            => getLabels(__('Marital Status', 'TouchPoint-WP'), __('Marital Statuses', 'TouchPoint-WP')),
-					'public'            => true,
-					'show_in_rest'      => true,
-					'show_admin_column' => true,
-
-					// Control the slugs used for this taxonomy
-					'rewrite'           => [
-						'slug'         => self::TAX_INV_MARITAL,
-						'with_front'   => false,
-						'hierarchical' => false
-					],
-				]
-			);
-			if ( ! is_wp_error($rt)) {
-				foreach (['mostly_single', 'mostly_married'] as $ms) {
-					if ( ! Utilities::termExists($ms, self::TAX_INV_MARITAL)) {
-						Utilities::insertTerm(
-							$ms,
-							self::TAX_INV_MARITAL,
-							[
-								'description' => $ms,
-								'slug'        => sanitize_title($ms)
-							]
-						);
-						self::queueFlushRewriteRules();
-					}
-				}
-			}
-		}
-
-		// Global Partner Category
-		if ($this->settings->enable_global === "on") {
-			$tax = $this->settings->global_primary_tax;
-			if ($tax === "" || $tax === null) {
-				unregister_taxonomy(self::TAX_GP_CATEGORY);
-			} elseif (count($this->getFamilyEvFields([$tax])) > 0) {
-				$tax    = $this->getFamilyEvFields([$tax])[0];
-				$plural = $tax->field . "s"; // TODO Sad, but works.  i18n someday.
-				register_taxonomy(
-					self::TAX_GP_CATEGORY,
-					Partner::POST_TYPE,
-					[
-						'hierarchical'      => false,
-						'show_ui'           => false,
-						'description'       => __('Classify Partners by category chosen in settings.', 'TouchPoint-WP'),
-						'labels'            => getLabels($tax->field, $plural),
-						'public'            => true,
-						'show_in_rest'      => true,
-						'show_admin_column' => true,
-
-						// Control the slugs used for this taxonomy
-						'rewrite'           => [
-							'slug'         => self::TAX_GP_CATEGORY,
-							'with_front'   => false,
-							'hierarchical' => false
-						],
-					]
-				);
-				// Terms are inserted on sync.
-			}
-		}
-	}
 
 	private static array $divisionTerms = [];
 
@@ -1692,10 +1168,10 @@ class TouchPointWP
 		if ( ! isset(self::$divisionTerms['d' . $divId])) {
 			$t = get_terms(
 				[
-					'taxonomy'   => self::TAX_DIV,
+					'taxonomy'   => Taxonomies::TAX_DIV,
 					'hide_empty' => false,
-					'number'     => 1,
-					'fields'     => 'ids',
+					'number'	 => 1,
+					'fields'	 => 'ids',
 					'meta_key'   => self::SETTINGS_PREFIX . 'divId',
 					'meta_value' => $divId
 				]
@@ -1758,9 +1234,7 @@ class TouchPointWP
 	{
 		self::queueFlushRewriteRules();
 
-		$this->createTables();
-
-		$this->settings->migrate();
+		$this->migrate(true);
 	}
 
 	/**
@@ -1802,27 +1276,7 @@ class TouchPointWP
 		wp_clear_scheduled_hook(Report::CRON_HOOK);
 	}
 
-	/**
-	 * Create or update database tables
-	 */
-	protected function createTables(): void
-	{
-		global $wpdb;
-		require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-
-		// IP Geo Caching table
-		$tableName = $wpdb->base_prefix . self::TABLE_IP_GEO;
-		$sql       = "CREATE TABLE $tableName (
-            id int(10) unsigned NOT NULL auto_increment,
-            ip varbinary(16) NOT NULL UNIQUE,
-            updatedDT datetime DEFAULT NOW(),
-            data text NOT NULL,
-            PRIMARY KEY  (id)
-        )";
-		dbDelta($sql);
-	}
-
-	/**
+    /**
 	 * Drop database tables at uninstallation.
 	 */
 	protected static function dropTables(): void
@@ -1844,7 +1298,7 @@ class TouchPointWP
 	 */
 	private function _log_version_number()
 	{
-		update_option(self::TOKEN . '_version', self::VERSION, false);
+		update_option(self::TOKEN . '_version', self::VERSION, true);
 	}
 
 	/**
@@ -1865,6 +1319,8 @@ class TouchPointWP
 	 * Indicates that Tribe Calendar is enabled.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated since 0.0.36 -- Will not be necessary once mobile 3.0 exists.
 	 */
 	public static function useTribeCalendar(): bool
 	{
@@ -2286,7 +1742,7 @@ class TouchPointWP
 	 * Returns an array of objects that correspond to Person Extra Value Fields.  Each has a name and a type.
 	 *
 	 * @param array|null $matches Provide an array of items that should be matched. If provided, only matches are
-	 *     returned.
+	 *	 returned.
 	 *
 	 * @return array
 	 */
@@ -2383,7 +1839,7 @@ class TouchPointWP
 				array_filter(
 					$fevObj->familyEvFields,
 					fn($f) => in_array($f->hash, $matches) ||
-					          in_array($f->field . " | " . $f->type, $matches)
+							  in_array($f->field . " | " . $f->type, $matches)
 				)
 			);
 		}
@@ -2715,7 +2171,7 @@ class TouchPointWP
 
 		// Most likely the issue where a module import failed for no apparent reason.
 		if (property_exists($respDecoded, 'output') &&
-		    strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
+			strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
 			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001);
 		}
 
@@ -2866,7 +2322,7 @@ class TouchPointWP
 	{
 		$s = Session::instance();
 		if ($s->flushRewriteOnNextLoad || $force) {
-			flush_rewrite_rules(true);
+			flush_rewrite_rules();
 			$s->flushRewriteOnNextLoad = null;
 		}
 	}

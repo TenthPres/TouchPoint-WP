@@ -5,7 +5,7 @@ import json
 import linecache
 import sys
 
-VERSION = "0.0.35"
+VERSION = "0.0.36"
 
 sgContactEvName = "Contact"
 
@@ -18,8 +18,7 @@ def print_exception():  # From https://stackoverflow.com/a/20264059/2339939
     lineno = tb.tb_lineno
     filename = f.f_code.co_filename
     linecache.checkcache(filename)
-    line = linecache.getline(filename, lineno, f.f_globals)
-    print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj))
+    print('{} (L{})'.format(exc_obj, lineno))
 
 
 def get_person_info_for_sync(person_obj):
@@ -89,6 +88,7 @@ apiCalled = False
 
 if "Divisions" in Data.a:
     apiCalled = True
+    # noinspection SqlResolve
     divSql = '''
     SELECT d.id,
         CONCAT(p.name, ' : ', d.name) as name,
@@ -104,30 +104,35 @@ if "Divisions" in Data.a:
 
 if "ResCodes" in Data.a:
     apiCalled = True
+    # noinspection SqlResolve
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.ResidentCode'''
     Data.Title = "All Resident Codes"
     Data.resCodes = q.QuerySql(rcSql, {})
 
 if "Campuses" in Data.a:
     apiCalled = True
+    # noinspection SqlResolve
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.Campus'''
     Data.Title = "All Campuses"
     Data.campuses = q.QuerySql(rcSql, {})
 
 if "Genders" in Data.a:
     apiCalled = True
+    # noinspection SqlResolve
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.Gender'''
     Data.Title = "All Genders"
     Data.genders = q.QuerySql(rcSql, {})
 
 if "Keywords" in Data.a:
     apiCalled = True
+    # noinspection SqlResolve
     kwSql = '''SELECT KeywordId as Id, Code, Description as Name FROM Keyword ORDER BY Code'''
     Data.Title = "All Keywords"
     Data.keywords = q.QuerySql(kwSql, {})
 
 if "PersonEvFields" in Data.a:
     apiCalled = True
+    # noinspection SqlResolve
     pevSql = '''SELECT Field, [Type], count(*) as Count,
                 CONCAT('pev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM PeopleExtra WHERE [Field] NOT LIKE '%_mv'
@@ -137,6 +142,7 @@ if "PersonEvFields" in Data.a:
 
 if "FamilyEvFields" in Data.a:
     apiCalled = True
+    # noinspection SqlResolve
     fevSql = '''SELECT Field, [Type], count(*) as Count,
                 CONCAT('fev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM FamilyExtra WHERE [Field] NOT LIKE '%_mv'
@@ -149,17 +155,21 @@ if "SavedSearches" in Data.a:
     Data.savedSearches = model.DynamicData()
 
     if Data.PeopleId == '':
+        # noinspection SqlResolve
         Data.savedSearches.public = model.SqlListDynamicData("""
             SELECT TOP 100 q.Name, q.QueryId FROM Query q JOIN Users u ON LOWER(q.Owner) = LOWER(u.Username)
             WHERE q.IsPublic = 1 AND q.LastRun > DATEADD(DAY, -90, GETDATE()) AND q.Name <> 'Draft'
             ORDER BY q.Name
         """)
     else:
+        # noinspection SqlResolve
         Data.savedSearches.user = model.SqlListDynamicData("""
             SELECT TOP 100 q.Name, q.QueryId FROM Query q JOIN Users u ON LOWER(q.Owner) = LOWER(u.Username)
             WHERE (u.PeopleId = {0}) AND q.LastRun > DATEADD(DAY, -90, GETDATE()) AND q.Name <> 'Draft'
             ORDER BY q.Name
         """.format(Data.PeopleId))
+
+        # noinspection SqlResolve
         Data.savedSearches.public = model.SqlListDynamicData("""
             SELECT TOP 100 q.Name, q.QueryId FROM Query q JOIN Users u ON LOWER(q.Owner) = LOWER(u.Username)
             WHERE (q.IsPublic = 1 AND u.PeopleId <> {0}) 
@@ -168,6 +178,7 @@ if "SavedSearches" in Data.a:
             ORDER BY q.Name
         """.format(Data.PeopleId))
 
+    # noinspection SqlResolve
     Data.savedSearches.flags = model.SqlListDynamicData("""
         SELECT TOP 100 q.Name, q.QueryId FROM Query q
         WHERE q.StatusFlag = 1
@@ -191,9 +202,10 @@ if "InvsForDivs" in Data.a:
     if hostMemTypes == "":
         hostMemTypes = "NULL"
 
+    # noinspection SqlResolve,SqlUnusedCte,SqlRedundantOrderingDirection
     invSql = '''
         WITH cteTargetOrgs as
-        (    
+        (
         SELECT 
                 o.OrganizationId,
                 o.ParentOrgId as parentInvId,
@@ -238,9 +250,9 @@ if "InvsForDivs" in Data.a:
         cteMaritalStatus AS 
         (SELECT 
             omi.OrganizationId
-            , SUM(CASE WHEN pi.MaritalStatusId NOT IN ( 0 ) THEN 1 ELSE 0  END)     AS marital_denom
-            , SUM(CASE WHEN pi.MaritalStatusId = 20 THEN 1 ELSE 0  END)             AS marital_married
-            , SUM(CASE WHEN pi.MaritalStatusId NOT IN ( 0, 20 ) THEN 1 ELSE 0  END) AS marital_single
+            , SUM(IIF(pi.MaritalStatusId NOT IN ( 0 ), 1, 0))     AS marital_denom
+            , SUM(IIF(pi.MaritalStatusId = 20, 1, 0))             AS marital_married
+            , SUM(IIF(pi.MaritalStatusId NOT IN ( 0, 20 ), 1, 0)) AS marital_single
             FROM cteOrganizationMembers omi
                 INNER JOIN dbo.People pi WITH(NOLOCK)
                     ON omi.PeopleId = pi.PeopleId
@@ -408,6 +420,7 @@ if "InvsForDivs" in Data.a:
     Data.invs = groups
 
     # Get Extra Values in use on these involvements
+    # noinspection SqlResolve
     invEvSql = '''SELECT DISTINCT [Field], [Type] FROM OrganizationExtra oe
                   LEFT JOIN DivOrg do ON oe.OrganizationId = do.OrgId WHERE DivId IN ({})'''.format(divs)
 
@@ -421,6 +434,7 @@ if "MemTypes" in Data.a:
     regex = re.compile('[^0-9,]')
     divs = regex.sub('', divs)
 
+    # noinspection SqlResolve
     memTypeSql = '''SELECT DISTINCT om.[MemberTypeId] as id, mt.[Code] as code, mt.[Description] as description 
                     FROM OrganizationMembers om
                     JOIN DivOrg do ON om.OrganizationId = do.OrgId
@@ -439,6 +453,7 @@ if "src" in Data.a and Data.q is not None:
 
     # Numeric query
     elif Data.q.isnumeric():
+        # noinspection SqlResolve
         sql = """SELECT TOP 10
                  p1.PeopleId,
                  COALESCE(p1.NickName, p1.FirstName) GoesBy,
@@ -468,6 +483,7 @@ if "src" in Data.a and Data.q is not None:
 
     # Single word
     elif Data.q.find(' ') == -1 and Data.q.find(',') == -1:
+        # noinspection SqlResolve
         sql = """SELECT TOP 10
                  p1.PeopleId,
                  COALESCE(p1.NickName, p1.FirstName) GoesBy,
@@ -504,6 +520,7 @@ if "src" in Data.a and Data.q is not None:
         else:
             [first, second] = Data.q.split(' ', 1)
 
+        # noinspection SqlResolve
         sql = """SELECT TOP 10
                  p1.PeopleId,
                  COALESCE(p1.NickName, p1.FirstName) GoesBy,
@@ -629,7 +646,7 @@ if "ident" in Data.a and model.HttpMethod == "post":
 
     else:
         # email and zip only
-
+        # noinspection SqlResolve
         sql = """SELECT DISTINCT p1.FamilyId
             FROM People p1
                 JOIN Families f ON p1.FamilyId = f.FamilyId
@@ -643,6 +660,7 @@ if "ident" in Data.a and model.HttpMethod == "post":
     degreesOfSep = int(model.Setting("RegisterRelatedFamilies", "0"))
 
     if degreesOfSep > 1 and len(inData['fid']) > 0:
+        # noinspection SqlResolve
         sql = """SELECT DISTINCT rf1.fid FROM (
             SELECT rf1a.FamilyId fid, rf1a.RelatedFamilyId rid FROM RelatedFamilies rf1a UNION
             SELECT rf1b.RelatedFamilyId fid, rf1b.FamilyId rid FROM RelatedFamilies rf1b UNION
@@ -658,6 +676,7 @@ if "ident" in Data.a and model.HttpMethod == "post":
         inData['fid'] = q.QuerySqlInts(sql)
 
     elif degreesOfSep == 1 and len(inData['fid']) > 0:
+        # noinspection SqlResolve
         sql = """SELECT DISTINCT rf1.fid FROM (
             SELECT rf1a.FamilyId fid, rf1a.RelatedFamilyId rid FROM RelatedFamilies rf1a UNION
             SELECT rf1b.RelatedFamilyId fid, rf1b.FamilyId rid FROM RelatedFamilies rf1b UNION
@@ -689,6 +708,7 @@ if "inv_join" in Data.a and model.HttpMethod == "post":
     else:
         owner = int(owner)
 
+    # noinspection SqlResolve
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
@@ -738,6 +758,7 @@ if "inv_contact" in Data.a and model.HttpMethod == "post":
     else:
         owner = int(owner)
 
+    # noinspection SqlResolve
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
@@ -807,6 +828,7 @@ if "mtg" in Data.a and model.HttpMethod == "post":
     inData = model.JsonDeserialize(Data.data).inputData
 
     Data.success = []
+    # noinspection SqlResolve
     for mtg in q.QuerySql('''
     SELECT  m.meetingId as mtgId,
             m.organizationId as invId,
@@ -906,6 +928,7 @@ if "people_get" in Data.a and model.HttpMethod == "post":
         pevSql = []
         for pev in inData['meta']['pev']:
             pevSql.append("([Field] = '{}' AND [Type] = '{}')".format(pev['field'], pev['type']))
+        # noinspection SqlResolve
         pevSql = """SELECT Field, StrValue, DateValue, Data, IntValue, BitValue, [Type],
             CONCAT('pev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
             FROM PeopleExtra
@@ -920,6 +943,7 @@ if "people_get" in Data.a and model.HttpMethod == "post":
         for fev in inData['meta']['fev']:
             fevSql.append("([Field] = '{}' AND [Type] = '{}')".format(fev['field'], fev['type']))
         if len(fevSql) > 0:
+            # noinspection SqlResolve
             fevSql = """SELECT Field, StrValue, DateValue, Data, IntValue, BitValue, [Type],
                 CONCAT('fev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM FamilyExtra
@@ -927,8 +951,10 @@ if "people_get" in Data.a and model.HttpMethod == "post":
         else:
             fevSql = ''
 
+    # noinspection SqlResolve
     invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
 
+    # noinspection SqlResolve
     famGeoSql = """SELECT geo.Longitude, geo.Latitude 
     FROM AddressInfo ai LEFT JOIN Geocodes geo ON ai.FullAddress = geo.Address WHERE ai.FamilyId = {}"""
 
@@ -1024,17 +1050,17 @@ if "report_run" in Data.a and model.HttpMethod == "post":
     Data.Title = 'Running requested reports'
 
     if inData.has_key('reports'):
-        # noinspection SqlConstantCondition,SqlConstantExpression
+        # noinspection SqlResolve,SqlConstantCondition,SqlConstantExpression
         reportsQ = 'SELECT Id, Name, Body, TypeId FROM Content WHERE 1=0'
         sqlPs = {}
         for r in inData['reports']:
             rNameL = r['name'].lower()
-            type = 9999
+            typ = 9999
             if r['type'] == 'sql':
-                type = 4
+                typ = 4
                 if rNameL not in sqlPs:
                     sqlPs[rNameL] = []
-                    reportsQ += " OR (Name = '{}' AND TypeId = {})".format(r['name'], type)
+                    reportsQ += " OR (Name = '{}' AND TypeId = {})".format(r['name'], typ)
                 sqlPs[rNameL].append(r['p1'])
 
         Data.sqlPs = sqlPs
@@ -1081,8 +1107,7 @@ if "logout" in Data.a and model.HttpMethod == "get":
     model.Title = "Logging out..."
     model.Header = "Logging out..."
     model.Script = "<script>document.getElementById('logoutIFrame').onload = function() { window.location = \"" + redir + "\"; }</script>"
-    print(
-        "<iframe id=\"logoutIFrame\" src=\"/Account/LogOff/\" style=\"position:absolute; top:-1000px; left:-10000px; width:2px; height:2px;\" ></iframe>")
+    print("<iframe id=\"logoutIFrame\" src=\"/Account/LogOff/\" style=\"position:absolute; top:-1000px; left:-10000px; width:2px; height:2px;\" ></iframe>")
     apiCalled = True
 
 if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r parameter implies desired redir after login.
@@ -1116,6 +1141,7 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
             path = ""
 
             # add host if missing
+            # noinspection HttpUrlsUsage
             if not r[0:8].lower() == "https://" and not r[0:7].lower() == "http://" and not r.split('/', 1)[
                 0].__contains__('.'):
                 if r[0] == '/':
@@ -1166,6 +1192,9 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
                 model.Title = "Login"
                 model.Header = "Processing..."
 
+                if response == "":
+                    raise Exception("Could not communicate with WordPress server.")
+
                 response = json.loads(response)
 
                 if "error" in response:
@@ -1199,10 +1228,8 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
             print("<p>Please email the following error message to <b>" + model.Setting("AdminMail",
                                                                                        "the church staff") + "</b>.</p><pre>")
             print(response)
-            print("</pre>")
-            print("<!-- Exception Raised: ")
             print_exception()
-            print(" -->")
+            print("</pre>")
 
 if not apiCalled:
     model.Title = "Invalid Request"

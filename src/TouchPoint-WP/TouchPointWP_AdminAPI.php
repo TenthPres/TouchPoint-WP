@@ -29,7 +29,7 @@ class TouchPointWP_AdminAPI implements api
 	 */
 	public function __construct()
 	{
-//        add_action( 'save_post', array( $this, 'save_meta_boxes' ), 10, 1 );
+//		add_action( 'save_post', array( $this, 'save_meta_boxes' ), 10, 1 );
 	}
 
 	/**
@@ -92,7 +92,14 @@ class TouchPointWP_AdminAPI implements api
 				if ( ! TouchPointWP::currentUserIsAdmin()) {
 					return false;
 				}
-				TouchPointWP::instance()->settings->migrate();
+				TouchPointWP::instance()->migrate(true);
+				exit;
+
+			case "phpinfo":
+				if (!TouchPointWP::currentUserIsAdmin()) {
+					return false;
+				}
+				phpinfo();
 				exit;
 		}
 
