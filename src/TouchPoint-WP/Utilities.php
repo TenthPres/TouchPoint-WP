@@ -723,14 +723,14 @@ abstract class Utilities
 	/**
 	 * Determine if an email address or user should be accepted as a new registrant. (e.g. informal auth)
 	 *
-	 * @param string $nickname
-	 * @param string $emailAddress
+	 * @param ?string  $nickname
+	 * @param ?string $emailAddress
 	 * @param ?string $resultComment If a spam provider provides a comment about why content was allowed or rejected,
 	 *     it goes here.
 	 *
 	 * @return bool  True if acceptable, false if not acceptable.
 	 */
-	public static function validateRegistrantEmailAddress(string $nickname, string $emailAddress, string &$resultComment = null): bool {
+	public static function validateRegistrantEmailAddress(?string $nickname, ?string $emailAddress, ?string &$resultComment = null): bool {
 		// CleanTalk filter
 		if (file_exists(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php')
 		    || function_exists('ct_test_registration')) {
@@ -755,15 +755,15 @@ abstract class Utilities
 	/**
 	 * Determine if an email address or user should be accepted as a new registrant. (e.g. informal auth)
 	 *
-	 * @param string  $nickname
-	 * @param string  $emailAddress
-	 * @param string  $message
-	 * @param ?string $resultComment If a spam provider provides a comment about why content was allowed or rejected,
+	 * @param ?string  $nickname
+	 * @param ?string  $emailAddress
+	 * @param ?string  $message
+	 * @param ?string  $resultComment If a spam provider provides a comment about why content was allowed or rejected,
 	 *     it goes here.
 	 *
 	 * @return bool  True if acceptable, false if not acceptable.
 	 */
-	public static function validateMessage(string $nickname, string $emailAddress, string $message, string &$resultComment = null): bool
+	public static function validateMessage(?string $nickname, ?string $emailAddress, ?string $message, ?string &$resultComment = null): bool
 	{
 		// CleanTalk filter
 		if (file_exists(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php')

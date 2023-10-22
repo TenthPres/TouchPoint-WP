@@ -3,7 +3,7 @@
   "description": "A WordPress Plugin for integrating with TouchPoint Church Management Software.",
   "license": "AGPL-3.0-or-later",
   "type": "wordpress-plugin",
-  "version": "0.0.35",
+  "version": "0.0.36",
   "keywords": [
     "wordpress",
     "wp",
