@@ -1483,7 +1483,7 @@ class TouchPointWP_Settings
 		}
 
 		// 0.0.31 - Add lookup IDs to ResCodes
-		// 0.0.36 - Cleanup possible duplicate terms
+		// 1.0.0 - Cleanup possible duplicate terms
 		Taxonomies::$forceTermLookupIdUpdate = true;
 
 		// Update version string

@@ -32,7 +32,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.36";
+	public const VERSION = "1.0.0";
 
 	/**
 	 * The Token
@@ -1320,7 +1320,7 @@ class TouchPointWP
 	 *
 	 * @return bool
 	 *
-	 * @deprecated since 0.0.36 -- Will not be necessary once mobile 3.0 exists.
+	 * @deprecated since 1.0.0 -- Will not be necessary once mobile 3.0 exists.
 	 */
 	public static function useTribeCalendar(): bool
 	{
