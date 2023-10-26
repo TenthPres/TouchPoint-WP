@@ -258,12 +258,16 @@ abstract class Taxonomies
 	 * Insert the terms for the registered taxonomies.  (This is supposed to happen a while after the taxonomies are
 	 * loaded.)
 	 *
-	 * @param TouchPointWP $instance
+	 * @param ?TouchPointWP $instance
 	 *
 	 * @return void
 	 */
-	public static function insertTerms(TouchPointWP $instance)
+	public static function insertTerms(TouchPointWP $instance = null)
 	{
+		if ($instance === null) {
+			$instance = TouchPointWP::instance();
+		}
+
 		// Resident Codes
 		$types = self::getPostTypesForTaxonomy($instance, self::TAX_RESCODE);
 		if (count($types) > 0) {
