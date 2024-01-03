@@ -281,25 +281,16 @@ if "InvsForDivs" in Data.a:
         ),
         -- pull aggregate schedules for all target organizations
         cteSchedule AS
-        (SELECT OrganizationId, STRING_AGG(sdt, ' | ') WITHIN GROUP (ORDER BY sdt ASC) AS OrgSchedule
-        FROM (
-            SELECT o.OrganizationId, CONCAT(FORMAT(os.NextMeetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|S') as sdt 
+        (SELECT cto.OrganizationId, 
+            (
+            SELECT FORMAT(os.NextMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as nextStartDt
             FROM dbo.OrgSchedule os WITH(NOLOCK)
                 INNER JOIN cteTargetOrgs o
                     ON os.OrganizationId = o.OrganizationId
-        ) s_agg
-        GROUP BY s_agg.OrganizationId),
-        -- pull aggregate meetings for all target organizations
-        cteMeetings AS
-        (SELECT OrganizationId, STRING_AGG(sdt, ' | ') WITHIN GROUP (ORDER BY sdt ASC) AS OrgMeetings
-        FROM (
-            SELECT o.OrganizationId, CONCAT(FORMAT(m.meetingDate, 'yyyy-MM-ddTHH:mm:ss'), '|M') as sdt 
-            FROM dbo.Meetings as m WITH(NOLOCK)
-                INNER JOIN cteTargetOrgs o
-                    ON m.OrganizationId = o.OrganizationId
-            WHERE m.meetingDate > getdate() 
-        ) m_agg
-        GROUP BY m_agg.OrganizationId),
+            WHERE cto.OrganizationId = os.OrganizationId
+            FOR JSON PATH
+            ) as OrgSchedule
+            FROM cteTargetOrgs cto),
         -- pull aggregate divisions for all target organizations
         cteDivision AS 
         (SELECT OrganizationId, STRING_AGG(divId, ',') WITHIN GROUP (ORDER BY divId ASC) AS OrgDivision
@@ -410,10 +401,8 @@ if "InvsForDivs" in Data.a:
             g.meetings = []
 
         if g.schedules is not None:
-            # noinspection PyUnresolvedReferences
-            g.schedules = g.schedules.split(' | ')
-            for i, s in enumerate(g.schedules):
-                g.schedules[i] = {'next': s[0:19], 'type': s[20:]}
+            # noinspection PyTypeChecker
+            g.schedules = json.loads(g.schedules)
         else:
             g.schedules = []
 

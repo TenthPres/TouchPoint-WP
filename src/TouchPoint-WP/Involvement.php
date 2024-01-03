@@ -570,7 +570,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 
 			// schedules
 			foreach ($this->schedules() as $s) {
-				$mdt = $s->next;
+				$mdt = $s->nextStartDt;
 				if ($mdt <= $now) { // If "next meeting" is past, add a week and re-check.
 					$mdt = $mdt->modify("+1 week");
 				}
@@ -606,7 +606,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 				continue;
 			}
 
-			$dt = $s->next;
+			$dt = $s->nextStartDt;
 
 			$coInx                     = $dt->format('w-Hi');
 			$commonOccurrences[$coInx] = [
@@ -2144,7 +2144,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			// Meeting and Schedule date/time strings as DateTimeImmutables
 			foreach ($inv->schedules as $i => $s) {
 				try {
-					$s->next = new DateTimeImmutable($s->next, $siteTz);
+					$s->nextStartDt = new DateTimeImmutable($s->nextStartDt, $siteTz);
 				} catch (Exception $e) {
 					unset($inv->schedules[$i]);
 				}
