@@ -500,6 +500,10 @@ class TouchPointWP
 			return false;
 		}
 
+		if ( ! function_exists('wp_get_current_user')) {
+			return false;
+		}
+
 		return current_user_can('manage_options');
 	}
 
