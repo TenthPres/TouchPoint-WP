@@ -187,11 +187,17 @@ if "SavedSearches" in Data.a:
 
     Data.Title = "Saved Searches"
 
-if "InvsForDivs" in Data.a:
+if "Invs" in Data.a:
     apiCalled = True
 
     regex = re.compile('[^0-9,]')
     divs = regex.sub('', Data.divs)
+    if (len(divs)) < 1:
+        divs = '0'
+
+    mtgHist = -int(Data.mtgHist) if Data.mtgHist != "" else 0
+    mtgFuture = int(Data.mtgFuture) if Data.mtgFuture != "" else 365
+    featMtgs = 1 if Data.featMtgs != "" else 2  # value is directly used in SQL comparison.
 
     leadMemTypes = Data.leadMemTypes or ""
     leadMemTypes = regex.sub('', leadMemTypes)
@@ -203,7 +209,7 @@ if "InvsForDivs" in Data.a:
         hostMemTypes = "NULL"
 
     # noinspection SqlResolve,SqlUnusedCte,SqlRedundantOrderingDirection
-    invSql = '''
+    invSql = ('''
         WITH cteTargetOrgs as
         (
         SELECT 
@@ -223,6 +229,9 @@ if "InvsForDivs" in Data.a:
                 o.OrgPickList,
                 o.MainLeaderId,
                 o.ImageUrl,
+                o.BadgeUrl,
+                o.RegistrationMobileId,
+                o.ShowRegistrantsInMobile,
                 o.CampusId,
                 o.RegSettingXml.exist('/Settings/AskItems') AS hasRegQuestions,
                 FORMAT(o.RegStart, 'yyyy-MM-ddTHH:mm:ss') AS regStart,
@@ -230,13 +239,24 @@ if "InvsForDivs" in Data.a:
                 FORMAT(o.FirstMeetingDate, 'yyyy-MM-ddTHH:mm:ss') AS firstMeeting,
                 FORMAT(o.LastMeetingDate, 'yyyy-MM-ddTHH:mm:ss') AS lastMeeting
         FROM dbo.Organizations o
-            WHERE o.OrganizationId = (
-                    SELECT MIN(OrgId) min
-                    FROM dbo.DivOrg do
-                    WHERE do.OrgId = o.OrganizationId
-                    AND do.DivId IN ({})
+            WHERE ( o.OrganizationId = (
+                        SELECT MIN(OrgId) min
+                        FROM dbo.DivOrg do
+                        WHERE do.OrgId = o.OrganizationId
+                        AND do.DivId IN ({0})
+                    )
+                    AND o.organizationStatusId = 30 
                 )
-            AND o.organizationStatusId = 30
+            OR ( o.ShowInSites = {2} 
+                AND o.OrganizationId = (
+                        SELECT MIN(m.OrganizationId) org
+                        FROM Meetings m
+                        WHERE m.OrganizationId = o.OrganizationId
+                            AND m.MeetingDate > DATEADD(day, {3}, GETDATE())
+                            AND m.MeetingDate < DATEADD(day, {4}, GETDATE())
+                        GROUP BY m.OrganizationId
+                    )
+                )
         ),
         -- select all members for these organizations to avoid multiple scans of Organization members table
         cteOrganizationMembers AS 
@@ -263,21 +283,39 @@ if "InvsForDivs" in Data.a:
         (SELECT OrganizationId, STRING_AGG(ag, ',') WITHIN GROUP (ORDER BY ag ASC)  AS PeopleAge
         FROM (
         SELECT omi.OrganizationId, 
-                (CASE
-                    WHEN pi.Age > 69 THEN '70+'
-                    ELSE CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's'
-                    END) as ag 
+                (IIF(pi.Age > 69, '70+', CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's')) as ag 
             FROM cteOrganizationMembers omi
                 INNER JOIN dbo.People pi WITH(NOLOCK)
                 ON omi.PeopleId = pi.PeopleId
                         WHERE pi.Age > 19
             GROUP BY omi.OrganizationId, 
-                    (CASE
-                    WHEN pi.Age > 69 THEN '70+'
-                    ELSE CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's'
-                    END)
+                    (IIF(pi.Age > 69, '70+', CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's'))
         ) AS ag_agg
         GROUP BY ag_agg.OrganizationId       
+        ), ''' + '''
+        -- pull aggregate meetings for all target organizations
+        cteMeeting AS
+        (
+            SELECT cto.OrganizationId,
+                (
+                    SELECT om.MeetingId as mtgId,
+                        FORMAT(om.meetingDate, 'yyyy-MM-ddTHH:mm:ss') as mtgStartDt,
+                        null as mtgEndDt, -- TODO end time
+                        om.Location as location,
+                        om.Description as name,
+                        1 - om.DidNotMeet as status,
+                        om.Capacity as capacity,
+                        CAST(me.Data as INT) as parentMtgId
+                    FROM dbo.Meetings om
+                        INNER JOIN cteTargetOrgs o
+                            ON om.OrganizationId = o.OrganizationId
+                        LEFT JOIN dbo.MeetingExtra me
+                            ON om.MeetingId = me.MeetingId AND 'ParentMeeting' = me.Field
+                    WHERE om.MeetingDate > DATEADD(day, {3}, GETDATE())
+                        AND om.OrganizationId = cto.OrganizationId
+                    FOR JSON PATH, INCLUDE_NULL_VALUES 
+                ) as OrgMeetings
+            FROM cteTargetOrgs cto
         ),
         -- pull aggregate schedules for all target organizations
         cteSchedule AS
@@ -288,7 +326,7 @@ if "InvsForDivs" in Data.a:
                 INNER JOIN cteTargetOrgs o
                     ON os.OrganizationId = o.OrganizationId
             WHERE cto.OrganizationId = os.OrganizationId
-            FOR JSON PATH
+            FOR JSON PATH, INCLUDE_NULL_VALUES 
             ) as OrgSchedule
             FROM cteTargetOrgs cto),
         -- pull aggregate divisions for all target organizations
@@ -320,7 +358,7 @@ if "InvsForDivs" in Data.a:
                         (SELECT TOP 1 omh.PeopleId 
                         FROM dbo.OrganizationMembers omh 
                         WHERE o.OrganizationId = omh.OrganizationId 
-                        AND omh.MemberTypeId IN ({})) = ph.PeopleId
+                        AND omh.MemberTypeId IN ({1})) = ph.PeopleId
                     LEFT JOIN dbo.Families fh ON
                         ph.FamilyId = fh.FamilyId
                     LEFT JOIN dbo.AddressInfo paih ON
@@ -350,6 +388,9 @@ if "InvsForDivs" in Data.a:
             , o.[OrgPickList]                AS [orgPickList]
             , o.[MainLeaderId]               AS [mainLeaderId]
             , o.[ImageUrl]                   AS [imageUrl]
+            , o.[BadgeUrl]                   AS [badgeUrl]
+            , o.[RegistrationMobileId]       AS [registrationMobileId]
+            , o.[ShowRegistrantsInMobile]    AS [showRegistrantsInMobile]
             , o.[hasRegQuestions]            AS [hasRegQuestions]
             , o.[regStart]                   AS [regStart]
             , o.[regEnd]                     AS [regEnd]
@@ -373,7 +414,7 @@ if "InvsForDivs" in Data.a:
                 ON o.OrganizationId = aa.OrganizationId
             LEFT JOIN cteSchedule s
                 ON o.OrganizationId = s.OrganizationId
-            LEFT JOIN cteMeetings m
+            LEFT JOIN cteMeeting m
                 ON o.OrganizationId = m.OrganizationId
             LEFT JOIN cteDivision d
                 ON o.OrganizationId = d.OrganizationId
@@ -381,7 +422,7 @@ if "InvsForDivs" in Data.a:
                 ON o.OrganizationId = ol.OrganizationId
             LEFT JOIN lookup.Campus c
                 ON o.CampusId = c.Id
-        ORDER BY o.parentInvId ASC, o.OrganizationId ASC'''.format(divs, hostMemTypes)
+        ORDER BY o.parentInvId ASC, o.OrganizationId ASC''').format(divs, hostMemTypes, featMtgs, mtgHist, mtgFuture)
 
     groups = model.SqlListDynamicData(invSql)
 
@@ -393,10 +434,8 @@ if "InvsForDivs" in Data.a:
             g.divs = g.divs.split(',')
 
         if g.meetings is not None:
-            # noinspection PyUnresolvedReferences
-            g.meetings = g.meetings.split(' | ')
-            for i, s in enumerate(g.meetings):
-                g.meetings[i] = {'dt': s[0:19], 'type': s[20:]}
+            # noinspection PyTypeChecker
+            g.meetings = json.loads(g.meetings)
         else:
             g.meetings = []
 
@@ -913,11 +952,13 @@ if "people_get" in Data.a and model.HttpMethod == "post":
 
     # Prep SQL for People Extra Values
     pevSql = ''
-    if inData.has_key('meta') and isinstance(inData['meta'], dict) and inData['meta'].has_key('pev') and len(inData['meta']['pev']) > 0:
+    if inData.has_key('meta') and isinstance(inData['meta'], dict) and inData['meta'].has_key('pev') and len(
+            inData['meta']['pev']) > 0:
         pevSql = []
         for pev in inData['meta']['pev']:
             pevSql.append("([Field] = '{}' AND [Type] = '{}')".format(pev['field'], pev['type']))
-        # noinspection SqlResolve
+
+        # noinspection SqlResolve,Annotator
         pevSql = """SELECT Field, StrValue, DateValue, Data, IntValue, BitValue, [Type],
             CONCAT('pev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
             FROM PeopleExtra
@@ -931,8 +972,9 @@ if "people_get" in Data.a and model.HttpMethod == "post":
         fevSql = []
         for fev in inData['meta']['fev']:
             fevSql.append("([Field] = '{}' AND [Type] = '{}')".format(fev['field'], fev['type']))
+
         if len(fevSql) > 0:
-            # noinspection SqlResolve
+            # noinspection SqlResolve,Annotator
             fevSql = """SELECT Field, StrValue, DateValue, Data, IntValue, BitValue, [Type],
                 CONCAT('fev', SUBSTRING(CONVERT(NVARCHAR(18), HASHBYTES('MD2', CONCAT([Field], [Type])), 1), 3, 8)) Hash
                 FROM FamilyExtra
@@ -940,10 +982,22 @@ if "people_get" in Data.a and model.HttpMethod == "post":
         else:
             fevSql = ''
 
-    # noinspection SqlResolve
-    invSql = "SELECT om.OrganizationId iid, CONCAT('mt', mt.Id) memType, CONCAT('at', at.Id) attType, om.UserData descr FROM OrganizationMembers om LEFT JOIN lookup.MemberType mt on om.MemberTypeId = mt.Id LEFT JOIN lookup.AttendType at ON mt.AttendanceTypeId = at.Id WHERE om.Pending = 0 AND mt.Inactive = 0 AND at.Guest = 0 AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"
+    # noinspection SqlResolve,Annotator
+    invSql = """SELECT om.OrganizationId iid, 
+                    CONCAT('mt', mt.Id) memType, 
+                    CONCAT('at', at.Id) attType, 
+                    om.UserData descr 
+                FROM OrganizationMembers om 
+                LEFT JOIN lookup.MemberType mt 
+                    ON om.MemberTypeId = mt.Id 
+                LEFT JOIN lookup.AttendType at 
+                    ON mt.AttendanceTypeId = at.Id 
+                WHERE om.Pending = 0 
+                    AND mt.Inactive = 0 
+                    AND at.Guest = 0 
+                    AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"""
 
-    # noinspection SqlResolve
+    # noinspection SqlResolve,Annotator
     famGeoSql = """SELECT geo.Longitude, geo.Latitude 
     FROM AddressInfo ai LEFT JOIN Geocodes geo ON ai.FullAddress = geo.Address WHERE ai.FamilyId = {}"""
 
@@ -1032,7 +1086,6 @@ if "people_get" in Data.a and model.HttpMethod == "post":
     Data.rules = rules  # handy for debugging
     Data.success = True
 
-
 if "report_run" in Data.a and model.HttpMethod == "post":
     apiCalled = True
 
@@ -1096,7 +1149,8 @@ if "logout" in Data.a and model.HttpMethod == "get":
     model.Title = "Logging out..."
     model.Header = "Logging out..."
     model.Script = "<script>document.getElementById('logoutIFrame').onload = function() { window.location = \"" + redir + "\"; }</script>"
-    print("<iframe id=\"logoutIFrame\" src=\"/Account/LogOff/\" style=\"position:absolute; top:-1000px; left:-10000px; width:2px; height:2px;\" ></iframe>")
+    print(
+        "<iframe id=\"logoutIFrame\" src=\"/Account/LogOff/\" style=\"position:absolute; top:-1000px; left:-10000px; width:2px; height:2px;\" ></iframe>")
     apiCalled = True
 
 if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r parameter implies desired redir after login.
@@ -1214,8 +1268,8 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
             model.Title = "Error"
             model.Header = "Something went wrong."
 
-            print("<p>Please email the following error message to <b>" + model.Setting("AdminMail",
-                                                                                       "the church staff") + "</b>.</p><pre>")
+            print("<p>Please email the following error message to <b>" +
+                  model.Setting("AdminMail", "the church staff") + "</b>.</p><pre>")
             print(response)
             print_exception()
             print("</pre>")
