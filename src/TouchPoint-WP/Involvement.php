@@ -560,7 +560,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 		if ($this->_nextMeeting === null) {
 			// meetings
 			foreach ($this->meetings() as $m) {
-				$mdt = $m->dt;
+				$mdt = $m->mtgStartDt;
 				if ($mdt > $now) {
 					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
 						$this->_nextMeeting = $mdt;
@@ -622,7 +622,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 				continue;
 			}
 
-			$dt = $m->dt;
+			$dt = $m->mtgStartDt;
 
 			if ($dt < $now) {
 				continue;
@@ -2085,11 +2085,12 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 		}
 
 		try {
-			$response = TouchPointWP::instance()->apiGet(
-				"InvsForDivs",
-				array_merge($qOpts, ['divs' => $divs]),
-				180
-			);
+			$qOpts['divs'] = $divs;
+			if ($typeSets->importMeetings) {
+				$qOpts['mtgHist']   = TouchPointWP::instance()->settings->mc_archive_days;
+				$qOpts['mtgFuture'] = TouchPointWP::instance()->settings->mc_future_days;
+			}
+			$response = TouchPointWP::instance()->apiGet("Invs", $qOpts, 180);
 		} catch (TouchPointWP_Exception $e) {
 			return false;
 		}
@@ -2108,6 +2109,9 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			$now       = new DateTimeImmutable(null, $siteTz);
 			$aYear     = new DateInterval('P1Y');
 			$nowPlus1Y = $now->add($aYear);
+			$histDays  = TouchPointWP::instance()->settings->mc_hist_days;
+			$histVal   = new DateInterval("P{$histDays}D");
+			$nowMinusH = $now->sub($histVal);
 			unset($aYear);
 		} catch (Exception $e) {
 			return false;
@@ -2151,7 +2155,9 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			}
 			foreach ($inv->meetings as $i => $m) {
 				try {
-					$m->dt = new DateTimeImmutable($m->dt, $siteTz);
+					$m->mtgStartDt = new DateTimeImmutable($m->mtgStartDt, $siteTz);
+					$m->mtgEndDt = ($m->mtgEndDt == null ? null :
+						new DateTimeImmutable($m->mtgEndDt, $siteTz));
 				} catch (Exception $e) {
 					unset($inv->meetings[$i]);
 				}
@@ -2183,7 +2189,10 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			// 'continue' causes involvement to be deleted (or not created).
 
 			// Filter by end dates to stay relevant
-			if ($inv->lastMeeting !== null && $inv->lastMeeting < $now) { // last meeting already happened.
+			if ($inv->lastMeeting !== null && (
+				(!$typeSets->importMeetings && $inv->lastMeeting < $now) ||
+				($typeSets->importMeetings && $inv->lastMeeting < $nowMinusH))
+			) { // last meeting was long enough ago to no longer be relevant.
 				if ($verbose) {
 					echo "<p>Stopping processing because all meetings are in the past.  Involvement will be deleted from WordPress.</p>";
 				}

@@ -69,9 +69,9 @@ if ( ! defined('ABSPATH')) {
  * @property-read string       ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.
  *
  * @property-read string       mc_slug            Slug for meetings in the meeting calendar (e.g. "events" for church.org/events)
- * @property-read string       mc_future_days     Number of days into the future to import.
- * @property-read string       mc_archive_days    Number of days to wait to move something to history.
- * @property-read string       mc_hist_days       Number of days of history to keep.
+ * @property-read int          mc_future_days     Number of days into the future to import.
+ * @property-read int          mc_archive_days    Number of days to wait to move something to history.
+ * @property-read int          mc_hist_days       Number of days of history to keep.
  * @property-read string       mc_deletion_method Determines how meetings should be handled in WordPress if they're deleted in TouchPoint
  *
  * @property-read string       rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")

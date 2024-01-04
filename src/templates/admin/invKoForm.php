@@ -72,6 +72,15 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             </td>
         </tr>
 
+        <?php if ($this->enable_meeting_cal === "on") { ?>
+        <tr>
+            <th>
+                <label for="it-importMeetings" data-bind="attr: { for: 'it-' + slug() + '-importMeetings'}"><?php _e("Import All Meetings to Calendar", "TouchPoint-WP"); ?></label>
+            </th>
+            <td colspan="2"><input id="it-importMeetings" type="checkbox" data-bind="checked: importMeetings, attr: { id: 'it-' + slug() + '-importMeetings'}" /></td>
+        </tr>
+        <?php } ?>
+
         <tr>
             <th>
                 <label for="it-useGeo" data-bind="attr: { for: 'it-' + slug() + '-useGeo'}"><?php _e("Use Geographic Location", "TouchPoint-WP"); ?></label>
@@ -242,6 +251,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.useImages = ko.observable(data.useImages ?? true);
         this.excludeIf = ko.observable(data.excludeIf ?? []);
         this.hierarchical = ko.observable(data.hierarchical ?? false);
+        this.importMeetings = ko.observable(data.importMeetings ?? false);
         this.groupBy = ko.observable(data.groupBy ?? "");
         this.leaderTypes = ko.observableArray(data.leaderTypes ?? []);
         this.hostTypes = ko.observableArray(data.hostTypes ?? []);
