@@ -390,7 +390,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 			// Excerpt / Summary
 			$post->post_excerpt = self::getFamEvAsContent($summaryEv, $f, null);
 
-			// Partner Category  This can't be moved to Taxonomy class because values aren't know.n.
+			// Partner Category  This can't be moved to Taxonomy class because values aren't known.
 			if ($categoryEv !== '') {
 				$category = $f->familyEV->$categoryEv->value ?? null;
 				// Insert Term if new
