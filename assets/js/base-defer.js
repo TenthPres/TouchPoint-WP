@@ -354,7 +354,11 @@ class TP_MapMarker
     }
 
     get inBounds() {
-        return this.gMkr.getMap().getBounds().contains(this.gMkr.getPosition());
+        let map = this.gMkr.getMap();
+        if (!map) { // if map failed to render for some reason, this prevents entries from being hidden.
+            return true;
+        }
+        return map.getBounds().contains(this.gMkr.getPosition());
     }
 
     get useIcon() {
