@@ -18,6 +18,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 
 use Exception;
 use JsonSerializable;
+use stdClass;
 use WP_Error;
 use WP_Post;
 use WP_Query;
@@ -81,7 +82,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 	 */
 	protected function __construct(object $object)
 	{
-		$this->attributes = (object)[];
+		$this->attributes = new stdClass();
 
 		if (gettype($object) === "object" && get_class($object) == WP_Post::class) {
 			// WP_Post Object

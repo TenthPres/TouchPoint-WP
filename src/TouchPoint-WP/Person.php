@@ -707,7 +707,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 				// Get the InvIds for the Involvement Type's Posts
 				$postType = $type->postTypeWithPrefix();
-				$key      = Involvement::INVOLVEMENT_META_KEY;
+				$key      = TouchPointWP::INVOLVEMENT_META_KEY;
 				global $wpdb;
 				/** @noinspection SqlResolve */
 				$sql = "SELECT pm.meta_value AS iid

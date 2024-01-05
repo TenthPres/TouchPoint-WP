@@ -86,8 +86,6 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	public string $post_excerpt;
 	protected WP_Post $post;
 
-	public const INVOLVEMENT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "invId";
-
 	public object $attributes;
 	protected array $divisions;
 
@@ -107,7 +105,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			// WP_Post Object
 			$this->post    = $object;
 			$this->name    = $object->post_title;
-			$this->invId   = intval($object->{self::INVOLVEMENT_META_KEY});
+			$this->invId   = intval($object->{TouchPointWP::INVOLVEMENT_META_KEY});
 			$this->post_id = $object->ID;
 			$this->invType = get_post_type($this->post_id);
 
@@ -1136,7 +1134,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 
 		$q      = new WP_Query([
 								   'post_type'   => $postType,
-								   'meta_key'    => self::INVOLVEMENT_META_KEY,
+								   'meta_key'    => TouchPointWP::INVOLVEMENT_META_KEY,
 								   'meta_value'  => $involvementId,
 								   'numberposts' => 2
 								   // only need one, but if there's two, there should be an error condition.
@@ -1551,7 +1549,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	 */
 	public static function fromPost(WP_Post $post): Involvement
 	{
-		$iid = intval($post->{self::INVOLVEMENT_META_KEY});
+		$iid = intval($post->{TouchPointWP::INVOLVEMENT_META_KEY});
 
 		if ( ! isset(self::$_instances[$iid])) {
 			self::$_instances[$iid] = new Involvement($post);
@@ -2270,7 +2268,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 						'post_type'  => $typeSets->postType,
 						'post_name'  => $titleToUse,
 						'meta_input' => [
-							self::INVOLVEMENT_META_KEY => $inv->involvementId
+							TouchPointWP::INVOLVEMENT_META_KEY => $inv->involvementId
 						]
 					]
 				);
@@ -2288,7 +2286,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			}
 
 			/** @var $post WP_Post */
-			if ($inv->description == null || trim($inv->description) == "") {
+			if ($inv->description == null || trim($inv->description) === "") {
 				$post->post_content = null;
 			} else {
 				$post->post_content = Utilities::standardizeHtml($inv->description, "involvement-import");
@@ -2585,7 +2583,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 				$post = get_post($post);
 			}
 
-			$theDate = self::scheduleString(intval($post->{self::INVOLVEMENT_META_KEY})) ?? "";
+			$theDate = self::scheduleString(intval($post->{TouchPointWP::INVOLVEMENT_META_KEY})) ?? "";
 		}
 
 		return $theDate;

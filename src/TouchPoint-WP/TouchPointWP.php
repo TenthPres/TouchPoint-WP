@@ -91,6 +91,10 @@ class TouchPointWP
 	public const CACHE_NONE = 20;
 	private static int $cacheLevel = self::CACHE_PUBLIC;
 
+
+	public const INVOLVEMENT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "invId";
+
+
 	/**
 	 * @var string Used for imploding arrays together in human-friendly formats.
 	 */
@@ -673,9 +677,6 @@ class TouchPointWP
 
 		// Load Involvements tool if enabled.
 		if ($instance->settings->enable_involvements === "on") {
-			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-				require_once 'Involvement.php';
-			}
 			$instance->involvements = Involvement::load();
 		}
 
