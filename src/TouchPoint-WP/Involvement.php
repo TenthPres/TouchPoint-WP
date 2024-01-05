@@ -664,11 +664,14 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 					$timeStr = substr($k, 2);
 					if ( ! in_array($timeStr, $uniqueTimeStrings, true)) {
 						$uniqueTimeStrings[] = $timeStr;
+					}
 
-						$weekday = "d" . $k[0];
-						if ( ! isset($days[$weekday])) {
-							$days[$weekday] = [];
-						}
+					$weekday = "d" . $k[0];
+					if ( ! isset($days[$weekday])) {
+						$days[$weekday] = [];
+					}
+
+					if ( ! in_array($co['example'], $days[$weekday], true)) {
 						$days[$weekday][] = $co['example'];
 					}
 				}
