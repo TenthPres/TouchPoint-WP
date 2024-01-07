@@ -67,6 +67,85 @@ abstract class Meeting implements api, module
 	}
 
 	/**
+	 * Print a calendar grid for a given month and year.
+	 *
+	 * @param WP_Query $q
+	 * @param int|null $month
+	 * @param int|null $year
+	 *
+	 * @return void
+	 */
+	public static function printCalendarGrid(WP_Query $q, int $month = null, int $year = null)
+	{
+		try {
+			// Validate month & year; create $d as a day within the month
+			$tz = wp_timezone();
+			if ($month < 1 || $month > 12 || $year < 2020 || $year > 2100) {
+				$d = new DateTime('now', $tz);
+				$d = new DateTime($d->format('Y-m-01'), $tz);
+			} else {
+				$d = new DateTime("$year-$month-01", $tz);
+			}
+		} catch (Exception $e) {
+			echo "<!-- Could not create calendar grid because an exception occurred. -->";
+			return;
+		}
+
+		// Get the day of the week for the first day of the month (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+		$offsetDays = intval($d->format('w')); // w: Numeric representation of the day of the week
+		$d->modify("-$offsetDays days");
+
+		// Create a table to display the calendar
+		echo '<table>'; // TODO 1i18n
+		echo '<tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>';
+
+		$isMonthBefore = ($offsetDays !== 0);
+		$isMonthAfter = false;
+		$aDay = new DateInterval("P1D");
+
+		// Loop through the days of the month
+		do {
+			$cellClass = "";
+			if ($isMonthBefore) {
+				$cellClass = "before";
+			} elseif ($isMonthAfter) {
+				$cellClass = "after";
+			}
+
+			$day = $d->format("j");
+			$wd =  $d->format("w");
+
+			if ($wd === '0') {
+				echo "<tr>";
+			}
+
+			// Print the cell
+			echo "<td class=\"$cellClass\">";
+			echo "<span class=\"calDay\">$day</span>";
+			// TODO print items
+			echo "</td>";
+
+			if ($wd === '6') {
+				echo "</tr>";
+			}
+
+			// Increment days
+			$mo1 = $d->format('n');
+			$d->add($aDay);
+			$mo2 = $d->format('n');
+
+			if ($mo1 !== $mo2) {
+				if ($isMonthBefore) {
+					$isMonthBefore = false;
+				} else {
+					$isMonthAfter = true;
+				}
+			}
+		} while (!$isMonthAfter || $d->format('w') !== '0');
+		echo '</table>';
+	}
+
+	/**
 	 * @param $opts
 	 *
 	 * @return object
