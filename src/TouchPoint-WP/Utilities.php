@@ -5,6 +5,7 @@
 
 namespace tp\TouchPointWP;
 
+use DateInterval;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Exception;
@@ -54,7 +55,21 @@ abstract class Utilities
 		return self::$_dateTimeNow;
 	}
 
+	/**
+	 * @return DateTimeImmutable
+	 */
+	public static function dateTimeNowPlus1Y(): DateTimeImmutable
+	{
+		if (self::$_dateTimeNowPlus1Y === null) {
+			$aYear                    = new DateInterval('P1Y');
+			self::$_dateTimeNowPlus1Y = self::dateTimeNow()->add($aYear);
+		}
+
+		return self::$_dateTimeNowPlus1Y;
+	}
+
 	private static ?DateTimeImmutable $_dateTimeNow = null;
+	private static ?DateTimeImmutable $_dateTimeNowPlus1Y = null;
 
 	/**
 	 * Gets the plural form of a weekday name.
@@ -391,10 +406,10 @@ abstract class Utilities
 	 * @param string|null $newUrl
 	 * @param string      $title
 	 *
-	 * @return void
+	 * @return int|string The attachmentId for the image.  Can be reused for other posts.
 	 * @since 0.0.24
 	 */
-	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title): void
+	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title)
 	{
 		// Required for image handling
 		require_once(ABSPATH . 'wp-admin/includes/media.php');
@@ -434,7 +449,13 @@ abstract class Utilities
 		} catch (Exception $e) {
 			echo "Exception occurred: " . $e->getMessage();
 			wp_delete_attachment($attId, true);
+			return 0;
 		}
+		if (is_wp_error($attId)) {
+			echo "Exception occurred: " . $attId->get_error_message();
+			return 0;
+		}
+		return $attId;
 	}
 
 	/**
