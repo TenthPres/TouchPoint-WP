@@ -508,13 +508,17 @@ abstract class Utilities
 	}
 
 	/**
-	 * @param string  $html The HTML to be standardized.
+	 * @param ?string  $html The HTML to be standardized.
 	 * @param ?string $context A context string to pass to hooks.
 	 *
 	 * @return string
 	 */
-	public static function standardizeHtml(string $html, ?string $context = null): string
+	public static function standardizeHtml(?string $html, ?string $context = null): string
 	{
+		if ($html === null) {
+			$html = "";
+		}
+
 		// The tp_standardize_html filter would completely replace the pre-defined process.
 		$o = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_html', $html, $context);
 		if ($o !== $html) {
