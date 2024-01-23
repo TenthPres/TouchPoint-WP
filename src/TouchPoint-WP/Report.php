@@ -352,7 +352,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 				new TouchPointWP_Exception("Multiple Posts Exist", 170006);
 			}
 			if ($counts > 0) { // post exists already.
-				$this->post = $reportPosts[0];
+				$this->post = reset($reportPosts);
 			} elseif ($create) {
 				$postId = wp_insert_post([
 					'post_type'   => self::POST_TYPE,
@@ -602,9 +602,9 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	/**
 	 * Handle which data should be converted to JSON.  Used for posting to the API.
 	 *
-	 * @return mixed data which can be serialized by json_encode
+	 * @return array data which can be serialized by json_encode
 	 */
-	public function jsonSerialize()
+	public function jsonSerialize(): array
 	{
 		return [
 			'name' => $this->name,
