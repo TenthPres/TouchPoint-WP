@@ -605,7 +605,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	{
 		try {
 			$siteTz = wp_timezone();
-			$now    = new DateTimeImmutable(null, $siteTz);
+			$now    = new DateTimeImmutable("now", $siteTz);
 		} catch (Exception $e) {
 			return null;
 		}
@@ -2116,7 +2116,7 @@ class Involvement implements api, updatesViaCron, geo, module
 		$postsToKeep = [];
 
 		try {
-			$now       = new DateTimeImmutable(null, $siteTz);
+			$now       = new DateTimeImmutable("now", $siteTz);
 			$aYear     = new DateInterval('P1Y');
 			$nowPlus1Y = $now->add($aYear);
 			unset($aYear);

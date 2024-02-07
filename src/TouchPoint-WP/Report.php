@@ -599,11 +599,11 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	/**
 	 * Handle which data should be converted to JSON.  Used for posting to the API.
 	 *
-	 * @return mixed data which can be serialized by json_encode
+	 * @return object data which can be serialized by json_encode
 	 */
-	public function jsonSerialize()
+	public function jsonSerialize(): object
 	{
-		return [
+		return (object)[
 			'name' => $this->name,
 			'type' => $this->type,
 			'p1'   => $this->p1

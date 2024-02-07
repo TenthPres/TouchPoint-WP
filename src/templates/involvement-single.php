@@ -56,16 +56,16 @@ TouchPointWP::enqueuePartialsStyle();
 </article>
 
 <?php if ($settings->hierarchical) {
-    $children = get_children([
+    $single_children = get_children([
                                  'post_parent' => $inv->post_id,
                                  'orderby' => 'title',
                                  'order' => 'ASC',
                                  'post_type' => $postType
                              ]);
-    if (count($children) > 0) {
+    if (count($single_children) > 0) {
         echo "<div class='involvement-list child-involvements'>";
     }
-    foreach ($children as $post) {
+    foreach ($single_children as $post) {
         /** @var WP_Post $post */
         $loadedPart = get_template_part('list-item', 'involvement-list-item');
         if ($loadedPart === false) {
@@ -73,7 +73,7 @@ TouchPointWP::enqueuePartialsStyle();
             require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
         }
     }
-    if (count($children) > 0) {
+    if (count($single_children) > 0) {
         echo "</div>";
     }
 } ?>
