@@ -43,7 +43,7 @@ jobs:
       - name: Upload artifact to GitHub Pages
         uses: actions/upload-pages-artifact@v1
         with:
-          path: docs
+          path: docs/phpApi
 
   deploy:
     needs: build
