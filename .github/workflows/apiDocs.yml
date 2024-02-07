@@ -19,35 +19,40 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  api-docs:
-
-    environment:
-      name: Generate and deploy API Docs
-      url: ${{ steps.deployment.outputs.page_url }}
-      
+  build:
     runs-on: ubuntu-latest
-
     steps:
-        - name: Setup PHP
-          uses: shivammathur/setup-php@v2
-          with:
-            php-version: ${{ matrix.php }}
-
-        - name: Checkout repository
-          uses: actions/checkout@v2
-
-        - name: Generate API docs
-          uses: phpDocumentor/phpDocumentor@master
-          with:
-            args: --t docs/phpApi
-
-        - name: Upload artifact
-          uses: actions/upload-pages-artifact@v3
-          with:
-            # Upload appropriate directory
-            path: 'docs/phpApi'
+      - name: Checkout
+        uses: actions/checkout@v3
+        
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v1
+        
+      - name: Cache phpDocumentor build files
+        id: phpdocumentor-cache
+        uses: actions/cache@v3
+        with:
+          path: .phpdoc/cache
+          key: ${{ runner.os }}-phpdocumentor-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-phpdocumentor-
             
-        - name: Deploy to GitHub Pages
-          id: deployment
-          uses: actions/deploy-pages@v4
+      - name: Build with phpDocumentor
+        run: docker run --rm --volume "$(pwd):/data" phpdoc/phpdoc:3 -vv --target docs/phpApi --cache-folder .phpdoc/cache --template default
+        
+      - name: Upload artifact to GitHub Pages
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
 
