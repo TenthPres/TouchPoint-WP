@@ -1,0 +1,53 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy API Docs content to Pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["master", "docs"]
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  api-docs:
+
+    environment:
+      name: Generate and deploy API Docs
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    runs-on: ubuntu-latest
+
+    steps:
+        - name: Setup PHP
+          uses: shivammathur/setup-php@v2
+          with:
+            php-version: ${{ matrix.php }}
+
+        - name: Checkout repository
+          uses: actions/checkout@v2
+
+        - name: Generate API docs
+          uses: phpDocumentor/phpDocumentor@master
+          with:
+            args: --t docs/phpApi
+
+        - name: Upload artifact
+          uses: actions/upload-pages-artifact@v3
+          with:
+            # Upload appropriate directory
+            path: 'docs/phpApi'
+            
+        - name: Deploy to GitHub Pages
+          id: deployment
+          uses: actions/deploy-pages@v4
+
