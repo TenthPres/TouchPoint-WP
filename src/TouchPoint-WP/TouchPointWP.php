@@ -305,13 +305,13 @@ class TouchPointWP
 			}
 
 			// Made with X in Philly by Tenth
-			$madeWidths = [
+			$madeWiths = [
 				"🥪" => _x("Sandwiches (probably cheesesteaks)", "Explanation for the sandwich emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
 				"❤️" => _x("love. obviously.", "Explanation for the heart emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
 				"🥨" => _x("Soft Pretzels", "Explanation for the pretzel emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
 				"🍩" => _x("Donuts (preferably Federal)", "Explanation for the Donut emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
 			];
-			$madeWidthK = array_rand($madeWidths);
+			$madeWithK = array_rand($madeWiths);
 			/** @noinspection HtmlUnknownTarget */
 			$pluginMeta[] = sprintf(
 				'<a href="%s" target="_blank">%s</a>',
@@ -320,8 +320,8 @@ class TouchPointWP
 					__("Made with %s in Philly by Tenth", "TouchPoint-WP"),
 					sprintf(
 						'<span title="%s">%s</span>',
-						$madeWidths[$madeWidthK],
-						$madeWidthK
+						$madeWiths[$madeWithK],
+						$madeWithK
 					)
 			    )
 			);
