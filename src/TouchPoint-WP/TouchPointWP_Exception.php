@@ -29,8 +29,9 @@ class TouchPointWP_Exception extends Exception
 	 * @param string     $message
 	 * @param int        $code
 	 * @param ?Throwable $previous
+	 * @param mixed      $devDetail
 	 */
-	public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null)
+	public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null, $devDetail = null)
 	{
 		parent::__construct($message, $code, $previous);
 		if (is_admin() && TouchPointWP::currentUserIsAdmin()) {
@@ -39,10 +40,10 @@ class TouchPointWP_Exception extends Exception
 				$message .= "<br />" . $this->getFile() . " @ " . $this->getLine() . "<br />";
 				$message .= str_replace("\n", "<br />", $this->getTraceAsString());
 			}
-			TouchPointWP_AdminAPI::showError($message);
+			TouchPointWP_AdminAPI::showError($message, $devDetail);
 		}
 		error_log($message);
-		self::debugLog($this->getCode(), $this->getFile(), $this->getLine(), $this->getMessage());
+		self::debugLog($this->getCode(), $this->getFile(), $this->getLine(), $this->getMessage() . $devDetail);
 	}
 
 	/**
