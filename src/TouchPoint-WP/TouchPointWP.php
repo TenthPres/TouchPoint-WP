@@ -39,6 +39,9 @@ class TouchPointWP
 	 * The Token
 	 */
 	public const TOKEN = "TouchPointWP";
+	public const SLUG = "touchpoint-wp";
+
+	public const DOCS_URL = "https://github.com/TenthPres/TouchPoint-WP/wiki";
 
 	/**
 	 * API Endpoint prefix, and specific endpoints.  All must be lower-case.
@@ -258,6 +261,8 @@ class TouchPointWP
 
 		add_filter('cron_schedules', [self::class, 'cronAdd15Minutes']);
 
+		add_filter('plugin_row_meta', [self::class, 'pluginRowMeta'], 10, 3);
+
 		self::scheduleCleanup();
 	}
 
@@ -275,6 +280,71 @@ class TouchPointWP
 		);
 
 		return $schedules;
+	}
+
+	/**
+	 * Adjust the meta info in the Plugin list with better information.
+	 *
+	 * @param $pluginMeta array The links and stuff that gets joined by pipes.
+	 * @param $pluginFile string Not used here, but points to the root plugin file.
+	 * @param $pluginData array metadata from the plugin header.
+	 *
+	 * @return array
+	 * @noinspection PhpUnusedParameterInspection
+	 */
+	public static function pluginRowMeta(array $pluginMeta, string $pluginFile, array $pluginData): array
+	{
+		if ($pluginData['slug'] === self::SLUG) {
+
+			// Remove default View Details link.
+			foreach ($pluginMeta as $k => $m) {
+				if (str_contains($m, 'plugin-install.php?tab=plugin-information') ||
+				    str_contains($m, 'github.com/jkrrv')) {
+					unset($pluginMeta[$k]);
+				}
+			}
+
+			// Made with X in Philly by Tenth
+			$madeWidths = [
+				"🥪" => _x("Sandwiches (probably cheesesteaks)", "Explanation for the sandwich emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+				"❤️" => _x("love. obviously.", "Explanation for the heart emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+				"🥨" => _x("Soft Pretzels", "Explanation for the pretzel emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+				"🍩" => _x("Donuts (preferably Federal)", "Explanation for the Donut emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+			];
+			$madeWidthK = array_rand($madeWidths);
+			/** @noinspection HtmlUnknownTarget */
+			$pluginMeta[] = sprintf(
+				'<a href="%s" target="_blank">%s</a>',
+				"https://www.tenth.org/tech/wp",
+				sprintf(
+					__("Made with %s in Philly by Tenth", "TouchPoint-WP"),
+					sprintf(
+						'<span title="%s">%s</span>',
+						$madeWidths[$madeWidthK],
+						$madeWidthK
+					)
+			    )
+			);
+
+			// View details link
+			// note for i18n: these deliberately don't have the domain in order to use the WordPress defaults.
+			/** @noinspection HtmlUnknownTarget */
+			$pluginMeta[] = sprintf(
+				'<a href="%s" target="_blank" aria-label="%s">%s</a>',
+				$pluginData['PluginURI'],
+				esc_attr(sprintf(__('More information about %s'), $pluginData['Name'])),
+				__('View details')
+			);
+
+			// Documentation link
+			/** @noinspection HtmlUnknownTarget */
+			$pluginMeta[] = sprintf(
+				'<a href="%s" target="_blank">%s</a>',
+				self::DOCS_URL,
+				__('Documentation', "TouchPoint-WP")
+			);
+		}
+		return $pluginMeta;
 	}
 
 	/**
