@@ -294,7 +294,7 @@ class TouchPointWP
 	 */
 	public static function pluginRowMeta(array $pluginMeta, string $pluginFile, array $pluginData): array
 	{
-		if ($pluginData['slug'] === self::SLUG) {
+		if (isset($pluginData['slug']) && $pluginData['slug'] === self::SLUG) {
 
 			// Remove default View Details link.
 			foreach ($pluginMeta as $k => $m) {
@@ -2786,12 +2786,12 @@ class TouchPointWP
 		// Most likely the issue where a module import failed for no apparent reason.
 		if (property_exists($respDecoded, 'output') &&
 		    strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
-			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001);
+			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001, null, $response);
 		}
 
 		// Some other script error
 		if (property_exists($respDecoded, 'output') && $respDecoded->output !== '') {
-			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179002);
+			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179002, null, $response);
 		}
 
 		// Error caught by error handling within Python script
