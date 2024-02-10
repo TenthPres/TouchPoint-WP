@@ -25,7 +25,7 @@ use stdClass;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
-use WP_Error;
+use tp\TouchPointWP\Utilities\Translation;
 use WP_Post;
 use WP_Query;
 use WP_Term;
@@ -140,7 +140,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 		}
 
 		// clean up involvement type to not have hook prefix, if it does.
-		if (strpos($this->invType, TouchPointWP::HOOK_PREFIX) === 0) {
+		if (str_starts_with($this->invType, TouchPointWP::HOOK_PREFIX)) {
 			$this->invType = substr($this->invType, strlen(TouchPointWP::HOOK_PREFIX));
 		}
 
@@ -171,7 +171,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 					'slug' => $t->slug
 				];
 				$ta = $t->taxonomy;
-				if (strpos($ta, TouchPointWP::HOOK_PREFIX) === 0) {
+				if (str_starts_with($ta, TouchPointWP::HOOK_PREFIX)) {
 					$ta = substr_replace($ta, "", 0, $hookLength);
 				}
 				if ( ! isset($this->attributes->$ta)) {
@@ -252,8 +252,6 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	public static function init(): void
 	{
 		foreach (self::allTypeSettings() as $type) {
-			/** @var $type Involvement_PostTypeSettings */
-
 			register_post_type(
 				$type->postType,
 				[
@@ -330,9 +328,9 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	 *
 	 * @param bool $verbose Whether to print debugging info.
 	 *
-	 * @return false|int False on failure, or the number of groups that were updated or deleted.
+	 * @return int False on failure, or the number of groups that were updated or deleted.
 	 */
-	public static function updateFromTouchPoint(bool $verbose = false)
+	public final static function updateFromTouchPoint(bool $verbose = false): int
 	{
 		$count   = 0;
 		$success = true;
@@ -432,7 +430,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	 * @return bool|string  True if involvement can be joined. False if no registration exists. Or, a string with why
 	 *     it can't be joined otherwise.
 	 */
-	public function acceptingNewMembers()
+	public function acceptingNewMembers(): bool|string
 	{
 		if (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "groupFull", true) === '1') {
 			return __("Currently Full", 'TouchPoint-WP');
@@ -442,7 +440,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			return __("Currently Closed", 'TouchPoint-WP');
 		}
 
-		$now      = current_datetime();
+		$now      = Utilities::dateTimeNow();
 		$regStart = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regStart", true);
 		if ($regStart !== false && $regStart !== '' && $regStart > $now) {
 			return __("Registration Not Open Yet", 'TouchPoint-WP');
@@ -517,7 +515,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	 * @param int           $invId
 	 * @param ?Involvement  $inv
 	 *
-	 * @return string
+	 * @return ?string
 	 */
 	public static function scheduleString(int $invId, $inv = null): ?string
 	{
@@ -529,7 +527,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 		if (! $inv) {
 			try {
 				$inv = self::fromInvId($invId);
-			} catch (TouchPointWP_Exception $e) {
+			} catch (TouchPointWP_Exception) {
 				return null;
 			}
 		}
@@ -542,7 +540,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 				self::SCHEDULE_STRING_CACHE_EXPIRATION
 			);
 		}
-		return $inv->_scheduleString;
+		return $inv->_scheduleString === "" ? null : $inv->_scheduleString;
 	}
 
 	/**
@@ -646,11 +644,11 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	 *
 	 * @return string
 	 */
-	protected function scheduleString_calc(): ?string
+	protected function scheduleString_calc(): string
 	{
 		$commonOccurrences = self::computeCommonOccurrences($this->meetings(), $this->schedules());
 
-		$dayStr     = null;
+		$dayStr     = "";
 		$timeFormat = get_option('time_format');
 		$dateFormat = get_option('date_format');
 
@@ -884,7 +882,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 				try {
 					$inv = self::fromPost($post);
 					$iid = $inv->invId;
-				} catch (TouchPointWP_Exception $e) {
+				} catch (TouchPointWP_Exception) {
 					$iid = null;
 				}
 			}
@@ -1543,13 +1541,17 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	 *
 	 * @param WP_Post $post
 	 *
-	 * @return Involvement
+	 * @return ?Involvement
 	 *
 	 * @throws TouchPointWP_Exception If the involvement can't be created from the post, an exception is thrown.
 	 */
-	public static function fromPost(WP_Post $post): Involvement
+	public static function fromPost(WP_Post $post): ?Involvement
 	{
 		$iid = intval($post->{TouchPointWP::INVOLVEMENT_META_KEY});
+
+		if ($iid === 0) {
+			return null;
+		}
 
 		if ( ! isset(self::$_instances[$iid])) {
 			self::$_instances[$iid] = new Involvement($post);
@@ -1584,6 +1586,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			case "nearby":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
 				self::ajaxNearby();
+				/** @noinspection PhpUnreachableStatementInspection */
 				exit;
 
 			case "force-sync":
@@ -1872,7 +1875,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	{
 		try {
 			self::updateFromTouchPoint();
-		} catch (Exception $ex) {
+		} catch (Exception) {
 		}
 	}
 
@@ -1955,7 +1958,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			$b = self::fromPost($b);
 
 			return self::sort($a, $b);
-		} catch (TouchPointWP_Exception $ex) {
+		} catch (TouchPointWP_Exception) {
 			return $a <=> $b;
 		}
 	}
@@ -2114,7 +2117,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			$histVal   = new DateInterval("P{$histDays}D");
 			$nowMinusH = $now->sub($histVal);
 			unset($aYear);
-		} catch (Exception $e) {
+		} catch (Exception) {
 			return false;
 		}
 
@@ -2610,7 +2613,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 				$i = Involvement::fromPost($post);
 
 				$author = $i->leaders()->__toString();
-			} catch (TouchPointWP_Exception $e) {
+			} catch (TouchPointWP_Exception) {
 			}
 		}
 

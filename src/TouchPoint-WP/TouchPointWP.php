@@ -32,7 +32,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "1.0.0";
+	public const VERSION = "0.0.90";
 
 	/**
 	 * The Token
@@ -254,10 +254,10 @@ class TouchPointWP
 	public static function cronAdd15Minutes($schedules)
 	{
 		// Adds once weekly to the existing schedules.
-		$schedules['tp_every_15_minutes'] = array(
+		$schedules['tp_every_15_minutes'] = [
 			'interval' => 15 * 60,
 			'display'  => __('Every 15 minutes', 'TouchPoint-WP')
-		);
+		];
 
 		return $schedules;
 	}
@@ -272,7 +272,7 @@ class TouchPointWP
 	 * @since 0.0.23
 	 *
 	 */
-	public static function capitalPyScript($text): string
+	public static function capitalPyScript(mixed $text): string
 	{
 		if ( ! self::instance()->settings->hasValidApiSettings()) {
 			return $text;
@@ -384,7 +384,7 @@ class TouchPointWP
 			$reqUri['path'] = $reqUri['path'] ?? "";
 
 			// Remove trailing slash if it exists (and, it probably does)
-			if (substr($reqUri['path'], -1) === '/') {
+			if (str_ends_with($reqUri['path'], '/')) {
 				$reqUri['path'] = substr($reqUri['path'], 0, -1);
 			}
 			
@@ -587,7 +587,7 @@ class TouchPointWP
 	/**
 	 * Load plugin textdomain
 	 */
-	public function loadLocalizations()
+	public function loadLocalizations(): void
 	{
 		$locale = apply_filters('plugin_locale', get_locale(), 'TouchPoint-WP');
 
@@ -920,11 +920,11 @@ class TouchPointWP
 	 */
 	public function filterByTag(?string $tag, ?string $handle): string
 	{
-		if (strpos($tag, 'async') !== false &&
+		if (str_contains($tag, 'async') &&
 			strpos($handle, '-async') > 0) {
 			$tag = str_replace(' src=', ' async="async" src=', $tag);
 		}
-		if (strpos($tag, 'defer') !== false &&
+		if (str_contains($tag, 'defer') &&
 			strpos($handle, '-defer') > 0
 		) {
 			$tag = str_replace('<script ', '<script defer ', $tag);
@@ -960,7 +960,7 @@ class TouchPointWP
 	 * @return Geo|false An object with 'lat', 'lng', and 'human' attributes, if a location could be identified.
 	 *	 Or, false if not available.
 	 */
-	public function geolocate(bool $useApi = true, bool $includeRaw = false)
+	public function geolocate(bool $useApi = true, bool $includeRaw = false): false|Geo
 	{
 		$ip = Utilities::getClientIp();
 
@@ -977,7 +977,7 @@ class TouchPointWP
 
 		try {
 			$return = $this->getIpData($ip, $useApi);
-		} catch (TouchPointWP_WPError|TouchPointWP_Exception $ex) {
+		} catch (TouchPointWP_WPError|TouchPointWP_Exception) {
 			return false;
 		}
 
@@ -1058,7 +1058,7 @@ class TouchPointWP
 
 			try {
 				$apiData = $this->extGet("https://maps.googleapis.com/maps/api/geocode/json", $reqData);
-			} catch (TouchPointWP_WPError $e) {
+			} catch (TouchPointWP_WPError) {
 				return false;
 			}
 
@@ -1326,7 +1326,7 @@ class TouchPointWP
 	 *
 	 * @return bool
 	 *
-	 * @deprecated since 1.0.0 -- Will not be necessary once mobile 3.0 exists.
+	 * @deprecated since 0.0.90 -- Will not be necessary once mobile 3.0 exists.
 	 */
 	public static function useTribeCalendar(): bool
 	{
@@ -1480,7 +1480,7 @@ class TouchPointWP
 	{
 		try {
 			$data = $this->apiGet('Divisions');
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 			return false;
 		}
 
@@ -1502,7 +1502,7 @@ class TouchPointWP
 	{
 		try {
 			$return = $this->apiGet('MemTypes', ['divs' => $divisions]);
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 			return false;
 		}
 
@@ -1594,7 +1594,7 @@ class TouchPointWP
 	{
 		try {
 			$data = $this->apiGet('Campuses');
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 			return false;
 		}
 
@@ -1620,7 +1620,7 @@ class TouchPointWP
 	{
 		try {
 			$data = $this->apiGet('ResCodes');
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 			return false;
 		}
 
@@ -1681,7 +1681,7 @@ class TouchPointWP
 	{
 		try {
 			$data = $this->apiGet('Genders');
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 			return false;
 		}
 
@@ -1935,7 +1935,7 @@ class TouchPointWP
 
 		try {
 			$data = $this->apiGet('SavedSearches', ['PeopleId' => $peopleId]);
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 			return [];
 		}
 
@@ -1992,7 +1992,7 @@ class TouchPointWP
 	{
 		try {
 			$data = $this->apiGet('Keywords');
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 			return false;
 		}
 
@@ -2021,7 +2021,7 @@ class TouchPointWP
 	{
 		try {
 			$data = $this->apiGet('PersonEvFields');
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 			return false;
 		}
 
@@ -2050,7 +2050,7 @@ class TouchPointWP
 	{
 		try {
 			$data = $this->apiGet('FamilyEvFields');
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 			return false;
 		}
 
@@ -2080,7 +2080,7 @@ class TouchPointWP
 	 *
 	 * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
 	 */
-	public function apiGet(string $command, ?array $parameters = null, int $timeout = 5)
+	public function apiGet(string $command, ?array $parameters = null, int $timeout = 5): array|stdClass
 	{
 		if ( ! is_array($parameters)) {
 			$parameters = (array)$parameters;
@@ -2118,13 +2118,13 @@ class TouchPointWP
 
 	/**
 	 * @param string $command The thing to post
-	 * @param mixed  $data Data to post
+	 * @param ?mixed $data Data to post
 	 * @param int    $timeout Amount of time in sec to wait before timing out.
 	 *
 	 * @return stdClass|array An object that corresponds to the Data python object in TouchPoint.
 	 * @throws TouchPointWP_Exception  If anything went wrong.
 	 */
-	public function apiPost(string $command, $data = null, int $timeout = 5)
+	public function apiPost(string $command, mixed $data = null, int $timeout = 5): array|stdClass
 	{
 		if ( ! $this->settings->hasValidApiSettings()) {
 			throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", "TouchPoint-WP"), 170001);
@@ -2163,7 +2163,7 @@ class TouchPointWP
 	 * @throws TouchPointWP_Exception
 	 * @throws TouchPointWP_WPError
 	 */
-	private static function parseApiResponse($response)
+	private static function parseApiResponse($response): array|stdClass
 	{
 		if ($response instanceof WP_Error) {
 			throw new TouchPointWP_WPError($response);
@@ -2177,7 +2177,7 @@ class TouchPointWP
 
 		// Most likely the issue where a module import failed for no apparent reason.
 		if (property_exists($respDecoded, 'output') &&
-			strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
+			str_starts_with($respDecoded->output, "Traceback (most recent call last):")) {
 			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001);
 		}
 
@@ -2337,7 +2337,7 @@ class TouchPointWP
 	 * This function enqueues the stylesheet for the default templates, to avoid registering the style on sites where
 	 * custom templates exist.
 	 */
-	public static function enqueuePartialsStyle()
+	public static function enqueuePartialsStyle(): void
 	{
 		wp_enqueue_style(
 			TouchPointWP::SHORTCODE_PREFIX . 'partials-template-style',

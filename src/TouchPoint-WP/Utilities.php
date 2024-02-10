@@ -46,13 +46,21 @@ abstract class Utilities
 	public static function dateTimeNow(): DateTimeImmutable
 	{
 		if (self::$_dateTimeNow === null) {
-			try {
-				self::$_dateTimeNow = new DateTimeImmutable('now', wp_timezone());
-			} catch (Exception $e) {
-			}
+			self::$_dateTimeNow = current_datetime();
 		}
 
 		return self::$_dateTimeNow;
+	}
+
+	/**
+	 * @return DateTimeImmutable
+	 */
+	public static function dateTimeTodayAtMidnight(): DateTimeImmutable
+	{
+		if (self::$_dateTimeTodayAtMidnight === null) {
+			self::$_dateTimeTodayAtMidnight = self::dateTimeNow()->setTime(0, 0);
+		}
+		return self::$_dateTimeTodayAtMidnight;
 	}
 
 	/**
@@ -68,8 +76,23 @@ abstract class Utilities
 		return self::$_dateTimeNowPlus1Y;
 	}
 
+	/**
+	 * @return DateTimeImmutable
+	 */
+	public static function dateTimeNowPlus1D(): DateTimeImmutable
+	{
+		if (self::$_dateTimeNowPlus1D === null) {
+			$aDay                     = new DateInterval('P1D');
+			self::$_dateTimeNowPlus1D = self::dateTimeNow()->add($aDay);
+		}
+
+		return self::$_dateTimeNowPlus1D;
+	}
+
 	private static ?DateTimeImmutable $_dateTimeNow = null;
+	private static ?DateTimeImmutable $_dateTimeTodayAtMidnight = null;
 	private static ?DateTimeImmutable $_dateTimeNowPlus1Y = null;
+	private static ?DateTimeImmutable $_dateTimeNowPlus1D = null;
 
 	/**
 	 * Gets the plural form of a weekday name.
@@ -122,17 +145,25 @@ abstract class Utilities
 	 */
 	public static function getDayOfWeekShortForNumber(int $dayNum): string
 	{
-		$names = [
-			_x('Sun', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Mon', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Tue', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Wed', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Thu', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Fri', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Sat', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-		];
+		return self::getDaysOfWeekShort()[$dayNum % 7];
+	}
 
-		return $names[$dayNum % 7];
+	/**
+	 * Get the short form of the day of week, translated.  Assumed to be usable as both singular and plural.
+	 *
+	 * @return string[]
+	 */
+	public static function getDaysOfWeekShort(): array
+	{
+		return [
+			_x('Sun', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Mon', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Tue', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Wed', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Thu', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Fri', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Sat', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+		];
 	}
 
 	/**
@@ -237,11 +268,12 @@ abstract class Utilities
 	/**
 	 * Convert a list (string or array) to an int array.  Strips out non-numerics and explodes.
 	 *
-	 * @param string|array $r
+	 * @param array|string $r
+	 * @param bool         $explode
 	 *
 	 * @return int[]|string
 	 */
-	public static function idArrayToIntArray($r, $explode = true)
+	public static function idArrayToIntArray(array|string $r, bool $explode = true): array|string
 	{
 		if (is_array($r)) {
 			$r = implode(",", $r);
@@ -423,6 +455,7 @@ abstract class Utilities
 		$oldFName = substr($oldFName, strrpos($oldFName, '/') + 1);
 
 		$newUrl = trim((string)$newUrl); // nulls are now ""
+		$title = sprintf('%1$s Image', $title);
 
 		$newFName = "";
 		if ($newUrl !== "") {

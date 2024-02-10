@@ -94,6 +94,25 @@ class Involvement_PostTypeSettings
 		}
 	}
 
+	/**
+	 * Get a list of all division IDs that are being imported by all types.
+	 *
+	 * @return int[]
+	 */
+	public static function getAllDivs(): array
+	{
+		$r = [];
+		foreach (self::instance() as $s) {
+			$r = [...$r, ...$s->importDivs];
+		}
+		return array_unique($r);
+	}
+
+	/**
+	 * Get the Post Type for use with WordPress functions
+	 *
+	 * @return string
+	 */
 	public function postTypeWithPrefix(): string
 	{
 		self::instance();
@@ -101,6 +120,11 @@ class Involvement_PostTypeSettings
 		return TouchPointWP::HOOK_PREFIX . $this->postType;
 	}
 
+	/**
+	 * Get the Post Type without the hook prefix.
+	 *
+	 * @return string
+	 */
 	public function postTypeWithoutPrefix(): string
 	{
 		self::instance();
@@ -216,7 +240,7 @@ class Involvement_PostTypeSettings
 				$name = preg_replace('/\W+/', '-', strtolower($type->namePlural));
 				try {
 					$type->slug = $name . ($first ? "" : "-" . bin2hex(random_bytes(1)));
-				} catch (Exception $e) {
+				} catch (Exception) {
 					$type->slug = $name . ($first ? "" : "-" . bin2hex($count++));
 				}
 				$first = false;
@@ -251,7 +275,7 @@ class Involvement_PostTypeSettings
 				$slug = preg_replace('/\W+/', '', strtolower($type->slug));
 				try {
 					$type->postType = self::POST_TYPE_PREFIX . $slug . ($first ? "" : "_" . bin2hex(random_bytes(1)));
-				} catch (Exception $e) {
+				} catch (Exception) {
 					$type->postType = self::POST_TYPE_PREFIX . $slug . ($first ? "" : "_" . bin2hex($count++));
 				}
 				$first          = false;
@@ -305,7 +329,7 @@ class Involvement_PostTypeSettings
 	 */
 	public function leaderTypeInts(): array
 	{
-		return self::memberTypesToInts($this->leaderTypes);
+		return Utilities::idArrayToIntArray($this->leaderTypes);
 	}
 
 	/**
@@ -319,6 +343,6 @@ class Involvement_PostTypeSettings
 			return null;
 		}
 
-		return self::memberTypesToInts($this->hostTypes);
+		return Utilities::idArrayToIntArray($this->hostTypes);
 	}
 }
