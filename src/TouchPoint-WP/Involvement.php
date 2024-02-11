@@ -395,7 +395,18 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	 */
 	public static function templateFilter(string $template): string
 	{
-		if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
+		/**
+		 * Determines whether the plugin's default templates should be used.  Theme developers can return false in this
+		 * filter to prevent the default templates from applying, especially if they conflict with the theme.
+		 * 
+		 * Default is true.
+		 *
+		 * @since 0.0.6
+		 *
+		 * @param bool $value The value to return.  True will allow the default templates to be applied.
+		 * @param string $className The name of the class calling for the template.
+		 */
+		if (!!apply_filters('tp_use_default_templates', true, self::class)) {
 			$postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
 			$templateFilesToOverwrite = self::TEMPLATES_TO_OVERWRITE;
 
@@ -2752,43 +2763,43 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	 */
 	public function notableAttributes(array $exclude = []): array
 	{
-		$r = [];
+		$attrs = [];
 
 		$schStr = self::scheduleString($this->invId, $this);
 		if ($schStr) {
-			$r[] = $schStr;
+			$attrs[] = $schStr;
 		}
 		unset($schStr);
 
 		if ($this->locationName) {
-			$r[] = $this->locationName;
+			$attrs[] = $this->locationName;
 		}
 
 		foreach ($this->getDivisionsStrings() as $a) {
-			$r[] = $a;
+			$attrs[] = $a;
 		}
 
 		if ($this->leaders()->count() > 0) {
-			$r[] = $this->leaders()->__toString();
+			$attrs[] = $this->leaders()->__toString();
 		}
 
 		if ($this->genderId != 0) {
 			switch ($this->genderId) {
 				case 1:
-					$r[] = __('Men Only', 'TouchPoint-WP');
+					$attrs[] = __('Men Only', 'TouchPoint-WP');
 					break;
 				case 2:
-					$r[] = __('Women Only', 'TouchPoint-WP');
+					$attrs[] = __('Women Only', 'TouchPoint-WP');
 					break;
 			}
 		}
 
 		$canJoin = $this->acceptingNewMembers();
 		if (is_string($canJoin)) {
-			$r[] = $canJoin;
+			$attrs[] = $canJoin;
 		}
 
-		$r = array_filter($r, fn($i) => ! in_array($i, $exclude));
+		$attrs = array_filter($attrs, fn($i) => ! in_array($i, $exclude));
 
 		if ($this->hasGeo() &&
 			(
@@ -2801,7 +2812,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 		) {
 			$dist = $this->getDistance();
 			if ($dist !== false) {
-				$r[] = wp_sprintf(
+				$attrs[] = wp_sprintf(
 					_x(
 						"%2.1fmi",
 						"miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'",
@@ -2812,7 +2823,19 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			}
 		}
 
-		return apply_filters(TouchPointWP::HOOK_PREFIX . "involvement_attributes", $r, $this);
+		/**
+		 * Allows for manipulation of the notable attributes strings for an Involvement.  An array of strings. 
+		 * Typically, these are the standardized strings that appear on the Involvement to give information about it,
+		 * such as the schedule, leaders, and location.
+		 *
+		 * @see Involvement::notableAttributes()
+		 *
+		 * @since 0.0.11
+		 *
+		 * @param string[] $attrs The list of notable attributes.
+		 * @param Involvement $this The Involvement object.
+		 */
+		return apply_filters("tp_involvement_attributes", $attrs, $this);
 	}
 
 	/**
