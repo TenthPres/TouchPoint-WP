@@ -418,7 +418,7 @@ abstract class Utilities
 	 */
 	public static function createGuid(): string
 	{
-		mt_srand(( double )microtime() * 10000);
+		mt_srand(intval(microtime(true) * 10000) % PHP_INT_MAX);
 		$char   = strtoupper(md5(uniqid(rand(), true)));
 		$hyphen = chr(45); // "-"
 
