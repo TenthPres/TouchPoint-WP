@@ -18,6 +18,7 @@ node_modules
 
 /i18n/*.json
 /i18n/*.mo
+/i18n/*.l10n.php
 
 package-lock.json
 
