@@ -108,6 +108,7 @@ class TouchPointWP
 	 * Typical amount of time in hours for metadata to last (e.g. genders and resCodes).
 	 */
 	public const CACHE_TTL = 8;
+	public const CACHE_SHORT_TTL = 5/60;
 
 	/**
 	 * Caching
@@ -202,6 +203,8 @@ class TouchPointWP
 	protected static string $context = "";
 
 	public bool $debug;
+
+	protected static string $apiVersion = "";
 
 	/**
 	 * Indicates that the current request is being processed through the API.
@@ -2003,10 +2006,11 @@ class TouchPointWP
 	 * Get the member types currently in use for the named divisions.
 	 *
 	 * @param string[] $divisions
+	 * @param bool $shortCache Set to true to make it much more likely that the division cache will refresh.
 	 *
 	 * @return array
 	 */
-	public function getMemberTypesForDivisions(array $divisions = []): array
+	public function getMemberTypesForDivisions(array $divisions = [], bool $shortCache = false): array
 	{
 		$divisions = implode(",", $divisions);
 		$divisions = str_replace('div', '', $divisions);
@@ -2020,9 +2024,10 @@ class TouchPointWP
 			$mtObj       = (object)[];
 		} else {
 			$mtObj = json_decode($mtObj);
+			$cacheTime = $shortCache ? self::CACHE_SHORT_TTL : self::CACHE_TTL;
 			if ( ! isset($mtObj->$divKey)) {
 				$needsUpdate = true;
-			} else if (strtotime($mtObj->$divKey->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($mtObj->$divKey->memTypes)) {
+			} else if (strtotime($mtObj->$divKey->_updated) < time() - 3600 * $cacheTime || ! is_array($mtObj->$divKey->memTypes)) {
 				$needsUpdate = true;
 			}
 		}
@@ -2045,18 +2050,20 @@ class TouchPointWP
 	 *
 	 * @return string[]
 	 */
-	public function getDivisionsAsKVArray(): array
+	public function getDivisionsAsKVArray(bool $shortCache = false): array
 	{
-		return self::flattenArrayToKV($this->getDivisions(), 'id', 'name', 'div');
+		return self::flattenArrayToKV($this->getDivisions($shortCache), 'id', 'name', 'div');
 	}
 
 	/**
 	 * Returns an array of objects that correspond to divisions.  Each Division has a name and an id.  The name is both
 	 * the Program and Division.
 	 *
+	 * @param bool $shortCache Set to true to make it much more likely that the division cache will refresh.
+	 *
 	 * @returns object[]
 	 */
-	public function getDivisions(): array
+	public function getDivisions(bool $shortCache = false): array
 	{
 		$divsObj = $this->settings->get('meta_divisions');
 
@@ -2065,7 +2072,8 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$divsObj = json_decode($divsObj);
-			if (strtotime($divsObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($divsObj->divs)) {
+			$cacheTime = $shortCache ? self::CACHE_SHORT_TTL : self::CACHE_TTL;
+			if (strtotime($divsObj->_updated) < time() - 3600 * $cacheTime || ! is_array($divsObj->divs)) {
 				$needsUpdate = true;
 			}
 		}
@@ -2310,9 +2318,11 @@ class TouchPointWP
 	/**
 	 * Returns an array of objects that correspond to keywords.  Each Keyword has a name and an id.
 	 *
+	 * @param bool $shortCache Set to true to make it much more likely that the division cache will refresh.
+	 *
 	 * @returns object[]
 	 */
-	public function getKeywords(): array
+	public function getKeywords(bool $shortCache = false): array
 	{
 		$kObj = $this->settings->get('meta_keywords');
 
@@ -2321,7 +2331,8 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$kObj = json_decode($kObj);
-			if (strtotime($kObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($kObj->keywords)) {
+			$cacheTime = $shortCache ? self::CACHE_SHORT_TTL : self::CACHE_TTL;
+			if (strtotime($kObj->_updated) < time() - 3600 * $cacheTime || ! is_array($kObj->keywords)) {
 				$needsUpdate = true;
 			}
 		}
@@ -2779,8 +2790,27 @@ class TouchPointWP
 
 		$respDecoded = json_decode($response['body']);
 
+		if (property_exists($respDecoded->data, "VERSION")) {
+			self::$apiVersion = $respDecoded->data->VERSION;
+		}
+
 		if ($respDecoded === null) {
 			throw new TouchPointWP_Exception("Connection Error", 179000);
+		}
+
+		if (self::$apiVersion !== self::VERSION && self::$apiVersion !== "") {
+			if (in_array("updateScripts", $respDecoded->data->a ?? [])) {
+				if (class_exists("TouchPointWP_AdminAPI")) {
+					TouchPointWP_AdminAPI::showError(
+						__(
+							"The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed.",
+							"TouchPoint-WP"
+						)
+					);
+				}
+			} else {
+				self::instance()->settings->updateDeployedScripts();
+			}
 		}
 
 		// Most likely the issue where a module import failed for no apparent reason.
@@ -2797,21 +2827,6 @@ class TouchPointWP
 		// Error caught by error handling within Python script
 		if (property_exists($respDecoded, 'message') && $respDecoded->message !== '') {
 			throw new TouchPointWP_Exception($respDecoded->message, 179003);
-		}
-
-		if ( ! property_exists($respDecoded->data, "VERSION") || $respDecoded->data->VERSION !== self::VERSION) {
-			if (in_array("updateScripts", $respDecoded->data->a ?? [])) {
-				if (class_exists("TouchPointWP_AdminAPI")) {
-					TouchPointWP_AdminAPI::showError(
-						__(
-							"The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed.",
-							"TouchPoint-WP"
-						)
-					);
-				}
-			} else {
-				self::instance()->settings->updateDeployedScripts();
-			}
 		}
 
 		return $respDecoded->data;

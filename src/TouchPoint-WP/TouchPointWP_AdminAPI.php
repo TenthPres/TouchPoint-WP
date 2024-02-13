@@ -45,7 +45,7 @@ class TouchPointWP_AdminAPI implements api
 			case "memtypes":
 				header('Content-Type: application/json');
 				$divs = explode(",", $_GET['divs']);
-				$mt   = TouchPointWP::instance()->getMemberTypesForDivisions($divs);
+				$mt   = TouchPointWP::instance()->getMemberTypesForDivisions($divs, true);
 				echo json_encode($mt);
 				exit;
 

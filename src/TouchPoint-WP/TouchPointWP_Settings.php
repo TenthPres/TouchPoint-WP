@@ -768,7 +768,7 @@ class TouchPointWP_Settings
 						'TouchPoint-WP'
 					),
 					'type'        => 'checkbox_multi',
-					'options'     => $includeThis ? $this->parent->getDivisionsAsKVArray() : [],
+					'options'     => $includeThis ? $this->parent->getDivisionsAsKVArray(true) : [],
 					'default'     => [],
 					'callback'    => function($new) { sort($new); return $new; }
 				],
