@@ -23,6 +23,7 @@ Requires at least:  5.5
 Tested up to:       6.2
 Requires PHP:       7.4
 Release Asset:      true
+Domain Path:        /i18n
 */
 
 namespace tp\TouchPointWP;

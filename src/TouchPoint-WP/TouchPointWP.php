@@ -39,6 +39,9 @@ class TouchPointWP
 	 * The Token
 	 */
 	public const TOKEN = "TouchPointWP";
+	public const SLUG = "touchpoint-wp";
+
+	public const DOCS_URL = "https://github.com/TenthPres/TouchPoint-WP/wiki";
 
 	/**
 	 * API Endpoint prefix, and specific endpoints.  All must be lower-case.
@@ -105,6 +108,7 @@ class TouchPointWP
 	 * Typical amount of time in hours for metadata to last (e.g. genders and resCodes).
 	 */
 	public const CACHE_TTL = 8;
+	public const CACHE_SHORT_TTL = 5/60;
 
 	/**
 	 * Caching
@@ -200,6 +204,8 @@ class TouchPointWP
 
 	public bool $debug;
 
+	protected static string $apiVersion = "";
+
 	/**
 	 * Indicates that the current request is being processed through the API.
 	 *
@@ -258,6 +264,8 @@ class TouchPointWP
 
 		add_filter('cron_schedules', [self::class, 'cronAdd15Minutes']);
 
+		add_filter('plugin_row_meta', [self::class, 'pluginRowMeta'], 10, 3);
+
 		self::scheduleCleanup();
 	}
 
@@ -275,6 +283,71 @@ class TouchPointWP
 		);
 
 		return $schedules;
+	}
+
+	/**
+	 * Adjust the meta info in the Plugin list with better information.
+	 *
+	 * @param $pluginMeta array The links and stuff that gets joined by pipes.
+	 * @param $pluginFile string Not used here, but points to the root plugin file.
+	 * @param $pluginData array metadata from the plugin header.
+	 *
+	 * @return array
+	 * @noinspection PhpUnusedParameterInspection
+	 */
+	public static function pluginRowMeta(array $pluginMeta, string $pluginFile, array $pluginData): array
+	{
+		if (isset($pluginData['slug']) && $pluginData['slug'] === self::SLUG) {
+
+			// Remove default View Details link.
+			foreach ($pluginMeta as $k => $m) {
+				if (str_contains($m, 'plugin-install.php?tab=plugin-information') ||
+				    str_contains($m, 'github.com/jkrrv')) {
+					unset($pluginMeta[$k]);
+				}
+			}
+
+			// Made with X in Philly by Tenth
+			$madeWiths = [
+				"🥪" => _x("Sandwiches (probably cheesesteaks)", "Explanation for the sandwich emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+				"❤️" => _x("love. obviously.", "Explanation for the heart emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+				"🥨" => _x("Soft Pretzels", "Explanation for the pretzel emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+				"🍩" => _x("Donuts (preferably Federal)", "Explanation for the Donut emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+			];
+			$madeWithK = array_rand($madeWiths);
+			/** @noinspection HtmlUnknownTarget */
+			$pluginMeta[] = sprintf(
+				'<a href="%s" target="_blank">%s</a>',
+				"https://www.tenth.org/tech/wp",
+				sprintf(
+					__("Made with %s in Philly by Tenth", "TouchPoint-WP"),
+					sprintf(
+						'<span title="%s">%s</span>',
+						$madeWiths[$madeWithK],
+						$madeWithK
+					)
+			    )
+			);
+
+			// View details link
+			// note for i18n: these deliberately don't have the domain in order to use the WordPress defaults.
+			/** @noinspection HtmlUnknownTarget */
+			$pluginMeta[] = sprintf(
+				'<a href="%s" target="_blank" aria-label="%s">%s</a>',
+				$pluginData['PluginURI'],
+				esc_attr(sprintf(__('More information about %s'), $pluginData['Name'])),
+				__('View details')
+			);
+
+			// Documentation link
+			/** @noinspection HtmlUnknownTarget */
+			$pluginMeta[] = sprintf(
+				'<a href="%s" target="_blank">%s</a>',
+				self::DOCS_URL,
+				__('Documentation', "TouchPoint-WP")
+			);
+		}
+		return $pluginMeta;
 	}
 
 	/**
@@ -1933,10 +2006,11 @@ class TouchPointWP
 	 * Get the member types currently in use for the named divisions.
 	 *
 	 * @param string[] $divisions
+	 * @param bool $shortCache Set to true to make it much more likely that the division cache will refresh.
 	 *
 	 * @return array
 	 */
-	public function getMemberTypesForDivisions(array $divisions = []): array
+	public function getMemberTypesForDivisions(array $divisions = [], bool $shortCache = false): array
 	{
 		$divisions = implode(",", $divisions);
 		$divisions = str_replace('div', '', $divisions);
@@ -1950,9 +2024,10 @@ class TouchPointWP
 			$mtObj       = (object)[];
 		} else {
 			$mtObj = json_decode($mtObj);
+			$cacheTime = $shortCache ? self::CACHE_SHORT_TTL : self::CACHE_TTL;
 			if ( ! isset($mtObj->$divKey)) {
 				$needsUpdate = true;
-			} else if (strtotime($mtObj->$divKey->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($mtObj->$divKey->memTypes)) {
+			} else if (strtotime($mtObj->$divKey->_updated) < time() - 3600 * $cacheTime || ! is_array($mtObj->$divKey->memTypes)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1975,18 +2050,20 @@ class TouchPointWP
 	 *
 	 * @return string[]
 	 */
-	public function getDivisionsAsKVArray(): array
+	public function getDivisionsAsKVArray(bool $shortCache = false): array
 	{
-		return self::flattenArrayToKV($this->getDivisions(), 'id', 'name', 'div');
+		return self::flattenArrayToKV($this->getDivisions($shortCache), 'id', 'name', 'div');
 	}
 
 	/**
 	 * Returns an array of objects that correspond to divisions.  Each Division has a name and an id.  The name is both
 	 * the Program and Division.
 	 *
+	 * @param bool $shortCache Set to true to make it much more likely that the division cache will refresh.
+	 *
 	 * @returns object[]
 	 */
-	public function getDivisions(): array
+	public function getDivisions(bool $shortCache = false): array
 	{
 		$divsObj = $this->settings->get('meta_divisions');
 
@@ -1995,7 +2072,8 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$divsObj = json_decode($divsObj);
-			if (strtotime($divsObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($divsObj->divs)) {
+			$cacheTime = $shortCache ? self::CACHE_SHORT_TTL : self::CACHE_TTL;
+			if (strtotime($divsObj->_updated) < time() - 3600 * $cacheTime || ! is_array($divsObj->divs)) {
 				$needsUpdate = true;
 			}
 		}
@@ -2240,9 +2318,11 @@ class TouchPointWP
 	/**
 	 * Returns an array of objects that correspond to keywords.  Each Keyword has a name and an id.
 	 *
+	 * @param bool $shortCache Set to true to make it much more likely that the division cache will refresh.
+	 *
 	 * @returns object[]
 	 */
-	public function getKeywords(): array
+	public function getKeywords(bool $shortCache = false): array
 	{
 		$kObj = $this->settings->get('meta_keywords');
 
@@ -2251,7 +2331,8 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$kObj = json_decode($kObj);
-			if (strtotime($kObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($kObj->keywords)) {
+			$cacheTime = $shortCache ? self::CACHE_SHORT_TTL : self::CACHE_TTL;
+			if (strtotime($kObj->_updated) < time() - 3600 * $cacheTime || ! is_array($kObj->keywords)) {
 				$needsUpdate = true;
 			}
 		}
@@ -2709,27 +2790,15 @@ class TouchPointWP
 
 		$respDecoded = json_decode($response['body']);
 
+		if (property_exists($respDecoded->data, "VERSION")) {
+			self::$apiVersion = $respDecoded->data->VERSION;
+		}
+
 		if ($respDecoded === null) {
 			throw new TouchPointWP_Exception("Connection Error", 179000);
 		}
 
-		// Most likely the issue where a module import failed for no apparent reason.
-		if (property_exists($respDecoded, 'output') &&
-		    strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
-			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001);
-		}
-
-		// Some other script error
-		if (property_exists($respDecoded, 'output') && $respDecoded->output !== '') {
-			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179002);
-		}
-
-		// Error caught by error handling within Python script
-		if (property_exists($respDecoded, 'message') && $respDecoded->message !== '') {
-			throw new TouchPointWP_Exception($respDecoded->message, 179003);
-		}
-
-		if ( ! property_exists($respDecoded->data, "VERSION") || $respDecoded->data->VERSION !== self::VERSION) {
+		if (self::$apiVersion !== self::VERSION && self::$apiVersion !== "") {
 			if (in_array("updateScripts", $respDecoded->data->a ?? [])) {
 				if (class_exists("TouchPointWP_AdminAPI")) {
 					TouchPointWP_AdminAPI::showError(
@@ -2742,6 +2811,22 @@ class TouchPointWP
 			} else {
 				self::instance()->settings->updateDeployedScripts();
 			}
+		}
+
+		// Most likely the issue where a module import failed for no apparent reason.
+		if (property_exists($respDecoded, 'output') &&
+		    strpos($respDecoded->output, "Traceback (most recent call last):") === 0) {
+			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001, null, $response);
+		}
+
+		// Some other script error
+		if (property_exists($respDecoded, 'output') && $respDecoded->output !== '') {
+			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179002, null, $response);
+		}
+
+		// Error caught by error handling within Python script
+		if (property_exists($respDecoded, 'message') && $respDecoded->message !== '') {
+			throw new TouchPointWP_Exception($respDecoded->message, 179003);
 		}
 
 		return $respDecoded->data;

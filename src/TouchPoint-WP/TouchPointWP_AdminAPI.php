@@ -45,7 +45,7 @@ class TouchPointWP_AdminAPI implements api
 			case "memtypes":
 				header('Content-Type: application/json');
 				$divs = explode(",", $_GET['divs']);
-				$mt   = TouchPointWP::instance()->getMemberTypesForDivisions($divs);
+				$mt   = TouchPointWP::instance()->getMemberTypesForDivisions($divs, true);
 				echo json_encode($mt);
 				exit;
 
@@ -484,13 +484,21 @@ class TouchPointWP_AdminAPI implements api
 
 	/**
 	 * Display an error when there's something wrong with the TouchPoint connection.
+	 *
+	 * @param string $message
+	 * @param ?mixed $devDetail
 	 */
-	public static function showError($message)
+	public static function showError(string $message, $devDetail = null)
 	{
 		add_action('admin_notices',
-			function () use ($message) {
+			function () use ($message, $devDetail) {
 				$class = 'notice notice-error';
 				printf('<div class="%1$s"><p><b>TouchPoint-WP:</b> %2$s</p></div>', esc_attr($class), $message);
+
+				if ($devDetail !== null) {
+					/** @noinspection JSCheckFunctionSignatures */
+					printf('<script>console.error(JSON.parse( %s ))</script>', json_encode(json_encode($devDetail)));
+				}
 			}, 10, 2
 		);
 	}

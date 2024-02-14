@@ -9,9 +9,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-02-07T14:00:10+00:00\n"
+"POT-Creation-Date: 2024-02-09T02:18:05+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"X-Generator: WP-CLI 2.8.1\n"
+"X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: TouchPoint-WP\n"
 
 #. Plugin Name of the plugin
@@ -149,13 +149,13 @@ msgstr ""
 
 #: src/templates/admin/invKoForm.php:179
 #: src/TouchPoint-WP/Involvement.php:1445
-#: src/TouchPoint-WP/TouchPointWP.php:1445
+#: src/TouchPoint-WP/TouchPointWP.php:1515
 msgid "Weekday"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:183
 #: src/TouchPoint-WP/Involvement.php:1471
-#: src/TouchPoint-WP/TouchPointWP.php:1527
+#: src/TouchPoint-WP/TouchPointWP.php:1597
 msgid "Time of Day"
 msgstr ""
 
@@ -164,7 +164,7 @@ msgid "Prevailing Marital Status"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:191
-#: src/TouchPoint-WP/TouchPointWP.php:1581
+#: src/TouchPoint-WP/TouchPointWP.php:1651
 msgid "Age Group"
 msgstr ""
 
@@ -337,7 +337,7 @@ msgid "Language"
 msgstr ""
 
 #: src/TouchPoint-WP/Involvement.php:1493
-#: src/TouchPoint-WP/TouchPointWP.php:1620
+#: src/TouchPoint-WP/TouchPointWP.php:1690
 msgid "Marital Status"
 msgstr ""
 
@@ -451,17 +451,17 @@ msgid "Contact Prohibited."
 msgstr ""
 
 #: src/TouchPoint-WP/Meeting.php:91
-#: src/TouchPoint-WP/TouchPointWP.php:940
+#: src/TouchPoint-WP/TouchPointWP.php:1010
 msgid "Only GET requests are allowed."
 msgstr ""
 
 #: src/TouchPoint-WP/Meeting.php:119
-#: src/TouchPoint-WP/TouchPointWP.php:369
+#: src/TouchPoint-WP/TouchPointWP.php:439
 msgid "Only POST requests are allowed."
 msgstr ""
 
 #: src/TouchPoint-WP/Meeting.php:129
-#: src/TouchPoint-WP/TouchPointWP.php:378
+#: src/TouchPoint-WP/TouchPointWP.php:448
 msgid "Invalid data provided."
 msgstr ""
 
@@ -522,137 +522,165 @@ msgstr ""
 msgid "RSVP"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:274
+#: src/TouchPoint-WP/TouchPointWP.php:279
 msgid "Every 15 minutes"
 msgstr ""
 
+#: src/TouchPoint-WP/TouchPointWP.php:309
+msgctxt "Explanation for the sandwich emoji in \"Made with (emoji) in Philly by Tenth\""
+msgid "Sandwiches (probably cheesesteaks)"
+msgstr ""
+
+#: src/TouchPoint-WP/TouchPointWP.php:310
+msgctxt "Explanation for the heart emoji in \"Made with (emoji) in Philly by Tenth\""
+msgid "love. obviously."
+msgstr ""
+
+#: src/TouchPoint-WP/TouchPointWP.php:311
+msgctxt "Explanation for the pretzel emoji in \"Made with (emoji) in Philly by Tenth\""
+msgid "Soft Pretzels"
+msgstr ""
+
+#: src/TouchPoint-WP/TouchPointWP.php:312
+msgctxt "Explanation for the Donut emoji in \"Made with (emoji) in Philly by Tenth\""
+msgid "Donuts (preferably Federal)"
+msgstr ""
+
+#: src/TouchPoint-WP/TouchPointWP.php:320
+msgid "Made with %s in Philly by Tenth"
+msgstr ""
+
+#: src/TouchPoint-WP/TouchPointWP.php:344
+msgid "Documentation"
+msgstr ""
+
 #. translators: %s: taxonomy name, plural
-#: src/TouchPoint-WP/TouchPointWP.php:1225
+#: src/TouchPoint-WP/TouchPointWP.php:1295
 msgid "Search %s"
 msgstr ""
 
 #. translators: %s: taxonomy name, plural
-#: src/TouchPoint-WP/TouchPointWP.php:1227
+#: src/TouchPoint-WP/TouchPointWP.php:1297
 msgid "All %s"
 msgstr ""
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/TouchPointWP.php:1229
+#: src/TouchPoint-WP/TouchPointWP.php:1299
 msgid "Edit %s"
 msgstr ""
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/TouchPointWP.php:1231
+#: src/TouchPoint-WP/TouchPointWP.php:1301
 msgid "Update %s"
 msgstr ""
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/TouchPointWP.php:1233
+#: src/TouchPoint-WP/TouchPointWP.php:1303
 msgid "Add New %s"
 msgstr ""
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/TouchPointWP.php:1235
+#: src/TouchPoint-WP/TouchPointWP.php:1305
 msgid "New %s"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1252
+#: src/TouchPoint-WP/TouchPointWP.php:1322
 msgid "Classify posts by their general locations."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1305
+#: src/TouchPoint-WP/TouchPointWP.php:1375
 msgid "Classify posts by their church campus."
 msgstr ""
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/TouchPointWP.php:1357
+#: src/TouchPoint-WP/TouchPointWP.php:1427
 msgid "Classify things by %s."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1444
+#: src/TouchPoint-WP/TouchPointWP.php:1514
 msgid "Classify involvements by the day on which they meet."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1445
+#: src/TouchPoint-WP/TouchPointWP.php:1515
 msgid "Weekdays"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1482
+#: src/TouchPoint-WP/TouchPointWP.php:1552
 msgid "Classify involvements by tense (present, future, past)"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1483
+#: src/TouchPoint-WP/TouchPointWP.php:1553
 msgid "Tense"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1483
+#: src/TouchPoint-WP/TouchPointWP.php:1553
 msgid "Tenses"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1526
+#: src/TouchPoint-WP/TouchPointWP.php:1596
 msgid "Classify involvements by the portion of the day in which they meet."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1527
+#: src/TouchPoint-WP/TouchPointWP.php:1597
 msgid "Times of Day"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1580
+#: src/TouchPoint-WP/TouchPointWP.php:1650
 msgid "Classify involvements and users by their age groups."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1581
+#: src/TouchPoint-WP/TouchPointWP.php:1651
 msgid "Age Groups"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1619
+#: src/TouchPoint-WP/TouchPointWP.php:1689
 msgid "Classify involvements by whether participants are mostly single or married."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1620
+#: src/TouchPoint-WP/TouchPointWP.php:1690
 msgid "Marital Statuses"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:1664
+#: src/TouchPoint-WP/TouchPointWP.php:1734
 msgid "Classify Partners by category chosen in settings."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2431
+#: src/TouchPoint-WP/TouchPointWP.php:2501
 msgid "Unknown Type"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2488
+#: src/TouchPoint-WP/TouchPointWP.php:2558
 msgid "Your Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2491
+#: src/TouchPoint-WP/TouchPointWP.php:2561
 msgid "Public Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2494
+#: src/TouchPoint-WP/TouchPointWP.php:2564
 msgid "Status Flags"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2499
-#: src/TouchPoint-WP/TouchPointWP.php:2500
+#: src/TouchPoint-WP/TouchPointWP.php:2569
+#: src/TouchPoint-WP/TouchPointWP.php:2570
 msgid "Current Value"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2628
-#: src/TouchPoint-WP/TouchPointWP.php:2668
+#: src/TouchPoint-WP/TouchPointWP.php:2698
+#: src/TouchPoint-WP/TouchPointWP.php:2738
 msgid "Invalid or incomplete API Settings."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2636
-#: src/TouchPoint-WP/TouchPointWP.php:2675
+#: src/TouchPoint-WP/TouchPointWP.php:2706
+#: src/TouchPoint-WP/TouchPointWP.php:2745
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2736
+#: src/TouchPoint-WP/TouchPointWP.php:2806
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2795
+#: src/TouchPoint-WP/TouchPointWP.php:2865
 msgid "People Query Failed"
 msgstr ""
 

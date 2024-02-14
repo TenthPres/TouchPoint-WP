@@ -139,7 +139,7 @@ class TouchPointWP_Settings
 	 * @param ?TouchPointWP $parent Object instance.
 	 *
 	 * @return TouchPointWP_Settings instance
-	 * @since 1.0.0
+	 * @since 0.0.37
 	 * @static
 	 * @see TouchPointWP()
 	 */
@@ -768,7 +768,7 @@ class TouchPointWP_Settings
 						'TouchPoint-WP'
 					),
 					'type'        => 'checkbox_multi',
-					'options'     => $includeThis ? $this->parent->getDivisionsAsKVArray() : [],
+					'options'     => $includeThis ? $this->parent->getDivisionsAsKVArray(true) : [],
 					'default'     => [],
 					'callback'    => function($new) { sort($new); return $new; }
 				],
@@ -1597,7 +1597,7 @@ class TouchPointWP_Settings
 	/**
 	 * Cloning is forbidden.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.37
 	 */
 	public function __clone()
 	{
@@ -1611,7 +1611,7 @@ class TouchPointWP_Settings
 	/**
 	 * Unserializing instances of this class is forbidden.
 	 *
-	 * @since 1.0.0
+	 * @since 0.0.37
 	 */
 	public function __wakeup()
 	{

@@ -3,8 +3,8 @@ namespace tp\TouchPointWP;
 
 /** @var TouchPointWP_Settings $this */
 
-$divs = json_encode($this->parent->getDivisions());
-$kws = json_encode($this->parent->getKeywords());
+$divs = json_encode($this->parent->getDivisions(true));
+$kws = json_encode($this->parent->getKeywords(true));
 /** @noinspection CommaExpressionJS */
 echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws }</script>";
 ?>
