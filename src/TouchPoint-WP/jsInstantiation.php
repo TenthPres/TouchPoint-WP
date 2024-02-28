@@ -15,7 +15,6 @@ if ( ! defined('ABSPATH')) {
  */
 trait jsInstantiation
 {
-
 	private static array $queueForJsInstantiation = [];
 	private static array $constructedObjects = [];
 	private static bool $requireAllObjectsInJs = false;
@@ -62,7 +61,7 @@ trait jsInstantiation
 	 *
 	 * @return void
 	 */
-	protected function registerConstruction()
+	protected function registerConstruction(): void
 	{
 		if ( ! isset(self::$constructedObjects[$this->getTouchPointId()])) {
 			self::$constructedObjects[$this->getTouchPointId()] = $this;
