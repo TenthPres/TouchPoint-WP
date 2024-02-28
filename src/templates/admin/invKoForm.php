@@ -338,7 +338,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 
         let types = tpvm._vmContext.invTypesVM.invTypes();
         for (let i in types) {
-            let name = tpvm.people[invData[i].taskOwner]?.displayName ?? "(named person)";
+            let name = tpvm.people[invData[i].taskOwner]?.displayName ?? "<?php _e("(named person)", "TouchPoint-WP") ?>";
             applySelect2ForData('#it-' + types[i].slug() + '-taskOwner', name, invData[i].taskOwner);
         }
 

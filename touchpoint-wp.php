@@ -6,7 +6,7 @@
  * @author  James K
  * @license AGPLv3+
  * @link    https://github.com/TenthPres/TouchPoint-WP
- * @package TouchPoint-WP
+ * @package TouchPointWP
  */
 
 /*

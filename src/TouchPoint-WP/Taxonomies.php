@@ -707,8 +707,8 @@ abstract class Taxonomies
 				[
 					'hierarchical'      => true,
 					'show_ui'           => true,
-					/* translators: %s: taxonomy name, singular */
 					'description'       => sprintf(
+						/* translators: %s: taxonomy name, singular */
 						__('Classify things by %s.', 'TouchPoint-WP'),
 						$instance->settings->dv_name_singular
 					),
