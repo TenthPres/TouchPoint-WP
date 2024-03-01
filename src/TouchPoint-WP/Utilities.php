@@ -413,6 +413,23 @@ abstract class Utilities
 	}
 
 	/**
+	 * Do a var_dump, but within a container that can be expanded or contracted. 
+	 *
+	 * @param ...$args
+	 *
+	 * @return void
+	 */
+	public static function var_dump_expandable(...$args): void
+	{
+		echo "<div>";
+		echo "<div style=\"display:none;\">";
+		var_dump(...$args);
+		echo "</div>";
+		echo "<a onclick=\"this.parentElement.firstElementChild.style.display = 'block'; this.style.display = 'none';\">" . __("Expand", "TouchPoint-WP") . "</a>";
+		echo "</div>";
+	}
+
+	/**
 	 * Get all HTTP request headers.
 	 *
 	 * @return array
@@ -451,7 +468,7 @@ abstract class Utilities
 		// Post image
 		global $wpdb;
 		$oldAttId = get_post_thumbnail_id($postId);
-		$oldFName = $wpdb->get_var( "SELECT meta_value FROM $wpdb->postmeta WHERE post_id = '$oldAttId' AND meta_key = '_wp_attached_file'" );
+		$oldFName = $wpdb->get_var( "SELECT meta_value FROM $wpdb->postmeta WHERE post_id = '$oldAttId' AND meta_key = '_wp_attached_file'" ) ?? "";
 		$oldFName = substr($oldFName, strrpos($oldFName, '/') + 1);
 
 		$newUrl = trim((string)$newUrl); // nulls are now ""
