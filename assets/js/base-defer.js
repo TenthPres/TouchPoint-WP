@@ -69,7 +69,11 @@ function utilInit() {
     }
 
     tpvm._utils.clearHash = function() {
-        window.location.hash = "";
+        if (!!window.history) {
+            window.history.pushState("", "", `${window.location.pathname}${window.location.search}`)
+        } else {
+            window.location.hash = "";
+        }
     }
 
     /**
