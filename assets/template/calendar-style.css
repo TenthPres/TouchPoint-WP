@@ -1,0 +1,66 @@
+
+div.calGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+
+div.calGrid,
+div.calGrid > div.calDay {
+    border: 1px solid black;
+    min-height: 5em;
+}
+
+div.calGrid div.calDay > h3.calDayHead {
+    display: none;
+}
+
+div.calGrid div.calDay > * {
+    display: block;
+}
+
+div.calGrid div.calDay > a.event.feat {
+    background: #ff0;
+}
+
+div.calGrid div.calDay > a.event.cancelled {
+    color: red;
+    text-decoration: line-through;
+}
+
+div.calGrid div.calDay > a {
+    padding: .2em;
+}
+
+div.calGrid div.calDay.before,
+div.calGrid div.calDay.after {
+    opacity: .8;
+    background: #0001;
+}
+
+@media screen and (max-width: 600px) {
+    div.calGrid {
+        display: grid;
+        grid-template-columns: unset;
+    }
+
+    div.calGrid,
+    div.calGrid > div.calDay {
+        border: unset;
+        min-height: unset;
+    }
+
+    div.calGrid div.calWeekdayHead,
+    div.calGrid div.calDay.before,
+    div.calGrid div.calDay.empty,
+    div.calGrid div.calDay.after {
+        display: none;
+    }
+
+    div.calGrid div.calDay > span.calDayNum {
+        display: none;
+    }
+
+    div.calGrid div.calDay > h3.calDayHead {
+        display:block;
+    }
+}
