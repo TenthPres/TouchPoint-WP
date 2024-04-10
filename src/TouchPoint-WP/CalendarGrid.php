@@ -119,7 +119,7 @@ class CalendarGrid {
 					$link = $m->permalink();
 
 					$classes = "event ";
-					$classes .= $m->status();
+					$classes .= $m->status() . " ";
 					$classes .= $m->tense();
 					if ($m->isFeatured()) {
 						$classes .= " feat";
