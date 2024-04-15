@@ -31,7 +31,19 @@ class CalendarGrid {
 	public ?DateTimeImmutable $next = null;
 	public ?DateTimeImmutable $prev = null;
 
+	/**
+	 * The HTML for the calendar grid.
+	 *
+	 * @var string
+	 */
 	public string $html;
+
+	/**
+	 * The name of the month being displayed.
+	 *
+	 * @var string
+	 */
+	public string $monthName;
 
 
 	/**
@@ -61,6 +73,8 @@ class CalendarGrid {
 
 		$firstDayOfMonth = DateTimeImmutable::createFromMutable($d);
 		$lastDayOfMonth = DateTimeImmutable::createFromMutable($d);
+
+		$this->monthName = date_i18n("F", $d->getTimestamp());
 
 		// Get the day of the week for the first day of the month (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
 		$offsetDays = intval($d->format('w')); // w: Numeric representation of the day of the week
@@ -170,6 +184,34 @@ class CalendarGrid {
 	public function __toString(): string
 	{
 		return $this->html;
+	}
+
+	/**
+	 * This method returns a navigation bar for the calendar grid with simply next/prev month links.
+	 *
+	 * @param bool $withMonthName
+	 *
+	 * @return string
+	 */
+	public function navBar(bool $withMonthName = false): string
+	{
+		$r = "<div class=\"calGridNav\">";
+		$r .= "<div class=\"prev\">";
+		$r .= $this->getPrevLink();
+		$r .= "</div>";
+
+		if ($withMonthName) {
+			$r .= "<div class=\"month\">";
+			$r .= "<h2>$this->monthName</h2>";
+			$r .= "</div>";
+		}
+
+		$r .= "<div class=\"next\">";
+		$r .= $this->getNextLink();
+		$r .= "</div>";
+		$r .= "</div>";
+
+		return $r;
 	}
 
 	/**
