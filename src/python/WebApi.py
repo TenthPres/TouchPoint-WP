@@ -192,8 +192,11 @@ if "Invs" in Data.a:
 
     regex = re.compile('[^0-9,]')
     divs = regex.sub('', Data.divs)
+    exDivs = regex.sub('', Data.exDivs)
     if (len(divs)) < 1:
         divs = '0'
+    if (len(exDivs)) < 1:
+        exDivs = '-1'
 
     mtgHist = -int(Data.mtgHist) if Data.mtgHist != "" else 0
     mtgFuture = int(Data.mtgFuture) if Data.mtgFuture != "" else 365
@@ -209,7 +212,7 @@ if "Invs" in Data.a:
         hostMemTypes = "NULL"
 
     # noinspection SqlResolve,SqlUnusedCte,SqlRedundantOrderingDirection
-    invSql = ('''
+    invSql = (('''
         WITH cteTargetOrgs as
         (
         SELECT 
@@ -228,6 +231,7 @@ if "Invs" in Data.a:
                 o.RegistrationTypeId AS regTypeId,
                 o.OrgPickList,
                 o.MainLeaderId,
+                o.ShowInSites,
                 o.ImageUrl,
                 o.BadgeUrl,
                 o.RegistrationMobileId,
@@ -255,6 +259,12 @@ if "Invs" in Data.a:
                             AND m.MeetingDate > DATEADD(day, {3}, GETDATE())
                             AND m.MeetingDate < DATEADD(day, {4}, GETDATE())
                         GROUP BY m.OrganizationId
+                    )
+                AND o.OrganizationId NOT IN (
+                        SELECT DISTINCT do.OrgId
+                        FROM dbo.DivOrg do
+                        WHERE do.OrgId = o.OrganizationId
+                        AND do.DivId IN ({5})
                     )
                 )
         ),
@@ -299,8 +309,8 @@ if "Invs" in Data.a:
             SELECT cto.OrganizationId,
                 (
                     SELECT om.MeetingId as mtgId,
-                        FORMAT(om.meetingDate, 'yyyy-MM-ddTHH:mm:ss') as mtgStartDt,
-                        null as mtgEndDt, -- TODO end time
+                        FORMAT(om.MeetingDate, 'yyyy-MM-ddTHH:mm:ss') as mtgStartDt,
+                        FORMAT(om.MeetingEnd, 'yyyy-MM-ddTHH:mm:ss') as mtgEndDt,
                         om.Location as location,
                         om.Description as name,
                         1 - om.DidNotMeet as status,
@@ -311,8 +321,9 @@ if "Invs" in Data.a:
                             ON om.OrganizationId = o.OrganizationId
                         LEFT JOIN dbo.MeetingExtra me
                             ON om.MeetingId = me.MeetingId AND 'ParentMeeting' = me.Field
-                    WHERE om.MeetingDate > DATEADD(day, {3}, GETDATE())
-                        AND om.OrganizationId = cto.OrganizationId
+                    WHERE om.OrganizationId = cto.OrganizationId AND
+                        om.MeetingDate > DATEADD(DAY, {3}, GETDATE()) AND
+                        om.MeetingDate < DATEADD(DAY, {4}, GETDATE())
                     FOR JSON PATH, INCLUDE_NULL_VALUES 
                 ) as OrgMeetings
             FROM cteTargetOrgs cto
@@ -381,6 +392,7 @@ if "Invs" in Data.a:
             , o.[MemberCount]                AS [memberCount]
             , o.[groupFull]                  AS [groupFull]
             , o.[GenderId]                   AS [genderId]
+            , o.[ShowInSites]                AS [showInSites]
             , o.[Description]                AS [description]
             , o.[closed]                     AS [closed]
             , o.[NotWeekly]                  AS [notWeekly]
@@ -422,7 +434,8 @@ if "Invs" in Data.a:
                 ON o.OrganizationId = ol.OrganizationId
             LEFT JOIN lookup.Campus c
                 ON o.CampusId = c.Id
-        ORDER BY o.parentInvId ASC, o.OrganizationId ASC''').format(divs, hostMemTypes, featMtgs, mtgHist, mtgFuture)
+        ORDER BY o.parentInvId ASC, o.OrganizationId ASC''').
+              format(divs, hostMemTypes, featMtgs, mtgHist, mtgFuture, exDivs))
 
     groups = model.SqlListDynamicData(invSql)
 
@@ -567,11 +580,17 @@ if "src" in Data.a and Data.q is not None:
                  SELECT p.*, 8 as score FROM People p 
                     WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') AND (p.AltName LIKE '{1}%' OR p.MaidenName LIKE '{1}%')
                  UNION
+                 SELECT p.*, 7 as score FROM People p  -- Businesses/Orgs
+                    WHERE p.LastName LIKE '{0}% {1}%'
+                 UNION
+                 SELECT p.*, 6 as score FROM People p  -- Businesses/Orgs
+                    WHERE p.LastName LIKE '{0}%{1}%'
+                 UNION
                  SELECT p.*, 5 as score FROM People p 
                     WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') OR p.LastName LIKE '{1}%'
                  UNION
                  SELECT p.*, 4 as score FROM People p 
-                    WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') OR (p.AltName LIKE '{1}%' OR p.MaidenName LIKE '{1}')
+                    WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') OR (p.AltName LIKE '{1}%' OR p.MaidenName LIKE '{1}%')
              ) p1
              GROUP BY
                  p1.PeopleId,
