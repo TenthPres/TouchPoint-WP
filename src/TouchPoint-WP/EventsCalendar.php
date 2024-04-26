@@ -67,7 +67,16 @@ abstract class EventsCalendar implements api, module
 
 			$content = trim(get_the_content(null, true, $eQ->ID));
 			$content = apply_filters('the_content', $content);
-			$content = apply_filters(TouchPointWP::HOOK_PREFIX . 'app_events_content', $content);
+			/**
+			 * Allows for manipulation of the html returned to the calendar feature of 2.0 Mobile apps.
+			 *
+			 * @since 0.0.2
+			 *
+			 * @depecated 0.0.90 Will be going away with Mobile App version 2.0
+			 *
+			 * @param string $content The html thus far.
+			 */
+			$content = apply_filters('tp_app_events_content', $content);
 
 			$content = html_entity_decode($content);
 
@@ -107,7 +116,16 @@ abstract class EventsCalendar implements api, module
 					$cssUrl = TouchPointWP::instance(
 						)->assets_url . 'template/ec-standardizing-style.css?v=' . TouchPointWP::VERSION;
 				}
-				$cssUrl = apply_filters(TouchPointWP::HOOK_PREFIX . 'app_events_css_url', $cssUrl);
+
+				/**
+				 * Insert a CSS file into all event content for mobile 2.0 app.
+				 *
+				 * @since 0.0.3
+				 * @depecated 0.0.90 Will be going away with Mobile App version 2.0
+				 *
+				 * @param string $cssUrl The url for a CSS file.  By default, one provided with the plugin is used.
+				 */
+				$cssUrl = apply_filters('tp_app_events_css_url', $cssUrl);
 				if (is_string($cssUrl)) {
 					$content = "<link rel=\"stylesheet\" href=\"$cssUrl\">" . $content;
 				}

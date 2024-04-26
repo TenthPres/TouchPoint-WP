@@ -575,15 +575,48 @@ abstract class Utilities
 			return $o;
 		}
 
-		$html      = apply_filters(TouchPointWP::HOOK_PREFIX . 'pre_standardize_html', $html, $context);
-		$maxHeader = intval(apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_h_tags_max_h', 2, $context));
+		/**
+		 * Make any adjustments to HTML content before the rest of the standardization process happens.
+		 *
+		 * @since 0.0.25
+		 *
+		 * @param string $html The HTML to be standardized.
+		 * @param string $context A context string to pass to hooks.
+		 *
+		 * @return string The standardized HTML.
+		 */
+		$html      = apply_filters('tp_pre_standardize_html', $html, $context);
+
+
+		/**
+		 * The maximum header level to allow in the HTML.  Default is 2.
+		 *
+		 * @since 0.0.25
+		 *
+		 * @param int    $maxHeader The highest header level (lowest number) to allow in the HTML. (e.g. 2 for <h2> tags)
+		 * @param string $context A context string to pass to hooks.
+		 *
+		 * @return int The maximum header level to allow in the HTML.
+		 */
+		$maxHeader = intval(apply_filters('tp_standardize_h_tags_max_h', 2, $context));
 
 		$allowedTags = [
 			'p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li',
 			'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
 			'table', 'tr', 'th', 'td', 'thead', 'tbody', 'tfoot'
 		];
-		$allowedTags = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_allowed_tags', $allowedTags, $context);
+
+		/**
+		 * The allowed tags in the HTML standardization process.  Default is a set of common tags.
+		 *
+		 * @since 0.0.25
+		 *
+		 * @param string[] $allowedTags The allowed tags in the HTML.
+		 * @param string   $context A context string to pass to hooks.
+		 *
+		 * @return string[] The allowed tags in the HTML.
+		 */
+		$allowedTags = apply_filters('tp_standardize_allowed_tags', $allowedTags, $context);
 
 		$html = self::standardizeHTags($maxHeader, $html);
 		$html = strip_tags($html, $allowedTags);

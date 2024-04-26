@@ -1274,8 +1274,11 @@ class TouchPointWP_Settings
 	 */
 	private function menu_settings()
 	{
+		/**
+		 * Adjust the menu settings before they're applied.
+		 */
 		return apply_filters(
-			TouchPointWP::SETTINGS_PREFIX . 'menu_settings',
+			'tp_menu_settings',
 			[
 				'location'    => 'options', // Possible settings: options, menu, submenu.
 				'parent_slug' => 'options-general.php',

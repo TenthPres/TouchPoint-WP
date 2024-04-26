@@ -539,7 +539,18 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 	 */
 	public static function templateFilter(string $template): string
 	{
-		if (apply_filters(TouchPointWP::HOOK_PREFIX . 'use_default_templates', true, self::class)) {
+		/**
+		 * Determines whether the plugin's default templates should be used.  Theme developers can return false in this
+		 * filter to prevent the default templates from applying, especially if they conflict with the theme.
+		 *
+		 * Default is true.
+		 *
+		 * @since 0.0.6
+		 *
+		 * @param bool $value The value to return.  True will allow the default templates to be applied.
+		 * @param string $className The name of the class calling for the template.
+		 */
+		if (apply_filters('tp_use_default_templates', true, self::class)) {
 			$postTypesToFilter        = self::POST_TYPE;
 			$templateFilesToOverwrite = self::TEMPLATES_TO_OVERWRITE;
 
@@ -1248,7 +1259,22 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 			$ret  .= "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  ";
 		}
 
-		return apply_filters(TouchPointWP::HOOK_PREFIX . "partner_actions", $ret, $this, $context, $btnClass);
+		/**
+		 * Allows for manipulation of the action buttons for a Partner.  This is the list of buttons that appear
+		 * on the Partner to allow the user to interact with it.
+		 *
+		 * @since 0.0.7
+		 *
+		 * @see Partner::getActionButtons()
+		 * @see PostTypeCapable::getActionButtons()
+		 *
+		 * @param StringableArray $ret The list of action buttons.
+		 * @param Partner $this The Partner object.
+		 * @param ?string $context A reference to where the action buttons are meant to be used.
+		 * @param string $btnClass A string for classes to add to the buttons.  Note that buttons can be 'a' or 'button'
+		 *     elements.
+		 */
+		return apply_filters("tp_partner_actions", $ret, $this, $context, $btnClass);
 	}
 
 	public static function getJsInstantiationString(): string

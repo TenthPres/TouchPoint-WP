@@ -65,7 +65,7 @@ class TouchPointWP
 	 */
 	public const HOOK_PREFIX = "tp_";
 
-	public const INIT_ACTION_HOOK = self::HOOK_PREFIX . "init";
+	public const INIT_ACTION_HOOK = "tp_init"; // Note that this is also hard-coded where the action is declared.
 
 	/**
 	 * Prefix to use for all settings.
@@ -752,7 +752,10 @@ class TouchPointWP
 
 		self::requireScript("base");
 
-		do_action(self::INIT_ACTION_HOOK);
+		/**
+		 * Fires after the plugin has been initialized.
+		 */
+		do_action("tp_init");
 	}
 
 	/**
@@ -867,7 +870,12 @@ class TouchPointWP
 	 */
 	public static function requireScript(string $name = null): void
 	{
-		if ( ! apply_filters(TouchPointWP::HOOK_PREFIX . "include_script_" . strtolower($name), true)) {
+		/**
+		 * Filter to determine if a given script (which comes with TouchPoint-WP) should be included.
+		 *
+		 * @params bool $include Whether to include the script.
+		 */
+		if ( !apply_filters("tp_include_script_" . strtolower($name), true)) {
 			return;
 		}
 
@@ -895,7 +903,12 @@ class TouchPointWP
 	 */
 	public static function requireStyle(string $name = null): void
 	{
-		if ( ! apply_filters(TouchPointWP::HOOK_PREFIX . "include_style_" . strtolower($name), true)) {
+		/**
+		 * Filter to determine if a given stylesheet (which comes with TouchPoint-WP) should be included.
+		 *
+		 * @params bool $include Whether to include the stylesheet.
+		 */
+		if ( ! apply_filters("tp_include_style_" . strtolower($name), true)) {
 			return;
 		}
 
@@ -2355,7 +2368,12 @@ class TouchPointWP
 	 */
 	public static function enqueueActionsStyle(string $action): void
 	{
-		$includeActionsStyle = ! ! apply_filters(TouchPointWP::HOOK_PREFIX . "include_actions_style", true, $action);
+		/**
+		 * Filter to determine if the stylesheet that adjusts SWAL and other action-related items should be included.
+		 *
+		 * @params bool $include Whether to include the styles.  Default true = include.
+		 */
+		$includeActionsStyle = !!apply_filters("tp_include_actions_style", true, $action);
 		if ($includeActionsStyle) {
 			wp_enqueue_style(
 				TouchPointWP::SHORTCODE_PREFIX . 'actions-style',

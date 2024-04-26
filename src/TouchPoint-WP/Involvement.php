@@ -1186,7 +1186,17 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 				'type'       => null,
 				'div'        => null,
 				'class'      => self::$containerClass,
-				'includecss' => apply_filters(TouchPointWP::HOOK_PREFIX . 'use_css', true, self::class),
+
+				/**
+				 * Determines whether or not to automatically include the plugin-default CSS.  Return false to use your
+				 * own CSS instead.
+				 *
+				 * @since 0.0.15
+				 *
+				 * @param bool $useCss Whether or not to include the default CSS.  True = include
+				 * @param string $className The name of the current calling class. 
+				 */
+				'includecss' => apply_filters('tp_use_css', true, self::class),
 				'itemclass'  => self::$itemClass,
 				'usequery'   => false
 			],
@@ -2829,6 +2839,7 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 		 * such as the schedule, leaders, and location.
 		 *
 		 * @see Involvement::notableAttributes()
+		 * @see PostTypeCapable::notableAttributes()
 		 *
 		 * @since 0.0.11
 		 *
@@ -2920,7 +2931,29 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 			}
 		}
 
-		return apply_filters(TouchPointWP::HOOK_PREFIX . "involvement_actions", $ret, $this, $context, $btnClass);
+		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
+			$tpHost = TouchPointWP::instance()->host();
+			$title  = sprintf(__("Involvement in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
+			$logo = TouchPointWP::TouchPointIcon();
+			$ret[]  = "<a href=\"$tpHost/Org/$this->invId\" title=\"$title\" class=\"tp-TouchPoint-logo $classesOnly\">$logo</a>";
+		}
+
+		/**
+		 * Allows for manipulation of the action buttons for an Involvement.  This is the list of buttons that appear
+		 * on the Involvement to allow the user to interact with it.
+		 *
+		 * @since 0.0.7
+		 *
+		 * @see Involvement::getActionButtons()
+		 * @see PostTypeCapable::getActionButtons()
+		 *
+		 * @param StringableArray $ret The list of action buttons.
+		 * @param Involvement $this The Involvement object.
+		 * @param ?string $context A reference to where the action buttons are meant to be used.
+		 * @param string $btnClass A string for classes to add to the buttons.  Note that buttons can be 'a' or 'button'
+		 *     elements.
+		 */
+		return apply_filters("tp_involvement_actions", $ret, $this, $context, $btnClass);
 	}
 
 	public static function getJsInstantiationString(): string
@@ -2990,8 +3023,28 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	 */
 	protected static function allowContact(string $invType): bool
 	{
-		$allowed = !!apply_filters(TouchPointWP::HOOK_PREFIX . 'allow_contact', true);
-		return !!apply_filters(TouchPointWP::HOOK_PREFIX . 'inv_allow_contact', $allowed, $invType);
+		/**
+		 * Determines whether contact of any kind is allowed.  This is meant to prevent abuse in contact forms by
+		 * removing the ability to contact people and thereby hiding the forms.
+		 *
+		 * @since 0.0.35
+		 *
+		 * @param bool $allowed True if contact is allowed.
+		 */
+		$allowed = !!apply_filters('tp_allow_contact', true);
+
+		/**
+		 * Determines whether contact is allowed for any Involvements.  This is called *after* tp_allow_contact, and
+		 * that will set the default. 
+		 *
+		 * @since 0.0.35
+		 *
+		 * @see tp_allow_contact
+		 *
+		 * @param bool $allowed Previous response from tp_allow_contact.  True if contact is allowed.
+		 * @param string $invType The name of the Involvement Type.
+		 */
+		return !!apply_filters('tp_inv_allow_contact', $allowed, $invType);
 	}
 
 	/**

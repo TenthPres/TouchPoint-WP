@@ -294,7 +294,14 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 
 		// Add Figure elt with a unique ID
 		$idAttr = "id=\"" . wp_unique_id('tp-report-') . "\"";
-		$class = apply_filters(self::FIGURE_CLASS_FILTER, self::FIGURE_CLASS_DEFAULT);
+
+		/**
+		 * Filter the class name to be used for the displaying the report.
+		 *
+		 * @param string $className The class name to be used.
+		 * @param Report $report The report being displayed.
+		 */
+		$class = apply_filters("tp_rpt_figure_class", self::$classDefault, $report);
         $rc     = "<figure $idAttr class=\"$class\">\n\t" . str_replace("\n", "\n\t", $rc);
 
 		// If desired, add a caption that indicates when the table was last updated.

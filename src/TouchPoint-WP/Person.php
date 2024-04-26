@@ -1190,7 +1190,21 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			$ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
 		}
 
-		return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context, $btnClass);
+		/**
+		 * Allows for manipulation of the action buttons for a Person.  This is the list of buttons that appear
+		 * on the Person to allow the user to interact with them.
+		 *
+		 * @since 0.0.90
+		 *
+		 * @see Person::getActionButtons()
+		 *
+		 * @param StringableArray $ret The list of action buttons.
+		 * @param Person $this The Person object.
+		 * @param ?string $context A reference to where the action buttons are meant to be used.
+		 * @param string $btnClass A string for classes to add to the buttons.  Note that buttons can be 'a' or 'button'
+		 *     elements.
+		 */
+		return apply_filters("tp_person_actions", $ret, $this, $context, $btnClass);
 	}
 
 	/**
@@ -1699,8 +1713,27 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 */
 	protected static function allowContact(): bool
 	{
-		$allowed = !!apply_filters(TouchPointWP::HOOK_PREFIX . 'allow_contact', true);
-		return !!apply_filters(TouchPointWP::HOOK_PREFIX . 'person_allow_contact', $allowed);
+		/**
+		 * Determines whether contact of any kind is allowed.  This is meant to prevent abuse in contact forms by
+		 * removing the ability to contact people and thereby hiding the forms.
+		 *
+		 * @since 0.0.35
+		 *
+		 * @param bool $allowed True if contact is allowed.
+		 */
+		$allowed = !!apply_filters('tp_allow_contact', true);
+
+		/**
+		 * Determines whether contact is allowed for any People.  This is called *after* tp_allow_contact, and
+		 * that will set the default.
+		 *
+		 * @since 0.0.35
+		 *
+		 * @see tp_allow_contact
+		 *
+		 * @param bool $allowed Previous response from tp_allow_contact.  True if contact is allowed.
+		 */
+		return !!apply_filters('tp_person_allow_contact', $allowed);
 	}
 
 	/**

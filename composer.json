@@ -33,6 +33,8 @@
     "ext-zip": "*"
   },
   "require-dev": {
+    "pronamic/wp-documentor": "^1.3",
+    "skayo/phpdoc-md": "^0.2.0"
   },
   "config": {
     "allow-plugins": {

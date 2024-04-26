@@ -262,10 +262,13 @@ abstract class Auth implements api, module
 	 */
 	public static function redirectLoginFormMaybe()
 	{
-		$redirect = apply_filters(
-			TouchPointWP::HOOK_PREFIX . 'auto_redirect_login',
-			(TouchPointWP::instance()->settings->auth_default === 'on')
-		);
+		$redirect = TouchPointWP::instance()->settings->auth_default === 'on';
+		/**
+		 * Controls whether to redirect to the TouchPoint login automatically.
+		 *
+		 * @param bool $redirect Value preset from setting TouchPoint login as default.
+		 */
+		$redirect = apply_filters('tp_auto_redirect_login', $redirect);
 
 		if (isset($_GET[TouchPointWP::HOOK_PREFIX . 'no_redirect'])) {
 			$redirect = false;
@@ -286,7 +289,12 @@ abstract class Auth implements api, module
 					 && ! is_admin()
 					 && ! current_user_can('edit_posts');
 
-		$removeBar = apply_filters(TouchPointWP::HOOK_PREFIX . 'prevent_admin_bar', $removeBar);
+		/**
+		 * Allows for hiding the WordPress-provided Admin bar.
+		 *
+		 * @param bool $removeBar True if bar should be removed.
+		 */
+		$removeBar = apply_filters('tp_prevent_admin_bar', $removeBar);
 
 		if ($removeBar) {
 			show_admin_bar(false);
