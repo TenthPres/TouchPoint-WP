@@ -318,7 +318,20 @@ abstract class Utilities
 	 */
 	public static function getColorFor(string $itemName, string $setName): string
 	{
-		// TODO add hook for custom color algorithm.
+		/**
+		 * Allows for a custom color function to assign a color for a given value.
+		 *
+		 * @since 0.0.90
+		 *
+		 * @param mixed $current The current value.  Null is provided to the function because the color hasn't otherwise been determined yet.
+		 * @param string $itemName The name of the current item.
+		 * @param string $setName The name of the set to which the item belongs.
+		 *
+		 * @return string|null The color in hex, starting with '#'.  Null to defer to the default color assignment.
+		 */
+		$r = apply_filters('tp_custom_color_function', null, $itemName, $setName);
+		if ($r !== null)
+			return $r;
 
 		// If the set is new...
 		if ( ! isset(self::$colorAssignments[$setName])) {
@@ -332,6 +345,23 @@ abstract class Utilities
 		if ($idx === false) {
 			$idx                                = count(self::$colorAssignments[$setName]);
 			self::$colorAssignments[$setName][] = $itemName;
+		}
+
+		/**
+		 * Allows for a custom color set to be used for color assignment to match branding. This filter should return an
+		 * array of colors in hex format, starting with '#'.  The colors will be assigned in order, but it is not
+		 * deterministic which color will be assigned to which item.  If it needs to be, use the `tp_custom_color_function`
+		 * filter instead.
+		 *
+		 * @since 0.0.90
+		 *
+		 * @param string[] $array The array of colors in hex format, starting with '#'.
+		 * @param string $setName The name of the set for which the colors are needed.
+		 */
+		$colorSet = apply_filters('tp_custom_color_set', [], $setName);
+
+		if (count($colorSet) > 0) {
+			return $colorSet[$idx % count($colorSet)];
 		}
 
 		// Calc color! (This method generates 24 colors and then repeats. (8 hues * 3 lums)
