@@ -68,6 +68,8 @@ if ( ! defined('ABSPATH')) {
  *
  * @property-read string       ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.
  *
+ * @property-read string       mc_name_plural     What Meetings should be called, plural (e.g. "Events" or "Meetings")
+ * @property-read string       mc_name_singular   What a Meeting code should be called, singular (e.g. "Event" or "Meeting")
  * @property-read string       mc_slug            Slug for meetings in the meeting calendar (e.g. "events" for church.org/events)
  * @property-read int          mc_future_days     Number of days into the future to import.
  * @property-read int          mc_archive_days    Number of days to wait to move something to history.
@@ -127,13 +129,7 @@ class TouchPointWP_Settings
 		add_action('admin_menu', [$this, 'addMenuItems']);
 
 		// Add settings link to plugins page.
-		add_filter(
-			'plugin_action_links_' . plugin_basename($this->parent->file),
-			[
-				$this,
-				'add_settings_link',
-			]
-		);
+		add_filter('plugin_action_links_' . plugin_basename($this->parent->file), [$this, 'addSettingsLink']);
 
 		// Configure placement of plugin settings page. See readme for implementation.
 		add_filter(TouchPointWP::SETTINGS_PREFIX . 'menu_settings', [$this, 'configureSettings']);
@@ -583,7 +579,7 @@ class TouchPointWP_Settings
 						'default'     => '[]',
 						'autoload'    => true,
 						'hidden'      => true,
-						'description' => ! $includeThis ? "" : function () {
+						'description' => !$includeThis ? "" : function () {
 							TouchPointWP::requireScript("base");
 							TouchPointWP::requireScript("knockout-defer");
 							TouchPointWP::requireScript("select2-defer");
@@ -807,6 +803,30 @@ class TouchPointWP_Settings
 				'title'       => __('Meeting Calendars', 'TouchPoint-WP'),
 				'description' => __('Import Meetings from TouchPoint to a calendar on your website.', 'TouchPoint-WP'),
 				'fields'      => [
+					[
+						'id'          => 'mc_name_plural',
+						'label'       => __('Meeting Name (Plural)', 'TouchPoint-WP'),
+						'description' => __(
+							'What you call Meetings at your church',
+							'TouchPoint-WP'
+						),
+						'type'        => 'text',
+						'default'     => $tribe ? __('Meetings', 'TouchPoint-WP') : __('Events', 'TouchPoint-WP'),
+						'autoload'    => true,
+						'placeholder' => $tribe ? __('Meetings', 'TouchPoint-WP') : __('Events', 'TouchPoint-WP'),
+					],
+					[
+						'id'          => 'mc_name_singular',
+						'label'       => __('Meeting Name (Singular)', 'TouchPoint-WP'),
+						'description' => __(
+							'What you call a Meeting at your church',
+							'TouchPoint-WP'
+						),
+						'type'        => 'text',
+						'default'     => $tribe ? __('Meeting', 'TouchPoint-WP') : __('Event', 'TouchPoint-WP'),
+						'autoload'    => true,
+						'placeholder' => $tribe ? __('Meeting', 'TouchPoint-WP') : __('Event', 'TouchPoint-WP'),
+					],
 					[
 						'id'          => 'mc_slug',
 						'label'       => __('Meetings Slug', 'TouchPoint-WP'),
@@ -1203,7 +1223,12 @@ class TouchPointWP_Settings
 				),
 			); */
 
-		$this->settings = apply_filters($this->parent::TOKEN . '_settings_fields', $this->settings);
+		/**
+		 * Adjust the settings array before it's returned.
+		 *
+		 * @since 0.0.90
+		 */
+		$this->settings = apply_filters('tp_settings_fields', $this->settings);
 
 		return $this->settings;
 	}
@@ -1312,7 +1337,7 @@ class TouchPointWP_Settings
 	 *
 	 * @return array        Modified links.
 	 */
-	public function add_settings_link(array $links): array
+	public function addSettingsLink(array $links): array
 	{
 		$settings_link = '<a href="options-general.php?page=' . $this->parent::TOKEN . '_Settings">' . __(
 				'Settings',

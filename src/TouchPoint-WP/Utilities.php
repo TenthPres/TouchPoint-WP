@@ -569,8 +569,18 @@ abstract class Utilities
 			$html = "";
 		}
 
-		// The tp_standardize_html filter would completely replace the pre-defined process.
-		$o = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_html', $html, $context);
+		/**
+		 * Allows for the standardization of HTML content, typically during the import from TouchPoint.  If this
+		 * filter is used, the default filtering will be bypassed. Use other filters for more precise control.
+		 *
+		 * @since 0.0.34
+		 *
+		 * @param string $html The HTML to be standardized.
+		 * @param string $context A context string to pass to hooks.
+		 *
+		 * @return string The standardized HTML.
+		 */
+		$o = apply_filters('tp_standardize_html', $html, $context);
 		if ($o !== $html) {
 			return $o;
 		}
@@ -622,7 +632,17 @@ abstract class Utilities
 		$html = strip_tags($html, $allowedTags);
 		$html = trim($html);
 
-		return apply_filters(TouchPointWP::HOOK_PREFIX . 'post_standardize_html', $html, $context);
+		/**
+		 * Make any adjustments to HTML content after the rest of the standardization process happens.
+		 *
+		 * @since 0.0.25
+		 *
+		 * @param string $html The HTML to be standardized.
+		 * @param string $context A context string to pass to hooks.
+		 *
+		 * @return string The standardized HTML.
+		 */
+		return apply_filters('tp_post_standardize_html', $html, $context);
 	}
 
 	/**
