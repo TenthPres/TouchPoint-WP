@@ -213,11 +213,41 @@ if "Invs" in Data.a:
 
     # noinspection SqlResolve,SqlUnusedCte,SqlRedundantOrderingDirection
     invSql = (('''
-        WITH cteTargetOrgs as
+        -- Get all orgs that have meetings
+        WITH cteMeetingsQ as
+        (
+        SELECT MIN(m.OrganizationId) org1,
+            MIN(o2.OrganizationId) org2,
+            MIN(o3.OrganizationId) org3,
+            MIN(o3.ParentOrgId) org4
+            FROM Meetings m
+                JOIN Organizations o ON m.OrganizationId = o.OrganizationId
+                LEFT JOIN Organizations o2 ON o.ParentOrgId = o2.OrganizationId
+                LEFT JOIN Organizations o3 ON o2.ParentOrgId = o3.OrganizationId
+            WHERE m.OrganizationId = o.OrganizationId
+                AND o.ShowInSites = {2}
+                AND m.MeetingDate > DATEADD(day, {3}, GETDATE())
+                AND m.MeetingDate < DATEADD(day, {4}, GETDATE())
+            GROUP BY m.OrganizationId, o2.OrganizationId, o3.OrganizationId, o3.ParentOrgId
+        ),
+        -- merge all meeting orgs into one list
+        cteMeetingL as 
+        (
+        SELECT org1 oid, 0 as isParent FROM cteMeetingsQ
+        UNION 
+        SELECT org2 oid, 1 as isParent FROM cteMeetingsQ
+        UNION
+        SELECT org3 oid, 1 as isParent FROM cteMeetingsQ
+        UNION
+        SELECT org4 oid, 1 as isParent FROM cteMeetingsQ
+        ),
+        -- select all target organizations
+        cteTargetOrgs as
         (
         SELECT 
                 o.OrganizationId,
                 o.ParentOrgId as parentInvId,
+                COALESCE(ml.isParent, 0) as isParent, -- indicates this is the parent (or grandparent) of an inv w/ mtgs
                 o.LeaderMemberTypeId,
                 o.Location,
                 o.OrganizationName AS name,
@@ -228,6 +258,7 @@ if "Invs" in Data.a:
                 o.Description,
                 o.RegistrationClosed AS closed,
                 o.NotWeekly,
+                o.RedirectUrl as redirectUrl,
                 o.RegistrationTypeId AS regTypeId,
                 o.OrgPickList,
                 o.MainLeaderId,
@@ -243,6 +274,7 @@ if "Invs" in Data.a:
                 FORMAT(o.FirstMeetingDate, 'yyyy-MM-ddTHH:mm:ss') AS firstMeeting,
                 FORMAT(o.LastMeetingDate, 'yyyy-MM-ddTHH:mm:ss') AS lastMeeting
         FROM dbo.Organizations o
+            LEFT JOIN cteMeetingL ml ON o.OrganizationId = ml.oid
             WHERE ( o.OrganizationId = (
                         SELECT MIN(OrgId) min
                         FROM dbo.DivOrg do
@@ -252,14 +284,7 @@ if "Invs" in Data.a:
                     AND o.organizationStatusId = 30 
                 )
             OR ( o.ShowInSites = {2} 
-                AND o.OrganizationId = (
-                        SELECT MIN(m.OrganizationId) org
-                        FROM Meetings m
-                        WHERE m.OrganizationId = o.OrganizationId
-                            AND m.MeetingDate > DATEADD(day, {3}, GETDATE())
-                            AND m.MeetingDate < DATEADD(day, {4}, GETDATE())
-                        GROUP BY m.OrganizationId
-                    )
+                AND ml.oid IS NOT NULL -- means it has meetings, or it has children that have meetings. 
                 AND o.OrganizationId NOT IN (
                         SELECT DISTINCT do.OrgId
                         FROM dbo.DivOrg do
@@ -354,7 +379,7 @@ if "Invs" in Data.a:
         cteOrganizationLocation AS
             (
                 SELECT 
-                    o.[OrganizationId]            
+                    o.[OrganizationId]
                     , COALESCE(oai.[Latitude], paih.[Latitude], faih.[Latitude])           AS [lat]
                     , COALESCE(oai.[Longitude], paih.[Longitude], faih.[Longitude])        AS [lng]
                     , COALESCE(orc.[Description], prch.[Description], frch.[Description])  AS [resCodeName]
@@ -385,6 +410,7 @@ if "Invs" in Data.a:
         SELECT 
             o.[OrganizationId]               AS [involvementId]
             , o.[parentInvId]                AS [parentInvId]
+            , o.[isParent]                   AS [isParent]
             , o.[LeaderMemberTypeId]         AS [leaderMemberTypeId]
             , o.[Location]                   AS [location]
             , o.[name]                       AS [name]
@@ -396,13 +422,14 @@ if "Invs" in Data.a:
             , o.[Description]                AS [description]
             , o.[closed]                     AS [closed]
             , o.[NotWeekly]                  AS [notWeekly]
+            , o.[redirectUrl]                AS [redirectUrl]
             , o.[regTypeId]                  AS [regTypeId]
             , o.[OrgPickList]                AS [orgPickList]
             , o.[MainLeaderId]               AS [mainLeaderId]
             , o.[ImageUrl]                   AS [imageUrl]
             , o.[BadgeUrl]                   AS [badgeUrl]
-            , o.[RegistrationMobileId]       AS [registrationMobileId]
-            , o.[ShowRegistrantsInMobile]    AS [showRegistrantsInMobile]
+            , o.[RegistrationMobileId]       AS [siteRegTypeId]
+--             , o.[ShowRegistrantsInMobile]    AS [showRegistrantsInMobile]
             , o.[hasRegQuestions]            AS [hasRegQuestions]
             , o.[regStart]                   AS [regStart]
             , o.[regEnd]                     AS [regEnd]
