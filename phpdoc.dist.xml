@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <phpdocumentor
         configVersion="3"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="https://www.phpdoc.org"
 >
+    <title>TouchPoint WP</title>
     <paths>
         <output>docs/phpApi</output>
         <cache>.phpdoc/cache</cache>
     </paths>
-    <version number="3.0.0">
+    <version number="0.0.90">
         <api>
             <source dsn=".">
                 <path>src/TouchPoint-WP</path>
@@ -17,10 +17,17 @@
                 <extension>php</extension>
             </extensions>
             <visibility>public</visibility>
-            <include-source>false</include-source>
+            <include-source>true</include-source>
             <markers>
                 <marker>TODO</marker>
             </markers>
+<!--            <default-package-name>TouchPointWP</default-package-name>-->
         </api>
+        <guide>
+            <source>
+                <path>docs/wpApi</path>
+            </source>
+        </guide>
     </version>
+<!--    <setting name="guides.enabled" value="true"/>-->
 </phpdocumentor>
