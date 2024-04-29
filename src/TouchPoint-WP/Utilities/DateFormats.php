@@ -66,7 +66,7 @@ abstract class DateFormats
 					$day = date_i18n(_x('l', "Date string for day of the week, when the year is current.", "TouchPoint-WP"), $ts);
 					$date = date_i18n(_x('F j', "Date string when the year is current.", "TouchPoint-WP"), $ts);
 				} else {
-					$day = date_i18n(_x('l', "Date string for day of the week, when te year is not current.", "TouchPoint-WP"), $ts);
+					$day = date_i18n(_x('l', "Date string for day of the week, when the year is not current.", "TouchPoint-WP"), $ts);
 					$date = date_i18n(_x('F j, Y', "Date string when the year is not current.", "TouchPoint-WP"), $ts);
 				}
 
