@@ -63,27 +63,27 @@ abstract class DateFormats
 
 
 				if ($tomorrow->format("Y") === $dt->format("Y")) { // Same Year
-					$day = date_i18n(_x('l', "Date string for day of the week, when given without a year.", "TouchPoint-WP"), $ts);
-					$date = date_i18n(_x('M j', "Date string when given without a year", "TouchPoint-WP"), $ts);
+					$day = date_i18n(_x('l', "Date string for day of the week, when the year is current.", "TouchPoint-WP"), $ts);
+					$date = date_i18n(_x('F j', "Date string when the year is current.", "TouchPoint-WP"), $ts);
 				} else {
-					$day = date_i18n(_x('D', "Date string for day of the week, when given with a year.", "TouchPoint-WP"), $ts);
-					$date = date_i18n(_x('M j, Y', "Date string when given with a year", "TouchPoint-WP"), $ts);
+					$day = date_i18n(_x('l', "Date string for day of the week, when te year is not current.", "TouchPoint-WP"), $ts);
+					$date = date_i18n(_x('F j, Y', "Date string when the year is not current.", "TouchPoint-WP"), $ts);
 				}
 
 				// Last week
-				if ($ts - $nowTs > -7 * 86400 && $ts - $nowTs < 0) {
+				if ($ts < $nowTs && $ts - $nowTs > -7 * 86400) {
 					// translators: %1s is "Monday".  %2s is "January 1".
 					$r = sprintf(_x('Last %1$s, %2$s', "Date format string", 'TouchPoint-WP'), $day, $date);
 				}
 
 				// This week
-				else if ($ts - $nowTs < 7 * 86400) {
+				else if ($ts > $nowTs && $ts - $nowTs < 7 * 86400) {
 					// translators: %1s is "Monday".  %2s is "January 1".
 					$r = sprintf(_x('This %1$s, %2$s', "Date format string", 'TouchPoint-WP'), $day, $date);
 				}
 
 				// Next week
-				else if ($ts - $nowTs < 14 * 86400) {
+				else if ($ts > $nowTs && $ts - $nowTs < 14 * 86400) {
 					// translators: %1$s is "Monday".  %2$s is "January 1".
 					$r = sprintf(_x('Next %1$s, %2$s', "Date format string", 'TouchPoint-WP'), $day, $date);
 
