@@ -10,9 +10,23 @@ use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Post;
 
 /**
- * This is a base class for those objects that can be derived from a
+ * This is a base class for those objects that can be derived from a Post.
  */
 abstract class PostTypeCapable implements module {
+
+	protected int $post_id;
+	protected ?WP_Post $post = null;
+
+
+	/**
+	 * Get the Post_id.
+	 *
+	 * @return int
+	 */
+	public function post_id(): int
+	{
+		return $this->post_id;
+	}
 
 	/**
 	 * Create relevant objects from a given post
@@ -55,7 +69,35 @@ abstract class PostTypeCapable implements module {
 	 */
 	public abstract function notableAttributes(array $exclude = []): array;
 
-	public abstract function getActionButtons(string $context, string $btnClass): StringableArray;
+	/**
+	 * Handle exclusions for the notableAttributes $exclusion variable.
+	 *
+	 * Removes all array items that have a value or key contained in the $exclude array's values.
+	 *
+	 * @param array $subject
+	 * @param array $exclude
+	 *
+	 * @return array
+	 */
+	protected function processAttributeExclusions(array $subject, array $exclude): array
+	{
+		$subject = array_diff($subject, $exclude);
+		foreach ($exclude as $e) {
+			if (isset($subject[$e])) {
+				unset($subject[$e]);
+			}
+		}
+		return $subject;
+	}
+
+	/**
+	 * @param string $context  A string that gives filters some context for where the request is coming from
+	 * @param string $btnClass HTML class names to put into the buttons/links
+	 * @param bool   $withTouchPointLink Whether to include a link to the item within TouchPoint.
+	 *
+	 * @return StringableArray
+	 */
+	public abstract function getActionButtons(string $context, string $btnClass, bool $withTouchPointLink = true): StringableArray;
 
 	/**
 	 * Indicates if the given post can be instantiated as the given post type.

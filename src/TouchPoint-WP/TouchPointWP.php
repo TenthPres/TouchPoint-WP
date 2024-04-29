@@ -367,6 +367,21 @@ class TouchPointWP
 		return $inputData;
 	}
 
+
+	/**
+	 * Get TouchPoint icon as an SVG that can printed inline.
+	 *
+	 * @return string
+	 */
+	public static function TouchPointIcon(): string
+	{
+		if (self::$_icon === null) {
+			self::$_icon = file_get_contents(TouchPointWP::$dir . "/assets/branding/icon-curcolor.svg");
+		}
+		return self::$_icon;
+	}
+	protected static ?string $_icon = null;
+
 	/**
 	 * @param bool         $continue Whether to parse the request
 	 * @param WP           $wp Current WordPress environment instance
@@ -690,9 +705,6 @@ class TouchPointWP
 
 		// Load Person for People Indexes.
 		if ($instance->settings->enable_people_lists === "on") {
-			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-				require_once 'Person.php';
-			}
 			$instance->people = Person::load();
 		}
 
@@ -870,12 +882,13 @@ class TouchPointWP
 	 */
 	public static function requireScript(string $name = null): void
 	{
+		$filename = strtolower($name);
 		/**
 		 * Filter to determine if a given script (which comes with TouchPoint-WP) should be included.
 		 *
 		 * @params bool $include Whether to include the script.
 		 */
-		if ( !apply_filters("tp_include_script_" . strtolower($name), true)) {
+		if ( !apply_filters("tp_include_script_$filename", true)) {
 			return;
 		}
 
@@ -903,12 +916,13 @@ class TouchPointWP
 	 */
 	public static function requireStyle(string $name = null): void
 	{
+		$filename = strtolower($name);
 		/**
 		 * Filter to determine if a given stylesheet (which comes with TouchPoint-WP) should be included.
 		 *
 		 * @params bool $include Whether to include the stylesheet.
 		 */
-		if ( ! apply_filters("tp_include_style_" . strtolower($name), true)) {
+		if ( ! apply_filters("tp_include_style_$filename", true)) {
 			return;
 		}
 
@@ -1037,6 +1051,8 @@ class TouchPointWP
 	}
 
 	/**
+	 * Get Reverse Geocode information based on a provided lat/lng.
+	 *
 	 * @param float   $lat Latitude
 	 * @param float   $lng Longitude
 	 * @param bool    $includeIpLoc  Whether to use IP geolocation as a fallback data source.
@@ -1044,7 +1060,7 @@ class TouchPointWP
 	 * @return Geo|false An object with a 'human' attribute, if a location could be identified. Or, false if not
 	 *	 available.
 	 */
-	public function reverseGeocode(float $lat, float $lng, bool $includeIpLoc = true)
+	public function reverseGeocode(float $lat, float $lng, bool $includeIpLoc = true): bool|Geo
 	{
 		if ($lat === 0.0 && $lng === 0.0) {
 			return false; // avoiding an easy error case.
@@ -1249,7 +1265,7 @@ class TouchPointWP
 	/**
 	 * Activation. Runs on activation.
 	 */
-	public function activation()
+	public function activation(): void
 	{
 		self::queueFlushRewriteRules();
 
@@ -1259,9 +1275,9 @@ class TouchPointWP
 	/**
 	 * Deactivation. Runs on deactivation.
 	 */
-	public function deactivation()
+	public function deactivation(): void
 	{
-		$this->_log_version_number();
+		$this->logVersion();
 
 		self::clearScheduledHooks();
 
@@ -1269,9 +1285,9 @@ class TouchPointWP
 	}
 
 	/**
-	 * Uninstallation. Runs on uninstallation.
+	 * Runs on uninstallation.
 	 */
-	public static function uninstall()
+	public static function uninstall(): void
 	{
 		// TODO remove all options.
 		// TODO remove all taxonomies (maybe)
@@ -1315,7 +1331,7 @@ class TouchPointWP
 	/**
 	 * Log the plugin version number.
 	 */
-	private function _log_version_number()
+	private function logVersion(): void
 	{
 		update_option(self::TOKEN . '_version', self::VERSION, true);
 	}
@@ -1324,6 +1340,8 @@ class TouchPointWP
 	 * Indicates that Tribe Calendar Pro is enabled.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
 	 */
 	public static function useTribeCalendarPro(): bool
 	{
@@ -1339,7 +1357,7 @@ class TouchPointWP
 	 *
 	 * @return bool
 	 *
-	 * @deprecated since 0.0.90 -- Will not be necessary once mobile 3.0 exists.
+	 * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
 	 */
 	public static function useTribeCalendar(): bool
 	{
@@ -1489,7 +1507,7 @@ class TouchPointWP
 	/**
 	 * @return false|object Update the divisions if they're stale.
 	 */
-	private function updateDivisions()
+	private function updateDivisions(): object|bool
 	{
 		try {
 			$data = $this->apiGet('Divisions');
@@ -1507,11 +1525,14 @@ class TouchPointWP
 		return $obj;
 	}
 
-
 	/**
-	 * @return false|object Get new MemberTypes for a Division.  Does not cache them.
+	 * Get new MemberTypes for a Division.  Does not cache them.
+	 *
+	 * @param $divisions
+	 *
+	 * @return false|object False on failure.  An object with memTypes otherwise.
 	 */
-	private function getMemberTypesForDivisions_fromApi($divisions)
+	private function getMemberTypesForDivisions_fromApi($divisions): object|bool
 	{
 		try {
 			$return = $this->apiGet('MemTypes', ['divs' => $divisions]);
@@ -2093,7 +2114,7 @@ class TouchPointWP
 	 *
 	 * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
 	 */
-	public function apiGet(string $command, ?array $parameters = null, int $timeout = 5): array|stdClass
+	public function apiGet(string $command, ?array $parameters = null, int $timeout = 5, $verbose = false): array|stdClass
 	{
 		if ( ! is_array($parameters)) {
 			$parameters = (array)$parameters;
@@ -2111,10 +2132,15 @@ class TouchPointWP
 			throw new TouchPointWP_Exception(__('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'), 170002);
 		}
 
+		$url = $host . "/PythonApi/" .
+		       $this->settings->api_script_name . "?" . http_build_query($parameters);
+		
+		if ($verbose) {
+			echo "<p>Request to $url</p>";
+		}
 
 		$r = $this->getHttpClient()->request(
-			$host . "/PythonApi/" .
-			$this->settings->api_script_name . "?" . http_build_query($parameters),
+			$url,
 			[
 				'method'  => 'GET',
 				'headers' => [

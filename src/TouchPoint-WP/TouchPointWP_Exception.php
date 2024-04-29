@@ -8,10 +8,6 @@ namespace tp\TouchPointWP;
 use Exception;
 use Throwable;
 
-if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once 'TouchPointWP_AdminAPI.php';
-}
-
 if ( ! defined('ABSPATH')) {
 	exit;
 }
@@ -39,10 +35,28 @@ class TouchPointWP_Exception extends Exception
 				$message .= "<br />" . $this->getFile() . " @ " . $this->getLine() . "<br />";
 				$message .= str_replace("\n", "<br />", $this->getTraceAsString());
 			}
-			TouchPointWP_AdminAPI::showError($message);
+			self::showAdminError($message);
 		}
 		error_log($message);
 		self::debugLog($this->getCode(), $this->getFile(), $this->getLine(), $this->getMessage());
+	}
+
+	/**
+	 * Shows an admin error if and only if admin is loaded.
+	 *
+	 * @param $message
+	 *
+	 * @return void
+	 */
+	protected static function showAdminError($message): void
+	{
+		if (is_admin() && TouchPointWP::currentUserIsAdmin()) {
+			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
+				require_once 'TouchPointWP_AdminAPI.php';
+			}
+
+			TouchPointWP_AdminAPI::showError($message);
+		}
 	}
 
 	/**

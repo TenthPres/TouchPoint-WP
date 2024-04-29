@@ -20,12 +20,16 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 
 use DateInterval;
 use DateTimeImmutable;
+use DateTimeInterface;
+use DateTimeZone;
 use Exception;
 use stdClass;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
+use tp\TouchPointWP\Utilities\StringableArray;
 use tp\TouchPointWP\Utilities\Translation;
+use WP_Error;
 use WP_Post;
 use WP_Query;
 use WP_Term;
@@ -33,7 +37,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement implements api, updatesViaCron, hasGeo, module
+class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo, module
 {
 	use jsInstantiation;
 	use jsonLd;
@@ -43,11 +47,16 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	public const SHORTCODE_LIST = TouchPointWP::SHORTCODE_PREFIX . "Inv-List";
 	public const SHORTCODE_NEARBY = TouchPointWP::SHORTCODE_PREFIX . "Inv-Nearby";
 	public const SHORTCODE_ACTIONS = TouchPointWP::SHORTCODE_PREFIX . "Inv-Actions";
+
+	protected const SCHEDULE_STRING_CACHE_EXPIRATION = 3600 * 8; // 8 hours.  Automatically deleted during sync.
+	protected const SCHEDULE_STRING_CACHE_GROUP = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
+
+	protected const MEETING_STRATEGY_NONE = 0;
+	protected const MEETING_STRATEGY_SINGLE = 1;
+	protected const MEETING_STRATEGY_MULTIPLE = 2;
+
 	public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
 	public const CRON_OFFSET = 86400 + 3600;
-
-	public const SCHEDULE_STRING_CACHE_EXPIRATION = 3600 * 8; // 8 hours.  Automatically deleted during sync.
-	public const SCHEDULE_STRING_CACHE_GROUP = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
 
 	protected static bool $_hasUsedMap = false;
 	protected static bool $_hasArchiveMap = false;
@@ -82,9 +91,8 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	 */
 	public string $invType;
 
-	public int $post_id;
 	public string $post_excerpt;
-	protected WP_Post $post;
+	protected ?WP_Post $post = null;
 
 	public object $attributes;
 	protected array $divisions;
@@ -92,8 +100,8 @@ class Involvement implements api, updatesViaCron, hasGeo, module
 	/**
 	 * Involvement constructor.
 	 *
-	 * @param $object WP_Post|object an object representing the involvement's post.
-	 *				  Must have post_id AND inv id attributes.
+	 * @param object $object WP_Post|object an object representing the involvement's post.
+	 *                  Must have post_id AND inv id attributes.
 	 *
 	 * @throws TouchPointWP_Exception
 	 */

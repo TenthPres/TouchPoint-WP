@@ -11,6 +11,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use Exception;
+use tp\TouchPointWP\Utilities\DateFormats;
 use WP_Query;
 
 if ( ! defined('ABSPATH')) {

@@ -1258,7 +1258,7 @@ class TouchPointWP_Settings
 	 */
 	public function addMenuItems(): void
 	{
-		$args = $this->menu_settings();
+		$args = $this->menuSettings();
 
 		// Do nothing if wrong location key is set.
 		if (is_array($args) && isset($args['location']) && function_exists('add_' . $args['location'] . '_page')) {
@@ -1297,25 +1297,37 @@ class TouchPointWP_Settings
 	 *
 	 * @return mixed|void
 	 */
-	private function menu_settings()
+	private function menuSettings()
 	{
+		$settings = [
+			'location'    => 'options', // Possible settings: options, menu, submenu.
+			'parent_slug' => 'options-general.php',
+			'page_title'  => __('TouchPoint-WP', 'TouchPoint-WP'),
+			'menu_title'  => __('TouchPoint-WP', 'TouchPoint-WP'),
+			'capability'  => 'manage_options',
+			'menu_slug'   => $this->parent::TOKEN . '_Settings',
+			'function'    => [$this, 'settingsPage'],
+			'icon_url'    => '',
+			'position'    => null,
+		];
+
 		/**
-		 * Adjust the menu settings before they're applied.
+		 * Allows for manipulation of menu settings for the plugin. 
+		 *
+		 * @param array $settings The settings array.  Default values below.
+		 *
+		 * 'location'    => 'options', // Possible settings: options, menu, submenu.
+		 * 'parent_slug' => 'options-general.php',
+		 * 'page_title'  => __('TouchPoint-WP', 'TouchPoint-WP'),
+		 * 'menu_title'  => __('TouchPoint-WP', 'TouchPoint-WP'),
+		 * 'capability'  => 'manage_options',
+		 * 'menu_slug'   => $this->parent::TOKEN . '_Settings',
+		 * 'function'    => [$this, 'settingsPage'],
+		 * 'icon_url'    => '',
+		 * 'position'    => null,
+		 *
 		 */
-		return apply_filters(
-			'tp_menu_settings',
-			[
-				'location'    => 'options', // Possible settings: options, menu, submenu.
-				'parent_slug' => 'options-general.php',
-				'page_title'  => __('TouchPoint-WP', 'TouchPoint-WP'),
-				'menu_title'  => __('TouchPoint-WP', 'TouchPoint-WP'),
-				'capability'  => 'manage_options',
-				'menu_slug'   => $this->parent::TOKEN . '_Settings',
-				'function'    => [$this, 'settingsPage'],
-				'icon_url'    => '',
-				'position'    => null,
-			]
-		);
+		return apply_filters('tp_menu_settings', $settings);
 	}
 
 	/**

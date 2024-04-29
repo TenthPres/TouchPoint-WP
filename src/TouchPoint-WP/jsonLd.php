@@ -20,7 +20,7 @@ trait jsonLd
 	/** @var jsonLd[] */
 	protected static array $queueForJsonLd = [];
 
-	public int $post_id;
+	protected int $post_id;
 
 	/**
 	 * Add to a queue for instantiation.

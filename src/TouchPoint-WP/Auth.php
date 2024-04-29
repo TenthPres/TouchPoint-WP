@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 /**
- * Allows users to login to WordPress with their TouchPoint credentials, and provides other user management
+ * Allows users to log in to WordPress with their TouchPoint credentials, and provides other user management
  * functionality.
  */
 abstract class Auth implements api, module

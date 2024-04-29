@@ -100,7 +100,7 @@ abstract class DateFormats
 		 *
 		 * @since 0.0.90
 		 *
-		 * @param string $ts The string, as formatted so far.
+		 * @param string $r The string, as formatted so far.
 		 * @param DateTimeInterface $dt The DateTimeInterface object for the date being formatted.
 		 */
 		return apply_filters('tp_adjust_date_string', $r, $dt);

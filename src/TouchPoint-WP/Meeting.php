@@ -13,13 +13,19 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once 'api.php';
 }
 
+use DateTime;
+use DateTimeImmutable;
 use Exception;
+use tp\TouchPointWP\Utilities\DateFormats;
+use tp\TouchPointWP\Utilities\StringableArray;
+use WP_Post;
 use tp\TouchPointWP\Utilities\Http;
+use WP_Term;
 
 /**
  * Handle meeting content, particularly RSVPs.
  */
-abstract class Meeting implements api, module
+class Meeting extends PostTypeCapable implements api, module
 {
 	public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "meeting";
 	
@@ -151,7 +157,7 @@ abstract class Meeting implements api, module
 	 * @return object
 	 * @throws TouchPointWP_Exception
 	 */
-	private static function getMeetingInfo($opts): object
+	private static function getMeetingInfoForRsvp($opts): object
 	{
 		// TODO caching
 
@@ -175,7 +181,7 @@ abstract class Meeting implements api, module
 		}
 
 		try {
-			$data = self::getMeetingInfo($_GET);
+			$data = self::getMeetingInfoForRsvp($_GET);
 		} catch (TouchPointWP_Exception $ex) {
 			http_response_code(Http::SERVER_ERROR);
 			echo json_encode(['error' => $ex->getMessage()]);
