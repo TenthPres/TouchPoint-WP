@@ -426,6 +426,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				return $template;
 			}
 
+			if (is_post_type_archive(Meeting::POST_TYPE) && file_exists(
+					TouchPointWP::$dir . '/src/templates/meeting-archive.php'
+				)) {
+				return TouchPointWP::$dir . '/src/templates/meeting-archive.php';
+			}
+
 			if (is_post_type_archive($postTypesToFilter) && file_exists(
 					TouchPointWP::$dir . '/src/templates/involvement-archive.php'
 				)) {
