@@ -46,7 +46,7 @@ div.calGrid div.calDay.after {
     background: #0001;
 }
 
-@media screen and (max-width: 800px) {
+@media screen and (max-width: 1000px) {
     div.calGrid {
         display: grid;
         grid-template-columns: unset;
