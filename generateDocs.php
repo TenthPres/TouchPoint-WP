@@ -47,8 +47,12 @@ echo "    Complete.\n\n";
 
 
 echo "Merging sidebar files...";
-$sidebar = file_get_contents("docs/_Sidebar_prepend.md");
-$sidebar .= file_get_contents("docs/_Sidebar.md");
+$sidebar = file_get_contents("docs/.Sidebar.md");
+$automaticSidebar = file_get_contents("docs/_Sidebar.md");
+$automaticSidebar = str_replace("API Index", "PHP API Index",$automaticSidebar);
+
+$sidebar .= $automaticSidebar;
+
 file_put_contents("docs/_Sidebar.md", $sidebar);
 echo "    Complete.\n\n";
 
