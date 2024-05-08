@@ -36,8 +36,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	public const NAME_META_KEY = self::META_PREFIX . "name";
 	public const P1_META_KEY = self::META_PREFIX . "p1";
 	public const DEFAULT_CONTENT = '';
-    public const FIGURE_CLASS_FILTER = TouchPointWP::SETTINGS_PREFIX . "rpt_figure_class";
-    public const FIGURE_CLASS_DEFAULT = "TouchPoint-report";
+
+	public static string $classDefault = "TouchPoint-report";
 
 
 	public static bool $_isLoaded = false;
