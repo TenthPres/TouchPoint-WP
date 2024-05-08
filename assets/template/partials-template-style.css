@@ -194,6 +194,12 @@ article .TouchPointWP-detail-cell.TouchPointWP-map-container {
     padding-bottom: 30%;
 }
 
+main.TouchPointWP-main {
+    max-width: 1200px;
+    margin: auto;
+    padding: 0 1em;
+}
+
 article .TouchPointWP-detail-cell .TouchPointWP-detail-cell-section {
     text-align:center;
     margin-bottom: 2em;

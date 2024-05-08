@@ -46,6 +46,13 @@ class CalendarGrid {
 	 */
 	public string $monthName;
 
+	/**
+	 * The number of events included in the grid.  Used for the "no events" logic.
+	 * 
+	 * @var int 
+	 */
+	public int $eventCount = 0;
+
 
 	/**
 	 * Create a calendar grid for a given month and year.
@@ -75,7 +82,7 @@ class CalendarGrid {
 		$firstDayOfMonth = DateTimeImmutable::createFromMutable($d);
 		$lastDayOfMonth = DateTimeImmutable::createFromMutable($d);
 
-		$this->monthName = date_i18n("F", $d->getTimestamp());
+		$this->monthName = self::getMonthNameForDate($d);
 
 		// Get the day of the week for the first day of the month (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
 		$offsetDays = intval($d->format('w')); // w: Numeric representation of the day of the week
@@ -91,13 +98,12 @@ class CalendarGrid {
 		$isMonthBefore = ($offsetDays !== 0);
 		$isMonthAfter = false;
 		$aDay = new DateInterval("P1D");
-		$dateFormat = get_option('date_format');
 
 		// Loop through the days of the month
 		do {
-			$day = $d->format("j");
-			$fullDay = $d->format($dateFormat);
-			$wd =  $d->format("w");
+			$day = date_i18n("j", $d->getTimestamp());
+			$fullDay = DateFormats::DateStringFormatted($d);
+			$wd =  date_i18n("w", $d->getTimestamp());
 
 			try {
 				$newQ = self::adjustQueryForDay($q, $d, $tz);
@@ -105,8 +111,12 @@ class CalendarGrid {
 				$cellClass = ["calDay"];
 				if ($isMonthBefore) {
 					$cellClass[] = "before";
+					$adder = 0;
 				} elseif ($isMonthAfter) {
 					$cellClass[] = "after";
+					$adder = 0;
+				} else {
+					$adder = 1;
 				}
 
 				$posts = $newQ->get_posts();
@@ -121,6 +131,46 @@ class CalendarGrid {
 
 				$cellClass[] = "weekday-$wd";
 
+				$dayHtml = "";
+				$hasFirstDays = false;
+
+				foreach ($posts as $e) {
+					$m = Meeting::fromPost($e);
+
+					$link = $m->permalink();
+
+					$notFirstDay = $m->startDt < $d;
+
+					$attr = "";
+					$status = $m->status();
+
+					if ($status === "cancelled") {
+						// Translators: %s is the singular name of the of a Meeting, such as "Event".
+						$title = wp_sprintf(__("%s is cancelled.", "TouchPoint-WP"), TouchPointWP::instance()->settings->mc_name_singular);
+						$attr = "title=\"$title\"";
+					}
+
+					$classes = "event ";
+					$classes .= $status . " ";
+					$classes .= $m->tense();
+					if ($m->isFeatured() && !$notFirstDay) {
+						$classes .= " feat";
+					}
+					if ($notFirstDay) {
+						$classes .= " notFirstDay";
+						$dayHtml .= "<a href=\"$link\" class=\"$classes\" $attr><span class=\"title\">$e->post_title</span></a>";
+					} else {
+						$hasFirstDays = true;
+						$this->eventCount += $adder;
+						$ts = $m->startTimeString();
+						$dayHtml .= "<a href=\"$link\" class=\"$classes\" $attr><span class=\"time\">$ts</span> <span class=\"title\">$e->post_title</span></a>";
+					}
+				}
+
+				if (!$hasFirstDays) {
+					$cellClass[] = "noFirstDays";
+				}
+
 				$cellClass = implode(" ", $cellClass);
 
 				// Print the cell
@@ -128,23 +178,7 @@ class CalendarGrid {
 				$r .= "<h3 class=\"calDayHead\">$fullDay</h3>";
 				$r .= "<span class=\"calDayNum\">$day</span>";
 
-				foreach ($posts as $e) {
-					$m = Meeting::fromPost($e);
-
-					$link = $m->permalink();
-
-					$classes = "event ";
-					$classes .= $m->status() . " ";
-					$classes .= $m->tense();
-					if ($m->isFeatured()) {
-						$classes .= " feat";
-					}
-					if ($m->startDt < $d) {
-						$classes .= " notFirstDay";
-					}
-					$ts = $m->startTimeString();
-					$r .= "<a href=\"$link\" class=\"$classes\"><span class=\"time\">$ts</span> <span class=\"title\">$e->post_title</span></a>";
-				}
+				$r .= $dayHtml;
 
 				$r .= "</div>";
 
@@ -171,7 +205,13 @@ class CalendarGrid {
 		} while (!$isMonthAfter || $d->format('w') !== '0');
 		$r .= '</div>';
 
-		$this->html = $r;
+		if ($this->eventCount > 0) {
+			$this->html = $r;
+		} else {
+			// Translators: %s is the plural name of the of the Meetings, such as "Events".
+			$message = wp_sprintf(__("There are no %s published for this month.", "TouchPoint-WP"), TouchPointWP::instance()->settings->mc_name_plural);
+			$this->html = "<div class=\"calGrid noEvents\">$message</div>";
+		}
 
 		$this->next = $lastDayOfMonth->add($aDay);
 		$this->prev = $firstDayOfMonth->sub($aDay);
@@ -184,7 +224,21 @@ class CalendarGrid {
 	 */
 	public function __toString(): string
 	{
+		self::enqueueCalendarStyle();
 		return $this->html;
+	}
+
+	/**
+	 * This function enqueues the stylesheet for the calendar grid.
+	 */
+	public static function enqueueCalendarStyle(): void
+	{
+		wp_enqueue_style(
+			TouchPointWP::SHORTCODE_PREFIX . 'calendar-grid-style',
+			TouchPointWP::instance()->assets_url . 'template/calendar-grid-style.css',
+			[],
+			TouchPointWP::VERSION
+		);
 	}
 
 	/**
@@ -296,7 +350,7 @@ class CalendarGrid {
 	 */
 	public function getNextLink(): string
 	{
-		return $this->getLinkForDate($this->next);
+		return self::getLinkForDate($this->next);
 	}
 
 	/**
@@ -306,7 +360,7 @@ class CalendarGrid {
 	 */
 	public function getPrevLink(): string
 	{
-		return $this->getLinkForDate($this->prev);
+		return self::getLinkForDate($this->prev);
 	}
 
 	/**
@@ -317,14 +371,27 @@ class CalendarGrid {
 	 *
 	 * @return string
 	 */
-	protected function getLinkForDate(DateTimeInterface $date): string
+	protected static function getLinkForDate(DateTimeInterface $date): string
 	{
 		$link = "?page=" . $date->format('m-Y');
+		$label = self::getMonthNameForDate($date);
+		return "<a href=\"$link\">$label</a>";
+	}
+
+	/**
+	 * Get the name of the month for a given date, with the year if different from current year.
+	 *
+	 * @param DateTimeInterface $date
+	 *
+	 * @return string
+	 */
+	protected static function getMonthNameForDate(DateTimeInterface $date): string
+	{
 		if ($date->format('Y') === Utilities::dateTimeNow()->format('Y')) {
 			$label = date_i18n('F', $date->getTimestamp());
 		} else {
 			$label = date_i18n('F Y', $date->getTimestamp());
 		}
-		return "<a href=\"$link\">$label</a>";
+		return $label;
 	}
 }

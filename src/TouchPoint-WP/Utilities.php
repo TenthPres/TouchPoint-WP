@@ -676,6 +676,23 @@ abstract class Utilities
 	}
 
 	/**
+	 * Sometimes WordPress tries to be smarter than we want it to be.
+	 *
+	 * THIS DOES NOT DO ANY KIND OF VALIDATION OR REPLACEMENT.  It is assumed that the input is already completely ready
+	 * to go and won't cause collisions.
+	 *
+	 * @param $postId
+	 * @param $newSlug
+	 *
+	 * @return void
+	 */
+	public static function forceSlugUpdate($postId, $newSlug): void
+	{
+		global $wpdb;
+		$wpdb->update($wpdb->posts, ['post_name' => $newSlug], ['ID' => $postId]);
+	}
+
+	/**
 	 * Returns true if a new release is available.
 	 *
 	 * @return ?object

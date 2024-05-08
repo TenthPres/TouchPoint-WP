@@ -59,6 +59,11 @@ div.calGrid div.calDay.after {
         margin-bottom: 1em;
     }
 
+    div.calGrid div.calDay > a.event.notFirstDay,
+    div.calGrid div.calDay.noFirstDays {
+        display: none;
+    }
+
     div.calGrid div.calWeekdayHead,
     div.calGrid div.calDay.before,
     div.calGrid div.calDay.empty,
