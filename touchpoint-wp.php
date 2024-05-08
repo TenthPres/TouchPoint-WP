@@ -48,14 +48,23 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 
 	require_once __DIR__ . "/src/TouchPoint-WP/api.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/module.php";
-	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Cleanup.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/PostTypeCapable.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/RegistrationType.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Geo.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Cleanup.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Translation.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/PersonArray.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/StringableArray.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/DateFormats.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/DateTimeExtended.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Http.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Taxonomies.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/hasGeo.php";
 
 	require_once __DIR__ . "/src/TouchPoint-WP/Person.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Meeting.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/CalendarGrid.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Involvement.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Location.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Report.php";
