@@ -18,7 +18,7 @@ if (!empty($image)) {
     <header class="entry-header">
         <div class="entry-header-inner">
             <?php
-            $link = $person->getProfileUrl();
+            $link = $person->getUserUrl();
             $useLink = $link !== null;
             if ($useLink) {
                 /** @noinspection HtmlUnknownTarget */
