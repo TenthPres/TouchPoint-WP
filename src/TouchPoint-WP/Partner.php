@@ -19,6 +19,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 use Exception;
 use JsonSerializable;
 use stdClass;
+use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Error;
 use WP_Post;
 use WP_Query;
@@ -27,10 +28,11 @@ use WP_Term;
 /**
  * An Outreach partner, corresponding to a family in TouchPoint.
  */
-class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
+class Partner extends PostTypeCapable implements api, JsonSerializable, updatesViaCron, hasGeo, module
 {
 	use jsInstantiation {
 		jsInstantiation::enqueueForJsInstantiation as protected enqueueForJsInstantiationTrait;
+		jsonSerialize as public jsonSerializeTrait;
 	}
 	use extraValues;
 
@@ -59,10 +61,6 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 
 	public string $name;
 	protected int $familyId;
-
-	public int $post_id;
-	public string $post_excerpt;
-	protected WP_Post $post;
 
 	public const FAMILY_META_KEY = TouchPointWP::SETTINGS_PREFIX . "famId";
 
@@ -377,6 +375,12 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 
 			if ($post instanceof WP_Error) {
 				new TouchPointWP_WPError($post);
+
+				if ($verbose) {
+					var_dump($post);
+					echo "<hr />";
+				}
+
 				continue;
 			}
 
@@ -408,6 +412,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 					TouchPointWP::queueFlushRewriteRules();
 				}
 				if ( !!$term && !!$term['term_id']) {
+					$term['term_id'] = intval($term['term_id']);
 					$termsToKeep[] = $term['term_id'];
 					// Apply term to post
 					wp_set_post_terms($post->ID, [$term['term_id']], Taxonomies::TAX_GP_CATEGORY, false);
@@ -550,7 +555,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 		 * @param bool $value The value to return.  True will allow the default templates to be applied.
 		 * @param string $className The name of the class calling for the template.
 		 */
-		if (apply_filters('tp_use_default_templates', true, self::class)) {
+		if (!!apply_filters('tp_use_default_templates', true, self::class)) {
 			$postTypesToFilter        = self::POST_TYPE;
 			$templateFilesToOverwrite = self::TEMPLATES_TO_OVERWRITE;
 
@@ -666,7 +671,17 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 		$params = shortcode_atts(
 			[
 				'class'      => self::$containerClass,
-				'includecss' => apply_filters(TouchPointWP::HOOK_PREFIX . 'use_css', true, self::class),
+
+				/**
+				 * Determines whether or not to automatically include the plugin-default CSS.  Return false to use your
+				 * own CSS instead.
+				 *
+				 * @since 0.0.15
+				 *
+				 * @param bool $useCss Whether or not to include the default CSS.  True = include
+				 * @param string $className The name of the current calling class.
+				 */
+				'includecss' => apply_filters('tp_use_css', true, self::class),
 				'itemclass'  => self::$itemClass,
 			],
 			$params,
@@ -762,7 +777,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 		$params = shortcode_atts(
 			[
 				'class'              => "TouchPoint-Partner filterBar",
-				'filters'            => strtolower(implode(",", ["partner_category"])),
+				'filters'            => "partner_category",
 				'includeMapWarnings' => self::$_hasArchiveMap
 			],
 			$params,
@@ -1105,7 +1120,6 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 				$script
 			);
 
-			// TODO move the style to a css file... or something.
 			$content = "<div class=\"TouchPoint-Partner-Map\" style=\"height: 100%; width: 100%; position: absolute; top: 0; left: 0; \" id=\"$mapDivId\"></div>";
 		} else {
 			$content = "<!-- Error: Partner map can only be used once per page. -->";
@@ -1194,29 +1208,46 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 	/**
 	 * Get notable attributes as strings.
 	 *
+	 * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
+	 *
 	 * @return string[]
 	 */
-	public function notableAttributes(): array
+	public function notableAttributes(array $exclude = []): array
 	{
 		$r = [];
 
 		if ($this->decoupleLocation) {
-			$r[] = TouchPointWP::instance()->settings->global_name_singular_decoupled;
+			$r['secure'] = TouchPointWP::instance()->settings->global_name_singular_decoupled;
 		} elseif ($this->location !== "" && $this->location !== null) {
-			$r[] = $this->location;
+			$r['location'] = $this->location;
 		}
 
 		foreach ($this->category as $c) {
-			$r[] = $c->name;
+			$r['category'] = $c->name;
 		}
 
 		// Not shown on map (only if there is a map, and the partner isn't on it because they lack geo.)
 		if (self::$_hasArchiveMap && $this->geo === null && ! $this->decoupleLocation) {
-			$r[] = __("Not Shown on Map", "TouchPoint-WP");
+			$r['hidden'] = __("Not Shown on Map", "TouchPoint-WP");
 			TouchPointWP::requireScript("fontAwesome");  // For map icons
 		}
 
-		return apply_filters(TouchPointWP::HOOK_PREFIX . "partner_attributes", $r, $this);
+		$r = $this->processAttributeExclusions($r, $exclude);
+
+		/**
+		 * Allows for manipulation of the notable attributes strings for an Partner.  An array of strings.
+		 * Typically, these are the standardized strings that appear on the Partner to give information about it,
+		 * such as the type and location.
+		 *
+		 * @see Partner::notableAttributes()
+		 * @see PostTypeCapable::notableAttributes()
+		 *
+		 * @since 0.0.6
+		 *
+		 * @param string[] $attrs The list of notable attributes.
+		 * @param Partner $this The Partner object.
+		 */
+		return apply_filters("tp_partner_attributes", $r, $this);
 	}
 
 	/**
@@ -1241,14 +1272,15 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 	 * @param ?string $context A reference to where the action buttons are meant to be used.
 	 * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button
 	 *     elements.
+	 * @param bool $withTouchPointLink Whether or not to include the TouchPoint link.  Default is true.
 	 *
-	 * @return string
+	 * @return StringableArray
 	 */
-	public function getActionButtons(string $context = null, string $btnClass = ""): string
+	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true): StringableArray
 	{
 		$this->enqueueForJsInstantiation();
 
-		$ret = "";
+		$ret = new StringableArray();
 		if ($btnClass !== "") {
 			$btnClass = " class=\"$btnClass\"";
 		}
@@ -1256,8 +1288,10 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 		// Show on map button.  (Only works if map is called before this is.)
 		if (self::$_hasArchiveMap && ! $this->decoupleLocation && $this->geo !== null) {
 			$text = __("Show on Map", "TouchPoint-WP");
-			$ret  .= "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  ";
+			$ret[] = "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  ";
 		}
+
+		// TouchPoint link is excluded for privacy, and because we don't really have People IDs readily available.
 
 		/**
 		 * Allows for manipulation of the action buttons for a Partner.  This is the list of buttons that appear
@@ -1371,6 +1405,18 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 	}
 
 	/**
+	 * Indicates if the given post can be instantiated as a Partner.
+	 *
+	 * @param WP_Post $post
+	 *
+	 * @return bool
+	 */
+	public static function postIsType(WP_Post $post): bool
+	{
+		return intval(get_post_meta($post->ID, self::FAMILY_META_KEY, true)) > 0;
+	}
+
+	/**
 	 * Serialize.  Mostly, manage the security requirements.
 	 *
 	 * @return object
@@ -1395,7 +1441,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 			}
 		}
 
-		return $this;
+		return $this->jsonSerializeTrait();
 	}
 
 	/**
