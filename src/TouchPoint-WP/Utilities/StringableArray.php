@@ -29,6 +29,28 @@ class StringableArray extends ArrayObject
 	}
 
 	/**
+	 * Length of array.
+	 *
+	 * @return int
+	 */
+	public function count(): int
+	{
+		return count($this->getArrayCopy());
+	}
+
+	/**
+	 * Append to the end of the array.
+	 *
+	 * @param mixed $value
+	 */
+	public function prepend($value): void
+	{
+		$array = $this->getArrayCopy();
+		array_unshift($array, $value);
+		$this->exchangeArray($array);
+	}
+
+	/**
 	 * Standard method to stringify.
 	 *
 	 * @return string
