@@ -2665,14 +2665,24 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		if ( ! isset($this->_leaders)) {
 			$s = $this->settings();
 
-			$q = new PersonQuery(
-				[
-					'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
-					'meta_value'   => $s->leaderTypes,
-					'meta_compare' => 'IN'
-				]
-			);
-
+			// If there aren't leader types (as is the case for all Event types), default to attend leader type.
+			if (count($s->leaderTypes) == 0) {
+				$q = new PersonQuery(
+					[
+						'meta_key'     => Person::META_INV_ATTEND_PREFIX . $this->invId,
+						'meta_value'   => ['at10'], // Leader Attend type.
+						'meta_compare' => 'IN'
+					]
+				);
+			} else {
+				$q = new PersonQuery(
+					[
+						'meta_key'     => Person::META_INV_MEMBER_PREFIX . $this->invId,
+						'meta_value'   => $s->leaderTypes,
+						'meta_compare' => 'IN'
+					]
+				);
+			}
 			$this->_leaders = $q->get_results();
 		}
 
@@ -2865,16 +2875,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 	/**
 	 * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with
-	 * the
-	 * `data-tp-involvement` attribute with the post_id (NOT the Inv ID) as the value.
+	 * the `data-tp-involvement` attribute with the post_id (NOT the Inv ID) as the value.
 	 *
 	 * @param ?string $context A reference to where the action buttons are meant to be used.
 	 * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button
 	 *     elements.
 	 *
-	 * @return string
+	 * @return StringableArray()
 	 */
-	public function getActionButtons(string $context = null, string $btnClass = ""): string
+	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $includeRegister = true): StringableArray
 	{
 		TouchPointWP::requireScript('swal2-defer');
 		TouchPointWP::requireScript('base-defer');
@@ -2882,21 +2891,72 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$this->enqueueForJsonLdInstantiation();
 		Person::enqueueUsersForJsInstantiation();
 
+		$classesOnly = $btnClass;
 		if ($btnClass !== "") {
 			$btnClass = " class=\"$btnClass\"";
 		}
 
-		$ret = "";
-		$count = 0;
-		if (self::allowContact($this->invType)) {
+		$ret = new StringableArray();
+		if (self::allowContact($this->invType) && $this->leaders()->count() > 0) {
 			$text = __("Contact Leaders", 'TouchPoint-WP');
-			$ret  = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button> ";
+			$ret[] = "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"contact\" $btnClass>$text</button> ";
 			TouchPointWP::enqueueActionsStyle('inv-contact');
-			$count++;
 		}
 
-		if ($this->acceptingNewMembers() === true) {
-			if ($this->useRegistrationForm()) {
+		// Register Button
+		if ($includeRegister === true) {
+			$ret[] = $this->getRegisterButton($btnClass);
+		}
+
+		// Show on map button.  (Only works if map is called before this is.)
+		if (self::$_hasArchiveMap && $this->geo !== null) {
+			$text = __("Show on Map", 'TouchPoint-WP');
+			if ($ret->count() > 1) {
+				TouchPointWP::requireScript("fontAwesome");
+				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\" $btnClass><i class=\"fa-solid fa-location-pin\"></i></button>");
+			} else {
+				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>");
+			}
+		}
+
+		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
+			$tpHost = TouchPointWP::instance()->host();
+			// Translators: %s is the system name.  "TouchPoint" by default.
+			$title  = wp_sprintf(__("Involvement in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
+			$logo = TouchPointWP::TouchPointIcon();
+			$ret[]  = "<a href=\"$tpHost/Org/$this->invId\" title=\"$title\" class=\"tp-TouchPoint-logo $classesOnly\">$logo</a>";
+		}
+
+		/**
+		 * Allows for manipulation of the action buttons for an Involvement.  This is the list of buttons that appear
+		 * on the Involvement to allow the user to interact with it.
+		 *
+		 * @since 0.0.7
+		 *
+		 * @see Involvement::getActionButtons()
+		 * @see PostTypeCapable::getActionButtons()
+		 *
+		 * @param StringableArray $ret The list of action buttons.
+		 * @param Involvement $this The Involvement object.
+		 * @param ?string $context A reference to where the action buttons are meant to be used.
+		 * @param string $btnClass A string for classes to add to the buttons.  Note that buttons can be 'a' or 'button'
+		 *     elements.
+		 */
+		return apply_filters("tp_involvement_actions", $ret, $this, $context, $btnClass);
+	}
+
+	/**
+	 * Get the HTML for the register button.  Labels depend on several settings within TouchPoint.
+	 *
+	 * @param string $btnClass
+	 * @param bool   $includeRsvp
+	 *
+	 * @return ?string HTML for the registration button, whatever that should be. Null if nothing to return.
+	 */
+	public function getRegisterButton(string $btnClass, bool $includeRsvp = true): ?string
+	{
+		switch ($this->getRegistrationType()) {
+			case RegistrationType::FORM:
 				$text = __('Register', 'TouchPoint-WP');
 				switch (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) {
 					case 1:  // Join Involvement (skip other options because this option is common)
@@ -2923,53 +2983,54 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 						$text = __('Get Tickets', 'TouchPoint-WP');
 						break;
 				}
-				$link = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
-				$ret  .= "<a class=\"btn button\" href=\"$link\" $btnClass>$text</a>  ";
+				$link  = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
 				TouchPointWP::enqueueActionsStyle('inv-register');
-			} else {
+				return "<a class=\"btn button\" href=\"$link\" $btnClass>$text</a>  ";
+
+			case RegistrationType::JOIN:
 				$text = __('Join', 'TouchPoint-WP');
-				$ret  .= "<button type=\"button\" data-tp-action=\"join\" $btnClass>$text</button>  ";
 				TouchPointWP::enqueueActionsStyle('inv-join');
-			}
-			$count++;
-		}
+				return "<button type=\"button\" data-tp-action=\"join\" $btnClass>$text</button>  ";
 
-		// Show on map button.  (Only works if map is called before this is.)
-		if (self::$_hasArchiveMap && $this->geo !== null) {
-			$text = __("Show on Map", 'TouchPoint-WP');
-			if ($count > 1) {
-				TouchPointWP::requireScript("fontAwesome");
-				$ret = "<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\" $btnClass><i class=\"fa-solid fa-location-pin\"></i></button>  " . $ret;
-			} else {
-				$ret = "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  " . $ret;
-			}
-		}
+			case RegistrationType::EXTERNAL:
+				$text = __('Register', 'TouchPoint-WP');
+				$link = $this->getRegistrationUrl();
+				TouchPointWP::enqueueActionsStyle('inv-register');
+				return "<a class=\"btn button\" href=\"$link\" $btnClass>$text</a>  ";
 
-		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
-			$tpHost = TouchPointWP::instance()->host();
-			$title  = sprintf(__("Involvement in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
-			$logo = TouchPointWP::TouchPointIcon();
-			$ret[]  = "<a href=\"$tpHost/Org/$this->invId\" title=\"$title\" class=\"tp-TouchPoint-logo $classesOnly\">$logo</a>";
+			case RegistrationType::RSVP:
+				if ($includeRsvp) {
+					$asAMeeting = $this->AsAMeeting();
+					if ($asAMeeting !== null) {
+						return $asAMeeting->getRsvpButton($btnClass);
+					}
+				}
 		}
-
-		/**
-		 * Allows for manipulation of the action buttons for an Involvement.  This is the list of buttons that appear
-		 * on the Involvement to allow the user to interact with it.
-		 *
-		 * @since 0.0.7
-		 *
-		 * @see Involvement::getActionButtons()
-		 * @see PostTypeCapable::getActionButtons()
-		 *
-		 * @param StringableArray $ret The list of action buttons.
-		 * @param Involvement $this The Involvement object.
-		 * @param ?string $context A reference to where the action buttons are meant to be used.
-		 * @param string $btnClass A string for classes to add to the buttons.  Note that buttons can be 'a' or 'button'
-		 *     elements.
-		 */
-		return apply_filters("tp_involvement_actions", $ret, $this, $context, $btnClass);
+		return null;
 	}
 
+	/**
+	 * If the post for this involvement is also a single Meeting post, return that object.  Otherwise, null.
+	 * 
+	 * @return ?Meeting
+	 */
+	protected function AsAMeeting(): ?Meeting
+	{
+		if (Meeting::postIsType($this->post)) {
+			try {
+				return Meeting::fromPost($this->post);
+			} catch (TouchPointWP_Exception $e) {
+				return null;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Get the JS for instantiation.
+	 *
+	 * @return string
+	 */
 	public static function getJsInstantiationString(): string
 	{
 		$queue = static::getQueueForJsInstantiation();

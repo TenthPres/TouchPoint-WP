@@ -229,4 +229,126 @@ class Meeting extends PostTypeCapable implements api, module
 		echo json_encode(['success' => $data->success]);
 		exit;
 	}
+
+	/**
+	 * @param $btnClass
+	 *
+	 * @return string
+	 */
+	public function getRsvpButton(string $btnClass = ""): string
+	{
+		TouchPointWP::requireScript('swal2-defer');
+		TouchPointWP::requireScript('meeting-defer');
+		TouchPointWP::enqueueActionsStyle('rsvp');
+		Person::enqueueUsersForJsInstantiation();
+
+		$link = __("RSVP", "TouchPoint-WP");
+		$preloadMsg = __("Loading...", "TouchPoint-WP");
+		
+		$btnClass = trim($btnClass);
+		if ($btnClass !== '') {
+			$btnClass = "class=\"$btnClass\"";
+		}
+
+		return "<a href=\"#\" onclick=\"return false;\" $btnClass disabled data-tp-action=\"rsvp\" data-tp-mtg=\"$this->mtgId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$link</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
+	}
+
+	/**
+	 * Indicates if the given post can be instantiated as a Meeting.
+	 *
+	 * @param \WP_Post $post
+	 *
+	 * @return bool
+	 */
+	public static function postIsType(WP_Post $post): bool
+	{
+		return intval(get_post_meta($post->ID, Meeting::MEETING_META_KEY, true)) > 0;
+	}
+
+	public static function load(): bool
+	{
+		// TODO: Implement load() method... or make not a module anymore.
+		return true;
+	}
+
+	/**
+	 * Indicate the tense of the meeting.
+	 *
+	 * @return string
+	 */
+	public function tense(): string
+	{
+		if ($this->endDt < Utilities::dateTimeNow()) {
+			return Taxonomies::TAX_TENSE_PAST;
+		}
+		if ($this->startDt > Utilities::dateTimeNow()) {
+			return Taxonomies::TAX_TENSE_FUTURE;
+		}
+		return Taxonomies::TAX_TENSE_PRESENT;
+	}
+
+	/**
+	 * Indicates if the meeting is multi-day.
+	 *
+	 * @return bool
+	 */
+	public function isMultiDay(): bool
+	{
+		if ($this->endDt === null) {
+			return false;
+		}
+		return $this->startDt->format("Ymd") !== $this->endDt->format("Ymd");
+	}
+
+	/**
+	 * Indicates if the meeting is labeled as all-day.
+	 * 
+	 * Currently, TouchPoint doesn't have the capacity for this.
+	 *
+	 * TODO When TouchPoint supports an all-day marker, add it here. #184
+	 *
+	 * @return bool
+	 */
+	public function isAllDay(): bool
+	{
+		return $this->startDt->format("His") === "000000";
+	}
+
+	/**
+	 * Get the date portion for the meeting start, formatted.
+	 *
+	 * @return string
+	 */
+	public function dateString(): string
+	{
+		if (!$this->isMultiDay() || $this->endDt === null) {
+			return DateFormats::DateStringFormatted($this->startDt);
+		}
+		return DateFormats::DateStringFormatted($this->startDt) . " &endash; " . DateFormats::DateStringFormatted($this->endDt);
+	}
+
+	/**
+	 * Get the time portion for the meeting start, formatted.
+	 *
+	 * @return ?string
+	 */
+	public function startTimeString(): ?string
+	{
+		if ($this->isAllDay())
+			return null;
+		return DateFormats::TimeStringFormatted($this->startDt);
+	}
+
+	/**
+	 * Get the time portion for the meeting end, formatted.  Null if no end is defined or end is same as start.
+	 *
+	 * @return ?string
+	 */
+	public function endTimeString(): ?string
+	{
+		if ($this->endDt === null) {
+			return null;
+		}
+		return DateFormats::TimeStringFormatted($this->endDt);
+	}
 }
