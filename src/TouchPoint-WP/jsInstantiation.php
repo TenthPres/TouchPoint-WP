@@ -91,6 +91,7 @@ trait jsInstantiation
 	 */
 	public function jsonSerialize(): object
 	{
+		// TODO PHP 8.1: rework closure method to 8.1+ standard
 		$item = Closure::fromCallable("get_object_vars")->__invoke($this);
 		$item['post_id'] = $this->post_id();
 

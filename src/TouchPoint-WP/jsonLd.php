@@ -46,7 +46,7 @@ trait jsonLd
 	 */
 	public function getPermalink(): string
 	{
-		return get_permalink($this->post_id);
+		return get_permalink($this->post_id());
 	}
 
 	/**
