@@ -407,10 +407,10 @@ class Partner implements api, JsonSerializable, updatesViaCron, hasGeo, module
 					);
 					TouchPointWP::queueFlushRewriteRules();
 				}
-				if ( !! $term && ! ! $term['term_id']) {
+				if ( !!$term && !!$term['term_id']) {
 					$termsToKeep[] = $term['term_id'];
 					// Apply term to post
-					wp_set_post_terms($post->ID, $term['term_id'], Taxonomies::TAX_GP_CATEGORY, false);
+					wp_set_post_terms($post->ID, [$term['term_id']], Taxonomies::TAX_GP_CATEGORY, false);
 				}
 			}
 
