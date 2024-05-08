@@ -37,3 +37,16 @@ jobs:
           asset_path: ./touchpoint-wp.zip
           asset_name: touchpoint-wp.zip
           asset_content_type: application/zip
+
+  docs:
+    name: Update Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Permissions
+        run: chmod +x build.sh
+        shell: bash
+      - name: Generate Docs
+        run: php ./generateDocs.php
+        shell: bash
