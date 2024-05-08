@@ -27,6 +27,7 @@ use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\Session;
+use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Term;
 use WP_User;
 
@@ -1172,7 +1173,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @return string
 	 */
-	public function getActionButtons(string $context = null, string $btnClass = ""): string
+	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true): string
 	{
 		TouchPointWP::requireScript('swal2-defer');
 		TouchPointWP::requireScript('base-defer');
@@ -1182,12 +1183,19 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			$btnClass = " class=\"$btnClass\"";
 		}
 
-		$ret = "";
+		$ret = new StringableArray();
 		if (self::allowContact()) {
 			$text = __("Contact", "TouchPoint-WP");
 			TouchPointWP::enqueueActionsStyle('person-contact');
 			self::enqueueUsersForJsInstantiation();
-			$ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
+			$ret[] = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
+		}
+
+		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
+			// Translators: %s is the system name.  "TouchPoint" by default.
+			$title  = sprintf(__("Person in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
+			$logo = TouchPointWP::TouchPointIcon();
+			$ret[]  = "<a href=\"{$this->getProfileUrl()}\" title=\"$title\" class=\"tp-TouchPoint-logo $btnClass\">$logo</a>";
 		}
 
 		/**
@@ -1366,18 +1374,40 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		return self::BACKUP_USER_PREFIX . $pData->PeopleId;
 	}
 
-	public function hasProfilePage(): bool
+	/**
+	 * Returns true if the person has posts and therefore has a user page.
+	 *
+	 * @return bool
+	 */
+	public function hasUserPage(): bool
 	{
 		return count_user_posts($this->ID) > 0;
 	}
 
-	public function getProfileUrl(): ?string
+
+	/**
+	 * Get the link to the person's author post page.
+	 *
+	 * @return ?string
+	 */
+	public function getUserUrl(): ?string
 	{
-		if ( ! ! apply_filters(TouchPointWP::HOOK_PREFIX . 'use_person_link', $this->hasProfilePage(), $this)) {
+		if ($this->hasUserPage()) {
 			return get_author_posts_url($this->ID);
 		} else {
 			return null;
 		}
+	}
+
+	/**
+	 * Returns the person's TouchPoint profile URL.
+	 *
+	 * @return ?string
+	 */
+	public function getProfileUrl(): ?string
+	{
+		$tpHost = TouchPointWP::instance()->host();
+		return "$tpHost/Person/$this->peopleId";
 	}
 
 	/**
@@ -1650,10 +1680,25 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			];
 
 			$out['results'] = [];
+
+			$hasDupNames = false;
+			$names = [];
 			foreach ($data as $p) {
+				$name = "$p->goesBy $p->lastName";
+				if (in_array($name, $names)) {
+					$hasDupNames = true;
+					break;
+				} else {
+					$names[] = $name;
+				}
+			}
+
+			foreach ($data as $p) {
+				$showPid = $hasDupNames || str_contains($q['q'], $p->peopleId);
+
 				$out['results'][] = [
 					'id'   => $p->peopleId,
-					'text' => $p->goesBy . " " . $p->lastName
+					'text' => trim("$p->goesBy $p->lastName" . ($showPid ? " ($p->peopleId)" : ""))
 				];
 			}
 		} else {
