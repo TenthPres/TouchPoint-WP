@@ -119,9 +119,9 @@ class CalendarGrid {
 					$adder = 1;
 				}
 
-				$posts = $newQ->get_posts();
+				$calDayPosts = $newQ->get_posts();
 
-				if (count($posts) === 0) {
+				if (count($calDayPosts) === 0) {
 					$cellClass[] = "empty";
 				}
 
@@ -134,7 +134,7 @@ class CalendarGrid {
 				$dayHtml = "";
 				$hasFirstDays = false;
 
-				foreach ($posts as $e) {
+				foreach ($calDayPosts as $e) {
 					$m = Meeting::fromPost($e);
 
 					$link = $m->permalink();
