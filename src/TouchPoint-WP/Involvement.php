@@ -798,15 +798,16 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		return $dayStr;
 	}
 
+
 	/**
-	 * Returns an array of the Involvement's Divisions, excluding those that cause it to be included.
+	 * Gets the division terms for the involvement.
 	 *
-	 * @return string[]
+	 * @return WP_Term[]
 	 */
-	public function getDivisionsStrings(): array
+	protected function getDivisions(): array
 	{
 		$exclude = $this->settings()->importDivs;
-
+		
 		if ( ! isset($this->divisions)) {
 			if (count($exclude) > 1) {
 				$mq = ['relation' => "AND"];
@@ -824,10 +825,38 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 			$this->divisions = wp_get_post_terms($this->post_id, Taxonomies::TAX_DIV, ['meta_query' => $mq]);
 		}
+		
+		return $this->divisions;
+	}
 
+	/**
+	 * Returns an array of the Involvement's Divisions, excluding those that cause it to be included.
+	 *
+	 * @return string[]
+	 */
+	public function getDivisionsStrings(): array
+	{
 		$out = [];
-		foreach ($this->divisions as $d) {
+		foreach ($this->getDivisions() as $d) {
 			$out[] = $d->name;
+		}
+
+		return $out;
+	}
+
+
+	/**
+	 * Returns an array of links to the Involvement's Divisions, excluding those that cause it to be included.
+	 *
+	 * @return string[]
+	 */
+	public function getDivisionsLinks(): array
+	{
+		$out = [];
+		foreach ($this->getDivisions() as $d) {
+			$name = $d->name;
+			$link = get_term_link($d);
+			$out[] = "<a href=\"$link\">$name</a>";
 		}
 
 		return $out;

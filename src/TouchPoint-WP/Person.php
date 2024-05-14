@@ -1417,7 +1417,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @return ?string  Returns a human-readable list of names, nicely formatted with commas and such.
 	 */
-	public static function arrangeNamesForPeople($people, int $familyLimit = 3): ?string
+	public static function arrangeNamesForPeople($people, bool $asLink = false, int $familyLimit = 3): ?string
 	{
 		$people = self::groupByFamily($people);
 		if (count($people) === 0) {
@@ -1433,7 +1433,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$and         = ' & ';
 		$useOxford   = false;
 		foreach ($people as $family) {
-			$fn = self::formatNamesForFamily($family);
+			$fn = self::formatNamesForFamily($family, $asLink);
 			if (strpos($fn, ', ') !== false) {
 				$comma     = '; ';
 				$useOxford = true;
@@ -1471,7 +1471,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @return ?string Returns a human-readable list of names, nicely formatted with commas and such.
 	 */
-	protected static function formatNamesForFamily(array $family): ?string  // Standardize API  (#120)
+	protected static function formatNamesForFamily(array $family, bool $asLink = false): ?string  // Standardize API  (#120)
 	{
 		if (count($family) < 1) {
 			return null;
@@ -1484,23 +1484,40 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		usort($family, fn($a, $b) => ($a->GenderId ?? 0) <=> ($b->GenderId ?? 0));
 
 		$isFirst = true;
+		$hasLink = false;
 		foreach ($family as $p) {
 			$last = $p->LastName ?? $p->last_name;
 			if ($standingLastName != $last) {
 				$string .= " " . $standingLastName;
 
+				if ($hasLink) {
+					$string .= "</a>";
+				}
+
 				$standingLastName = $last;
 			}
 
-			if ( ! $isFirst && count($family) > 1) {
+			if (!$isFirst && count($family) > 1) {
 				$string .= " & ";
 			}
 
+			$hasLink = false;
+			if ($asLink) {
+				$link = $p->getUserUrl();
+				if ($link !== null) {
+					$string .= "<a href=\"$link\">";
+					$hasLink = true;
+				}
+			}
 			$string .= $p->GoesBy ?? $p->first_name;
 
 			$isFirst = false;
 		}
 		$string .= " " . $standingLastName;
+
+		if ($hasLink) {
+			$string .= "</a>";
+		}
 
 		$lastAmpPos = strrpos($string, " & ");
 
