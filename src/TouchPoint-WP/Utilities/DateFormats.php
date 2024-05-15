@@ -56,7 +56,7 @@ abstract class DateFormats
 
 		/**
 		 * Allows for manipulation of a time range string.  For example, combined with `tp_adjust_time_string`, you
-		 * can change a range of 1:00pm - 2:00pm to 1pm - 2pm.
+		 * can change a range of 1:00pm - 2:00pm to 1-2pm.
 		 *
 		 * @since 0.0.90
 		 *
