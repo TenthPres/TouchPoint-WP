@@ -495,6 +495,14 @@ abstract class Utilities
 		require_once(ABSPATH . 'wp-admin/includes/file.php');
 		require_once(ABSPATH . 'wp-admin/includes/image.php');
 
+		// If an image sideload was started but not finished within the last hour, something has gone wrong.
+		if (intval(get_option(TouchPointWP::SETTINGS_PREFIX . "image_sideload")) > (time() - 60*60)) {
+			new TouchPointWP_Exception("Image import appears to have gotten stuck.", 170008);
+			return 0;
+		}
+
+		update_option(TouchPointWP::SETTINGS_PREFIX . "image_sideload", time(), false);
+
 		// Post image
 		global $wpdb;
 		$oldAttId = get_post_thumbnail_id($postId);
@@ -529,9 +537,13 @@ abstract class Utilities
 			}
 		} catch (Exception $e) {
 			echo "Exception occurred: " . $e->getMessage();
+			update_option(TouchPointWP::SETTINGS_PREFIX . "image_sideload", 0, false);
 			wp_delete_attachment($attId, true);
 			return 0;
 		}
+
+		update_option(TouchPointWP::SETTINGS_PREFIX . "image_sideload", 0, false);
+
 		if (is_wp_error($attId)) {
 			echo "Exception occurred: " . $attId->get_error_message();
 			return 0;
