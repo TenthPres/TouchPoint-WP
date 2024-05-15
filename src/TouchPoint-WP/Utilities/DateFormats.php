@@ -238,31 +238,18 @@ abstract class DateFormats
 
 		$allDay = $start->isAllDay;
 
-		if ($allDay && !$multiDay) {
-			return self::DateStringFormatted($start);
+		$r = self::DurationToStringArray($start, $end, $multiDay, $allDay);
+
+		if (isset($r['datetime'])) {
+			return $r['datetime'];
 		}
 
-		if ($allDay && $multiDay) {
-			$date1 = self::DateStringFormattedShort($start);
-			$date2 = ($end == null) ? null : self::DateStringFormattedShort($end);
-
-			// Translators: %1$s is the start date, %2$s is the end date.
-			return wp_sprintf(__('%1$s &ndash; %1$s', 'TouchPoint-WP'), $date1, $date2);
+		if (isset($r['date']) && isset($r['time'])) {
+			// translators: %1$s is the date, %2$s is the time.
+			return wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $r['date'], $r['time']);
 		}
 
-		$time1 = self::TimeStringFormatted($start);
-		$time2 = ($end == null) ? null : self::TimeStringFormatted($end);
-
-		if (!$multiDay) {
-			// translators: %1$s is the start time, %2$s is the end time.
-			return wp_sprintf(__('%1$s &ndash; %2$s', 'TouchPoint-WP'), $time1, $time2);
-		}
-
-		$date1 = self::DateStringFormattedShort($start);
-		$date2 = ($end == null) ? null : self::DateStringFormattedShort($end);
-
-		// translators: %1$s is the start date, %2$s start time, %3$s is the end date, and %4$s end time.
-		return wp_sprintf(__('%1$s at %2$s &ndash; %3$s at %4$s', 'TouchPoint-WP'), $date1, $time1, $date2, $time2);
+		return null;
 	}
 
 	/**
@@ -271,15 +258,23 @@ abstract class DateFormats
 	 *
 	 * @param ?DateTimeInterface $start
 	 * @param ?DateTimeInterface $end
-	 * @param bool               $multiDay
-	 * @param bool               $allDay
+	 * @param ?bool              $multiDay
+	 * @param ?bool              $allDay
 	 *
 	 * @return array|string[]
 	 */
-	public static function DurationToStringArray(?DateTimeInterface $start, ?DateTimeInterface $end, bool $multiDay, bool $allDay): array
+	public static function DurationToStringArray(?DateTimeInterface $start, ?DateTimeInterface $end, ?bool $multiDay = null, ?bool $allDay = null): array
 	{
 		if ($start === null) {
 			return [];
+		}
+
+		if ($multiDay === null) {
+			if ($end === null) {
+				$multiDay = false;
+			} else {
+				$multiDay = ($start->format('Ymd') !== $end->format('Ymd'));
+			}
 		}
 
 		// outputs are commented by bits corresponding to multiDay, end==null, and allDay
