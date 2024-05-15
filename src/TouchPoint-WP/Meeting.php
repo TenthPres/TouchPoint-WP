@@ -27,7 +27,152 @@ use WP_Term;
  */
 class Meeting extends PostTypeCapable implements api, module, hasGeo
 {
-	public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "meeting";
+	use jsInstantiation;
+//	use jsonLd; TODO
+
+	public const POST_TYPE_WO_PRE = "meeting";
+	public const POST_TYPE = TouchPointWP::HOOK_PREFIX . self::POST_TYPE_WO_PRE;
+
+	public const MEETING_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgId";
+	public const MEETING_START_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgStartDt";
+	public const MEETING_END_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgEndDt";
+	public const MEETING_FEAT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgFeatured";
+	public const MEETING_STATUS_META_KEY = TouchPointWP::SETTINGS_PREFIX . "status";
+	public const MEETING_INV_ID_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgInvId";
+
+	// This is the same as the meta key for involvement locations.
+	public const MEETING_LOCATION_META_KEY = TouchPointWP::SETTINGS_PREFIX . "locationName";
+
+	private static bool $_isLoaded = false;  // TODO why is this here?
+	private static array $_instances = [];
+	private static ?Involvement_PostTypeSettings $_typeSet = null;
+
+	public ?DateTimeImmutable $startDt = null;
+	public ?DateTimeImmutable $endDt = null;
+
+	protected object $attributes;
+	protected string $name;
+	protected int $mtgId;
+
+
+	/**
+	 * Meeting constructor.
+	 *
+	 * @param $object WP_Post|object an object representing the meeting's post.
+	 *				  Must have post_id AND mtg id attributes.
+	 *
+	 * @throws TouchPointWP_Exception
+	 */
+	protected function __construct(object $object)
+	{
+		$this->attributes = (object)[];
+
+		if (gettype($object) === "object" && get_class($object) == WP_Post::class) {
+			// WP_Post Object
+			$this->post    = $object;
+			$this->name    = $object->post_title;
+			$this->mtgId   = intval($object->{Meeting::MEETING_META_KEY});
+			$this->post_id = $object->ID;
+
+			if ($this->mtgId === 0) {
+				throw new TouchPointWP_Exception("No Meeting ID provided in the post.", 171003);
+			}
+		} elseif (gettype($object) === "object") {
+			// Sql Object, probably.
+
+			if ( ! property_exists($object, 'post_id')) {
+				_doing_it_wrong(
+					__FUNCTION__,
+					esc_html(
+						__('Creating a Meeting object from an object without a post_id is not yet supported.', 'TouchPoint-WP')
+					),
+					esc_attr(TouchPointWP::VERSION)
+				);
+			}
+
+			$this->post    = get_post($object, "OBJECT");
+			$this->post_id = $this->post->ID;
+
+			foreach ($object as $property => $value) {
+				if (property_exists(self::class, $property)) {
+					$this->$property = $value;
+				}
+				// TODO add an else for nonstandard/optional metadata fields
+			}
+		} else {
+			throw new TouchPointWP_Exception("Could not construct a Meeting with the information provided.");
+		}
+
+		$postTerms = [
+			Taxonomies::TAX_RESCODE,
+			Taxonomies::TAX_AGEGROUP,
+			Taxonomies::TAX_WEEKDAY,
+			Taxonomies::TAX_TENSE,
+			Taxonomies::TAX_DAYTIME,
+			Taxonomies::TAX_INV_MARITAL,
+			Taxonomies::TAX_DIV
+		];
+		if (TouchPointWP::instance()->settings->enable_campuses === "on") {
+			$postTerms[] = Taxonomies::TAX_CAMPUS;
+		}
+
+		$terms = wp_get_post_terms(
+			$this->post_id,
+			$postTerms
+		);
+
+		if (is_array($terms) && count($terms) > 0) {
+			$hookLength = strlen(TouchPointWP::HOOK_PREFIX);
+			foreach ($terms as $t) {
+				/** @var WP_Term $t */
+				$to = (object)[
+					'name' => $t->name,
+					'slug' => $t->slug
+				];
+				$ta = $t->taxonomy;
+				if (str_starts_with($ta, TouchPointWP::HOOK_PREFIX)) {
+					$ta = substr_replace($ta, "", 0, $hookLength);
+				}
+				if ( ! isset($this->attributes->$ta)) {
+					$this->attributes->$ta = $to;
+				} elseif ( ! is_array($this->attributes->$ta)) {
+					$this->attributes->$ta = [$this->attributes->$ta, $to];
+				} else {
+					$this->attributes->$ta[] = $to;
+				}
+			}
+		}
+
+		$meta         = get_post_meta($this->post_id);
+		$prefixLength = strlen(TouchPointWP::SETTINGS_PREFIX);
+
+		foreach ($meta as $k_tp => $v) {
+			if (substr($k_tp, 0, $prefixLength) !== TouchPointWP::SETTINGS_PREFIX) {
+				continue; // not ours.
+			}
+
+			$k = substr($k_tp, $prefixLength);
+			if ($k === "mtgId") {
+				continue;
+			}
+			if (property_exists(self::class, $k)) {  // properties
+				$this->$k = maybe_unserialize($v[0]);
+			}
+		}
+
+		// JS attributes, for filtering mostly.
+//		$this->attributes->genderId = (string)$this->genderId;  TODO restore if needed (may be able to just inherit from parent).
+
+		// Start and End
+		$start = intval(get_post_meta($this->post_id, self::MEETING_START_META_KEY, true));
+		$end = intval(get_post_meta($this->post_id, self::MEETING_END_META_KEY, true));
+		$tz = wp_timezone();
+		$this->startDt = ($start === 0 ? null : DateTimeImmutable::createFromMutable(DateTime::createFromFormat("U", $start, $tz)));
+		$this->endDt   = ($end   === 0 ? null : DateTimeImmutable::createFromMutable(DateTime::createFromFormat("U", $end, $tz)));
+
+		$this->registerConstruction();
+	}
+
 	
 	/**
 	 * Register scripts and styles to be used on display pages.
@@ -47,6 +192,218 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 			'TouchPoint-WP',
 			$i->getJsLocalizationDir()
 		);
+	}
+
+
+	/**
+	 * Get the PostTypeSettings object for Meeting Involvements.
+	 *
+	 * @return Involvement_PostTypeSettings
+	 */
+	public static function getTypeSettings(): Involvement_PostTypeSettings
+	{
+		if (self::$_typeSet == null) {
+			self::$_typeSet = new Involvement_PostTypeSettings((object)[
+				'namePlural'      => _x("Events", "What Meetings should be called, plural.", 'TouchPoint-WP'),
+				'nameSingular'    => _x("Event", "What Meetings should be called, singular.", 'TouchPoint-WP'),
+				'slug'            => TouchPointWP::instance()->settings->mc_slug,
+				'importMeetings'  => true,
+				'useImages'       => true,
+				'useGeo'          => false,
+				'hierarchical'    => true,
+				'postType'        => self::POST_TYPE_WO_PRE
+			]);
+		}
+		return self::$_typeSet;
+	}
+
+
+	/**
+	 * Create a Meeting object from an object from a WP_Post object.
+	 *
+	 * @param WP_Post $post
+	 *
+	 * @return Meeting
+	 *
+	 * @throws TouchPointWP_Exception If the meeting can't be created from the post, an exception is thrown.
+	 */
+	public static function fromPost(WP_Post $post): Meeting
+	{
+		$mid = intval($post->{Meeting::MEETING_META_KEY});
+
+		if ($mid === 0) {
+			throw new TouchPointWP_Exception("Invalid Meeting ID provided.", 171003);
+		}
+
+		if ( ! isset(self::$_instances[$mid])) {
+			self::$_instances[$mid] = new Meeting($post);
+		}
+
+		return self::$_instances[$mid];
+	}
+
+	/**
+	 * Get the Involvement object associated with this Meeting.
+	 *
+	 * @throws TouchPointWP_Exception
+	 */
+	public function involvement(): Involvement
+	{
+		if (Involvement::postIsType($this->post)) {
+			return Involvement::fromPost($this->post);
+		}
+		$parent = get_post_parent($this->post_id);
+		if (Involvement::postIsType($parent)) {
+			return Involvement::fromPost(get_post($parent));
+		}
+		throw new TouchPointWP_Exception("Meeting is not associated with an Involvement.", 171002);
+	}
+
+
+	/**
+	 * Get notable attributes, such as gender restrictions, as strings.
+	 *
+	 * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
+	 *
+	 * @return string[]
+	 */
+	public function notableAttributes(array $exclude = []): array
+	{
+		if (in_array('involvement', $exclude)) {
+			$attrs = [];
+		} else {
+			try {
+				$attrs = $this->involvement()->notableAttributes(['schedule', 'date', 'datetime', 'time']);
+			} catch (TouchPointWP_Exception) {
+				$attrs = [];
+			}
+		}
+
+		$d = DateFormats::DurationToStringArray($this->startDt, $this->endDt, $this->isMultiDay(), $this->isAllDay());
+
+		$attrs = [...$d, ...$attrs];
+
+		// Add an "in the past" label if the thing is already past. (end may be null)
+		if (($this->endDt ?? $this->startDt) < Utilities::dateTimeNow()) {
+			$attrs['past'] = __("In the Past", "TouchPoint-WP");
+		}
+
+		$loc = $this->locationName();
+		if ($loc) {
+			$attrs['location'] = $loc;
+		}
+
+		$attrs = $this->processAttributeExclusions($attrs, $exclude);
+
+		/**
+		 * Allows for manipulation of the notable attributes strings for a Meeting.  An array of strings.
+		 * Typically, these are the standardized strings that appear on the Involvement to give information about it,
+		 * such as the schedule, leaders, and location.
+		 *
+		 * @see Meeting::notableAttributes()
+		 * @see PostTypeCapable::notableAttributes()
+		 *
+		 * @since 0.0.90
+		 *
+		 * @param string[] $attrs The list of notable attributes.
+		 * @param Meeting $this The Meeting object.
+		 */
+		return apply_filters("tp_meeting_attributes", $attrs, $this);
+	}
+
+	/**
+	 * @param ?string $context
+	 * @param string  $btnClass
+	 * @param bool    $withTouchPointLink
+	 *
+	 * @return StringableArray
+	 */
+	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true): StringableArray
+	{
+		TouchPointWP::requireScript('swal2-defer');
+		TouchPointWP::requireScript('base-defer');
+		$this->enqueueForJsInstantiation();
+//		$this->enqueueForJsonLdInstantiation();
+		Person::enqueueUsersForJsInstantiation();
+
+		try {
+			$inv = $this->involvement();
+		} catch (TouchPointWP_Exception) {
+			return new StringableArray();
+		}
+
+		$ret = $inv->getActionButtons($context . "_meeting", $btnClass, false, false);
+
+		if (($this->endDt ?? $this->startDt) > Utilities::dateTimeNow()) {
+			$ret[] = $inv->getRegisterButton($btnClass);
+		}
+
+		if ($inv->getRegistrationType() === RegistrationType::RSVP) {
+			$ret[] = $this->getRsvpButton($btnClass);
+		}
+
+		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
+			$tpHost = TouchPointWP::instance()->host();
+			// Translators: %s is the system name.  "TouchPoint" by default.
+			$title  = wp_sprintf(__("Meeting in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
+			$logo = TouchPointWP::TouchPointIcon();
+			$ret[]  = "<a href=\"$tpHost/Meeting/$this->mtgId\" title=\"$title\" class=\"tp-TouchPoint-logo $btnClass\">$logo</a>";
+		}
+
+		/**
+		 * Allows for manipulation of the action buttons for a Meeting.  This is the list of buttons that appear
+		 * on the Meeting to allow the user to interact with it.
+		 *
+		 * @since 0.0.90
+		 *
+		 * @see Meeting::getActionButtons()
+		 * @see PostTypeCapable::getActionButtons()
+		 *
+		 * @param StringableArray $ret The list of action buttons.
+		 * @param Meeting $this The Meeting object.
+		 * @param ?string $context A reference to where the action buttons are meant to be used.
+		 * @param string $btnClass A string for classes to add to the buttons.  Note that buttons can be 'a' or 'button'
+		 *     elements.
+		 */
+		return apply_filters("tp_meeting_actions", $ret, $this, $context, $btnClass);
+	}
+	
+	public function isFeatured(): bool
+	{
+		return !!get_post_meta($this->post_id, Meeting::MEETING_FEAT_META_KEY, true);
+	}
+
+	/**
+	 * Get the status of the meeting, in a code-oriented name (for css, etc.)
+	 *
+	 * @return string
+	 */
+	public function status(): string
+	{
+		$status = intval(get_post_meta($this->post_id, self::MEETING_STATUS_META_KEY, true));
+
+		return match ($status) {
+			0 => "cancelled",
+			1 => "scheduled",
+			default => "unknown",
+		};
+	}
+
+	/**
+	 * @param bool $excludeScheduled "Scheduled" is the default (and correct) status for most events.  Set this to true
+	 * to return null instead of "Scheduled".
+	 *
+	 * @return string|null
+	 */
+	public function status_i18n(bool $excludeScheduled = false): ?string
+	{
+		$status = intval(get_post_meta($this->post_id, self::MEETING_STATUS_META_KEY, true));
+
+		return match ($status) {
+			0 => __("Cancelled", "TouchPoint-WP"),
+			1 => $excludeScheduled ? null : __("Scheduled", "TouchPoint-WP"),
+			default => _x("Unknown", "Event Status is not a recognized value.", "TouchPoint-WP"),
+		};
 	}
 
 	/**
@@ -73,82 +430,32 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 	}
 
 	/**
-	 * Print a calendar grid for a given month and year.
-	 *
-	 * @param WP_Query $q
-	 * @param int|null $month
-	 * @param int|null $year
-	 *
-	 * @return void
+	 * @inheritDoc
 	 */
-	public static function printCalendarGrid(WP_Query $q, int $month = null, int $year = null)
+	public static function getJsInstantiationString(): string
 	{
-		try {
-			// Validate month & year; create $d as a day within the month
-			$tz = wp_timezone();
-			if ($month < 1 || $month > 12 || $year < 2020 || $year > 2100) {
-				$d = new DateTime('now', $tz);
-				$d = new DateTime($d->format('Y-m-01'), $tz);
-			} else {
-				$d = new DateTime("$year-$month-01", $tz);
-			}
-		} catch (Exception $e) {
-			echo "<!-- Could not create calendar grid because an exception occurred. -->";
-			return;
+		$queue = static::getQueueForJsInstantiation();
+
+		if (count($queue) < 1) {
+			return "\t// No Meetings to instantiate.\n";
 		}
 
-		// Get the day of the week for the first day of the month (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-		$offsetDays = intval($d->format('w')); // w: Numeric representation of the day of the week
-		$d->modify("-$offsetDays days");
+		$listStr = json_encode($queue);
 
-		// Create a table to display the calendar
-		echo '<table>'; // TODO 1i18n
-		echo '<tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>';
+		return "";  // TODO someday, probably.
 
-		$isMonthBefore = ($offsetDays !== 0);
-		$isMonthAfter = false;
-		$aDay = new DateInterval("P1D");
+//		return "\ttpvm.addEventListener('Involvement_class_loaded', function() {
+//		TP_Involvement.fromObjArray($listStr);\n\t});\n";
+	}
 
-		// Loop through the days of the month
-		do {
-			$cellClass = "";
-			if ($isMonthBefore) {
-				$cellClass = "before";
-			} elseif ($isMonthAfter) {
-				$cellClass = "after";
-			}
-
-			$day = $d->format("j");
-			$wd =  $d->format("w");
-
-			if ($wd === '0') {
-				echo "<tr>";
-			}
-
-			// Print the cell
-			echo "<td class=\"$cellClass\">";
-			echo "<span class=\"calDay\">$day</span>";
-			// TODO print items
-			echo "</td>";
-
-			if ($wd === '6') {
-				echo "</tr>";
-			}
-
-			// Increment days
-			$mo1 = $d->format('n');
-			$d->add($aDay);
-			$mo2 = $d->format('n');
-
-			if ($mo1 !== $mo2) {
-				if ($isMonthBefore) {
-					$isMonthBefore = false;
-				} else {
-					$isMonthAfter = true;
-				}
-			}
-		} while (!$isMonthAfter || $d->format('w') !== '0');
-		echo '</table>';
+	/**
+	 * Gets a TouchPoint item ID number, regardless of what type of object this is.
+	 *
+	 * @return int
+	 */
+	public function getTouchPointId(): int
+	{
+		return $this->mtgId;
 	}
 
 	/**
@@ -159,8 +466,6 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 	 */
 	private static function getMeetingInfoForRsvp($opts): object
 	{
-		// TODO caching
-
 		return TouchPointWP::instance()->apiPost('mtg', $opts);
 	}
 
@@ -246,7 +551,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 		$preloadMsg = __("Loading...", "TouchPoint-WP");
 		
 		$btnClass = trim($btnClass);
-		if ($btnClass !== '') {
+		if ($btnClass !== '' && !str_starts_with($btnClass, "class=")) {
 			$btnClass = "class=\"$btnClass\"";
 		}
 
@@ -354,8 +659,6 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 
 	/**
 	 * @inheritDoc
-	 *
-	 * @return bool
 	 */
 	public function hasGeo(): bool
 	{
@@ -374,8 +677,6 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 
 	/**
 	 * @inheritDoc
-	 *
-	 * @return bool
 	 */
 	public function asGeoIFace(string $type = "unknown"): ?Geo
 	{
@@ -392,11 +693,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 	}
 
 	/**
-	 * Get the name of the location.
-	 *
 	 * @inheritDoc
-	 *
-	 * @return ?string
 	 */
 	public function locationName(): ?string
 	{

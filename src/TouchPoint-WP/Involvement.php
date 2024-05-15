@@ -1019,7 +1019,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					$dateTimeArr[] = $r['datetime'];
 				} else {
 					$dateTimeArr[] = wp_sprintf(
-						// translators: {date} at {time}  e.g. February 14 at 7pm
+						// translators: %1$s is the date, %2$s is the time.
 						__('%1$s at %2$s', 'TouchPoint-WP'), $r['date'], $r['time']
 					);
 					if ( !$dateArr->contains(['date'])) {
@@ -1041,7 +1041,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$dateStr = $dateArr->toListString();
 
 			return wp_sprintf(
-				// translators: {date} at {time}  e.g. February 14 at 7pm
+				// translators: %1$s is the date, %2$s is the time.
 				__('%1$s at %2$s', 'TouchPoint-WP'), $dateStr, $timeArr[0]
 			);
 		}
