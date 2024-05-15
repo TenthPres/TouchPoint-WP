@@ -64,7 +64,7 @@ class Involvement_PostTypeSettings
 	 */
 	final public static function &instance(): array
 	{
-		if ( ! isset(self::$settings)) {
+		if (!isset(self::$settings)) {
 			$json        = json_decode(TouchPointWP::instance()->settings->inv_json);
 			$settingsArr = [];
 
@@ -72,7 +72,24 @@ class Involvement_PostTypeSettings
 				$settingsArr[] = new Involvement_PostTypeSettings($o);
 			}
 
-			self::$settings = $settingsArr;
+			if (TouchPointWP::instance()->settings->enable_meeting_cal === 'on') {
+				$settingsArr[] = Meeting::getTypeSettings();
+			}
+
+			/**
+			 * Adjust Involvement Post Type Settings.  These settings define virtually all attributes of how a set of 
+			 * Involvements is synced to WordPress.
+			 *
+			 * If you're using this filter, you will need to add your function VERY early (init with a low sequence
+			 * number or earlier) because post types are registered early.
+			 *
+			 * @see Involvement_PostTypeSettings
+			 *
+			 * @since 0.0.90
+			 *
+			 * @param Involvement_PostTypeSettings[] $settingsArr An array of the Post Type Settings objects.
+			 */
+			self::$settings = apply_filters("tp_get_involvement_type_settings", $settingsArr);
 		}
 
 		return self::$settings;
@@ -307,19 +324,6 @@ class Involvement_PostTypeSettings
 		}
 
 		return json_encode($new);
-	}
-
-	/**
-	 * @param string|string[]|int[] $memberTypes
-	 *
-	 * @return int[]
-	 */
-	protected static function memberTypesToInts($memberTypes): array
-	{
-		$memberTypes = str_replace('mt', '', $memberTypes);
-
-		/** @noinspection SpellCheckingInspection */
-		return array_map('intval', $memberTypes);
 	}
 
 	/**

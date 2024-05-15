@@ -11,12 +11,10 @@ if ( ! defined('ABSPATH')) {
 	exit(1);
 }
 
-if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once 'Meeting.php';
-}
-
 /**
  * This class provides the RSVP functionality for Meetings.
+ *
+ * @deprecated  0.0.90
  */
 abstract class Rsvp implements module
 {

@@ -6,6 +6,7 @@
 namespace tp\TouchPointWP\Utilities;
 
 use ArrayObject;
+use tp\TouchPointWP\Utilities;
 
 /**
  * A collection of things that can be cast to a string by gluing them together with a simple implode().
@@ -51,6 +52,18 @@ class StringableArray extends ArrayObject
 	}
 
 	/**
+	 * Determine if the stringable array (haystack) contains the given needle
+	 *
+	 * @param $needle
+	 *
+	 * @return bool
+	 */
+	public function contains($needle): bool
+	{
+		return in_array($needle, $this->getArrayCopy());
+	}
+
+	/**
 	 * Standard method to stringify.
 	 *
 	 * @return string
@@ -58,5 +71,15 @@ class StringableArray extends ArrayObject
 	public function __toString()
 	{
 		return implode($this->separator, $this->getArrayCopy());
+	}
+
+	/**
+	 * Convert the array to a list string with ampersands and such.
+	 *
+	 * @return string
+	 */
+	public function toListString(): string
+	{
+		return Utilities::stringArrayToListString($this->getArrayCopy());
 	}
 }

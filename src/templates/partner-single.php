@@ -21,7 +21,7 @@ TouchPointWP::enqueuePartialsStyle();
     </div>
 </header>
 
-<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-partner="<?php echo $prtnr->post_id ?>">
+<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-partner="<?php echo $prtnr->post_id() ?>">
     <div class="post-inner partner-inner">
         <div class="entry-content">
             <?php

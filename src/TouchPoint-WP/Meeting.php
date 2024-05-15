@@ -231,7 +231,7 @@ class Meeting extends PostTypeCapable implements api, module
 	}
 
 	/**
-	 * @param $btnClass
+	 * @param string $btnClass
 	 *
 	 * @return string
 	 */
