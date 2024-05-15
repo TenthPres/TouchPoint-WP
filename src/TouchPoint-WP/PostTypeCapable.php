@@ -12,7 +12,8 @@ use WP_Post;
 /**
  * This is a base class for those objects that can be derived from a Post.
  */
-abstract class PostTypeCapable implements module {
+abstract class PostTypeCapable implements module
+{
 
 	protected int $post_id;
 	protected ?WP_Post $post = null;

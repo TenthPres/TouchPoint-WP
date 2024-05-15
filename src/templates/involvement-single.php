@@ -50,8 +50,9 @@ TouchPointWP::enqueuePartialsStyle();
                 <?php echo $obj->getActionButtons('single-template', "btn button") ?>
             </div>
         </div>
-        <?php if ($settings->useGeo && $inv->geo !== null) { ?>
+        <?php if ($settings->useGeo && $obj->hasGeo() !== null) { ?>
         <div class="TouchPointWP-detail-cell TouchPointWP-map-container">
+            <!-- TODO this doesn't work for meetings. -->
             <?php echo Involvement::mapShortcode() ?>
         </div>
         <?php } ?>

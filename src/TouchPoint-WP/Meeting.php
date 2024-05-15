@@ -25,7 +25,7 @@ use WP_Term;
 /**
  * Handle meeting content, particularly RSVPs.
  */
-class Meeting extends PostTypeCapable implements api, module
+class Meeting extends PostTypeCapable implements api, module, hasGeo
 {
 	public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "meeting";
 	
@@ -350,5 +350,65 @@ class Meeting extends PostTypeCapable implements api, module
 			return null;
 		}
 		return DateFormats::TimeStringFormatted($this->endDt);
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * @return bool
+	 */
+	public function hasGeo(): bool
+	{
+		try {
+			$i = $this->involvement();
+			if ($i->locationName() !== $this->locationName()) {
+				// Meetings can't have geographical references yet.  TODO Add Meeting Geographical ref when possible. #187
+				return false;
+			}
+
+			return $this->involvement()->hasGeo();
+		} catch (TouchPointWP_Exception) {
+			return false;
+		}
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * @return bool
+	 */
+	public function asGeoIFace(string $type = "unknown"): ?Geo
+	{
+		// In case location on meeting doesn't match location on 
+		if (!$this->hasGeo()) {
+			return null;
+		}
+
+		try {
+			return $this->involvement()->asGeoIFace($type);
+		} catch (TouchPointWP_Exception) {
+			return null;
+		}
+	}
+
+	/**
+	 * Get the name of the location.
+	 *
+	 * @inheritDoc
+	 *
+	 * @return ?string
+	 */
+	public function locationName(): ?string
+	{
+		$loc = get_post_meta($this->post_id, Meeting::MEETING_LOCATION_META_KEY, true);
+		if ($loc) {
+			return $loc;
+		}
+		try {
+			if ($this->post_id() !== $this->involvement()->post_id()) {
+				return $this->involvement()->locationName();
+			}
+		} catch (TouchPointWP_Exception) {}
+		return null;
 	}
 }

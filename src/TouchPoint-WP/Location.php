@@ -93,6 +93,14 @@ class Location implements hasGeo
 		return null;
 	}
 
+	/**
+	 * Get a location that corresponds to a given lat/lng, or null if none match.
+	 *
+	 * @param float $lat
+	 * @param float $lng
+	 *
+	 * @return Location|null
+	 */
 	public static function getLocationForLatLng(float $lat, float $lng): ?Location
 	{
 		$locs = self::getLocations();
@@ -106,6 +114,13 @@ class Location implements hasGeo
 		return null;
 	}
 
+	/**
+	 * Validates and corrects the Locations settings value.
+	 *
+	 * @param string $settings
+	 *
+	 * @return false|string
+	 */
 	public static function validateSetting(string $settings)
 	{
 		$d = json_decode($settings);
@@ -125,5 +140,15 @@ class Location implements hasGeo
 		}
 
 		return json_encode($d);
+	}
+
+	/**
+	 * Get the name of the location.
+	 *
+	 * @return ?string
+	 */
+	public function locationName(): ?string
+	{
+		return $this->name;
 	}
 }

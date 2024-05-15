@@ -32,4 +32,11 @@ interface hasGeo
 	 * @return object|null
 	 */
 	public function asGeoIFace(string $type = "unknown"): ?Geo;
+
+	/**
+	 * Get the name of the location.
+	 *
+	 * @return ?string
+	 */
+	public function locationName(): ?string;
 }

@@ -69,7 +69,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	public static string $itemClass = 'inv-list-item';
 
 	private static bool $filterJsAdded = false;
-	public ?object $geo = null;
+	protected ?object $geo = null;
 	static protected object $compareGeo;
 
 	protected ?string $locationName = null;
@@ -3108,6 +3108,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			update_post_meta($mtgP->ID, Meeting::MEETING_INV_ID_META_KEY, $mtgO->involvementId);
 			update_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY, intval($mtgO->status));
 
+			if ($mtgO->location !== null) {
+				update_post_meta($mtgP->ID, Meeting::MEETING_LOCATION_META_KEY, $mtgO->location);
+			}
+
 			if ($verbose) {
 				$link = get_permalink($mtgP);
 				echo "<p><a href=\"$link\">Updating Post $mtgP->ID</a> based on Meeting $mtgO->mtgId.</p>";
@@ -3418,9 +3422,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		}
 		unset($schStr);
 
-		if ($this->locationName) {
-			$attrs['location'] = $this->locationName;
+		$l = $this->locationName();
+		if ($l) {
+			$attrs['location'] = $l;
 		}
+		unset($l);
 
 		foreach ($this->getDivisionsLinks() as $a) {
 			$attrs['divisions'] = $a;
@@ -3808,5 +3814,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		echo json_encode(['success' => $data->success]);
 		exit;
+	}
+
+	/**
+	 * Get the name of the location.
+	 *
+	 * @return ?string
+	 */
+	public function locationName(): ?string
+	{
+		return $this->locationName;
 	}
 }

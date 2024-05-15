@@ -1216,11 +1216,13 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 	{
 		$r = [];
 
+		$l = $this->locationName();
 		if ($this->decoupleLocation) {
-			$r['secure'] = TouchPointWP::instance()->settings->global_name_singular_decoupled;
-		} elseif ($this->location !== "" && $this->location !== null) {
-			$r['location'] = $this->location;
+			$r['secure'] = $l;
+		} elseif ($l) {
+			$r['location'] = $l;
 		}
+		unset($l);
 
 		foreach ($this->category as $c) {
 			$r['category'] = $c->name;
@@ -1469,6 +1471,21 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 			);
 		}
 
+		return null;
+	}
+
+	/**
+	 * Get the name of the location.
+	 *
+	 * @return ?string
+	 */
+	public function locationName(): ?string
+	{
+		if ($this->decoupleLocation) {
+			return TouchPointWP::instance()->settings->global_name_singular_decoupled;
+		} elseif ($this->location !== "" && $this->location !== null) {
+			return $this->location;
+		}
 		return null;
 	}
 }
