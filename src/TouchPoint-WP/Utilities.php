@@ -522,6 +522,7 @@ abstract class Utilities
 					wp_delete_attachment($oldAttId, true);
 				}
 				if ($newUrl !== "") { // Load and save new one
+					set_time_limit(60);
 					$attId = media_sideload_image($newUrl, $postId, $title, 'id');
 					set_post_thumbnail($postId, $attId);
 				}
@@ -629,7 +630,7 @@ abstract class Utilities
 
 
 		/**
-		 * The maximum header level to allow in the HTML.  Default is 2.
+		 * The maximum header level to allow in an HTML string.  Default is 2.
 		 *
 		 * @since 0.0.25
 		 *
@@ -647,7 +648,7 @@ abstract class Utilities
 		];
 
 		/**
-		 * The allowed tags in the HTML standardization process.  Default is a set of common tags.
+		 * The allowed tags in the HTML standardization process.  Default is a set of common tags, but tags such as script, style, img, and others are stripped.
 		 *
 		 * @since 0.0.25
 		 *
