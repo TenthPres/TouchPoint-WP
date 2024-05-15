@@ -202,14 +202,14 @@ abstract class DateFormats
 		}
 
 		/**
-		 * Allows for manipulation of the string returned as a formatted date.
+		 * Allows for manipulation of the string returned as a (short) formatted date.
 		 *
 		 * @since 0.0.90
 		 *
 		 * @param string $r The string, as formatted so far.
 		 * @param DateTimeInterface $dt The DateTimeInterface object for the date being formatted.
 		 */
-		return apply_filters('tp_adjust_date_string', $r, $dt);
+		return apply_filters('tp_adjust_date_string_short', $r, $dt);
 	}
 
 
