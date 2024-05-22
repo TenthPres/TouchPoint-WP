@@ -1863,13 +1863,17 @@ class TouchPointWP
 
 		// Get update if needed.
 		if ($needsUpdate) {
-			$update = $this->updateFamilyEvFields();
+			try {
+				$update = $this->updateFamilyEvFields();
+			} catch (TouchPointWP_Exception) {
+				$update = false;
+			}
 			if ($update !== false) {
 				$fevObj = $update;
 			}
 		}
 
-		// If update failed, show a notice on the admin interface.
+		// If there's no update and no existing data, return empty array.
 		if ($fevObj === false) {
 			return [];
 		}
@@ -2105,6 +2109,31 @@ class TouchPointWP
 	}
 
 	/**
+	 * @throws TouchPointWP_Exception
+	 */
+	protected function checkApiValidity(): void
+	{
+		if ( ! $this->settings->hasValidApiSettings()) {
+			throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", "TouchPoint-WP"), 170001);
+		}
+
+		if (!self::$allowApiCalls) {
+			throw new TouchPointWP_Exception("TouchPoint has received too many requests.", 170009);
+		}
+
+		$mostCommon = "";
+		if (count(self::$apiCallLog) > self::MAX_API_CALLS) {
+			if ($this->debug) {
+				$counts = array_count_values(self::$apiCallLog);
+				arsort($counts);
+				$mostCommon = "  Most Common: " . key($counts);
+			}
+
+			throw new TouchPointWP_Exception("Too many API calls have been attempted in this session.$mostCommon", 170009);
+		}
+	}
+
+	/**
 	 * @param string $command The thing to get
 	 * @param ?array $parameters URL parameters to be added.
 	 * @param int    $timeout Amount of time in sec to wait before timing out.
@@ -2124,6 +2153,12 @@ class TouchPointWP
 			throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", "TouchPoint-WP"), 170001);
 		}
 
+		if (!self::$allowApiCalls) {
+			throw new TouchPointWP_Exception("TouchPoint has received too many requests.", 170009);
+		}
+
+		$this->checkApiValidity();
+
 		$parameters['a'] = $command;
 
 		$host = $this->host();
@@ -2134,6 +2169,8 @@ class TouchPointWP
 
 		$url = $host . "/PythonApi/" .
 		       $this->settings->api_script_name . "?" . http_build_query($parameters);
+
+		self::$apiCallLog[] = $url;
 		
 		if ($verbose) {
 			echo "<p>Request to $url</p>";
@@ -2165,9 +2202,7 @@ class TouchPointWP
 	 */
 	public function apiPost(string $command, mixed $data = null, int $timeout = 5): array|stdClass
 	{
-		if ( ! $this->settings->hasValidApiSettings()) {
-			throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", "TouchPoint-WP"), 170001);
-		}
+		$this->checkApiValidity();
 
 		$host = $this->host();
 
@@ -2179,9 +2214,12 @@ class TouchPointWP
 
 		$data = json_encode(['inputData' => $data]);
 
+		$url = $host . "/PythonApi/" . $this->settings->api_script_name . "?" . http_build_query(['a' => $command]);
+
+		self::$apiCallLog[] = $url;
+
 		$r = $this->getHttpClient()->request(
-			$host . "/PythonApi/" .
-			$this->settings->api_script_name . "?" . http_build_query(['a' => $command]),
+			$url,
 			[
 				'method'  => 'POST',
 				'headers' => [
@@ -2195,6 +2233,10 @@ class TouchPointWP
 		return self::parseApiResponse($r);
 	}
 
+	protected static bool $allowApiCalls = true;
+	protected static array $apiCallLog = [];
+	const MAX_API_CALLS = 20;
+
 	/**
 	 * @param $response
 	 *
@@ -2206,6 +2248,11 @@ class TouchPointWP
 	{
 		if ($response instanceof WP_Error) {
 			throw new TouchPointWP_WPError($response);
+		}
+
+		if ($response['response']['code'] === 429) {
+			self::$allowApiCalls = false;
+			throw new TouchPointWP_Exception("TouchPoint has received too many requests.", 170009);
 		}
 
 		$respDecoded = json_decode($response['body']);

@@ -31,6 +31,7 @@ use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\StringableArray;
 use tp\TouchPointWP\Utilities\Translation;
+use TypeError;
 use WP_Error;
 use WP_Post;
 use WP_Query;
@@ -207,7 +208,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				continue;
 			}
 			if (property_exists(self::class, $k)) {  // properties
-				$this->$k = maybe_unserialize($v[0]);
+				try {
+					$this->$k = maybe_unserialize($v[0]);
+				} catch (TypeError $e) {
+					new TouchPointWP_Exception($e);
+				}
 			}
 		}
 
@@ -723,6 +728,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			// schedules
 			foreach ($this->schedules() as $s) {
 				$mdt = $s->nextStartDt;
+				if ($mdt === null) {
+					continue;
+				}
 				if ($mdt <= $now) { // If "next meeting" is past, add a week and re-check.
 					$mdt = $mdt->modify("+1 week");
 				}
@@ -788,6 +796,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 			/** @var DateTimeExtended $start */
 			$start = $s->nextStartDt;
+			if ($start === null) {
+				continue;
+			}
 			if ($start->isAllDay) {
 				$coInx = $start->format('w-9999');
 			} else {

@@ -292,6 +292,13 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 
 		$verbose &= TouchPointWP::currentUserIsAdmin();
 
+		if (TouchPointWP::instance()->settings->enable_global !== 'on') {
+			if ($verbose) {
+				echo "Global is not enabled.";
+			}
+			return 0;
+		}
+
 		$customFev = TouchPointWP::instance()->settings->global_fev_custom;
 		$fevFields = $customFev;
 
@@ -387,7 +394,9 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 			/** @var $post WP_Post */
 
 			// Apply Types
-			$f->familyEV = ExtraValueHandler::jsonToDataTyped($f->familyEV);
+			if ($f->familyEV !== null) {
+				$f->familyEV = ExtraValueHandler::jsonToDataTyped($f->familyEV);
+			}
 
 			// Post Content
 			$post->post_content = self::getFamEvAsContent($descriptionEv, $f, '');
@@ -400,7 +409,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 				$category = $f->familyEV->$categoryEv->value ?? null;
 				// Insert Term if new
 				$term = Taxonomies::termExists($category, Taxonomies::TAX_GP_CATEGORY);
-				if ($category !== null && ! $term) {
+				if ($category !== null && !$term) {
 					$term = Taxonomies::insertTerm(
 						$category,
 						Taxonomies::TAX_GP_CATEGORY,
@@ -411,11 +420,15 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 					);
 					TouchPointWP::queueFlushRewriteRules();
 				}
-				if ( !!$term && !!$term['term_id']) {
-					$term['term_id'] = intval($term['term_id']);
-					$termsToKeep[] = $term['term_id'];
-					// Apply term to post
-					wp_set_post_terms($post->ID, [$term['term_id']], Taxonomies::TAX_GP_CATEGORY, false);
+				if (is_wp_error($term)) {
+					new TouchPointWP_WPError($term);
+				} else {
+					if ( !!$term && !!$term['term_id']) {
+						$term['term_id'] = intval($term['term_id']);
+						$termsToKeep[]   = $term['term_id'];
+						// Apply term to post
+						wp_set_post_terms($post->ID, [$term['term_id']], Taxonomies::TAX_GP_CATEGORY, false);
+					}
 				}
 			}
 
@@ -467,7 +480,9 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 
 			// Positioning.
 			if ($latEv !== "" && $lngEv !== "" &&   // Has EV Lat/Lng
-					property_exists($f->familyEV, $latEv) && property_exists($f->familyEV, $lngEv) &&
+					is_object($f->familyEV) &&
+					property_exists($f->familyEV, $latEv) &&
+					property_exists($f->familyEV, $lngEv) &&
 					$f->familyEV->$latEv !== null && $f->familyEV->$latEv->value !== null &&
 					$f->familyEV->$lngEv !== null && $f->familyEV->$lngEv->value !== null) {
 				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", Utilities::toFloatOrNull($f->familyEV->$latEv->value));
@@ -1196,7 +1211,12 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 	public static function getFamEvAsContent(string $ev, object $famObj, ?string $default): ?string
 	{
 		$newContent = $default;
-		if ($ev !== "" && property_exists($famObj->familyEV, $ev) && $famObj->familyEV->$ev !== null && $famObj->familyEV->$ev->value !== null) {
+		if ($ev !== "" &&
+			isset($famObj->familyEV) &&
+			property_exists($famObj->familyEV, $ev) &&
+			$famObj->familyEV->$ev !== null &&
+			$famObj->familyEV->$ev->value !== null) {
+
 			$newContent = $famObj->familyEV->$ev->value;
 			$newContent = Utilities::standardizeHtml($newContent, "partner-import");
 		}

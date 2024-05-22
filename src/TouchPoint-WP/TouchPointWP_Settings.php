@@ -1381,7 +1381,7 @@ class TouchPointWP_Settings
 	{
 		$v = $this->getWithoutDefault($what);
 
-		$meta = $this->getFieldMeta($what);
+		$meta = $this->getFieldMeta($what); // $meta can be null if option isn't in settings (e.g. cached meta fields)
 
 		if ($v === self::UNDEFINED_PLACEHOLDER) {
 			$v = $this->getDefaultValueForSetting($what, $meta);

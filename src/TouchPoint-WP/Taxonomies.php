@@ -883,6 +883,7 @@ abstract class Taxonomies
 		if ($types > 0) {
 			$tax = $instance->settings->global_primary_tax;
 			if ($tax !== "" &&
+			    is_object($tax) &&
 			    $instance->settings->enable_global === "on" &&
 			    count($instance->getFamilyEvFields([$tax])) > 0) {
 				$tax    = $instance->getFamilyEvFields([$tax])[0];
