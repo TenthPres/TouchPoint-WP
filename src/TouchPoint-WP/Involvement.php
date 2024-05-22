@@ -926,7 +926,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					}
 					if (count($timeStr) > 0) {
 						$timeStr = Utilities::stringArrayToListString($timeStr);
-						// translators: "Mon at 7pm"  or  "Sundays at 9am & 11am"
+						// translators: %1$s is the date(s), %2$s is the time(s).
 						$dayStr[] = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $day, $timeStr);
 					} else {
 						// translators: "Mon All Day"  or  "Sundays All Day"
@@ -955,7 +955,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				} else {
 					$timeStr = DateFormats::TimeStringFormatted($dt);
 
-					// translators: "Mon at 7pm"  or  "Sundays at 9am & 11am"
+					// translators: %1$s is the date(s), %2$s is the time(s).
 					$dayStr  = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $dayStr, $timeStr);
 				}
 			}
@@ -1030,7 +1030,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					$dateTimeArr[] = $r['datetime'];
 				} else {
 					$dateTimeArr[] = wp_sprintf(
-						// translators: %1$s is the date, %2$s is the time.
+						// translators: %1$s is the date(s), %2$s is the time(s).
 						__('%1$s at %2$s', 'TouchPoint-WP'), $r['date'], $r['time']
 					);
 					if ( !$dateArr->contains(['date'])) {
@@ -1052,7 +1052,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$dateStr = $dateArr->toListString();
 
 			return wp_sprintf(
-				// translators: %1$s is the date, %2$s is the time.
+				// translators: %1$s is the date(s), %2$s is the time(s).
 				__('%1$s at %2$s', 'TouchPoint-WP'), $dateStr, $timeArr[0]
 			);
 		}

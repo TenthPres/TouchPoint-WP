@@ -87,7 +87,7 @@ msgstr "Tipos de miembros de líder"
 #: src/templates/admin/invKoForm.php:141
 #: src/templates/admin/invKoForm.php:268
 #: src/templates/parts/involvement-nearby-list.php:2
-#: src/TouchPoint-WP/Meeting.php:555
+#: src/TouchPoint-WP/Meeting.php:551
 #: src/TouchPoint-WP/Rsvp.php:75
 #: assets/js/base-defer.js:192
 #: assets/js/base-defer.js:1133
@@ -306,7 +306,7 @@ msgstr "ID de Personas de TouchPoint"
 msgid "Contact"
 msgstr "Contacta"
 
-#: src/TouchPoint-WP/Meeting.php:554
+#: src/TouchPoint-WP/Meeting.php:550
 #: src/TouchPoint-WP/Rsvp.php:80
 msgid "RSVP"
 msgstr "RSVP"
@@ -1301,17 +1301,17 @@ msgstr "Este tipo de participación no tiene habilitadas las ubicaciones geográ
 msgid "Could not locate."
 msgstr "No se pudo localizar."
 
-#: src/TouchPoint-WP/Meeting.php:487
+#: src/TouchPoint-WP/Meeting.php:483
 #: src/TouchPoint-WP/TouchPointWP.php:969
 msgid "Only GET requests are allowed."
 msgstr "Solo se permiten solicitudes GET."
 
-#: src/TouchPoint-WP/Meeting.php:515
+#: src/TouchPoint-WP/Meeting.php:511
 #: src/TouchPoint-WP/TouchPointWP.php:353
 msgid "Only POST requests are allowed."
 msgstr "Solo se permiten solicitudes POST."
 
-#: src/TouchPoint-WP/Meeting.php:525
+#: src/TouchPoint-WP/Meeting.php:521
 #: src/TouchPoint-WP/TouchPointWP.php:362
 msgid "Invalid data provided."
 msgstr "Datos proporcionados no válidos."
@@ -1580,18 +1580,18 @@ msgstr "Seleccione los tipos de publicaciones que deberían tener Divisiones dis
 msgid "Select post types which should have Resident Codes available as a native taxonomy."
 msgstr "Seleccione los tipos de publicaciones que deberían tener códigos de residente disponibles como taxonomía nativa."
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:85
-#: src/TouchPoint-WP/Utilities/DateFormats.php:157
+#: src/TouchPoint-WP/Utilities/DateFormats.php:86
+#: src/TouchPoint-WP/Utilities/DateFormats.php:158
 msgid "Tonight"
 msgstr "este noche"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:87
-#: src/TouchPoint-WP/Utilities/DateFormats.php:159
+#: src/TouchPoint-WP/Utilities/DateFormats.php:88
+#: src/TouchPoint-WP/Utilities/DateFormats.php:160
 msgid "Today"
 msgstr "hoy"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:93
-#: src/TouchPoint-WP/Utilities/DateFormats.php:165
+#: src/TouchPoint-WP/Utilities/DateFormats.php:94
+#: src/TouchPoint-WP/Utilities/DateFormats.php:166
 msgid "Tomorrow"
 msgstr "mañana"
 
@@ -1612,25 +1612,25 @@ msgid "Scheduled"
 msgstr "Programado"
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:110
+#: src/TouchPoint-WP/Utilities/DateFormats.php:111
 msgctxt "Date format string"
 msgid "Last %1$s, %2$s"
 msgstr "el pasado %1$s %2$s"
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:116
+#: src/TouchPoint-WP/Utilities/DateFormats.php:117
 msgctxt "Date format string"
 msgid "This %1$s, %2$s"
 msgstr "este %1$s %2$s"
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:122
+#: src/TouchPoint-WP/Utilities/DateFormats.php:123
 msgctxt "Date format string"
 msgid "Next %1$s, %2$s"
 msgstr "el proximo %1$s %2$s"
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:127
+#: src/TouchPoint-WP/Utilities/DateFormats.php:128
 msgctxt "Date format string"
 msgid "%1$s, %2$s"
 msgstr "%1$s %2$s"
@@ -1695,22 +1695,22 @@ msgstr "Reunión"
 msgid "Event"
 msgstr "Evento"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:100
+#: src/TouchPoint-WP/Utilities/DateFormats.php:101
 msgctxt "Date string for day of the week, when the year is current."
 msgid "l"
 msgstr "l"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:101
+#: src/TouchPoint-WP/Utilities/DateFormats.php:102
 msgctxt "Date string when the year is current."
 msgid "F j"
 msgstr "j F"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:103
+#: src/TouchPoint-WP/Utilities/DateFormats.php:104
 msgctxt "Date string for day of the week, when the year is not current."
 msgid "l"
 msgstr "l"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:104
+#: src/TouchPoint-WP/Utilities/DateFormats.php:105
 msgctxt "Date string when the year is not current."
 msgid "F j, Y"
 msgstr "j F Y"
@@ -1734,55 +1734,57 @@ msgstr "todo el dia los %1$s"
 msgid "Creating a Meeting object from an object without a post_id is not yet supported."
 msgstr "Aún no se admite la creación de un objeto de reunión a partir de un objeto sin post_id."
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:55
-#: src/TouchPoint-WP/Utilities/DateFormats.php:291
+#. translators: %1$s is the start time, %2$s is the end time.
+#: src/TouchPoint-WP/Utilities/DateFormats.php:56
+#: src/TouchPoint-WP/Utilities/DateFormats.php:292
 msgid "%1$s &ndash; %2$s"
 msgstr "%1$s &ndash; %2$s"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:172
+#: src/TouchPoint-WP/Utilities/DateFormats.php:173
 msgctxt "Short date string for day of the week, when the year is current."
 msgid "D"
 msgstr "D"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:173
+#: src/TouchPoint-WP/Utilities/DateFormats.php:174
 msgctxt "Short date string when the year is current."
 msgid "M j"
 msgstr "j M"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:175
+#: src/TouchPoint-WP/Utilities/DateFormats.php:176
 msgctxt "Short date string for day of the week, when the year is not current."
 msgid "D"
 msgstr "D"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:176
+#: src/TouchPoint-WP/Utilities/DateFormats.php:177
 msgctxt "Short date string when the year is not current."
 msgid "M j, Y"
 msgstr "j M Y"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:325
+#. translators: %1$s is the start date, %2$s start time, %3$s is the end date, and %4$s end time.
+#: src/TouchPoint-WP/Utilities/DateFormats.php:326
 msgid "%1$s at %2$s &ndash; %3$s at %4$s"
 msgstr "%1$s a %2$s &ndash; %3$s a %4$s"
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:182
+#: src/TouchPoint-WP/Utilities/DateFormats.php:183
 msgctxt "Short date format string"
 msgid "Last %1$s, %2$s"
 msgstr "el pasado %1$s %2$s"
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:188
+#: src/TouchPoint-WP/Utilities/DateFormats.php:189
 msgctxt "Short date format string"
 msgid "This %1$s, %2$s"
 msgstr "este %1$s %2$s"
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:194
+#: src/TouchPoint-WP/Utilities/DateFormats.php:195
 msgctxt "Short date format string"
 msgid "Next %1$s, %2$s"
 msgstr "proximo %1$s %2$s"
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:199
+#: src/TouchPoint-WP/Utilities/DateFormats.php:200
 msgctxt "Short date format string"
 msgid "%1$s, %2$s"
 msgstr "%1$s %2$s"

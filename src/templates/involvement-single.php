@@ -93,8 +93,16 @@ if ($settings->importMeetings && $tps->enable_meeting_cal === "on") {
 		                         'meta_value'   => time(),
 		                         'meta_compare' => '>'
 	                         ]);
-	if (count($meetings) > 0) {
+    $count = count($meetings);
+	if ($count > 0) {
 		echo "<div class='event-list'>";
+        $heading = sprintf(
+                // translators: %1$s is the singular name of the event type, %2$s is the plural name of the event type
+                _n('Upcoming %1$s', 'Upcoming %2$s', 'TouchPoint-WP'),
+                TouchPointWP::instance()->settings->mc_name_singular,
+                TouchPointWP::instance()->settings->mc_name_plural
+        );
+        echo "<h3>$heading</h3>";
 	}
 	foreach ($meetings as $post) {
 		/** @var WP_Post $post */
