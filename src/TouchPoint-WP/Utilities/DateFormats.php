@@ -22,7 +22,7 @@ abstract class DateFormats
 	 */
 	public static function TimeStringFormatted(DateTimeInterface $dt): string
 	{
-		$ts = date_i18n(get_option('time_format'), $dt->getTimestamp());
+		$ts = date_i18n(get_option('time_format'), self::timestampAndOffset($dt));
 
 		/**
 		 * Allows for manipulation of the string returned as a formatted time.
@@ -33,6 +33,18 @@ abstract class DateFormats
 		 * @param DateTimeInterface $dt The DateTimeInterface object for the time being formatted.
 		 */
 		return apply_filters('tp_adjust_time_string', $ts, $dt);
+	}
+
+	/**
+	 * @param DateTimeInterface $dt
+	 *
+	 * @return int
+	 *
+	 * @since 0.0.90
+	 */
+	public static function timestampAndOffset(DateTimeInterface $dt): int
+	{
+		return $dt->getTimestamp() + $dt->getOffset();
 	}
 
 	/**
@@ -93,8 +105,8 @@ abstract class DateFormats
 			if ($tomorrow->format("Ymd") === $dt->format("Ymd")) {
 				$r = __("Tomorrow", "TouchPoint-WP");
 			} else {
-				$ts    = $dt->getTimestamp();
-				$nowTs = $now->getTimestamp();
+				$ts    = DateFormats::timestampAndOffset($dt);
+				$nowTs = DateFormats::timestampAndOffset($now);
 
 
 				if ($tomorrow->format("Y") === $dt->format("Y")) { // Same Year
@@ -165,8 +177,8 @@ abstract class DateFormats
 			if ($tomorrow->format("Ymd") === $dt->format("Ymd")) {
 				$r = __("Tomorrow", "TouchPoint-WP");
 			} else {
-				$ts    = $dt->getTimestamp();
-				$nowTs = $now->getTimestamp();
+				$ts    = DateFormats::timestampAndOffset($dt);
+				$nowTs = DateFormats::timestampAndOffset($now);
 
 
 				if ($tomorrow->format("Y") === $dt->format("Y")) { // Same Year

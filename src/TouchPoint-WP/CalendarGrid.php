@@ -101,9 +101,10 @@ class CalendarGrid {
 
 		// Loop through the days of the month
 		do {
-			$day = date_i18n("j", $d->getTimestamp());
+			$ts = DateFormats::timestampAndOffset($d);
+			$day = date_i18n("j", $ts);
 			$fullDay = DateFormats::DateStringFormatted($d);
-			$wd =  date_i18n("w", $d->getTimestamp());
+			$wd =  date_i18n("w", $ts);
 
 			try {
 				$newQ = self::adjustQueryForDay($q, $d, $tz);
@@ -387,10 +388,11 @@ class CalendarGrid {
 	 */
 	protected static function getMonthNameForDate(DateTimeInterface $date): string
 	{
+		$ts = DateFormats::timestampAndOffset($date);
 		if ($date->format('Y') === Utilities::dateTimeNow()->format('Y')) {
-			$label = date_i18n('F', $date->getTimestamp());
+			$label = date_i18n('F', $ts);
 		} else {
-			$label = date_i18n('F Y', $date->getTimestamp());
+			$label = date_i18n('F Y', $ts);
 		}
 		return $label;
 	}
