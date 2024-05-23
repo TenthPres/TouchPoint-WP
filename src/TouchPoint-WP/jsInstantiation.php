@@ -95,6 +95,10 @@ trait jsInstantiation
 		$item = Closure::fromCallable("get_object_vars")->__invoke($this);
 		$item['post_id'] = $this->post_id();
 
+		if (method_exists($this, 'asGeoIFace')) {
+			$item['geo'] = $this->asGeoIFace('known');
+		}
+
 		return (object)$item;
 	}
 

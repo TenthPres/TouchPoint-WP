@@ -73,7 +73,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string       mc_slug            Slug for meetings in the meeting calendar (e.g. "events" for church.org/events)
  * @property-read int          mc_future_days     Number of days into the future to import.
  * @property-read int          mc_archive_days    Number of days to wait to move something to history.
- * @property-read int          mc_hist_days       Number of days of history to keep.
+ * @property-read int|string   mc_hist_days       Number of days of history to keep.  (Can be '' if module isn't enabled.)
  * @property-read string       mc_deletion_method Determines how meetings should be handled in WordPress if they're deleted in TouchPoint
  *
  * @property-read string       rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
@@ -1383,7 +1383,7 @@ class TouchPointWP_Settings
 
 		$meta = $this->getFieldMeta($what); // $meta can be null if option isn't in settings (e.g. cached meta fields)
 
-		if ($v === self::UNDEFINED_PLACEHOLDER) {
+		if ($v === self::UNDEFINED_PLACEHOLDER && $meta !== null) {
 			$v = $this->getDefaultValueForSetting($what, $meta);
 		}
 		if ($v === self::UNDEFINED_PLACEHOLDER) {

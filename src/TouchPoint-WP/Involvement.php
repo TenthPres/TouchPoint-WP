@@ -222,8 +222,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		// Geo
 		if (self::getSettingsForPostType($this->invType)->useGeo) {
 			if (property_exists($object, 'geo_lat') &&
-				$object->geo_lat !== null &&
-				$object->geo_lat !== '') {
+			    $object->geo_lat !== null &&
+			    $object->geo_lat !== '') {
 				// Probably a database query result
 				$this->geo = (object)[
 					'lat' => Utilities::toFloatOrNull($object->geo_lat),
@@ -579,12 +579,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					}
 					break; // Registration isn't possible at a link, therefore, assume there was a mistake and continue.
 
-					
+
 				case 7:
 					$this->_registrationType = RegistrationType::CLOSED;
 					return $this->_registrationType;
 			}
-			
+
 			// If the involvement has a redirection link, assume it's an external form
 			if ($regUrl !== null) {
 				$this->_registrationType = RegistrationType::EXTERNAL;
@@ -622,7 +622,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	{
 		if (!isset($this->_useRegistrationForm)) {
 			$this->_useRegistrationForm = (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", true) === '1' ||
-					intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) !== 1);
+			                               intval(get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) !== 1);
 		}
 		return $this->_useRegistrationForm;
 	}
@@ -633,7 +633,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * Get an array of objects that correspond to key details of meetings.  Does NOT return the actual Meeting objects.
 	 * Since this is used for involvements regardless of whether their meetings are imported, this pulls from the object
 	 * array that's imported directly from the API.  It does not take into account Meeting objects, or meetings that
-	 * belong to child involvements. 
+	 * belong to child involvements.
 	 *
 	 * @return stdClass[]
 	 */
@@ -1067,7 +1067,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	protected function getDivisions(): array
 	{
 		$exclude = $this->settings()->importDivs;
-		
+
 		if ( ! isset($this->divisions)) {
 			if (count($exclude) > 1) {
 				$mq = ['relation' => "AND"];
@@ -1085,7 +1085,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 			$this->divisions = wp_get_post_terms($this->post_id, Taxonomies::TAX_DIV, ['meta_query' => $mq]);
 		}
-		
+
 		return $this->divisions;
 	}
 
@@ -1498,7 +1498,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				 * @since 0.0.15
 				 *
 				 * @param bool $useCss Whether or not to include the default CSS.  True = include
-				 * @param string $className The name of the current calling class. 
+				 * @param string $className The name of the current calling class.
 				 */
 				'includecss' => apply_filters('tp_use_css', true, self::class),
 				'itemclass'  => self::$itemClass,
@@ -2430,11 +2430,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		try {
 			$now       = Utilities::dateTimeNow();
-			$histDays  = TouchPointWP::instance()->settings->mc_hist_days;
+			$histDays  = intval(TouchPointWP::instance()->settings->mc_hist_days);
 			$histVal   = new DateInterval("P{$histDays}D");
 			$nowMinusH = $now->sub($histVal);
 			unset($aYear);
-		} catch (Exception) {
+		} catch (Exception $e) {
+			if ($verbose) {
+				$m = $e->getMessage();
+				echo "<p>Could not calculate date values.  Original Exception: $m</p>";
+			}
 			return false;
 		}
 
@@ -2466,8 +2470,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 			// Filter by end dates to stay relevant
 			if ($inv->lastMeeting !== null && (
-				(!$typeSets->importMeetings && $inv->lastMeeting < $now) ||
-				($typeSets->importMeetings && $inv->lastMeeting < $nowMinusH))
+					(!$typeSets->importMeetings && $inv->lastMeeting < $now) ||
+					($typeSets->importMeetings && $inv->lastMeeting < $nowMinusH))
 			) { // last meeting was long enough ago to no longer be relevant.
 				if ($verbose) {
 					echo "<p>Stopping processing because all meetings are in the past.  Involvement will be deleted from WordPress.</p>";
@@ -2559,7 +2563,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		//////////////////
 		//// Removals ////
 		//////////////////
-		
+
 
 		if ($verbose) {
 			$tsn = $typeSets->namePlural;
@@ -2656,7 +2660,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regTypeId", intval($inv->regTypeId));
 		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "siteRegTypeId", intval($inv->siteRegTypeId));
 		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", !!$inv->hasRegQuestions);
-		
+
 
 		// Registration start
 		if ($inv->regStart === null) {
@@ -2791,7 +2795,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		if ($typeSets->useGeo) {
 			// Handle locations
 			if (property_exists($inv, "lat") && $inv->lat !== null &&
-				property_exists($inv, "lng") && $inv->lng !== null) {
+			    property_exists($inv, "lng") && $inv->lng !== null) {
 				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", $inv->lat);
 				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", $inv->lng);
 			} else {
@@ -3088,8 +3092,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	}
 
 	/**
-	 * Update meta fields specific to Meetings, such as start/end date/time.  
-	 * 
+	 * Update meta fields specific to Meetings, such as start/end date/time.
+	 *
 	 * (This is included in this class and not in Meeting because it's a part of the Involvement import process and
 	 * the protected access is appropriate.)
 	 *
@@ -3484,7 +3488,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$attrs = $this->processAttributeExclusions($attrs, $exclude);
 
 		/**
-		 * Allows for manipulation of the notable attributes strings for an Involvement.  An array of strings. 
+		 * Allows for manipulation of the notable attributes strings for an Involvement.  An array of strings.
 		 * Typically, these are the standardized strings that appear on the Involvement to give information about it,
 		 * such as the schedule, leaders, and location.
 		 *
@@ -3637,7 +3641,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 	/**
 	 * If the post for this involvement is also a single Meeting post, return that object.  Otherwise, null.
-	 * 
+	 *
 	 * @return ?Meeting
 	 */
 	protected function AsAMeeting(): ?Meeting
@@ -3680,7 +3684,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	}
 
 	/**
-	 * Indicates if the given post can be instantiated as an Involvement. 
+	 * Indicates if the given post can be instantiated as an Involvement.
 	 *
 	 * @param \WP_Post $post
 	 *
@@ -3751,7 +3755,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		/**
 		 * Determines whether contact is allowed for any Involvements.  This is called *after* tp_allow_contact, and
-		 * that will set the default. 
+		 * that will set the default.
 		 *
 		 * @since 0.0.35
 		 *

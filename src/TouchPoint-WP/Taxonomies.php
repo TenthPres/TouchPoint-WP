@@ -258,13 +258,13 @@ abstract class Taxonomies
 	 * Insert the terms for the registered taxonomies.  (This is supposed to happen a while after the taxonomies are
 	 * loaded.)
 	 *
-	 * @param ?TouchPointWP $instance
+	 * @param ?TouchPointWP|string $instance  Default value for init call may be null or ''.
 	 *
 	 * @return void
 	 */
-	public static function insertTerms(TouchPointWP $instance = null)
+	public static function insertTerms($instance = null): void
 	{
-		if ($instance === null) {
+		if (!isset($instance) || $instance === '') {
 			$instance = TouchPointWP::instance();
 		}
 
