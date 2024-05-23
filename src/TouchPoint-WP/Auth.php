@@ -84,7 +84,7 @@ abstract class Auth implements api, module
 		if (is_admin()) {
 			try {
 				self::createApiKeyIfNeeded();
-			} catch (TouchPointWP_Exception $e) {
+			} catch (TouchPointWP_Exception) {
 			}
 		}
 
@@ -155,7 +155,7 @@ abstract class Auth implements api, module
 	{
 		try {
 			self::createApiKeyIfNeeded();
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 		}
 
 		$antiforgeryId = self::generateAntiForgeryId();
@@ -310,7 +310,7 @@ abstract class Auth implements api, module
 	 */
 	private static function wantsToLogin(): bool
 	{
-		$wants_to_login = false;
+		$wantsToLogin = false;
 		// redirect back from TouchPoint after a successful login
 		if (isset($_GET['loginToken'])) {
 			return false;
@@ -322,10 +322,10 @@ abstract class Auth implements api, module
 		// Exceptions
 		$action = isset($_GET['loggedout']) ? 'loggedout' : $action;
 		if ('login' == $action) {
-			$wants_to_login = true;
+			$wantsToLogin = true;
 		}
 
-		return $wants_to_login;
+		return $wantsToLogin;
 	}
 
 	/**

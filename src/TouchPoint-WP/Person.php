@@ -1577,6 +1577,19 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			unset($inputData->pid);
 		}
 
+		// user validation.
+		$comment = "";
+		$valid = Utilities::validateRegistrantEmailAddress("", $inputData->email, $comment);
+		if (!$valid) {
+			http_response_code(Http::BAD_REQUEST);
+			echo json_encode([
+				                 'error'      => $comment,
+				                 'error_i18n' => __("Registration Blocked for Spam.", 'TouchPoint-WP')
+			                 ]);
+			exit;
+		}
+		unset($valid, $comment);
+
 		$r = self::ident($inputData);
 
 		echo json_encode($r);
@@ -1586,25 +1599,14 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	/**
 	 * Make the API call to get family members, store the results to the Session, and return them.
 	 *
+	 * This is used for both formal and informal auth.  Email addresses should be checked for spam likelihood before this point.
+	 *
 	 * @param $inputData
 	 *
 	 * @return array
 	 */
 	public static function ident($inputData): array
 	{
-		// user validation.
-		$comment = "";
-		$valid = Utilities::validateRegistrantEmailAddress("", $inputData->email, $comment);
-		if (!$valid) {
-			http_response_code(Http::BAD_REQUEST);
-			echo json_encode([
-								 'error'      => $comment,
-								 'error_i18n' => __("Registration Blocked for Spam.", 'TouchPoint-WP')
-							 ]);
-			exit;
-		}
-		unset($valid, $comment);
-
 		try {
 			$inputData->context = "ident";
 			$data               = TouchPointWP::instance()->apiPost('ident', $inputData, 30);
