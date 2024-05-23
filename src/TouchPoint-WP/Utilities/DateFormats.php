@@ -36,14 +36,17 @@ abstract class DateFormats
 	}
 
 	/**
-	 * @param DateTimeInterface $dt
+	 * @param ?DateTimeInterface $dt
 	 *
 	 * @return int
 	 *
 	 * @since 0.0.90
 	 */
-	public static function timestampAndOffset(DateTimeInterface $dt): int
+	public static function timestampAndOffset(?DateTimeInterface $dt): int
 	{
+		if ($dt === null) {
+			return 0;
+		}
 		return $dt->getTimestamp() + $dt->getOffset();
 	}
 

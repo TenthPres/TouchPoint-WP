@@ -3117,8 +3117,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			delete_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY);
 		} else {
 			update_post_meta($mtgP->ID, Meeting::MEETING_META_KEY, $mtgO->mtgId);
-			update_post_meta($mtgP->ID, Meeting::MEETING_START_META_KEY, intval($mtgO->mtgStartDt?->format('U')));
-			update_post_meta($mtgP->ID, Meeting::MEETING_END_META_KEY, intval($mtgO->mtgEndDt?->format('U')));
+			update_post_meta($mtgP->ID, Meeting::MEETING_START_META_KEY, DateFormats::timestampAndOffset($mtgO->mtgStartDt));
+			update_post_meta($mtgP->ID, Meeting::MEETING_END_META_KEY, DateFormats::timestampAndOffset($mtgO->mtgEndDt));
 			update_post_meta($mtgP->ID, Meeting::MEETING_FEAT_META_KEY, !!$feature);
 			update_post_meta($mtgP->ID, Meeting::MEETING_INV_ID_META_KEY, $mtgO->involvementId);
 			update_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY, intval($mtgO->status));
@@ -3535,7 +3535,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		// Register Button
 		if ($includeRegister === true) {
-			$ret[] = $this->getRegisterButton($btnClass);
+			$ret[] = $this->getRegisterButton($classesOnly);
 		}
 
 		// Show on map button.  (Only works if map is called before this is.)
@@ -3578,13 +3578,17 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Get the HTML for the register button.  Labels depend on several settings within TouchPoint.
 	 *
-	 * @param string $btnClass
+	 * @param string $btnClass  Class names
 	 * @param bool   $includeRsvp
 	 *
 	 * @return ?string HTML for the registration button, whatever that should be. Null if nothing to return.
 	 */
 	public function getRegisterButton(string $btnClass, bool $includeRsvp = true): ?string
 	{
+		if ($btnClass !== "") {
+			$btnClass = " class=\"$btnClass\"";
+		}
+
 		switch ($this->getRegistrationType()) {
 			case RegistrationType::FORM:
 				$text = __('Register', 'TouchPoint-WP');
@@ -3615,18 +3619,18 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				}
 				$link  = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
 				TouchPointWP::enqueueActionsStyle('inv-register');
-				return "<a class=\"btn button\" href=\"$link\" $btnClass>$text</a>  ";
+				return "<a href=\"$link\" $btnClass>$text</a>  ";
 
 			case RegistrationType::JOIN:
 				$text = __('Join', 'TouchPoint-WP');
 				TouchPointWP::enqueueActionsStyle('inv-join');
-				return "<button type=\"button\" data-tp-action=\"join\" $btnClass>$text</button>  ";
+				return "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"join\" $btnClass>$text</button>  ";
 
 			case RegistrationType::EXTERNAL:
 				$text = __('Register', 'TouchPoint-WP');
 				$link = $this->getRegistrationUrl();
 				TouchPointWP::enqueueActionsStyle('inv-register');
-				return "<a class=\"btn button\" href=\"$link\" $btnClass>$text</a>  ";
+				return "<a href=\"$link\" $btnClass>$text</a>  ";
 
 			case RegistrationType::RSVP:
 				if ($includeRsvp) {
