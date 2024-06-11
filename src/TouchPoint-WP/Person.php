@@ -1352,6 +1352,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	{
 		// Best.  Matches TouchPoint username.  However, it is possible users won't have usernames.
 		foreach ($pData->Usernames as $u) {
+			if (stripos($u, 'admin') !== false) {
+				continue;
+			}
+
 			if ( ! username_exists($u)) {
 				return $u;
 			}
