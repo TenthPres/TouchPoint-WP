@@ -1807,14 +1807,15 @@ class TouchPointWP_Settings
 	/**
 	 * Validate that selected post types are actually post types that exist.
 	 *
-	 * @param mixed  $new The new value.
+	 * @param ?array $new The new value.
 	 *
 	 * @return string[]
 	 */
-	protected function validation_postTypes(array $new): array
+	protected function validation_postTypes(?array $new): array
 	{
 		$types = array_keys(Utilities::getRegisteredPostTypesAsKVArray());
 		$r = [];
+		$new ??= [];
 		sort($new);
 		foreach ($new as $t) {
 			if (in_array($t, $types)) {
