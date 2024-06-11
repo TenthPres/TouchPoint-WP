@@ -38,7 +38,7 @@ msgstr "https://github.com/jkrrv"
 
 #: src/templates/admin/invKoForm.php:17
 #: src/templates/admin/locationsKoForm.php:13
-#: src/templates/admin/locationsKoForm.php:50
+#: src/templates/admin/locationsKoForm.php:58
 msgid "Delete"
 msgstr "Borrar"
 
@@ -1143,23 +1143,23 @@ msgstr "Latitud"
 msgid "Longitude"
 msgstr "Longitud"
 
-#: src/templates/admin/locationsKoForm.php:43
+#: src/templates/admin/locationsKoForm.php:51
 msgid "Static IP Addresses"
 msgstr "Direcciones IP estáticas"
 
-#: src/templates/admin/locationsKoForm.php:46
+#: src/templates/admin/locationsKoForm.php:54
 msgid "If this Location has an internet connection with Static IP Addresses, you can put those addresses here so users are automatically identified with this location."
 msgstr "Si esta ubicación tiene una conexión a Internet con direcciones IP estáticas, puede colocar esas direcciones aquí para que los usuarios se identifiquen automáticamente con esta ubicación."
 
-#: src/templates/admin/locationsKoForm.php:54
+#: src/templates/admin/locationsKoForm.php:62
 msgid "Add IP Address"
 msgstr "Agregar dirección IP"
 
-#: src/templates/admin/locationsKoForm.php:64
+#: src/templates/admin/locationsKoForm.php:72
 msgid "Add Location"
 msgstr "Añade una ubicación"
 
-#: src/templates/admin/locationsKoForm.php:71
+#: src/templates/admin/locationsKoForm.php:79
 msgid "The Campus"
 msgstr "El campus"
 
@@ -1792,3 +1792,7 @@ msgstr "%1$s %2$s"
 #: src/TouchPoint-WP/CalendarGrid.php:212
 msgid "There are no %s published for this month."
 msgstr "No hay %s publicados para este mes."
+
+#: src/templates/admin/locationsKoForm.php:43
+msgid "Radius (miles)"
+msgstr "Radio (millas)"

@@ -132,7 +132,7 @@ class Location implements hasGeo
 			}
 			$l->lat    = Utilities::toFloatOrNull($l->lat);
 			$l->lng    = Utilities::toFloatOrNull($l->lng);
-			$l->radius = Utilities::toFloatOrNull($l->radius, 1);
+			$l->radius = Utilities::toFloatOrNull($l->radius, 2);
 
 			$l->ipAddresses = array_values(
 				array_filter($l->ipAddresses, fn($ip) => filter_var($ip, FILTER_VALIDATE_IP))

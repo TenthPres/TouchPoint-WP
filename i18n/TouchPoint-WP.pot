@@ -223,22 +223,26 @@ msgid "Longitude"
 msgstr ""
 
 #: src/templates/admin/locationsKoForm.php:43
+msgid "Radius (miles)"
+msgstr ""
+
+#: src/templates/admin/locationsKoForm.php:51
 msgid "Static IP Addresses"
 msgstr ""
 
-#: src/templates/admin/locationsKoForm.php:46
+#: src/templates/admin/locationsKoForm.php:54
 msgid "If this Location has an internet connection with Static IP Addresses, you can put those addresses here so users are automatically identified with this location."
 msgstr ""
 
-#: src/templates/admin/locationsKoForm.php:54
+#: src/templates/admin/locationsKoForm.php:62
 msgid "Add IP Address"
 msgstr ""
 
-#: src/templates/admin/locationsKoForm.php:64
+#: src/templates/admin/locationsKoForm.php:72
 msgid "Add Location"
 msgstr ""
 
-#: src/templates/admin/locationsKoForm.php:71
+#: src/templates/admin/locationsKoForm.php:79
 msgid "The Campus"
 msgstr ""
 
