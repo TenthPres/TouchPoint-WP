@@ -20,6 +20,14 @@ exec("php ./vendor/bin/wp-documentor parse --output=docs/wp-Api.md --prefix=tp_ 
 echo "    Complete\n\n";
 
 
+echo "Correcting links in WordPress Hooks...";
+$doc = file_get_contents("docs/wp-Api.md");
+$pattern = '/\[(\.[\S-]+)]\(([\S]+)\), \[line (\d+)\]\(([\S-]+)/';
+$replace = "[src/TouchPoint-WP/$2](https://github.com/TenthPres/TouchPoint-WP/blob/master/src/TouchPoint-WP/$2), [line $3](https://github.com/TenthPres/TouchPoint-WP/blob/master/src/TouchPoint-WP/$4\n\n";
+$doc = preg_replace($pattern, $replace, $doc);
+file_put_contents("docs/wp-Api.md", $doc);
+echo "    Complete\n\n";
+
 echo "Removing previous documentation files...";
 array_map('unlink', glob('docs/tp-*.md'));
 echo "    Complete.\n\n";
