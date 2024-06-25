@@ -26,9 +26,8 @@ echo "    Complete.\n\n";
 
 
 echo "Running PHPDoc Analysis...";
-exec("php " . PHPDOC_PHAR_FILENAME . " run -d src -t docs --template=\"xml\"");
+exec("php " . PHPDOC_PHAR_FILENAME . " -d src -t docs --template=\"xml\"");
 echo "    Complete\n\n";
-
 
 echo "Creating Markdown files...";
 $argv[1] = "docs/structure.xml";

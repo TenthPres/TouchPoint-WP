@@ -23,11 +23,6 @@
             </markers>
 <!--            <default-package-name>TouchPointWP</default-package-name>-->
         </api>
-        <guide>
-            <source>
-                <path>docs/wpApi</path>
-            </source>
-        </guide>
     </version>
 <!--    <setting name="guides.enabled" value="true"/>-->
 </phpdocumentor>
