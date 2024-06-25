@@ -2914,7 +2914,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	}
 
 	/**
-	 * @param object                       $post  The parent post, which could be a group or Meeting.
+	 * @param \WP_Post|object              $post  The parent post, which could be a group or Meeting.
 	 * @param object                       $inv   The involvement object from the API.
 	 * @param Involvement_PostTypeSettings $typeSets
 	 * @param int                          $imagePostId
@@ -3443,8 +3443,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		}
 		unset($l);
 
-		foreach ($this->getDivisionsLinks() as $a) {
-			$attrs['divisions'] = $a;
+		if (!in_array('divisions', $exclude)) {
+			foreach ($this->getDivisionsLinks() as $k => $a) {
+				$attrs["divisions_$k"] = $a;
+			}
 		}
 
 		if ($this->leaders()->count() > 0) {
