@@ -27,7 +27,7 @@ abstract class DateFormats
 		/**
 		 * Allows for manipulation of the string returned as a formatted time.
 		 *
-		 * @since 0.0.34
+		 * @since 0.0.34 Added
 		 *
 		 * @param string $ts The string, as formatted so far.
 		 * @param DateTimeInterface $dt The DateTimeInterface object for the time being formatted.
@@ -40,7 +40,7 @@ abstract class DateFormats
 	 *
 	 * @return int
 	 *
-	 * @since 0.0.90
+	 * @since 0.0.90 added
 	 */
 	public static function timestampAndOffset(?DateTimeInterface $dt): int
 	{
@@ -74,7 +74,7 @@ abstract class DateFormats
 		 * Allows for manipulation of a time range string.  For example, combined with `tp_adjust_time_string`, you
 		 * can change a range of 1:00pm - 2:00pm to 1-2pm.
 		 *
-		 * @since 0.0.90
+		 * @since 0.0.90 Added
 		 *
 		 * @param string            $ts The string, as formatted so far.
 		 * @param string            $startStr The start string, with default formatting.
@@ -148,7 +148,7 @@ abstract class DateFormats
 		/**
 		 * Allows for manipulation of the string returned as a formatted date.
 		 *
-		 * @since 0.0.90
+		 * @since 0.0.90 Added
 		 *
 		 * @param string $r The string, as formatted so far.
 		 * @param DateTimeInterface $dt The DateTimeInterface object for the date being formatted.
@@ -220,7 +220,7 @@ abstract class DateFormats
 		/**
 		 * Allows for manipulation of the string returned as a (short) formatted date.
 		 *
-		 * @since 0.0.90
+		 * @since 0.0.90 Added
 		 *
 		 * @param string $r The string, as formatted so far.
 		 * @param DateTimeInterface $dt The DateTimeInterface object for the date being formatted.

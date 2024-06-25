@@ -143,7 +143,7 @@ class TouchPointWP_Settings
 	 * @param ?TouchPointWP $parent Object instance.
 	 *
 	 * @return TouchPointWP_Settings instance
-	 * @since 0.0.90
+	 * @since 0.0.90 Added
 	 * @static
 	 * @see TouchPointWP()
 	 */
@@ -1226,7 +1226,7 @@ class TouchPointWP_Settings
 		/**
 		 * Adjust the settings array before it's returned.
 		 *
-		 * @since 0.0.90
+		 * @since 0.0.90 Added
 		 */
 		$this->settings = apply_filters('tp_settings_fields', $this->settings);
 
@@ -1857,7 +1857,7 @@ class TouchPointWP_Settings
 	/**
 	 * Cloning is forbidden.
 	 *
-	 * @since 0.0.90
+	 * @since 0.0.90 Added
 	 */
 	public function __clone()
 	{
@@ -1871,7 +1871,7 @@ class TouchPointWP_Settings
 	/**
 	 * Unserializing instances of this class is forbidden.
 	 *
-	 * @since 0.0.90
+	 * @since 0.0.90 Added
 	 */
 	public function __wakeup()
 	{

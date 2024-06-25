@@ -85,7 +85,7 @@ class Involvement_PostTypeSettings
 			 *
 			 * @see Involvement_PostTypeSettings
 			 *
-			 * @since 0.0.90
+			 * @since 0.0.90 Added
 			 *
 			 * @param Involvement_PostTypeSettings[] $settingsArr An array of the Post Type Settings objects.
 			 */

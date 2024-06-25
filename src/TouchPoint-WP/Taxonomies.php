@@ -175,7 +175,7 @@ abstract class Taxonomies
 	 *
 	 * @return ?int
 	 *
-	 * @since 0.0.32
+	 * @since 0.0.32 Added
 	 */
 	public static function getTaxTermId(string $taxonomy, $value): ?int
 	{

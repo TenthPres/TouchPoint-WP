@@ -19,6 +19,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
  * Provides an interface to bridge the gap between The Events Calendar plugin (by ModernTribe) and the TouchPoint
  * mobile app.
  *
+ * @since 0.0.90 Deprecated
  * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
  */
 abstract class EventsCalendar implements api, module
@@ -70,8 +71,8 @@ abstract class EventsCalendar implements api, module
 			/**
 			 * Allows for manipulation of the html returned to the calendar feature of 2.0 Mobile apps.
 			 *
-			 * @since 0.0.2
-			 *
+			 * @since 0.0.2 Added
+			 * @since 0.0.90 Deprecated
 			 * @depecated 0.0.90 Will be going away with Mobile App version 2.0
 			 *
 			 * @param string $content The html thus far.
@@ -120,7 +121,8 @@ abstract class EventsCalendar implements api, module
 				/**
 				 * Insert a CSS file into all event content for mobile 2.0 app.
 				 *
-				 * @since 0.0.3
+				 * @since 0.0.3 Added
+				 * @since 0.0.90 Deprecated
 				 * @depecated 0.0.90 Will be going away with Mobile App version 2.0
 				 *
 				 * @param string $cssUrl The url for a CSS file.  By default, one provided with the plugin is used.

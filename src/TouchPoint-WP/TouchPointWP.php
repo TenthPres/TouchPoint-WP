@@ -269,7 +269,7 @@ class TouchPointWP
 	 * @param string|mixed $text The text to be modified. (should be a string, but this is WordPress, so maybe not.)
 	 *
 	 * @return string The modified text.
-	 * @since 0.0.23
+	 * @since 0.0.23 Added
 	 *
 	 */
 	public static function capitalPyScript(mixed $text): string
@@ -1341,6 +1341,7 @@ class TouchPointWP
 	 *
 	 * @return bool
 	 *
+	 * @since 0.0.90 Deprecated
 	 * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
 	 */
 	public static function useTribeCalendarPro(): bool
@@ -1357,6 +1358,7 @@ class TouchPointWP
 	 *
 	 * @return bool
 	 *
+	 * @since 0.0.90 Deprecated
 	 * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
 	 */
 	public static function useTribeCalendar(): bool

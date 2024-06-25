@@ -565,7 +565,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		 *
 		 * Default is true.
 		 *
-		 * @since 0.0.6
+		 * @since 0.0.6 Added
 		 *
 		 * @param bool $value The value to return.  True will allow the default templates to be applied.
 		 * @param string $className The name of the class calling for the template.
@@ -691,7 +691,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 				 * Determines whether or not to automatically include the plugin-default CSS.  Return false to use your
 				 * own CSS instead.
 				 *
-				 * @since 0.0.15
+				 * @since 0.0.15 Added
 				 *
 				 * @param bool $useCss Whether or not to include the default CSS.  True = include
 				 * @param string $className The name of the current calling class.
@@ -1264,7 +1264,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		 * @see Partner::notableAttributes()
 		 * @see PostTypeCapable::notableAttributes()
 		 *
-		 * @since 0.0.6
+		 * @since 0.0.6 Added
 		 *
 		 * @param string[] $attrs The list of notable attributes.
 		 * @param Partner $this The Partner object.
@@ -1319,7 +1319,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		 * Allows for manipulation of the action buttons for a Partner.  This is the list of buttons that appear
 		 * on the Partner to allow the user to interact with it.
 		 *
-		 * @since 0.0.7
+		 * @since 0.0.7 Added
 		 *
 		 * @see Partner::getActionButtons()
 		 * @see PostTypeCapable::getActionButtons()

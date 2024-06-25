@@ -1202,7 +1202,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		 * Allows for manipulation of the action buttons for a Person.  This is the list of buttons that appear
 		 * on the Person to allow the user to interact with them.
 		 *
-		 * @since 0.0.90
+		 * @since 0.0.90 Added
 		 *
 		 * @see Person::getActionButtons()
 		 *
@@ -1785,7 +1785,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		 * Determines whether contact of any kind is allowed.  This is meant to prevent abuse in contact forms by
 		 * removing the ability to contact people and thereby hiding the forms.
 		 *
-		 * @since 0.0.35
+		 * @since 0.0.35 Added
 		 *
 		 * @param bool $allowed True if contact is allowed.
 		 */
@@ -1795,7 +1795,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		 * Determines whether contact is allowed for any People.  This is called *after* tp_allow_contact, and
 		 * that will set the default.
 		 *
-		 * @since 0.0.35
+		 * @since 0.0.35 Added
 		 *
 		 * @see tp_allow_contact
 		 *

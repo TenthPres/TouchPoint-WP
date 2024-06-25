@@ -5,7 +5,7 @@
 
 namespace tp\TouchPointWP;
 
-// TODO sort out what goes here, and what goes in Meetings.
+// TODO sort out what goes here, and what goes in Meetings.  Answer: all of this should go to Meetings.
 
 if ( ! defined('ABSPATH')) {
 	exit(1);
@@ -14,7 +14,7 @@ if ( ! defined('ABSPATH')) {
 /**
  * This class provides the RSVP functionality for Meetings.
  *
- * @deprecated  0.0.90
+ * @deprecated  0.0.90  TODO is this true?
  */
 abstract class Rsvp implements module
 {

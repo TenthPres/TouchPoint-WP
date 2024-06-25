@@ -435,7 +435,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		 *
 		 * Default is true.
 		 *
-		 * @since 0.0.6
+		 * @since 0.0.6 Added
 		 *
 		 * @param bool $value The value to return.  True will allow the default templates to be applied.
 		 * @param string $className The name of the class calling for the template.
@@ -614,6 +614,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Whether the involvement should link to a registration form, rather than directly joining the org.
 	 *
+	 * @since 0.0.90 Deprecated
 	 * @deprecated 0.0.90  Does not take into account all the possible registration types; will be removed in a future version.
 	 *
 	 * @return bool
@@ -1495,7 +1496,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				 * Determines whether or not to automatically include the plugin-default CSS.  Return false to use your
 				 * own CSS instead.
 				 *
-				 * @since 0.0.15
+				 * @since 0.0.15 Added
 				 *
 				 * @param bool $useCss Whether or not to include the default CSS.  True = include
 				 * @param string $className The name of the current calling class.
@@ -3497,7 +3498,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		 * @see Involvement::notableAttributes()
 		 * @see PostTypeCapable::notableAttributes()
 		 *
-		 * @since 0.0.11
+		 * @since 0.0.11 Added
 		 *
 		 * @param string[] $attrs The list of notable attributes.
 		 * @param Involvement $this The Involvement object.
@@ -3563,7 +3564,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		 * Allows for manipulation of the action buttons for an Involvement.  This is the list of buttons that appear
 		 * on the Involvement to allow the user to interact with it.
 		 *
-		 * @since 0.0.7
+		 * @since 0.0.7 Added
 		 *
 		 * @see Involvement::getActionButtons()
 		 * @see PostTypeCapable::getActionButtons()
@@ -3753,7 +3754,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		 * Determines whether contact of any kind is allowed.  This is meant to prevent abuse in contact forms by
 		 * removing the ability to contact people and thereby hiding the forms.
 		 *
-		 * @since 0.0.35
+		 * @since 0.0.35 Added
 		 *
 		 * @param bool $allowed True if contact is allowed.
 		 */
@@ -3763,7 +3764,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		 * Determines whether contact is allowed for any Involvements.  This is called *after* tp_allow_contact, and
 		 * that will set the default.
 		 *
-		 * @since 0.0.35
+		 * @since 0.0.35 Added
 		 *
 		 * @see tp_allow_contact
 		 *

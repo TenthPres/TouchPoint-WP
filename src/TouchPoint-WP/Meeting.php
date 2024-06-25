@@ -303,7 +303,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 		 * @see Meeting::notableAttributes()
 		 * @see PostTypeCapable::notableAttributes()
 		 *
-		 * @since 0.0.90
+		 * @since 0.0.90 Added
 		 *
 		 * @param string[] $attrs The list of notable attributes.
 		 * @param Meeting $this The Meeting object.
@@ -354,7 +354,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 		 * Allows for manipulation of the action buttons for a Meeting.  This is the list of buttons that appear
 		 * on the Meeting to allow the user to interact with it.
 		 *
-		 * @since 0.0.90
+		 * @since 0.0.90 Added
 		 *
 		 * @see Meeting::getActionButtons()
 		 * @see PostTypeCapable::getActionButtons()

@@ -321,7 +321,7 @@ abstract class Utilities
 		/**
 		 * Allows for a custom color function to assign a color for a given value.
 		 *
-		 * @since 0.0.90
+		 * @since 0.0.90 Added
 		 *
 		 * @param mixed $current The current value.  Null is provided to the function because the color hasn't otherwise been determined yet.
 		 * @param string $itemName The name of the current item.
@@ -353,7 +353,7 @@ abstract class Utilities
 		 * deterministic which color will be assigned to which item.  If it needs to be, use the `tp_custom_color_function`
 		 * filter instead.
 		 *
-		 * @since 0.0.90
+		 * @since 0.0.90 Added
 		 *
 		 * @param string[] $array The array of colors in hex format, starting with '#'.
 		 * @param string $setName The name of the set for which the colors are needed.
@@ -486,7 +486,7 @@ abstract class Utilities
 	 * @param string      $title
 	 *
 	 * @return int|string The attachmentId for the image.  Can be reused for other posts.
-	 * @since 0.0.24
+	 * @since 0.0.24 Added
 	 */
 	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title)
 	{
@@ -616,7 +616,7 @@ abstract class Utilities
 		 * Allows for the standardization of HTML content, typically during the import from TouchPoint.  If this
 		 * filter is used, the default filtering will be bypassed. Use other filters for more precise control.
 		 *
-		 * @since 0.0.34
+		 * @since 0.0.34 Added
 		 *
 		 * @param string $html The HTML to be standardized.
 		 * @param string $context A context string to pass to hooks.
@@ -631,7 +631,7 @@ abstract class Utilities
 		/**
 		 * Make any adjustments to HTML content before the rest of the standardization process happens.
 		 *
-		 * @since 0.0.25
+		 * @since 0.0.25 Added
 		 *
 		 * @param string $html The HTML to be standardized.
 		 * @param string $context A context string to pass to hooks.
@@ -644,7 +644,7 @@ abstract class Utilities
 		/**
 		 * The maximum header level to allow in an HTML string.  Default is 2.
 		 *
-		 * @since 0.0.25
+		 * @since 0.0.25 Added
 		 *
 		 * @param int    $maxHeader The highest header level (lowest number) to allow in the HTML. (e.g. 2 for <h2> tags)
 		 * @param string $context A context string to pass to hooks.
@@ -662,7 +662,7 @@ abstract class Utilities
 		/**
 		 * The allowed tags in the HTML standardization process.  Default is a set of common tags, but tags such as script, style, img, and others are stripped.
 		 *
-		 * @since 0.0.25
+		 * @since 0.0.25 Added
 		 *
 		 * @param string[] $allowedTags The allowed tags in the HTML.
 		 * @param string   $context A context string to pass to hooks.
@@ -678,7 +678,7 @@ abstract class Utilities
 		/**
 		 * Make any adjustments to HTML content after the rest of the standardization process happens.
 		 *
-		 * @since 0.0.25
+		 * @since 0.0.25 Added
 		 *
 		 * @param string $html The HTML to be standardized.
 		 * @param string $context A context string to pass to hooks.
