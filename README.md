@@ -35,7 +35,7 @@ appropriate care for their security.
 
 ### Events
 Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by
-ModernTribe](https://theeventscalendar.com/).  This is compatible with both the free and "Pro" versions.
+Modern Tribe](https://theeventscalendar.com/).  This is compatible with both the free and "Pro" versions.
 
 ### Authentication (Beta)
 Authenticate TouchPoint users to WordPress, so you can know your website users. 

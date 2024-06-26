@@ -775,7 +775,7 @@ class TouchPointWP_Settings
 			/** @noinspection HtmlUnknownTarget */
 			$this->settings['events_calendar'] = [
 				'title'       => __('App 2.0 Calendar', 'TouchPoint-WP'),
-				'description' => __('Integrate Custom Mobile app version 2.0 with The Events Calendar from ModernTribe.', 'TouchPoint-WP'),
+				'description' => __('Integrate Custom Mobile app version 2.0 with The Events Calendar from Modern Tribe.', 'TouchPoint-WP'),
 				'fields'      => [
 					[
 						'id'          => 'ec_app_cal_provider',
