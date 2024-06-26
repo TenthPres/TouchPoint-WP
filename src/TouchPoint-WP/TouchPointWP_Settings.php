@@ -66,6 +66,7 @@ if ( ! defined('ABSPATH')) {
  *
  * @property-read string       locations_json     JSON string describing fixed locations.
  *
+ * @property-read string       ec_app_cal_provider The provider of the calendar data for the mobile app. Either "meetings" or "tribe".
  * @property-read string       ec_use_standardizing_style Whether to insert the standardizing stylesheet into mobile app requests.
  *
  * @property-read string       mc_name_plural     What Meetings should be called, plural (e.g. "Events" or "Meetings")
@@ -759,18 +760,40 @@ class TouchPointWP_Settings
 			];
 		}
 
-		if (TouchPointWP::useTribeCalendar()) {
+		if (TouchPointWP::useTribeOrMeetingCalendars()) {
+			$options = [];
+			$default = '';
+			if (TouchPointWP::useTribeCalendar()) {
+				$options['tribe'] = __('Events Calendar plugin by Modern Tribe', 'TouchPoint-WP');
+				$default = 'tribe';
+			}
+			if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_meeting_cal') === "on") {
+				$options['meetings'] = __('TouchPoint Meetings', 'TouchPoint-WP');
+				$default = 'meetings';
+			}
+
 			/** @noinspection HtmlUnknownTarget */
 			$this->settings['events_calendar'] = [
-				'title'       => __('Events Calendar', 'TouchPoint-WP'),
-				'description' => __('Integrate with The Events Calendar from ModernTribe.', 'TouchPoint-WP'),
+				'title'       => __('App 2.0 Calendar', 'TouchPoint-WP'),
+				'description' => __('Integrate Custom Mobile app version 2.0 with The Events Calendar from ModernTribe.', 'TouchPoint-WP'),
 				'fields'      => [
+					[
+						'id'          => 'ec_app_cal_provider',
+						'label'       => __('Events Provider', 'TouchPoint-WP'),
+						'description' => __(
+							'The source of events for version 2.0 of the Custom Mobile App.',
+							'TouchPoint-WP'
+						),
+						'type'        => 'select',
+						'options'     => $options,
+						'default'     => $default,
+					],
 					[
 						'id'          => 'ec_app_cal_url',
 						'label'       => __('Events for Custom Mobile App', 'TouchPoint-WP'),
 						'type'        => 'instructions',
 						'description' => strtr(
-							'<p>' . __('To use your Events Calendar events in the Custom mobile app, set the Provider to <code>Wordpress Plugin - Modern Tribe</code> and use this url:', 'TouchPoint-WP') . '</p>' .
+							'<p>' . __("To use your Events Calendar events in the Custom mobile app, set the Provider to <code>Wordpress Plugin - Modern Tribe</code> (regardless of which provider you're using above) and use this url:", 'TouchPoint-WP') . '</p>' .
 							'<input type="url" value="{apiUrl}" readonly style="width: 100%;" />' .
 							'<a href="{previewUrl}" class="btn">' . __('Preview', 'TouchPoint-WP') . '</a>',
 							[

@@ -243,6 +243,18 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 	}
 
 	/**
+	 * Get the involvement ID (without necessarily instantiating the Involvement)
+	 *
+	 * @since 0.0.90 Added
+	 *
+	 * @return int
+	 */
+	public function involvementId(): int
+	{
+		return intval(get_post_meta($this->post_id, self::MEETING_INV_ID_META_KEY, true));
+	}
+
+	/**
 	 * Get the Involvement object associated with this Meeting.
 	 *
 	 * @throws TouchPointWP_Exception
@@ -257,6 +269,37 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 			return Involvement::fromPost(get_post($parent));
 		}
 		throw new TouchPointWP_Exception("Meeting is not associated with an Involvement.", 171002);
+	}
+
+	/**
+	 * Get the human-readable schedule for the meeting as a string.  If multiple elements exist, they will be joined by
+	 * $join.  Returns null if the schedule string is unavailable for some reason.
+	 *
+	 * @param string $join
+	 *
+	 * @return ?string
+	 *
+	 * @since 0.0.90 Added
+	 */
+	public function scheduleString(string $join): ?string
+	{
+		$ss = $this->scheduleStringArray();
+		if (count($ss) > 0) {
+			return implode($join, $ss);
+		}
+		return null;
+	}
+
+	/**
+	 * Get the human-readable schedule for the meeting as a string or set of strings in an array.
+	 *
+	 * @return array
+	 *
+	 * @since 0.0.90 Added
+	 */
+	public function scheduleStringArray(): array
+	{
+		return DateFormats::DurationToStringArray($this->startDt, $this->endDt, $this->isMultiDay(), $this->isAllDay());
 	}
 
 
@@ -279,7 +322,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 			}
 		}
 
-		$d = DateFormats::DurationToStringArray($this->startDt, $this->endDt, $this->isMultiDay(), $this->isAllDay());
+		$d = $this->scheduleStringArray();
 
 		$attrs = [...$d, ...$attrs];
 

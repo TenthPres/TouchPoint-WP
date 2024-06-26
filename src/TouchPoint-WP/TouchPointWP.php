@@ -426,7 +426,7 @@ class TouchPointWP
 
 			// App Events Endpoint
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_APP_EVENTS &&
-				TouchPointWP::useTribeCalendar()
+				TouchPointWP::useTribeOrMeetingCalendars()
 			) {
 				if ( ! EventsCalendar::api($reqUri)) {
 					return $continue;
@@ -717,8 +717,8 @@ class TouchPointWP
 		}
 
 		// Load Tribe module if enabled (by presence of Events Calendar plugin)
-		if (self::useTribeCalendar()
-			&& ! class_exists("tp\TouchPointWP\EventsCalendar")) {
+		if (self::useTribeOrMeetingCalendars()
+			&& !class_exists("tp\TouchPointWP\EventsCalendar")) {
 			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 				require_once 'EventsCalendar.php';
 			}
@@ -1353,6 +1353,7 @@ class TouchPointWP
 		return is_plugin_active('events-calendar-pro/events-calendar-pro.php');
 	}
 
+
 	/**
 	 * Indicates that Tribe Calendar is enabled.
 	 *
@@ -1365,6 +1366,21 @@ class TouchPointWP
 	{
 		return self::useTribeCalendarPro() || is_plugin_active('the-events-calendar/the-events-calendar.php');
 	}
+
+
+	/**
+	 * Indicates that a calendar function is available, especially for the 2.0 mobile app option.
+	 *
+	 * @return bool
+	 *
+	 * @since 0.0.90 Added & Deprecated.  Will be removed once version 2.0 of the mobile app is fully retired.
+	 * @deprecated 0.0.90. Will be removed once version 2.0 of the mobile app is fully retired.
+	 */
+	public static function useTribeOrMeetingCalendars(): bool
+	{
+		return self::useTribeCalendar() || get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_meeting_cal') === "on";
+	}
+
 
 	/**
 	 * Sort a list of hierarchical terms into a list in which each parent is immediately followed by its children.

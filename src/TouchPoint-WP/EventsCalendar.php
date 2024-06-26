@@ -10,6 +10,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 use WP_Post;
+use WP_Query;
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once 'api.php';
@@ -19,13 +20,30 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
  * Provides an interface to bridge the gap between The Events Calendar plugin (by ModernTribe) and the TouchPoint
  * mobile app.
  *
- * @since 0.0.90 Deprecated
+ * @since 0.0.90 Deprecated.  Will be removed once v2.0 apps are no longer in use, as this won't be necessary for 3.0+.
  * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
  */
 abstract class EventsCalendar implements api, module
 {
+	/**
+	 * @param array $params
+	 *
+	 * @return array
+	 *
+	 * @since 0.0.2 Added
+	 * @since 0.0.90 Deprecated.  Will be removed once v2.0 apps are no longer in use, as this won't be necessary for 3.0+.
+	 * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
+	 */
 	protected static function generateEventsList(array $params = []): array
 	{
+		if (TouchPointWP::instance()->settings->ec_app_cal_provider === 'meetings') {
+			return self::generateEventsListFromMeetings($params);
+		}
+
+		if (!function_exists('tribe_get_events')) {
+			return [];
+		}
+
 		$eventsList = [];
 
 		$params = array_merge(
@@ -73,7 +91,7 @@ abstract class EventsCalendar implements api, module
 			 *
 			 * @since 0.0.2 Added
 			 * @since 0.0.90 Deprecated
-			 * @depecated 0.0.90 Will be going away with Mobile App version 2.0
+			 * @deprecated 0.0.90 Will be going away with Mobile App version 2.0
 			 *
 			 * @param string $content The html thus far.
 			 */
@@ -123,7 +141,7 @@ abstract class EventsCalendar implements api, module
 				 *
 				 * @since 0.0.3 Added
 				 * @since 0.0.90 Deprecated
-				 * @depecated 0.0.90 Will be going away with Mobile App version 2.0
+				 * @deprecated 0.0.90 Will be going away with Mobile App version 2.0
 				 *
 				 * @param string $cssUrl The url for a CSS file.  By default, one provided with the plugin is used.
 				 */
@@ -171,9 +189,226 @@ abstract class EventsCalendar implements api, module
 	}
 
 	/**
+	 * @param array $params
+	 *
+	 * @return array
+	 *
+	 * @since 0.0.90 Added and Deprecated.  Will be removed once v2.0 apps are no longer in use, as this won't be necessary for 3.0+.
+	 * @depreacted
+	 */
+	protected static function generateEventsListFromMeetings(array $params = []): array
+	{
+		$eventsList = [];
+
+		$tpDomain = TouchPointWP::instance()->settings->host;
+		$dlDomain = TouchPointWP::instance()->settings->host_deeplink;
+
+		$q = new WP_Query();
+
+		$existingMq = $q->get('meta_query');
+
+		$now = Utilities::dateTimeNow();
+
+		$mq = [
+			[
+				[
+					'key' => Meeting::MEETING_END_META_KEY,
+					'value' => $now->format('U'),
+					'compare' => ">="
+				],
+				[ // This condition is to allow for the possibility of events without end times.
+					[
+						'key' => Meeting::MEETING_END_META_KEY,
+						'compare' => '=',
+						'value' => 0
+					],
+					[
+						'key' => Meeting::MEETING_START_META_KEY,
+						'value' => $now->format('U'),
+						'compare' => ">"
+					],
+					'relation' => 'AND'
+				],
+				'relation' => 'OR'
+			],
+			[
+				'key' => Meeting::MEETING_META_KEY,
+				'value' => 0,
+				'compare' => ">"
+			],
+			'relation' => 'AND'
+		];
+
+		if (!empty($existingMq)) {
+			$mq = [
+				'relation' => 'AND',
+				$existingMq,
+				$mq,
+			];
+		}
+
+		$q->set('meta_query', $mq);
+
+		$q->set('meta_key', Meeting::MEETING_START_META_KEY);
+		$q->set('orderby', 'meta_value');
+		$q->set('order', 'ASC');
+		$q->set('posts_per_page', 200);
+
+		$q->set('post_type', Involvement_PostTypeSettings::getPostTypes());
+
+		$iids = [];
+		$count = 0;
+
+		foreach ($q->get_posts() as $eQ) {
+			/** @var WP_Post $eQ */
+			global $post;
+			$post = $eQ;
+
+			try {
+				$e = Meeting::fromPost($eQ);
+			} catch (TouchPointWP_Exception) {
+				continue;
+			}
+
+			$iid = $e->involvementId();
+			if (in_array($iid, $iids)) {
+				continue;
+			}
+			$iids[] = $iid;
+
+			$eO = [];
+
+			$locationContent = [];
+			$separator = " • ";
+
+			$location = $e->locationName();
+			if ($location !== '' && $location !== null) {
+				$locationContent[] = $location;
+			}
+//			$sstring = $e->scheduleString($separator);
+//			if ($sstring) {
+//				$locationContent[] = html_entity_decode($sstring);
+//			}
+			if ($e->isMultiDay()) {
+				$locationContent[] = __("Multi-Day", "TouchPoint-WP");
+			}
+			$locationContent = implode($separator, $locationContent);
+
+			$content = trim(get_the_content(null, true, $eQ->ID));
+			$content = apply_filters('the_content', $content);
+			/**
+			 * Allows for manipulation of the html returned to the calendar feature of 2.0 Mobile apps.
+			 *
+			 * @param string $content The html thus far.
+			 *
+			 * @since 0.0.90 Deprecated
+			 * @deprecated 0.0.90 Will be going away with Mobile App version 2.0
+			 *
+			 * @since 0.0.2 Added
+			 */
+			$content = apply_filters('tp_app_events_content', $content);
+
+			$content = html_entity_decode($content);
+
+			// Add Header and footer Scripts, etc.
+			if ($content !== '') {
+				ob_start();
+				do_action('wp_print_styles');
+				do_action('wp_print_head_scripts');
+				$content = ob_get_clean() . $content;
+
+				ob_start();
+				do_action('wp_print_footer_scripts');
+				do_action('wp_print_scripts');
+				$content .= ob_get_clean();
+			}
+
+			// Add domain to relative links
+			$content = preg_replace(
+				"/['\"]\/([^\/\"']*)[\"']/i",
+				'"' . get_home_url() . '/$1"',
+				$content
+			);
+
+			// Replace TouchPoint links with deeplinks where applicable
+			// Registration Links
+			if ($tpDomain !== '' && $dlDomain !== '') {
+				$content = preg_replace(
+					"/:\/\/$tpDomain\/OnlineReg\/([\d]+)/i",
+					"://" . $dlDomain . '/registrations/register/${1}?from={{MOBILE_OS}}',
+					$content
+				);
+			}
+
+			if ($content !== '') {
+				$cssUrl = null;
+				if (TouchPointWP::instance()->settings->ec_use_standardizing_style === 'on') {
+					$cssUrl = TouchPointWP::instance(
+						)->assets_url . 'template/ec-standardizing-style.css?v=' . TouchPointWP::VERSION;
+				}
+
+				/**
+				 * Insert a CSS file into all event content for mobile 2.0 app.
+				 *
+				 * @param string $cssUrl The url for a CSS file.  By default, one provided with the plugin is used.
+				 *
+				 * @since 0.0.90 Deprecated
+				 * @deprecated 0.0.90 Will be going away with Mobile App version 2.0
+				 *
+				 * @since 0.0.3 Added
+				 */
+				$cssUrl = apply_filters('tp_app_events_css_url', $cssUrl);
+				if (is_string($cssUrl)) {
+					$content = "<link rel=\"stylesheet\" href=\"$cssUrl\">" . $content;
+				}
+			}
+
+			// Not needed for apps, but helpful for diagnostics
+			$eO['ID'] = $eQ->ID;
+			$eO['IID'] = $iid;
+
+			// Android (apparently not used on iOS?)
+			$eO['all_day'] = $e->isAllDay();
+
+			// Android
+			$eO['image'] = get_the_post_thumbnail_url($eQ->ID, 'large');
+			// iOS
+			$eO['RelatedImageFileKey'] = $eO['image'];
+
+			// iOS
+			$eO['Description'] = str_replace("{{MOBILE_OS}}", "iOS", $content);
+			// Android
+			$eO['content'] = str_replace("{{MOBILE_OS}}", "android", $content);
+
+			// iOS
+			$eO['Subject'] = $eQ->post_title;
+			// Android
+			$eO['title'] = $eQ->post_title;
+
+			// iOS
+			$eO['StartDateTime'] = $e->startDt->format('c');
+			// Android
+			$eO['start_date'] = $eO['StartDateTime'];
+
+			// iOS
+			$eO['Location'] = $locationContent;
+			// Android
+			$eO['room'] = $locationContent;
+
+			$eventsList[] = $eO;
+		}
+
+		return $eventsList;
+	}
+
+	/**
 	 * Print json for Events Calendar for Mobile app.
 	 *
 	 * @param array $params Parameters from the request to use for filtering or such.
+	 *
+	 * @since 0.0.2 Added
+	 * @since 0.0.90 Deprecated.  Will be removed once v2.0 apps are no longer in use, as this won't be necessary for 3.0+.
+	 * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
 	 */
 	protected static function echoAppList(array $params = []): void
 	{
@@ -188,6 +423,11 @@ abstract class EventsCalendar implements api, module
 	 * Generate previews of the HTML generated for the App Events Calendar
 	 *
 	 * This is wildly inefficient since each iframe will calculate the full list.
+	 *
+	 * @param array $params Parameters from the request to use for filtering or such.
+	 * @since 0.0.90 Added
+	 * @since 0.0.90 Deprecated.  Will be removed once v2.0 apps are no longer in use, as this won't be necessary for 3.0+.
+	 * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
 	 */
 	protected static function previewAppList(array $params = []): void
 	{
@@ -202,6 +442,18 @@ abstract class EventsCalendar implements api, module
 		}
 	}
 
+	/**
+	 * Generate previews of the HTML generated for one item on the 2.0 app events calendar.
+	 *
+	 * This is wildly inefficient since each iframe will calculate the full list.
+	 *
+	 * @param array $params Parameters from the request to use for filtering or such.
+	 * @param int $item The item to preview
+	 *
+	 * @since 0.0.90 Added
+	 * @since 0.0.90 Deprecated.  Will be removed once v2.0 apps are no longer in use, as this won't be necessary for 3.0+.
+	 * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
+	 */
 	protected static function previewAppListItem(array $params = [], int $item = 0): void
 	{
 		$eventsList = self::generateEventsList($params);
@@ -209,6 +461,17 @@ abstract class EventsCalendar implements api, module
 		echo $eventsList[$item]['content'];
 	}
 
+	/**
+	 * Handle API requests
+	 *
+	 * @param array $uri The request URI already parsed by parse_url()
+	 *
+	 * @return bool False if endpoint is not found.  Should print the result.
+	 *
+	 * @since 0.0.2 Added
+	 * @since 0.0.90 Deprecated.  Will be removed once v2.0 apps are no longer in use, as this won't be necessary for 3.0+.
+	 * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
+	 */
 	public static function api(array $uri): bool
 	{
 		if (count($uri['path']) === 2) {
