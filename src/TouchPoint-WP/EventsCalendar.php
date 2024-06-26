@@ -60,9 +60,6 @@ abstract class EventsCalendar implements api, module
 
 		$usePro = TouchPointWP::useTribeCalendarPro();
 
-		$tpDomain = TouchPointWP::instance()->settings->host;
-		$dlDomain = TouchPointWP::instance()->settings->host_deeplink;
-
 		foreach ($eventsQ as $eQ) {
 			/** @var WP_Post $eQ */
 			global $post;
@@ -85,71 +82,7 @@ abstract class EventsCalendar implements api, module
 			$locationContent = implode(" • ", $locationContent);
 
 			$content = trim(get_the_content(null, true, $eQ->ID));
-			$content = apply_filters('the_content', $content);
-			/**
-			 * Allows for manipulation of the html returned to the calendar feature of 2.0 Mobile apps.
-			 *
-			 * @since 0.0.2 Added
-			 * @since 0.0.90 Deprecated
-			 * @deprecated 0.0.90 Will be going away with Mobile App version 2.0
-			 *
-			 * @param string $content The html thus far.
-			 */
-			$content = apply_filters('tp_app_events_content', $content);
-
-			$content = html_entity_decode($content);
-
-			// Add Header and footer Scripts, etc.
-			if ($content !== '') {
-				ob_start();
-				do_action('wp_print_styles');
-				do_action('wp_print_head_scripts');
-				$content = ob_get_clean() . $content;
-
-				ob_start();
-				do_action('wp_print_footer_scripts');
-				do_action('wp_print_scripts');
-				$content .= ob_get_clean();
-			}
-
-			// Add domain to relative links
-			$content = preg_replace(
-				"/['\"]\/([^\/\"']*)[\"']/i",
-				'"' . get_home_url() . '/$1"',
-				$content
-			);
-
-			// Replace TouchPoint links with deeplinks where applicable
-			// Registration Links
-			if ($tpDomain !== '' && $dlDomain !== '') {
-				$content = preg_replace(
-					"/:\/\/$tpDomain\/OnlineReg\/([\d]+)/i",
-					"://" . $dlDomain . '/registrations/register/${1}?from={{MOBILE_OS}}',
-					$content
-				);
-			}
-
-			if ($content !== '') {
-				$cssUrl = null;
-				if (TouchPointWP::instance()->settings->ec_use_standardizing_style === 'on') {
-					$cssUrl = TouchPointWP::instance(
-						)->assets_url . 'template/ec-standardizing-style.css?v=' . TouchPointWP::VERSION;
-				}
-
-				/**
-				 * Insert a CSS file into all event content for mobile 2.0 app.
-				 *
-				 * @since 0.0.3 Added
-				 * @since 0.0.90 Deprecated
-				 * @deprecated 0.0.90 Will be going away with Mobile App version 2.0
-				 *
-				 * @param string $cssUrl The url for a CSS file.  By default, one provided with the plugin is used.
-				 */
-				$cssUrl = apply_filters('tp_app_events_css_url', $cssUrl);
-				if (is_string($cssUrl)) {
-					$content = "<link rel=\"stylesheet\" href=\"$cssUrl\">" . $content;
-				}
-			}
+			$content = self::formatContent($content);
 
 			// Not needed for apps, but helpful for diagnostics
 			$eO['ID'] = $eQ->ID;
@@ -187,6 +120,80 @@ abstract class EventsCalendar implements api, module
 
 		return $eventsList;
 	}
+	
+	private static function formatContent(?string $content): string
+	{
+		$tpDomain = TouchPointWP::instance()->settings->host;
+		$dlDomain = TouchPointWP::instance()->settings->host_deeplink;
+
+		$content = apply_filters('the_content', $content);
+
+		/**
+		 * Allows for manipulation of the html returned to the calendar feature of 2.0 Mobile apps.
+		 *
+		 * @since 0.0.2 Added
+		 * @since 0.0.90 Deprecated
+		 * @deprecated 0.0.90 Will be going away with Mobile App version 2.0
+		 *
+		 * @param string $content The html thus far.
+		 */
+		$content = apply_filters('tp_app_events_content', $content);
+		$content = html_entity_decode($content);
+
+		// Add Header and footer Scripts, etc.
+		if ($content !== '') {
+			ob_start();
+			do_action('wp_print_styles');
+			do_action('wp_print_head_scripts');
+			$content = ob_get_clean() . $content;
+
+			ob_start();
+			do_action('wp_print_footer_scripts');
+			do_action('wp_print_scripts');
+			$content .= ob_get_clean();
+		}
+
+		// Add domain to relative links
+		$content = preg_replace(
+			"/['\"]\/([^\/\"']*)[\"']/i",
+			'"' . get_home_url() . '/$1"',
+			$content
+		);
+
+		// Replace TouchPoint links with deeplinks where applicable
+		// Registration Links
+		if ($tpDomain !== '' && $dlDomain !== '') {
+			$content = preg_replace(
+				"/:\/\/$tpDomain\/OnlineReg\/([\d]+)/i",
+				"://" . $dlDomain . '/registrations/register/${1}?from={{MOBILE_OS}}',
+				$content
+			);
+		}
+
+		if ($content !== '') {
+			$cssUrl = null;
+			if (TouchPointWP::instance()->settings->ec_use_standardizing_style === 'on') {
+				$cssUrl = TouchPointWP::instance(
+					)->assets_url . 'template/ec-standardizing-style.css?v=' . TouchPointWP::VERSION;
+			}
+
+			/**
+			 * Insert a CSS file into all event content for mobile 2.0 app.
+			 *
+			 * @since 0.0.3 Added
+			 * @since 0.0.90 Deprecated
+			 * @deprecated 0.0.90 Will be going away with Mobile App version 2.0
+			 *
+			 * @param string $cssUrl The url for a CSS file.  By default, one provided with the plugin is used.
+			 */
+			$cssUrl = apply_filters('tp_app_events_css_url', $cssUrl);
+			if (is_string($cssUrl)) {
+				$content = "<link rel=\"stylesheet\" href=\"$cssUrl\">" . $content;
+			}
+		}
+
+		return $content;
+	}
 
 	/**
 	 * @param array $params
@@ -199,9 +206,6 @@ abstract class EventsCalendar implements api, module
 	protected static function generateEventsListFromMeetings(array $params = []): array
 	{
 		$eventsList = [];
-
-		$tpDomain = TouchPointWP::instance()->settings->host;
-		$dlDomain = TouchPointWP::instance()->settings->host_deeplink;
 
 		$q = new WP_Query();
 
@@ -295,73 +299,8 @@ abstract class EventsCalendar implements api, module
 			$locationContent = implode($separator, $locationContent);
 
 			$content = trim(get_the_content(null, true, $eQ->ID));
-			$content = apply_filters('the_content', $content);
-			/**
-			 * Allows for manipulation of the html returned to the calendar feature of 2.0 Mobile apps.
-			 *
-			 * @param string $content The html thus far.
-			 *
-			 * @since 0.0.90 Deprecated
-			 * @deprecated 0.0.90 Will be going away with Mobile App version 2.0
-			 *
-			 * @since 0.0.2 Added
-			 */
-			$content = apply_filters('tp_app_events_content', $content);
 
-			$content = html_entity_decode($content);
-
-			// Add Header and footer Scripts, etc.
-			if ($content !== '') {
-				ob_start();
-				do_action('wp_print_styles');
-				do_action('wp_print_head_scripts');
-				$content = ob_get_clean() . $content;
-
-				ob_start();
-				do_action('wp_print_footer_scripts');
-				do_action('wp_print_scripts');
-				$content .= ob_get_clean();
-			}
-
-			// Add domain to relative links
-			$content = preg_replace(
-				"/['\"]\/([^\/\"']*)[\"']/i",
-				'"' . get_home_url() . '/$1"',
-				$content
-			);
-
-			// Replace TouchPoint links with deeplinks where applicable
-			// Registration Links
-			if ($tpDomain !== '' && $dlDomain !== '') {
-				$content = preg_replace(
-					"/:\/\/$tpDomain\/OnlineReg\/([\d]+)/i",
-					"://" . $dlDomain . '/registrations/register/${1}?from={{MOBILE_OS}}',
-					$content
-				);
-			}
-
-			if ($content !== '') {
-				$cssUrl = null;
-				if (TouchPointWP::instance()->settings->ec_use_standardizing_style === 'on') {
-					$cssUrl = TouchPointWP::instance(
-						)->assets_url . 'template/ec-standardizing-style.css?v=' . TouchPointWP::VERSION;
-				}
-
-				/**
-				 * Insert a CSS file into all event content for mobile 2.0 app.
-				 *
-				 * @param string $cssUrl The url for a CSS file.  By default, one provided with the plugin is used.
-				 *
-				 * @since 0.0.90 Deprecated
-				 * @deprecated 0.0.90 Will be going away with Mobile App version 2.0
-				 *
-				 * @since 0.0.3 Added
-				 */
-				$cssUrl = apply_filters('tp_app_events_css_url', $cssUrl);
-				if (is_string($cssUrl)) {
-					$content = "<link rel=\"stylesheet\" href=\"$cssUrl\">" . $content;
-				}
-			}
+			$content = self::formatContent($content);
 
 			// Not needed for apps, but helpful for diagnostics
 			$eO['ID'] = $eQ->ID;
