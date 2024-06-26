@@ -70,10 +70,12 @@ class StringableArray extends ArrayObject
 	 */
 	public function __toString()
 	{
-		return implode($this->separator, $this->getArrayCopy());
+		return $this->join();
 	}
 
 	/**
+	 * Link the items together with a given separator, which may be different from the separator used in the constructor.
+	 *
 	 * @param string|null $separator
 	 *
 	 * @return string

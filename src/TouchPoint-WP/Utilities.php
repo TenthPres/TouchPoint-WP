@@ -243,11 +243,11 @@ abstract class Utilities
 		$comma     = ', ';
 		$and       = ' & ';
 		$useOxford = false;
-		if (strpos($concat, ', ') !== false) {
+		if (str_contains($concat, ', ')) {
 			$comma     = '; ';
 			$useOxford = true;
 		}
-		if (strpos($concat, ' & ') !== false) {
+		if (str_contains($concat, ' & ')) {
 			$and       = ' ' . __('and', 'TouchPoint-WP') . ' ';
 			$useOxford = true;
 		}
