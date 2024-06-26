@@ -299,7 +299,7 @@ abstract class EventsCalendar implements api, module
 			$locationContent = implode($separator, $locationContent);
 
 			$content = trim(get_the_content(null, true, $eQ->ID));
-
+			$content .= "<div>" . $e->getActionButtons('mobile', 'btn', withTouchPointLink: false, absoluteLinks: true)->join("  ") . "</div>";
 			$content = self::formatContent($content);
 
 			// Not needed for apps, but helpful for diagnostics

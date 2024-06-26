@@ -3510,13 +3510,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with
 	 * the `data-tp-involvement` attribute with the post_id (NOT the Inv ID) as the value.
 	 *
-	 * @param ?string $context A reference to where the action buttons are meant to be used.
-	 * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button
-	 *     elements.
+	 * @param string|null $context A string that gives filters some context for where the request is coming from
+	 * @param string      $btnClass HTML class names to put into the buttons/links
+	 * @param bool        $withTouchPointLink Whether to include a link to the item within TouchPoint.
+	 * @param bool        $absoluteLinks Set true to make the links absolute, so they work from apps or emails.
+	 * @param bool        $includeRegister Set false to exclude the register button.
 	 *
-	 * @return StringableArray()
+	 * @return StringableArray
 	 */
-	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $includeRegister = true): StringableArray
+	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false, bool $includeRegister = true): StringableArray
 	{
 		TouchPointWP::requireScript('swal2-defer');
 		TouchPointWP::requireScript('base-defer');
@@ -3529,11 +3531,18 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$btnClass = " class=\"$btnClass\"";
 		}
 
+		$baseLink = get_permalink($this->post_id);
+
 		$ret = new StringableArray();
 		if (self::allowContact($this->invType) && $this->leaders()->count() > 0) {
-			$text = __("Contact Leaders", 'TouchPoint-WP');
-			$ret[] = "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"contact\" $btnClass>$text</button> ";
-			TouchPointWP::enqueueActionsStyle('inv-contact');
+			$text  = __("Contact Leaders", 'TouchPoint-WP');
+			if (!$absoluteLinks) {
+				$ret[] = "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"contact\" $btnClass>$text</button> ";
+				TouchPointWP::enqueueActionsStyle('inv-contact');
+			} else {
+				$iid = $this->invId;
+				$ret[] = "<a href=\"$baseLink#tp-contact-i$iid\"$btnClass>$text</a> ";
+			}
 		}
 
 		// Register Button
@@ -3542,7 +3551,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		}
 
 		// Show on map button.  (Only works if map is called before this is.)
-		if (self::$_hasArchiveMap && $this->geo !== null) {
+		if (self::$_hasArchiveMap && $this->geo !== null && !$absoluteLinks) {
 			$text = __("Show on Map", 'TouchPoint-WP');
 			if ($ret->count() > 1) {
 				TouchPointWP::requireScript("fontAwesome");
@@ -3582,11 +3591,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * Get the HTML for the register button.  Labels depend on several settings within TouchPoint.
 	 *
 	 * @param string $btnClass  Class names
-	 * @param bool   $includeRsvp
+	 * @param bool   $absoluteLinks  Whether only absolute links should be provided that can be used in emails, apps, etc.
 	 *
 	 * @return ?string HTML for the registration button, whatever that should be. Null if nothing to return.
 	 */
-	public function getRegisterButton(string $btnClass, bool $includeRsvp = true): ?string
+	public function getRegisterButton(string $btnClass, bool $absoluteLinks = false): ?string
 	{
 		if ($btnClass !== "") {
 			$btnClass = " class=\"$btnClass\"";
@@ -3626,8 +3635,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 			case RegistrationType::JOIN:
 				$text = __('Join', 'TouchPoint-WP');
-				TouchPointWP::enqueueActionsStyle('inv-join');
-				return "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"join\" $btnClass>$text</button>  ";
+				if (!$absoluteLinks) {
+					TouchPointWP::enqueueActionsStyle('inv-join');
+					return "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"join\" $btnClass>$text</button>  ";
+				}
+				$link = get_permalink($this->post_id()) . "#tp-join-i" . $this->invId;
+				return "<a href=\"$link\" $btnClass>$text</a>  ";
 
 			case RegistrationType::EXTERNAL:
 				$text = __('Register', 'TouchPoint-WP');
@@ -3636,11 +3649,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				return "<a href=\"$link\" $btnClass>$text</a>  ";
 
 			case RegistrationType::RSVP:
-				if ($includeRsvp) {
-					$asAMeeting = $this->AsAMeeting();
-					if ($asAMeeting !== null) {
-						return $asAMeeting->getRsvpButton($btnClass);
+				$asAMeeting = $this->AsAMeeting();
+				if ($asAMeeting !== null) {
+					if ($absoluteLinks) {
+						return $asAMeeting->getRsvpLink($btnClass);
 					}
+					return $asAMeeting->getRsvpButton($btnClass);
 				}
 		}
 		return null;

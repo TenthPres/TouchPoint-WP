@@ -355,13 +355,14 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 	}
 
 	/**
-	 * @param ?string $context
-	 * @param string  $btnClass
-	 * @param bool    $withTouchPointLink
+	 * @param string|null $context A string that gives filters some context for where the request is coming from
+	 * @param string      $btnClass HTML class names to put into the buttons/links
+	 * @param bool        $withTouchPointLink Whether to include a link to the item within TouchPoint.
+	 * @param bool        $absoluteLinks  Set true to make the links absolute, so they work from apps or emails.
 	 *
 	 * @return StringableArray
 	 */
-	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true): StringableArray
+	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray
 	{
 		TouchPointWP::requireScript('swal2-defer');
 		TouchPointWP::requireScript('base-defer');
@@ -375,14 +376,18 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 			return new StringableArray();
 		}
 
-		$ret = $inv->getActionButtons($context . "_meeting", $btnClass, false, false);
+		$ret = $inv->getActionButtons($context . "_meeting", $btnClass, false, $absoluteLinks, false);
 
 		if (($this->endDt ?? $this->startDt) > Utilities::dateTimeNow()) {
-			$ret[] = $inv->getRegisterButton($btnClass);
+			$ret[] = $inv->getRegisterButton($btnClass, $absoluteLinks);
 		}
 
 		if ($inv->getRegistrationType() === RegistrationType::RSVP) {
-			$ret[] = $this->getRsvpButton($btnClass);
+			if ($absoluteLinks) {
+				$ret[] = $this->getRsvpLink($btnClass);
+			} else {
+				$ret[] = $this->getRsvpButton($btnClass);
+			}
 		}
 
 		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
@@ -599,6 +604,29 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 		}
 
 		return "<a href=\"#\" onclick=\"return false;\" $btnClass disabled data-tp-action=\"rsvp\" data-tp-mtg=\"$this->mtgId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$link</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
+	}
+
+	/**
+	 * Get a link to RSVP for the meeting that can be used in emails, apps, or other contexts.
+	 *
+	 * @param string $btnClass
+	 *
+	 * @return string
+	 */
+	public function getRsvpLink(string $btnClass = ""): string
+	{
+		$link = __("RSVP", "TouchPoint-WP");
+
+		$baseUrl = get_permalink($this->post_id);
+
+		$btnClass = trim($btnClass);
+		if ($btnClass !== '' && !str_starts_with($btnClass, "class=")) {
+			$btnClass = "class=\"$btnClass\"";
+		}
+
+		$mid = $this->mtgId;
+		return "<a href=\"$baseUrl#tp-rsvp-m$mid\" $btnClass>$link</a>";
+
 	}
 
 	/**

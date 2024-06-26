@@ -87,7 +87,7 @@ msgstr "Tipos de miembros de líder"
 #: src/templates/admin/invKoForm.php:141
 #: src/templates/admin/invKoForm.php:268
 #: src/templates/parts/involvement-nearby-list.php:2
-#: src/TouchPoint-WP/Meeting.php:594
+#: src/TouchPoint-WP/Meeting.php:599
 #: src/TouchPoint-WP/Rsvp.php:75
 #: assets/js/base-defer.js:192
 #: assets/js/base-defer.js:1133
@@ -199,12 +199,12 @@ msgstr "Su token de inicio de sesión no es válido."
 msgid "Session could not be validated."
 msgstr "No se pudo validar la sesión."
 
-#: src/TouchPoint-WP/EventsCalendar.php:80
+#: src/TouchPoint-WP/EventsCalendar.php:77
 msgid "Recurring"
 msgstr "Periódico"
 
-#: src/TouchPoint-WP/EventsCalendar.php:83
-#: src/TouchPoint-WP/EventsCalendar.php:293
+#: src/TouchPoint-WP/EventsCalendar.php:80
+#: src/TouchPoint-WP/EventsCalendar.php:297
 msgid "Multi-Day"
 msgstr "varios días"
 
@@ -243,45 +243,45 @@ msgstr "Solo hombres"
 msgid "Women Only"
 msgstr "Solo mujeres"
 
-#: src/TouchPoint-WP/Involvement.php:3534
+#: src/TouchPoint-WP/Involvement.php:3538
 msgid "Contact Leaders"
 msgstr "Contacta con las líderes"
 
-#: src/TouchPoint-WP/Involvement.php:3597
-#: src/TouchPoint-WP/Involvement.php:3633
+#: src/TouchPoint-WP/Involvement.php:3606
+#: src/TouchPoint-WP/Involvement.php:3646
 msgid "Register"
 msgstr "Regístrate ahora"
 
-#: src/TouchPoint-WP/Involvement.php:3602
+#: src/TouchPoint-WP/Involvement.php:3611
 msgid "Create Account"
 msgstr "Crear cuenta"
 
-#: src/TouchPoint-WP/Involvement.php:3606
+#: src/TouchPoint-WP/Involvement.php:3615
 msgid "Schedule"
 msgstr "Programe"
 
-#: src/TouchPoint-WP/Involvement.php:3611
+#: src/TouchPoint-WP/Involvement.php:3620
 msgid "Give"
 msgstr "Dar"
 
-#: src/TouchPoint-WP/Involvement.php:3614
+#: src/TouchPoint-WP/Involvement.php:3623
 msgid "Manage Subscriptions"
 msgstr "Administrar suscripciones"
 
-#: src/TouchPoint-WP/Involvement.php:3617
+#: src/TouchPoint-WP/Involvement.php:3626
 msgid "Record Attendance"
 msgstr "Registre su asistencia"
 
-#: src/TouchPoint-WP/Involvement.php:3620
+#: src/TouchPoint-WP/Involvement.php:3629
 msgid "Get Tickets"
 msgstr "Obtener boletos"
 
-#: src/TouchPoint-WP/Involvement.php:3628
+#: src/TouchPoint-WP/Involvement.php:3637
 #: assets/js/base-defer.js:1001
 msgid "Join"
 msgstr "Únete"
 
-#: src/TouchPoint-WP/Involvement.php:3546
+#: src/TouchPoint-WP/Involvement.php:3555
 #: src/TouchPoint-WP/Partner.php:1314
 msgid "Show on Map"
 msgstr "Muestra en el mapa"
@@ -307,7 +307,8 @@ msgstr "ID de Personas de TouchPoint"
 msgid "Contact"
 msgstr "Contacta"
 
-#: src/TouchPoint-WP/Meeting.php:593
+#: src/TouchPoint-WP/Meeting.php:598
+#: src/TouchPoint-WP/Meeting.php:618
 #: src/TouchPoint-WP/Rsvp.php:80
 msgid "RSVP"
 msgstr "RSVP"
@@ -1289,23 +1290,23 @@ msgstr "Este tipo de participación no tiene habilitadas las ubicaciones geográ
 msgid "Could not locate."
 msgstr "No se pudo localizar."
 
-#: src/TouchPoint-WP/Meeting.php:526
+#: src/TouchPoint-WP/Meeting.php:531
 #: src/TouchPoint-WP/TouchPointWP.php:969
 msgid "Only GET requests are allowed."
 msgstr "Solo se permiten solicitudes GET."
 
-#: src/TouchPoint-WP/Meeting.php:554
+#: src/TouchPoint-WP/Meeting.php:559
 #: src/TouchPoint-WP/TouchPointWP.php:353
 msgid "Only POST requests are allowed."
 msgstr "Solo se permiten solicitudes POST."
 
-#: src/TouchPoint-WP/Meeting.php:564
+#: src/TouchPoint-WP/Meeting.php:569
 #: src/TouchPoint-WP/TouchPointWP.php:362
 msgid "Invalid data provided."
 msgstr "Datos proporcionados no válidos."
 
-#: src/TouchPoint-WP/Involvement.php:3726
-#: src/TouchPoint-WP/Involvement.php:3823
+#: src/TouchPoint-WP/Involvement.php:3740
+#: src/TouchPoint-WP/Involvement.php:3837
 msgid "Invalid Post Type."
 msgstr "Tipo de publicación no válida."
 
@@ -1478,7 +1479,7 @@ msgstr "Eliminar siempre de WordPress"
 msgid "Mark the occurrence as cancelled"
 msgstr "Marcar la ocurrencia como cancelada"
 
-#: src/TouchPoint-WP/Involvement.php:3810
+#: src/TouchPoint-WP/Involvement.php:3824
 #: src/TouchPoint-WP/Person.php:1821
 msgid "Contact Prohibited."
 msgstr "Contacto prohibido."
@@ -1503,7 +1504,7 @@ msgstr "Algo salió mal."
 msgid "You may need to sign in."
 msgstr "Es posible que tengas que iniciar sesión."
 
-#: src/TouchPoint-WP/Involvement.php:3800
+#: src/TouchPoint-WP/Involvement.php:3814
 #: src/TouchPoint-WP/Person.php:1838
 msgid "Contact Blocked for Spam."
 msgstr "Contacto bloqueado por spam."
@@ -1591,11 +1592,11 @@ msgstr "(persona nombrada)"
 msgid "Expand"
 msgstr "Ampliar"
 
-#: src/TouchPoint-WP/Meeting.php:446
+#: src/TouchPoint-WP/Meeting.php:451
 msgid "Cancelled"
 msgstr "Cancelado"
 
-#: src/TouchPoint-WP/Meeting.php:447
+#: src/TouchPoint-WP/Meeting.php:452
 msgid "Scheduled"
 msgstr "Programado"
 
@@ -1629,7 +1630,7 @@ msgid "%s is cancelled."
 msgstr "%s esta cancelado."
 
 #. Translators: %s is the system name.  "TouchPoint" by default.
-#: src/TouchPoint-WP/Involvement.php:3558
+#: src/TouchPoint-WP/Involvement.php:3567
 msgid "Involvement in %s"
 msgstr "Participaciones en %s"
 
@@ -1638,7 +1639,7 @@ msgid "In the Past"
 msgstr "en el pasado"
 
 #. Translators: %s is the system name.  "TouchPoint" by default.
-#: src/TouchPoint-WP/Meeting.php:391
+#: src/TouchPoint-WP/Meeting.php:396
 msgid "Meeting in %s"
 msgstr "Reunión en %s"
 
@@ -1703,7 +1704,7 @@ msgctxt "Date string when the year is not current."
 msgid "F j, Y"
 msgstr "j F Y"
 
-#: src/TouchPoint-WP/Meeting.php:448
+#: src/TouchPoint-WP/Meeting.php:453
 msgctxt "Event Status is not a recognized value."
 msgid "Unknown"
 msgstr "desconocido"

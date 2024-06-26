@@ -1291,14 +1291,14 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 	 * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with
 	 * the `data-tp-partner` attribute with the post_id as the value or 0 for secure partners.
 	 *
-	 * @param ?string $context A reference to where the action buttons are meant to be used.
-	 * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button
-	 *     elements.
-	 * @param bool $withTouchPointLink Whether or not to include the TouchPoint link.  Default is true.
+	 * @param string|null $context A string that gives filters some context for where the request is coming from
+	 * @param string      $btnClass HTML class names to put into the buttons/links
+	 * @param bool        $withTouchPointLink Whether to include a link to the item within TouchPoint.
+	 * @param bool        $absoluteLinks  Set true to make the links absolute, so they work from apps or emails.
 	 *
 	 * @return StringableArray
 	 */
-	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true): StringableArray
+	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray
 	{
 		$this->enqueueForJsInstantiation();
 
@@ -1308,7 +1308,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		}
 
 		// Show on map button.  (Only works if map is called before this is.)
-		if (self::$_hasArchiveMap && ! $this->decoupleLocation && $this->geo !== null) {
+		if (self::$_hasArchiveMap && ! $this->decoupleLocation && $this->geo !== null && !$absoluteLinks) {
 			$text = __("Show on Map", "TouchPoint-WP");
 			$ret[] = "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  ";
 		}
@@ -1329,8 +1329,9 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		 * @param ?string $context A reference to where the action buttons are meant to be used.
 		 * @param string $btnClass A string for classes to add to the buttons.  Note that buttons can be 'a' or 'button'
 		 *     elements.
+		 * @param bool $absoluteLinks Set true to make the links absolute, so they work from apps or emails.
 		 */
-		return apply_filters("tp_partner_actions", $ret, $this, $context, $btnClass);
+		return apply_filters("tp_partner_actions", $ret, $this, $context, $btnClass, $absoluteLinks);
 	}
 
 	public static function getJsInstantiationString(): string

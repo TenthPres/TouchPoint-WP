@@ -74,6 +74,21 @@ class StringableArray extends ArrayObject
 	}
 
 	/**
+	 * @param string|null $separator
+	 *
+	 * @return string
+	 *
+	 * @since 0.0.90 Added
+	 */
+	public function join(string $separator = null): string
+	{
+		if (is_null($separator)) {
+			$separator = $this->separator;
+		}
+		return implode($separator, $this->getArrayCopy());
+	}
+
+	/**
 	 * Convert the array to a list string with ampersands and such.
 	 *
 	 * @return string

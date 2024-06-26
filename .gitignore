@@ -12,6 +12,7 @@ composer.lock
 /.idea/deployment.xml
 /.idea/dataSources.xml
 /.idea/webServers.xml
+/.idea/runConfigurations/Local.xml
 
 *.min.js
 node_modules

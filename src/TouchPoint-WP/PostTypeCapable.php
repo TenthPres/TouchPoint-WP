@@ -92,13 +92,14 @@ abstract class PostTypeCapable implements module
 	}
 
 	/**
-	 * @param string $context  A string that gives filters some context for where the request is coming from
-	 * @param string $btnClass HTML class names to put into the buttons/links
-	 * @param bool   $withTouchPointLink Whether to include a link to the item within TouchPoint.
+	 * @param string|null $context A string that gives filters some context for where the request is coming from
+	 * @param string      $btnClass HTML class names to put into the buttons/links
+	 * @param bool        $withTouchPointLink Whether to include a link to the item within TouchPoint.
+	 * @param bool        $absoluteLinks  Set true to make the links absolute, so they work from apps or emails.
 	 *
 	 * @return StringableArray
 	 */
-	public abstract function getActionButtons(string $context, string $btnClass, bool $withTouchPointLink = true): StringableArray;
+	public abstract function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray;
 
 	/**
 	 * Indicates if the given post can be instantiated as the given post type.
