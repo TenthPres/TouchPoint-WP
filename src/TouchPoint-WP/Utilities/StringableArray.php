@@ -40,7 +40,7 @@ class StringableArray extends ArrayObject
 	}
 
 	/**
-	 * Append to the end of the array.
+	 * Append to the start of the array.
 	 *
 	 * @param mixed $value
 	 */

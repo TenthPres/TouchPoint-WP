@@ -691,7 +691,8 @@ class TouchPointWP
 		}
 
 		// Load Involvements tool if enabled.
-		if ($instance->settings->enable_involvements === "on") {
+		if ($instance->settings->enable_involvements === "on" ||
+			$instance->settings->enable_meeting_cal === "on") {
 			$instance->involvements = Involvement::load();
 		}
 
@@ -710,9 +711,6 @@ class TouchPointWP
 
 		// Load Meetings / Events Calendar
 		if ($instance->settings->enable_meeting_cal === "on") {
-			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-				require_once 'Meeting.php';
-			}
 			$instance->meeting = Meeting::load();
 		}
 

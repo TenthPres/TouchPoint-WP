@@ -42,6 +42,23 @@ abstract class DateFormats
 	 *
 	 * @since 0.0.90 added
 	 */
+	public static function timestampWithoutOffset(?DateTimeInterface $dt): int
+	{
+		if ($dt === null) {
+			return 0;
+		}
+
+		$dt = $dt->setTimezone(Utilities::utcTimeZone());
+		return $dt->getTimestamp();
+	}
+
+	/**
+	 * @param ?DateTimeInterface $dt
+	 *
+	 * @return int
+	 *
+	 * @since 0.0.90 added
+	 */
 	public static function timestampAndOffset(?DateTimeInterface $dt): int
 	{
 		if ($dt === null) {

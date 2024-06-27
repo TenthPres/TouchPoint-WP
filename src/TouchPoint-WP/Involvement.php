@@ -13,6 +13,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "api.php";
 	require_once "jsInstantiation.php";
 	require_once "jsonLd.php";
+	require_once "hierarchical.php";
 	require_once "updatesViaCron.php";
 	require_once "Utilities.php";
 	require_once "Involvement_PostTypeSettings.php";
@@ -40,7 +41,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo, module, JsonSerializable
+class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo, module, hierarchical, JsonSerializable
 {
 	use jsInstantiation;
 	use jsonLd;
@@ -300,15 +301,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		}
 
 		// Register default templates for Involvements
-		add_filter('template_include', [self::class, 'templateFilter']);
+		add_filter('template_include', [self::class, 'templateFilter'], 10, 1);
 
 		// Register function to return schedule instead of publishing date
 		add_filter('get_the_date', [self::class, 'filterPublishDate'], 10, 3);
 		add_filter('get_the_time', [self::class, 'filterPublishDate'], 10, 3);
 
 		// Register function to return leaders instead of authors
-		add_filter('the_author', [self::class, 'filterAuthor'], 10, 3);
-		add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 3);
+		add_filter('the_author', [self::class, 'filterAuthor'], 10, 1);
+		add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 1);
 	}
 
 	public static function checkUpdates(): void
@@ -615,7 +616,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * Whether the involvement should link to a registration form, rather than directly joining the org.
 	 *
 	 * @since 0.0.90 Deprecated
-	 * @deprecated 0.0.90  Does not take into account all the possible registration types; will be removed in a future version.
+	 * @deprecated 0.0.90  Does not take into account all the possible registration types; will be removed in a future
+	 *     version.
 	 *
 	 * @return bool
 	 */
@@ -668,11 +670,38 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	}
 
 	/**
+	 * Get the parent of this object **which may be an object of a different class**.
+	 *
+	 * Returns null if there is no parent.
+	 *
+	 * @return Involvement|null
+	 */
+	public function getParent(): ?Involvement
+	{
+		if ($this->parentPostId === null) {
+			$this->parentPostId = $this->post->post_parent;
+			if ($this->parentPostId > 0) {
+				$parent = get_post($this->parentPostId);
+				if ($parent !== null) {
+					try {
+						$this->parentObject = self::fromPost($parent);
+					} catch (TouchPointWP_Exception) {
+						$this->parentObject = null;
+					}
+				}
+			}
+		}
+		return $this->parentObject;
+	}
+	protected ?int $parentPostId = null;
+	protected ?self $parentObject = null;
+
+	/**
 	 * Get a description of the meeting schedule in a human-friendly phrase, e.g. Sundays at 11:00am, starting January
 	 * 14.
 	 *
-	 * This is separated out to a static method to prevent involvement from being instantiated (with those database hits)
-	 * when the content is cached.  (10x faster or more)
+	 * This is separated out to a static method to prevent involvement from being instantiated (with those database
+	 * hits) when the content is cached.  (10x faster or more)
 	 *
 	 * @param int           $invId
 	 * @param ?Involvement  $inv
@@ -2725,7 +2754,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			unset($timeStr, $weekday);
 		}
 
-		// Start and end dates
+		// first and last meeting dates
 		$tense = Taxonomies::TAX_TENSE_PRESENT;
 		if ($inv->firstMeeting !== null && $inv->firstMeeting < Utilities::dateTimeNow()) { // First meeting already happened.
 			$inv->firstMeeting = null; // We don't need to list info from the past.
@@ -3118,8 +3147,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			delete_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY);
 		} else {
 			update_post_meta($mtgP->ID, Meeting::MEETING_META_KEY, $mtgO->mtgId);
-			update_post_meta($mtgP->ID, Meeting::MEETING_START_META_KEY, DateFormats::timestampAndOffset($mtgO->mtgStartDt));
-			update_post_meta($mtgP->ID, Meeting::MEETING_END_META_KEY, DateFormats::timestampAndOffset($mtgO->mtgEndDt));
+			update_post_meta($mtgP->ID, Meeting::MEETING_START_META_KEY, DateFormats::timestampWithoutOffset($mtgO->mtgStartDt));
+			update_post_meta($mtgP->ID, Meeting::MEETING_END_META_KEY, DateFormats::timestampWithoutOffset($mtgO->mtgEndDt));
 			update_post_meta($mtgP->ID, Meeting::MEETING_FEAT_META_KEY, !!$feature);
 			update_post_meta($mtgP->ID, Meeting::MEETING_INV_ID_META_KEY, $mtgO->involvementId);
 			update_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY, intval($mtgO->status));
@@ -3520,11 +3549,13 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 */
 	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false, bool $includeRegister = true): StringableArray
 	{
-		TouchPointWP::requireScript('swal2-defer');
-		TouchPointWP::requireScript('base-defer');
-		$this->enqueueForJsInstantiation();
-		$this->enqueueForJsonLdInstantiation();
-		Person::enqueueUsersForJsInstantiation();
+		if (!$absoluteLinks) {
+			TouchPointWP::requireScript('swal2-defer');
+			TouchPointWP::requireScript('base-defer');
+			$this->enqueueForJsInstantiation();
+			$this->enqueueForJsonLdInstantiation();
+			Person::enqueueUsersForJsInstantiation();
+		}
 
 		$classesOnly = $btnClass;
 		if ($btnClass !== "") {
@@ -3591,7 +3622,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * Get the HTML for the register button.  Labels depend on several settings within TouchPoint.
 	 *
 	 * @param string $btnClass  Class names
-	 * @param bool   $absoluteLinks  Whether only absolute links should be provided that can be used in emails, apps, etc.
+	 * @param bool   $absoluteLinks  Whether only absolute links should be provided that can be used in emails, apps,
+	 *     etc.
 	 *
 	 * @return ?string HTML for the registration button, whatever that should be. Null if nothing to return.
 	 */
@@ -3630,7 +3662,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 						break;
 				}
 				$link  = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
-				TouchPointWP::enqueueActionsStyle('inv-register');
+				if (!$absoluteLinks) {
+					TouchPointWP::enqueueActionsStyle('inv-register');
+				}
 				return "<a href=\"$link\" $btnClass>$text</a>  ";
 
 			case RegistrationType::JOIN:
@@ -3645,7 +3679,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			case RegistrationType::EXTERNAL:
 				$text = __('Register', 'TouchPoint-WP');
 				$link = $this->getRegistrationUrl();
-				TouchPointWP::enqueueActionsStyle('inv-register');
+				if (!$absoluteLinks) {
+					TouchPointWP::enqueueActionsStyle('inv-register');
+				}
 				return "<a href=\"$link\" $btnClass>$text</a>  ";
 
 			case RegistrationType::RSVP:

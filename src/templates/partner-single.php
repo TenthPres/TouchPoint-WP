@@ -16,6 +16,16 @@ TouchPointWP::enqueuePartialsStyle();
 ?>
 
 <header class="archive-header has-text-align-center header-footer-group">
+	<?php
+	$image = get_the_post_thumbnail_url($pst, 'full');
+	$imageAlt = esc_html(get_the_post_thumbnail_caption($pst));
+	if ($image) {
+		echo "<div class=\"header-image-container partner-header-image\" style=\"background-image: url('$image');\">";
+		echo "<img src='$image' alt='$imageAlt' class='partner-header-image tp-header-image'>";
+		echo "</div>";
+	}
+	?>
+
     <div class="archive-header-inner section-inner medium">
         <h1 class="archive-title page-title"><?php echo the_title() ?></h1>
     </div>

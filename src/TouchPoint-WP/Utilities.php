@@ -8,6 +8,7 @@ namespace tp\TouchPointWP;
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeInterface;
+use DateTimeZone;
 use Exception;
 use WP_Post_Type;
 
@@ -88,11 +89,24 @@ abstract class Utilities
 
 		return self::$_dateTimeNowPlus1D;
 	}
+	
+	/**
+	 * @return DateTimeZone
+	 */
+	public static function utcTimeZone(): DateTimeZone
+	{
+		if (self::$_utcTimeZone === null) {
+			self::$_utcTimeZone = new DateTimeZone('UTC');
+		}
+
+		return self::$_utcTimeZone;
+	}
 
 	private static ?DateTimeImmutable $_dateTimeNow = null;
 	private static ?DateTimeImmutable $_dateTimeTodayAtMidnight = null;
 	private static ?DateTimeImmutable $_dateTimeNowPlus1Y = null;
 	private static ?DateTimeImmutable $_dateTimeNowPlus1D = null;
+	private static ?DateTimeZone $_utcTimeZone = null;
 
 	/**
 	 * Gets the plural form of a weekday name.

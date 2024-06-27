@@ -11,6 +11,7 @@ if ( ! defined('ABSPATH')) {
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once 'api.php';
+	require_once 'hierarchical.php';
 }
 
 use DateTime;
@@ -25,7 +26,7 @@ use WP_Term;
 /**
  * Handle meeting content, particularly RSVPs.
  */
-class Meeting extends PostTypeCapable implements api, module, hasGeo
+class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchical
 {
 	use jsInstantiation;
 //	use jsonLd; TODO
@@ -43,7 +44,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 	// This is the same as the meta key for involvement locations.
 	public const MEETING_LOCATION_META_KEY = TouchPointWP::SETTINGS_PREFIX . "locationName";
 
-	private static bool $_isLoaded = false;  // TODO why is this here?
+	private static bool $_isLoaded = false;
 	private static array $_instances = [];
 	private static ?Involvement_PostTypeSettings $_typeSet = null;
 
@@ -167,8 +168,11 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 		$start = intval(get_post_meta($this->post_id, self::MEETING_START_META_KEY, true));
 		$end = intval(get_post_meta($this->post_id, self::MEETING_END_META_KEY, true));
 		$tz = wp_timezone();
-		$this->startDt = ($start === 0 ? null : DateTimeImmutable::createFromMutable(DateTime::createFromFormat("U", $start, $tz)));
-		$this->endDt   = ($end   === 0 ? null : DateTimeImmutable::createFromMutable(DateTime::createFromFormat("U", $end, $tz)));
+		$tz0 = Utilities::utcTimeZone();
+		$startDt = $start === 0 ? null : DateTime::createFromFormat("U", $start, $tz0)->setTimezone($tz);
+		$endDt = $end   === 0 ? null : DateTime::createFromFormat("U", $end, $tz0)->setTimezone($tz);
+		$this->startDt = ($startDt === null ? null : DateTimeImmutable::createFromMutable($startDt));
+		$this->endDt   = ($endDt   === null ? null : DateTimeImmutable::createFromMutable($endDt));
 
 		$this->registerConstruction();
 	}
@@ -257,6 +261,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 	/**
 	 * Get the Involvement object associated with this Meeting.
 	 *
+	 * @return Involvement
 	 * @throws TouchPointWP_Exception
 	 */
 	public function involvement(): Involvement
@@ -269,6 +274,23 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 			return Involvement::fromPost(get_post($parent));
 		}
 		throw new TouchPointWP_Exception("Meeting is not associated with an Involvement.", 171002);
+	}
+
+
+	/**
+	 * Get the parent of this object **which is a different class**.
+	 *
+	 * Returns null if there is no parent.
+	 *
+	 * @return ?Involvement
+	 */
+	public function getParent(): ?Involvement
+	{
+		try {
+			return $this->involvement();
+		} catch (TouchPointWP_Exception) {
+			return null;
+		}
 	}
 
 	/**
@@ -364,11 +386,13 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 	 */
 	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray
 	{
-		TouchPointWP::requireScript('swal2-defer');
-		TouchPointWP::requireScript('base-defer');
-		$this->enqueueForJsInstantiation();
-//		$this->enqueueForJsonLdInstantiation();
-		Person::enqueueUsersForJsInstantiation();
+		if (!$absoluteLinks) {
+			TouchPointWP::requireScript('swal2-defer');
+			TouchPointWP::requireScript('base-defer');
+			$this->enqueueForJsInstantiation();
+//		    $this->enqueueForJsonLdInstantiation();
+			Person::enqueueUsersForJsInstantiation();
+		}
 
 		try {
 			$inv = $this->involvement();
@@ -452,6 +476,42 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 			1 => $excludeScheduled ? null : __("Scheduled", "TouchPoint-WP"),
 			default => _x("Unknown", "Event Status is not a recognized value.", "TouchPoint-WP"),
 		};
+	}
+
+	/**
+	 * Filters the post thumbnail ID.  Allows meetings to have the image of their parent without having an image themselves.
+	 *
+	 * @param int|false        $thumbnail_id Post thumbnail ID or false if the post does not exist.
+	 * @param int|WP_Post|null $post         Post ID or WP_Post object. Default is global `$post`.
+	 */
+	public static function filterThumbnailId(int|false $thumbnail_id, int|WP_Post|null $post): bool|int
+	{
+		if ($thumbnail_id > 0) { // If already set, we have nothing to do.
+			return $thumbnail_id;
+		}
+
+		if (is_numeric($post)) {
+			$post = get_post($post);
+		}
+
+		if (!$post instanceof WP_Post) { // Something went wrong because we don't have a post.
+			return $thumbnail_id;
+		}
+
+		if (!self::postIsType($post)) { // Not our problem
+			return $thumbnail_id;
+		}
+
+		try {
+			$involvementPostId = Meeting::fromPost($post)->getParent()?->post_id();
+			if (!$involvementPostId) {
+				return $thumbnail_id;
+			}
+			return get_post_thumbnail_id($involvementPostId);
+		} catch (TouchPointWP_Exception) {
+		}
+
+		return $thumbnail_id;
 	}
 
 	/**
@@ -643,8 +703,20 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo
 
 	public static function load(): bool
 	{
-		// TODO: Implement load() method... or make not a module anymore.
+		if (self::$_isLoaded) {
+			return true;
+		}
+
+		self::$_isLoaded = true;
+
+		add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'init']);
+
 		return true;
+	}
+
+	public static function init(): void
+	{
+		add_filter('post_thumbnail_id', [self::class, 'filterThumbnailId'], 10, 3);
 	}
 
 	/**
