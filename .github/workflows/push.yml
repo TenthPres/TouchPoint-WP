@@ -21,7 +21,8 @@ jobs:
         run: ./build.sh
         shell: bash
 
-      - name: Upload Artifact
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
           name: touchpoint-wp.zip
+          path: touchpoint-wp.zip
