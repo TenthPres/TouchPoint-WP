@@ -12,12 +12,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Permissions
         run: chmod +x build.sh
         shell: bash
+
       - name: Build
         run: ./build.sh
         shell: bash
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -28,6 +31,7 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: true
           prerelease: false
+
       - name: Publish Built zip
         uses: actions/upload-release-asset@v1
         env:
@@ -44,9 +48,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Permissions
-        run: chmod +x build.sh
-        shell: bash
+
       - name: Generate Docs
         run: php ./generateDocs.php
         shell: bash
