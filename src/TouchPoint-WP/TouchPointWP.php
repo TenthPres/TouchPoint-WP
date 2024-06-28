@@ -1110,8 +1110,8 @@ class TouchPointWP
 				}
 
 				return new Geo(
-					$out['lat'],
-					$out['lng'],
+					$lat,
+					$lng,
 					$human,
 					'nav',
 				);

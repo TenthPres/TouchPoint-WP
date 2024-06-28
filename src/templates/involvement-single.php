@@ -22,6 +22,7 @@ TouchPointWP::enqueuePartialsStyle();
 <header class="archive-header has-text-align-center header-footer-group">
     <?php
     $image = get_the_post_thumbnail_url($p, 'full');
+    $image = $image ? esc_url($image) : false;
     $imageAlt = esc_html(get_the_post_thumbnail_caption($p));
     if ($image) {
         echo "<div class=\"header-image-container\" style=\"background-image: url('$image');\">";

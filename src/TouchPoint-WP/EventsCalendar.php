@@ -310,7 +310,7 @@ abstract class EventsCalendar implements api, module
 			$eO['all_day'] = $e->isAllDay();
 
 			// Android
-			$eO['image'] = get_the_post_thumbnail_url($eQ->ID, 'large');
+			$eO['image'] = get_the_post_thumbnail_url($eQ, 'large');
 			// iOS
 			$eO['RelatedImageFileKey'] = $eO['image'];
 

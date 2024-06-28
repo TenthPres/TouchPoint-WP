@@ -282,6 +282,8 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	 *
 	 * Returns null if there is no parent.
 	 *
+	 * In cases where a meeting post is also an involvement post, it will return the involvement, which has the same post_id.
+	 *
 	 * @return ?Involvement
 	 */
 	public function getParent(): ?Involvement
@@ -498,7 +500,8 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 			return $thumbnail_id;
 		}
 
-		if (!self::postIsType($post)) { // Not our problem
+		if (!self::postIsType($post) || Involvement::postIsType($post)) {
+			// Second condition is necessary to prevent loops when meeting post == involvement post
 			return $thumbnail_id;
 		}
 
