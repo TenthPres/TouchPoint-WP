@@ -1,0 +1,27 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - "*"
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Permissions
+        run: chmod +x build.sh
+        shell: bash
+
+      - name: Build
+        run: ./build.sh
+        shell: bash
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: touchpoint-wp.zip
