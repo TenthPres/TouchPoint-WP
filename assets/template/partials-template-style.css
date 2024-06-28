@@ -206,21 +206,25 @@ article .TouchPointWP-detail-cell .TouchPointWP-detail-cell-section {
 }
 
 header div.header-image-container {
-    max-width: 800px;
+    max-width: 1200px;
     width: 100%;
-    padding-top: 50%;
     margin-left: auto;
     margin-right: auto;
+}
+
+header div.header-image-container div.header-image {
+    width: 100%;
+    padding-bottom: 50%;
     background-size: cover;
     background-position: center;
-    overflow:hidden;
 }
 
-header div.header-image-container.partner-header-image {
+header div.header-image-container div.header-image.partner-header-image {
     background-size: contain;
+    background-repeat: no-repeat;
 }
 
-header div.header-image-container img {
+header img.tpwp-accessibility-header-image {
     /* visible to screen readers only */
     position: absolute;
     width: 1px;

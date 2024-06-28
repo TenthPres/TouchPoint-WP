@@ -23,10 +23,12 @@ TouchPointWP::enqueuePartialsStyle();
     <?php
     $image = get_the_post_thumbnail_url($p, 'full');
     $image = $image ? esc_url($image) : false;
-    $imageAlt = esc_html(get_the_post_thumbnail_caption($p));
+    $imageAlt = esc_html(get_post(get_post_thumbnail_id($p))->post_title);
     if ($image) {
-        echo "<div class=\"header-image-container\" style=\"background-image: url('$image');\">";
-        echo "<img src='$image' alt='$imageAlt' class='involvement-header-image tp-header-image'>";
+        echo "<div class=\"header-image-container\">";
+        echo "<div class=\"header-image involvement-header-image\" style=\"background-image: url('$image');\">";
+        echo "<img src='$image' alt='$imageAlt' class='tpwp-accessibility-header-image'>";
+        echo "</div>";
         echo "</div>";
     }
     ?>
