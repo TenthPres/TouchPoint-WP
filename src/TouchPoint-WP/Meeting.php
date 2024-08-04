@@ -41,6 +41,10 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	public const MEETING_STATUS_META_KEY = TouchPointWP::SETTINGS_PREFIX . "status";
 	public const MEETING_INV_ID_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgInvId";
 
+	public const STATUS_CANCELLED = "cancelled";
+	public const STATUS_SCHEDULED = "scheduled";
+	public const STATUS_UNKNOWN = "unknown";
+
 	// This is the same as the meta key for involvement locations.
 	public const MEETING_LOCATION_META_KEY = TouchPointWP::SETTINGS_PREFIX . "locationName";
 
@@ -350,15 +354,22 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 
 		$attrs = [...$d, ...$attrs];
 
-		// Add an "in the past" label if the thing is already past. (end may be null)
-		if (($this->endDt ?? $this->startDt) < Utilities::dateTimeNow()) {
-			$attrs['past'] = __("In the Past", "TouchPoint-WP");
+		$status = $this->status_i18n(true);
+		if ($status) {
+			$attrs['status'] = $status;
+		} else {
+			// Add an "in the past" label if the thing is already past. (end may be null)
+			if (($this->endDt ?? $this->startDt) < Utilities::dateTimeNow()) {
+				$attrs['past'] = __("In the Past", "TouchPoint-WP");
+			}
 		}
 
 		$loc = $this->locationName();
 		if ($loc) {
 			$attrs['location'] = $loc;
 		}
+
+
 
 		$attrs = $this->processAttributeExclusions($attrs, $exclude);
 

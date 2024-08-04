@@ -36,6 +36,18 @@ TouchPointWP::enqueuePartialsStyle();
     <div class="archive-header-inner section-inner medium">
         <h1 class="archive-title page-title"><?php echo the_title() ?></h1>
     </div>
+    <?php
+
+    if ($obj instanceof Meeting) {
+        if ($obj->status() === Meeting::STATUS_CANCELLED) {
+            echo "<div class='section-inner tpwp-alert-block'>";
+            _e('This meeting has been cancelled.', 'TouchPoint-WP');
+            echo "</div>";
+        }
+    }
+    
+    ?>
+
 </header>
 
 <article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-involvement="<?php echo $p->ID ?>">
@@ -64,10 +76,10 @@ TouchPointWP::enqueuePartialsStyle();
             </div>
         </div>
         <?php if ($settings->useGeo && $obj->hasGeo() !== null) { ?>
-        <div class="TouchPointWP-detail-cell TouchPointWP-map-container">
-            <!-- TODO this doesn't work for meetings. -->
-            <?php echo Involvement::mapShortcode() ?>
-        </div>
+            <div class="TouchPointWP-detail-cell TouchPointWP-map-container">
+                <!-- TODO this doesn't work for meetings. -->
+                <?php echo Involvement::mapShortcode() ?>
+            </div>
         <?php } ?>
     </div>
 </article>
