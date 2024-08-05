@@ -87,7 +87,7 @@ msgstr "Tipos de miembros de líder"
 #: src/templates/admin/invKoForm.php:141
 #: src/templates/admin/invKoForm.php:268
 #: src/templates/parts/involvement-nearby-list.php:2
-#: src/TouchPoint-WP/Meeting.php:662
+#: src/TouchPoint-WP/Meeting.php:673
 #: src/TouchPoint-WP/Rsvp.php:75
 #: assets/js/base-defer.js:192
 #: assets/js/base-defer.js:1133
@@ -307,8 +307,8 @@ msgstr "ID de Personas de TouchPoint"
 msgid "Contact"
 msgstr "Contacta"
 
-#: src/TouchPoint-WP/Meeting.php:661
-#: src/TouchPoint-WP/Meeting.php:681
+#: src/TouchPoint-WP/Meeting.php:672
+#: src/TouchPoint-WP/Meeting.php:692
 #: src/TouchPoint-WP/Rsvp.php:80
 msgid "RSVP"
 msgstr "RSVP"
@@ -1290,17 +1290,17 @@ msgstr "Este tipo de participación no tiene habilitadas las ubicaciones geográ
 msgid "Could not locate."
 msgstr "No se pudo localizar."
 
-#: src/TouchPoint-WP/Meeting.php:594
+#: src/TouchPoint-WP/Meeting.php:605
 #: src/TouchPoint-WP/TouchPointWP.php:970
 msgid "Only GET requests are allowed."
 msgstr "Solo se permiten solicitudes GET."
 
-#: src/TouchPoint-WP/Meeting.php:622
+#: src/TouchPoint-WP/Meeting.php:633
 #: src/TouchPoint-WP/TouchPointWP.php:353
 msgid "Only POST requests are allowed."
 msgstr "Solo se permiten solicitudes POST."
 
-#: src/TouchPoint-WP/Meeting.php:632
+#: src/TouchPoint-WP/Meeting.php:643
 #: src/TouchPoint-WP/TouchPointWP.php:362
 msgid "Invalid data provided."
 msgstr "Datos proporcionados no válidos."
@@ -1514,12 +1514,12 @@ msgid "Registration Blocked for Spam."
 msgstr "Registro bloqueado por spam."
 
 #: src/templates/meeting-archive.php:27
-#: src/TouchPoint-WP/Meeting.php:211
+#: src/TouchPoint-WP/Meeting.php:215
 msgctxt "What Meetings should be called, plural."
 msgid "Events"
 msgstr "Eventos"
 
-#: src/TouchPoint-WP/Meeting.php:212
+#: src/TouchPoint-WP/Meeting.php:216
 msgctxt "What Meetings should be called, singular."
 msgid "Event"
 msgstr "Evento"
@@ -1592,11 +1592,11 @@ msgstr "(persona nombrada)"
 msgid "Expand"
 msgstr "Ampliar"
 
-#: src/TouchPoint-WP/Meeting.php:477
+#: src/TouchPoint-WP/Meeting.php:488
 msgid "Cancelled"
 msgstr "Cancelado"
 
-#: src/TouchPoint-WP/Meeting.php:478
+#: src/TouchPoint-WP/Meeting.php:489
 msgid "Scheduled"
 msgstr "Programado"
 
@@ -1634,12 +1634,12 @@ msgstr "%s esta cancelado."
 msgid "Involvement in %s"
 msgstr "Participaciones en %s"
 
-#: src/TouchPoint-WP/Meeting.php:355
+#: src/TouchPoint-WP/Meeting.php:363
 msgid "In the Past"
 msgstr "en el pasado"
 
 #. Translators: %s is the system name.  "TouchPoint" by default.
-#: src/TouchPoint-WP/Meeting.php:422
+#: src/TouchPoint-WP/Meeting.php:433
 msgid "Meeting in %s"
 msgstr "Reunión en %s"
 
@@ -1704,7 +1704,7 @@ msgctxt "Date string when the year is not current."
 msgid "F j, Y"
 msgstr "j F Y"
 
-#: src/TouchPoint-WP/Meeting.php:479
+#: src/TouchPoint-WP/Meeting.php:490
 msgctxt "Event Status is not a recognized value."
 msgid "Unknown"
 msgstr "desconocido"
@@ -1719,7 +1719,7 @@ msgstr "Aún no se admite la creación de un objeto de participación a partir d
 msgid "%1$s All Day"
 msgstr "todo el dia los %1$s"
 
-#: src/TouchPoint-WP/Meeting.php:88
+#: src/TouchPoint-WP/Meeting.php:92
 msgid "Creating a Meeting object from an object without a post_id is not yet supported."
 msgstr "Aún no se admite la creación de un objeto de reunión a partir de un objeto sin post_id."
 
@@ -1814,3 +1814,8 @@ msgstr "Para usar sus eventos del Calendario de eventos en la aplicación móvil
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:778
 msgid "Integrate Custom Mobile app version 2.0 with The Events Calendar from Modern Tribe."
 msgstr "Integre la versión 2.0 de la aplicación móvil personalizada con el calendario de eventos de Modern Tribe."
+
+#. translators: %1$s is the singular name of the event type, %2$s is the plural name of the event type
+#: src/templates/involvement-single.php:49
+msgid "This %1$s has been Cancelled."
+msgstr "Este %1$s ha sido Cancelado."

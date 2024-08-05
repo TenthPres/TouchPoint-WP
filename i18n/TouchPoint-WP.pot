@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-06-28T04:24:30+00:00\n"
+"POT-Creation-Date: 2024-08-05T12:03:46+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.10.0\n"
 "X-Domain: TouchPoint-WP\n"
@@ -122,7 +122,7 @@ msgstr ""
 #: src/templates/admin/invKoForm.php:141
 #: src/templates/admin/invKoForm.php:268
 #: src/templates/parts/involvement-nearby-list.php:2
-#: src/TouchPoint-WP/Meeting.php:662
+#: src/TouchPoint-WP/Meeting.php:673
 #: src/TouchPoint-WP/Rsvp.php:75
 #: assets/js/base-defer.js:192
 #: assets/js/base-defer.js:1133
@@ -246,8 +246,13 @@ msgstr ""
 msgid "The Campus"
 msgstr ""
 
+#. translators: %1$s is the singular name of the event type, %2$s is the plural name of the event type
+#: src/templates/involvement-single.php:49
+msgid "This %1$s has been Cancelled."
+msgstr ""
+
 #: src/templates/meeting-archive.php:27
-#: src/TouchPoint-WP/Meeting.php:211
+#: src/TouchPoint-WP/Meeting.php:215
 msgctxt "What Meetings should be called, plural."
 msgid "Events"
 msgstr ""
@@ -505,54 +510,54 @@ msgstr ""
 msgid "Contact Prohibited."
 msgstr ""
 
-#: src/TouchPoint-WP/Meeting.php:88
+#: src/TouchPoint-WP/Meeting.php:92
 msgid "Creating a Meeting object from an object without a post_id is not yet supported."
 msgstr ""
 
-#: src/TouchPoint-WP/Meeting.php:212
+#: src/TouchPoint-WP/Meeting.php:216
 msgctxt "What Meetings should be called, singular."
 msgid "Event"
 msgstr ""
 
-#: src/TouchPoint-WP/Meeting.php:355
+#: src/TouchPoint-WP/Meeting.php:363
 msgid "In the Past"
 msgstr ""
 
 #. Translators: %s is the system name.  "TouchPoint" by default.
-#: src/TouchPoint-WP/Meeting.php:422
+#: src/TouchPoint-WP/Meeting.php:433
 msgid "Meeting in %s"
 msgstr ""
 
-#: src/TouchPoint-WP/Meeting.php:477
+#: src/TouchPoint-WP/Meeting.php:488
 msgid "Cancelled"
 msgstr ""
 
-#: src/TouchPoint-WP/Meeting.php:478
+#: src/TouchPoint-WP/Meeting.php:489
 msgid "Scheduled"
 msgstr ""
 
-#: src/TouchPoint-WP/Meeting.php:479
+#: src/TouchPoint-WP/Meeting.php:490
 msgctxt "Event Status is not a recognized value."
 msgid "Unknown"
 msgstr ""
 
-#: src/TouchPoint-WP/Meeting.php:594
+#: src/TouchPoint-WP/Meeting.php:605
 #: src/TouchPoint-WP/TouchPointWP.php:970
 msgid "Only GET requests are allowed."
 msgstr ""
 
-#: src/TouchPoint-WP/Meeting.php:622
+#: src/TouchPoint-WP/Meeting.php:633
 #: src/TouchPoint-WP/TouchPointWP.php:353
 msgid "Only POST requests are allowed."
 msgstr ""
 
-#: src/TouchPoint-WP/Meeting.php:632
+#: src/TouchPoint-WP/Meeting.php:643
 #: src/TouchPoint-WP/TouchPointWP.php:362
 msgid "Invalid data provided."
 msgstr ""
 
-#: src/TouchPoint-WP/Meeting.php:661
-#: src/TouchPoint-WP/Meeting.php:681
+#: src/TouchPoint-WP/Meeting.php:672
+#: src/TouchPoint-WP/Meeting.php:692
 #: src/TouchPoint-WP/Rsvp.php:80
 msgid "RSVP"
 msgstr ""
