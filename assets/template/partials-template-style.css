@@ -235,3 +235,8 @@ header img.tpwp-accessibility-header-image {
     clip: rect(0, 0, 0, 0);
     border: 0;
 }
+header .tpwp-alert-block {
+    margin: 2em 20%;
+    background: #f003;
+    padding: 1em;
+}

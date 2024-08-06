@@ -41,7 +41,14 @@ TouchPointWP::enqueuePartialsStyle();
     if ($obj instanceof Meeting) {
         if ($obj->status() === Meeting::STATUS_CANCELLED) {
             echo "<div class='section-inner tpwp-alert-block'>";
-            _e('This meeting has been cancelled.', 'TouchPoint-WP');
+
+            $meetingsCalled = $tps->mc_name_singular;
+
+            echo sprintf(
+                // Translators: %s is the singular name of the of a Meeting, such as "Event".
+                __('This %s has been Cancelled.', 'TouchPoint-WP'),
+                __($meetingsCalled) // deliberately no domain
+            );
             echo "</div>";
         }
     }

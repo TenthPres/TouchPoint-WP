@@ -1815,7 +1815,7 @@ msgstr "Para usar sus eventos del Calendario de eventos en la aplicación móvil
 msgid "Integrate Custom Mobile app version 2.0 with The Events Calendar from Modern Tribe."
 msgstr "Integre la versión 2.0 de la aplicación móvil personalizada con el calendario de eventos de Modern Tribe."
 
-#. translators: %1$s is the singular name of the event type, %2$s is the plural name of the event type
+#. Translators: %s is the singular name of the of a Meeting, such as "Event".
 #: src/templates/involvement-single.php:49
-msgid "This %1$s has been Cancelled."
-msgstr "Este %1$s ha sido Cancelado."
+msgid "This %s has been Cancelled."
+msgstr "Este %s ha sido Cancelado."
