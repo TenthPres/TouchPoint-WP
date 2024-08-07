@@ -145,7 +145,7 @@ class CalendarGrid {
 					$attr = "";
 					$status = $m->status();
 
-					if ($status === "cancelled") {
+					if ($status === Meeting::STATUS_CANCELLED) {
 						// Translators: %s is the singular name of the of a Meeting, such as "Event".
 						$title = wp_sprintf(__("%s is cancelled.", "TouchPoint-WP"), TouchPointWP::instance()->settings->mc_name_singular);
 						$attr = "title=\"$title\"";

@@ -162,12 +162,37 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         </tr>
         <tr>
             <th>
-                <?php _e("Default Filters", "TouchPoint-WP"); ?>
+                <?php
+
+                _e("Default Filters", "TouchPoint-WP");
+
+                $divisionsLabel = wp_sprintf(
+                        // Translators: %1$s is the user-provided name for Divisions.  %2$s is "Division" or translated equivalent.
+                        _x('%1$s (%2$s)', "TouchPoint-WP"),
+                        $this->get('dv_name_singular'),
+                        __("Division", "TouchPoint-WP")
+                    );
+
+                $resCodeLabel = wp_sprintf(
+                    // Translators: %1$s is the user-provided name for ResCode.  %2$s is "Resident Code" or translated equivalent.
+	                _x('%1$s (%2$s)', "TouchPoint-WP"),
+	                $this->get('rc_name_singular'),
+	                __("Resident Code", "TouchPoint-WP")
+                );
+
+                $campusLabel = wp_sprintf(
+                    // Translators: %1$s is the user-provided name for Campus.  %2$s is "Campus" or translated equivalent.
+	                _x('%1$s (%2$s)', "TouchPoint-WP"),
+	                $this->get('camp_name_singular'),
+	                __("Campus", "TouchPoint-WP")
+                );
+
+                ?>
             </th>
             <td colspan="2">
                 <p>
                     <input id="it-filt-div" type="checkbox" value="div" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-div'}" />
-                    <label for="it-filt-div" data-bind="attr: { for: 'it-' + slug() + '-filt-div'}"><?php echo $this->get('dv_name_singular') ?></label>
+                    <label for="it-filt-div" data-bind="attr: { for: 'it-' + slug() + '-filt-div'}"><?php echo $divisionsLabel ?></label>
                 </p>
                 <p>
                     <input id="it-filt-genderId" type="checkbox" value="genderId" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-genderId'}" />
@@ -175,12 +200,12 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 </p>
                 <p data-bind="visible: useGeo">
                     <input id="it-filt-rescode" type="checkbox" value="rescode" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-rescode'}" />
-                    <label for="it-filt-rescode" data-bind="attr: { for: 'it-' + slug() + '-filt-rescode'}"><?php echo $this->get('rc_name_singular') ?></label>
+                    <label for="it-filt-rescode" data-bind="attr: { for: 'it-' + slug() + '-filt-rescode'}"><?php echo $resCodeLabel ?></label>
                 </p>
                 <?php if ($this->get('enable_campuses') === "on") { ?>
                 <p>
                     <input id="it-filt-campus" type="checkbox" value="campus" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-campus'}" />
-                    <label for="it-filt-campus" data-bind="attr: { for: 'it-' + slug() + '-filt-campus'}"><?php echo $this->get('camp_name_singular') ?></label>
+                    <label for="it-filt-campus" data-bind="attr: { for: 'it-' + slug() + '-filt-campus'}"><?php echo $campusLabel ?></label>
                 </p>
                 <?php } ?>
                 <p>

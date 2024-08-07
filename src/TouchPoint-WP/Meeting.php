@@ -468,9 +468,9 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		$status = intval(get_post_meta($this->post_id, self::MEETING_STATUS_META_KEY, true));
 
 		return match ($status) {
-			0 => "cancelled",
-			1 => "scheduled",
-			default => "unknown",
+			0 => self::STATUS_CANCELLED,
+			1 => self::STATUS_SCHEDULED,
+			default => self::STATUS_UNKNOWN,
 		};
 	}
 

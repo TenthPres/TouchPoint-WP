@@ -44,7 +44,7 @@ TouchPointWP::enqueuePartialsStyle();
 
             $meetingsCalled = $tps->mc_name_singular;
 
-            echo sprintf(
+            echo wp_sprintf(
                 // Translators: %s is the singular name of the of a Meeting, such as "Event".
                 __('This %s has been Cancelled.', 'TouchPoint-WP'),
                 __($meetingsCalled) // deliberately no domain
