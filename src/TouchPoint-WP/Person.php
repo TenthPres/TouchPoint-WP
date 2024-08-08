@@ -1435,20 +1435,19 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$familyNames = [];
 		$comma       = ', ';
 		$and         = ' & ';
-		$useOxford   = 0;
+		$useOxford   = false;
 		foreach ($people as $family) {
 			$fn = self::formatNamesForFamily($family, $asLink);
 			if (str_contains($fn, ', ')) {
 				$comma     = '; ';
-				$useOxford = $useOxford | 1;
 			}
 			if (str_contains($fn, ' & ')) {
 				$and       = ' ' . __('and', 'TouchPoint-WP') . ' ';
-				$useOxford = $useOxford | 2;
+				$useOxford = true;
 			}
 			$familyNames[] = $fn;
 		}
-		$useOxford = $useOxford === 3;
+
 		if ($andOthers) {
 			$last = _x("others", "list of people, and *others*", "TouchPoint-WP");
 		} else {
