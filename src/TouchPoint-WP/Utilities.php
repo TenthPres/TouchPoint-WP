@@ -256,16 +256,17 @@ abstract class Utilities
 
 		$comma     = ', ';
 		$and       = ' & ';
-		$useOxford = false;
+		$useOxford = 0;
 		if (str_contains($concat, ', ')) {
 			$comma     = '; ';
-			$useOxford = true;
+			$useOxford = $useOxford | 1;
 		}
 		if (str_contains($concat, ' & ')) {
 			$and       = ' ' . __('and', 'TouchPoint-WP') . ' ';
-			$useOxford = true;
+			$useOxford = $useOxford | 2;
 		}
 
+		$useOxford = $useOxford === 3;
 		$last = array_pop($strings);
 		$str  = implode($comma, $strings);
 		if (count($strings) > 0) {
