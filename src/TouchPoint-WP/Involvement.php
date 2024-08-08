@@ -1082,8 +1082,18 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$dateTimeArr = new StringableArray();
 			$dateArr = new StringableArray();
 			$timeArr = [];
-			foreach ($commonOccurrences as $co) {
-				$a = DateFormats::DurationToStringArray($co['example'], $co['exampleEnd'], null, $co['example']->isAllDay);
+			$now = Utilities::dateTimeNow();
+
+			// filter meetings to only those not past
+			$originalMeetingCount = count($this->meetings());
+			$meetings = array_filter($this->meetings(), fn($m) => $m->mtgEndDt > $now);
+			if (count($meetings) === 0) {
+				$meetings = $this->meetings();
+			}
+			$andOthers = (count($meetings) !== $originalMeetingCount);
+
+			foreach ($meetings as $m) {
+				$a = DateFormats::DurationToStringArray($m->mtgStartDt, $m->mtgEndDt, null, $m->mtgStartDt->isAllDay);
 
 				if (isset($a['datetime'])) {
 					$forceDateTime = true;
@@ -1106,10 +1116,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			}
 
 			if ($forceDateTime) {
-				$r['datetime'] = $dateTimeArr->__toString();
+				$r['datetime'] = $dateTimeArr->toListString(2, $andOthers);
 				$r['combined'] = $r['datetime'];
 			} else {
-				$dateStr = $dateArr->toListString();
+				$dateStr = $dateArr->toListString(2, $andOthers);
 
 				$r['date'] = $dateStr;
 				$r['time'] = $timeArr[0];

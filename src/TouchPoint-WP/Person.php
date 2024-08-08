@@ -1419,6 +1419,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @param Person[]|PersonArray $people TODO make api compliant with Person object--remove coalesces.  (#120)
 	 *
+	 * TODO merge with Utilities::stringArrayToListString()
+	 *
 	 * @return ?string  Returns a human-readable list of names, nicely formatted with commas and such.
 	 */
 	public static function arrangeNamesForPeople($people, bool $asLink = false, int $familyLimit = 3): ?string

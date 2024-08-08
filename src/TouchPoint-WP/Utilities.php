@@ -247,11 +247,18 @@ abstract class Utilities
 	 * Turn ['apples', 'oranges', 'pears'] into "apples, oranges & pears"
 	 *
 	 * @param string[] $strings
+	 * @param int      $limit The maximum number of items to include.  Default is very, very high.
+	 * @param bool     $andOthers If true, the last item will be "others" instead of the actual last item.
 	 *
 	 * @return string
 	 */
-	public static function stringArrayToListString(array $strings): string
+	public static function stringArrayToListString(array $strings, int $limit = PHP_INT_MAX, bool $andOthers = false): string
 	{
+		if ($limit < count($strings)) {
+			$andOthers = true;
+			$strings = array_slice($strings, 0, $limit);
+		}
+
 		$concat = implode('', $strings);
 
 		$comma     = ', ';
@@ -265,9 +272,13 @@ abstract class Utilities
 			$useOxford = true;
 		}
 
-		$last = array_pop($strings);
+		if ($andOthers) {
+			$last = _x("others", "list of items, and *others*", "TouchPoint-WP");
+		} else {
+			$last = array_pop($strings);
+		}
 		$str  = implode($comma, $strings);
-		if (count($strings) > 0) {
+		if ((count($strings) + $andOthers) > 0) {
 			if ($useOxford) {
 				$str .= trim($comma);
 			}
