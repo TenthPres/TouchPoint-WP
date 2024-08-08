@@ -344,7 +344,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 			$attrs = [];
 		} else {
 			try {
-				$attrs = $this->involvement()->notableAttributes(['schedule', 'date', 'datetime', 'time']);
+				$attrs = $this->involvement()->notableAttributes(['date', 'datetime', 'time', 'firstLast']);
 			} catch (TouchPointWP_Exception) {
 				$attrs = [];
 			}

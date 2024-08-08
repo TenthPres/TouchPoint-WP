@@ -78,7 +78,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	protected ?DateTimeExtended $_nextMeeting;
 	protected ?DateTimeExtended $firstMeeting = null;
 	protected ?DateTimeExtended $lastMeeting = null;
-	protected ?string $_scheduleString;
+	protected ?array $_scheduleStrings = null;
 	protected ?array $_meetings = null;
 	protected ?array $_schedules = null;
 	protected PersonArray $_leaders;
@@ -697,6 +697,43 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	protected ?self $parentObject = null;
 
 	/**
+	 * Get the several different strings that can be used to describe the start/end/etc of this involvement.
+	 *
+	 * @param int           $invId
+	 * @param ?Involvement  $inv
+	 *
+	 * @return ?string[]
+	 */
+	protected static function scheduleStrings(int $invId, $inv = null): ?array
+	{
+		if (isset($inv->_scheduleStrings)) {
+			return $inv->_scheduleStrings;
+		}
+
+		$cacheKey = $invId . "_" . get_locale() . "_v2";
+		$schStr = wp_cache_get($cacheKey, self::SCHEDULE_STRING_CACHE_GROUP);
+		if (!! $schStr) {
+			return $schStr;
+		}
+		if (! $inv) {
+			try {
+				$inv = self::fromInvId($invId);
+			} catch (TouchPointWP_Exception) {
+				return null;
+			}
+		}
+		$inv->_scheduleStrings = $inv->scheduleStrings_calc();
+		wp_cache_set(
+			$cacheKey,
+			$inv->_scheduleStrings,
+			self::SCHEDULE_STRING_CACHE_GROUP,
+			self::SCHEDULE_STRING_CACHE_EXPIRATION
+		);
+		return $inv->_scheduleStrings;
+	}
+
+
+	/**
 	 * Get a description of the meeting schedule in a human-friendly phrase, e.g. Sundays at 11:00am, starting January
 	 * 14.
 	 *
@@ -710,28 +747,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 */
 	public static function scheduleString(int $invId, $inv = null): ?string
 	{
-		$cacheKey = $invId . "_" . get_locale();
-		$schStr = wp_cache_get($cacheKey, self::SCHEDULE_STRING_CACHE_GROUP);
-		if (!! $schStr) {
-			return $schStr;
-		}
-		if (! $inv) {
-			try {
-				$inv = self::fromInvId($invId);
-			} catch (TouchPointWP_Exception) {
-				return null;
-			}
-		}
-		if (! isset($inv->_scheduleString)) {
-			$inv->_scheduleString = $inv->scheduleString_calc();
-			wp_cache_set(
-				$cacheKey,
-				$inv->_scheduleString,
-				self::SCHEDULE_STRING_CACHE_GROUP,
-				self::SCHEDULE_STRING_CACHE_EXPIRATION
-			);
-		}
-		return $inv->_scheduleString === "" ? null : $inv->_scheduleString;
+		$s = self::scheduleStrings($invId, $inv);
+		return $s['combined'];
 	}
 
 	/**
@@ -879,16 +896,23 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	}
 
 	/**
-	 * Calculate the schedule string.
+	 * Calculate the schedule strings.
 	 *
-	 * @return string
+	 * @return string[]
 	 */
-	protected function scheduleString_calc(): string
+	protected function scheduleStrings_calc(): array
 	{
 		$commonOccurrences = self::computeCommonOccurrences($this->meetings(), $this->schedules());
 
 		$dateFormat = get_option('date_format');
 
+		$r = [
+			'datetime' => null,
+			'date' => null,
+			'time' => null,
+			'firstLast' => null,
+			'combined' => null
+		];
 
 		$uniqueTimeStrings = [];
 		$days              = [];
@@ -964,6 +988,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					}
 				}
 				$dayStr = Utilities::stringArrayToListString($dayStr);
+				$r['date'] = $dayStr;
 			} else {  // one time of day.  Tue & Thu at 7pm
 				if (count($days) > 1) {
 					// more than one day per week
@@ -977,28 +1002,32 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					$k      = array_key_first($days);
 					$dayStr = Utilities::getPluralDayOfWeekNameForNumber(intval($k[1]));
 				}
+				$r['date'] = $dayStr;
 				$dt = array_values($days)[0][0];
 				/** @var $dt DateTimeExtended */
 				if ($dt->isAllDay) {
 					// translators: "Mon All Day"  or  "Sundays All Day"
 					$dayStr = wp_sprintf(__('%1$s All Day', 'TouchPoint-WP'), $dayStr);
+					$r['time'] = __('All Day', 'TouchPoint-WP');
 				} else {
 					$timeStr = DateFormats::TimeStringFormatted($dt);
 
 					// translators: %1$s is the date(s), %2$s is the time(s).
 					$dayStr  = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $dayStr, $timeStr);
+					$r['time'] = $timeStr;
 				}
 			}
 
-			// Convert start and end to string.
+			// Convert start and end to string,
 			if ($this->firstMeeting !== null && $this->lastMeeting !== null) {
+				$r['firstLast'] = wp_sprintf(
+				// translators: {start date} through {end date}  e.g. February 14 through August 12
+					__('%1$s through %2$s', 'TouchPoint-WP'),
+					$this->firstMeeting->format($dateFormat),
+					$this->lastMeeting->format($dateFormat)
+				);
 				if ($dayStr === null) {
-					$dayStr = wp_sprintf(
-					// translators: {start date} through {end date}  e.g. February 14 through August 12
-						__('%1$s through %2$s', 'TouchPoint-WP'),
-						$this->firstMeeting->format($dateFormat),
-						$this->lastMeeting->format($dateFormat)
-					);
+					$dayStr = $r['firstLast'];
 				} else {
 					$dayStr = wp_sprintf(
 					// translators: {schedule}, {start date} through {end date}  e.g. Sundays at 11am, February 14 through August 12
@@ -1009,12 +1038,13 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					);
 				}
 			} elseif ($this->firstMeeting !== null) {
-				if ($dayStr === null) {
-					$dayStr = wp_sprintf(
+				$r['firstLast'] = wp_sprintf(
 					// translators: Starts {start date}  e.g. Starts September 15
-						__('Starts %1$s', 'TouchPoint-WP'),
-						$this->firstMeeting->format($dateFormat)
-					);
+					__('Starts %1$s', 'TouchPoint-WP'),
+					$this->firstMeeting->format($dateFormat)
+				);
+				if ($dayStr === null) {
+					$dayStr = $r['firstLast'];
 				} else {
 					$dayStr = wp_sprintf(
 					// translators: {schedule}, starting {start date}  e.g. Sundays at 11am, starting February 14
@@ -1024,12 +1054,13 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					);
 				}
 			} elseif ($this->lastMeeting !== null) {
+				$r['firstLast'] = wp_sprintf(
+				// translators: Through {end date}  e.g. Through September 15
+					__('Through %1$s', 'TouchPoint-WP'),
+					$this->lastMeeting->format($dateFormat)
+				);
 				if ($dayStr === null) {
-					$dayStr = wp_sprintf(
-					// translators: Through {end date}  e.g. Through September 15
-						__('Through %1$s', 'TouchPoint-WP'),
-						$this->lastMeeting->format($dateFormat)
-					);
+					$dayStr = $r['firstLast'];
 				} else {
 					$dayStr = wp_sprintf(
 					// translators: {schedule}, through {end date}  e.g. Sundays at 11am, through February 14
@@ -1039,13 +1070,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					);
 				}
 			}
-			return $dayStr;
 
-
+			$r['combined'] = $dayStr;
 		} else { // Uncommon schedules
 
 			if (count($commonOccurrences) === 0) {
-				return "";
+				return $r;
 			}
 
 			$forceDateTime = false;
@@ -1053,21 +1083,21 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$dateArr = new StringableArray();
 			$timeArr = [];
 			foreach ($commonOccurrences as $co) {
-				$r = DateFormats::DurationToStringArray($co['example'], $co['exampleEnd'], null, $co['example']->isAllDay);
+				$a = DateFormats::DurationToStringArray($co['example'], $co['exampleEnd'], null, $co['example']->isAllDay);
 
-				if (isset($r['datetime'])) {
+				if (isset($a['datetime'])) {
 					$forceDateTime = true;
-					$dateTimeArr[] = $r['datetime'];
+					$dateTimeArr[] = $a['datetime'];
 				} else {
 					$dateTimeArr[] = wp_sprintf(
 						// translators: %1$s is the date(s), %2$s is the time(s).
-						__('%1$s at %2$s', 'TouchPoint-WP'), $r['date'], $r['time']
+						__('%1$s at %2$s', 'TouchPoint-WP'), $a['date'], $a['time']
 					);
 					if ( !$dateArr->contains(['date'])) {
-						$dateArr[] = $r['date'];
+						$dateArr[] = $a['date'];
 					}
-					if (!in_array($r['time'], $timeArr)) {
-						$timeArr[] = $r['time'];
+					if (!in_array($a['time'], $timeArr)) {
+						$timeArr[] = $a['time'];
 					}
 				}
 			}
@@ -1076,16 +1106,23 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			}
 
 			if ($forceDateTime) {
-				return $dateTimeArr->__toString();
+				$r['datetime'] = $dateTimeArr->__toString();
+				$r['combined'] = $r['datetime'];
+			} else {
+				$dateStr = $dateArr->toListString();
+
+				$r['date'] = $dateStr;
+				$r['time'] = $timeArr[0];
+				$r['combined'] = wp_sprintf(
+					// translators: %1$s is the date(s), %2$s is the time(s).
+					__('%1$s at %2$s', 'TouchPoint-WP'),
+					$dateStr,
+					$timeArr[0]
+				);
 			}
-
-			$dateStr = $dateArr->toListString();
-
-			return wp_sprintf(
-				// translators: %1$s is the date(s), %2$s is the time(s).
-				__('%1$s at %2$s', 'TouchPoint-WP'), $dateStr, $timeArr[0]
-			);
 		}
+
+		return $r;
 	}
 
 
@@ -3454,16 +3491,13 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 */
 	public function notableAttributes(array $exclude = []): array
 	{
-		$attrs = [];
-
 		$asMeeting = $this->AsAMeeting();
 		if ($asMeeting !== null) {
 			$attrs = $asMeeting->notableAttributes(['involvement']);
 		} else {
-			$schStr = self::scheduleString($this->invId, $this);
-			if ($schStr) {
-				$attrs['schedule'] = $schStr;
-			}
+			$attrs = self::scheduleStrings($this->invId, $this);
+			unset($attrs['combined']);
+			$attrs = array_filter($attrs);
 		}
 		unset($schStr);
 
