@@ -22,7 +22,7 @@ abstract class DateFormats
 	 */
 	public static function TimeStringFormatted(DateTimeInterface $dt): string
 	{
-		$ts = date_i18n(get_option('time_format'), self::timestampAndOffset($dt));
+		$ts = wp_date(get_option('time_format'), self::timestampWithoutOffset($dt));
 
 		/**
 		 * Allows for manipulation of the string returned as a formatted time.
@@ -58,6 +58,7 @@ abstract class DateFormats
 	 * @return int
 	 *
 	 * @since 0.0.90 added
+	 * @deprecated 0.0.91  Now that date_i18n is deprecated, this is probably not needed.
 	 */
 	public static function timestampAndOffset(?DateTimeInterface $dt): int
 	{
@@ -125,16 +126,16 @@ abstract class DateFormats
 			if ($tomorrow->format("Ymd") === $dt->format("Ymd")) {
 				$r = __("Tomorrow", "TouchPoint-WP");
 			} else {
-				$ts    = DateFormats::timestampAndOffset($dt);
-				$nowTs = DateFormats::timestampAndOffset($now);
+				$ts    = DateFormats::timestampWithoutOffset($dt);
+				$nowTs = DateFormats::timestampWithoutOffset($now);
 
 
 				if ($tomorrow->format("Y") === $dt->format("Y")) { // Same Year
-					$day = date_i18n(_x('l', "Date string for day of the week, when the year is current.", "TouchPoint-WP"), $ts);
-					$date = date_i18n(_x('F j', "Date string when the year is current.", "TouchPoint-WP"), $ts);
+					$day = wp_date(_x('l', "Date string for day of the week, when the year is current.", "TouchPoint-WP"), $ts);
+					$date = wp_date(_x('F j', "Date string when the year is current.", "TouchPoint-WP"), $ts);
 				} else {
-					$day = date_i18n(_x('l', "Date string for day of the week, when the year is not current.", "TouchPoint-WP"), $ts);
-					$date = date_i18n(_x('F j, Y', "Date string when the year is not current.", "TouchPoint-WP"), $ts);
+					$day = wp_date(_x('l', "Date string for day of the week, when the year is not current.", "TouchPoint-WP"), $ts);
+					$date = wp_date(_x('F j, Y', "Date string when the year is not current.", "TouchPoint-WP"), $ts);
 				}
 
 				// Last week
@@ -197,16 +198,16 @@ abstract class DateFormats
 			if ($tomorrow->format("Ymd") === $dt->format("Ymd")) {
 				$r = __("Tomorrow", "TouchPoint-WP");
 			} else {
-				$ts    = DateFormats::timestampAndOffset($dt);
-				$nowTs = DateFormats::timestampAndOffset($now);
+				$ts    = DateFormats::timestampWithoutOffset($dt);
+				$nowTs = DateFormats::timestampWithoutOffset($now);
 
 
 				if ($tomorrow->format("Y") === $dt->format("Y")) { // Same Year
-					$day = date_i18n(_x('D', "Short date string for day of the week, when the year is current.", "TouchPoint-WP"), $ts);
-					$date = date_i18n(_x('M j', "Short date string when the year is current.", "TouchPoint-WP"), $ts);
+					$day = wp_date(_x('D', "Short date string for day of the week, when the year is current.", "TouchPoint-WP"), $ts);
+					$date = wp_date(_x('M j', "Short date string when the year is current.", "TouchPoint-WP"), $ts);
 				} else {
-					$day = date_i18n(_x('D', "Short date string for day of the week, when the year is not current.", "TouchPoint-WP"), $ts);
-					$date = date_i18n(_x('M j, Y', "Short date string when the year is not current.", "TouchPoint-WP"), $ts);
+					$day = wp_date(_x('D', "Short date string for day of the week, when the year is not current.", "TouchPoint-WP"), $ts);
+					$date = wp_date(_x('M j, Y', "Short date string when the year is not current.", "TouchPoint-WP"), $ts);
 				}
 
 				// Last week
