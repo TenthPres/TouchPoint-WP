@@ -302,7 +302,10 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 		 * @param Report $report The report being displayed.
 		 */
 		$class = apply_filters("tp_rpt_figure_class", self::$classDefault, $report);
-        $rc     = "<figure $idAttr class=\"$class\">\n\t" . str_replace("\n", "\n\t", $rc);
+
+		$permalink = esc_attr(get_post_permalink($report->getPost()));
+
+        $rc     = "<figure $idAttr class=\"$class\" data-tp-report=\"$permalink\">\n\t" . str_replace("\n", "\n\t", $rc);
 
 		// If desired, add a caption that indicates when the table was last updated.
 		if ($params['showupdated']) {
@@ -349,8 +352,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 						'value' => $this->p1
 					]
 				],
-				'numberposts' => 2
-// only need one, but if there's two, there should be an error condition.
+				'numberposts' => 2  // only need one, but if there's two, there should be an error condition.
 			]);
 
 			$reportPosts = $q->get_posts();
@@ -364,7 +366,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 				$postId = wp_insert_post([
 					'post_type'   => self::POST_TYPE,
 					'post_status' => 'publish',
-					'post_name'   => $this->title(),
+					'post_name'   => $this->title() . " " . $this->type,
 					'meta_input'  => [
 						self::NAME_META_KEY => $this->name,
 						self::TYPE_META_KEY => $this->type,
