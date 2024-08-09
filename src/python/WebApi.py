@@ -5,7 +5,7 @@ import json
 import linecache
 import sys
 
-VERSION = "0.0.90"
+VERSION = "0.0.92"
 
 sgContactEvName = "Contact"
 
@@ -1139,38 +1139,59 @@ if "report_run" in Data.a and model.HttpMethod == "post":
     Data.Title = 'Running requested reports'
 
     if inData.has_key('reports'):
+        # Consolidate the scripts that need to be run.
+
         # noinspection SqlResolve,SqlConstantCondition,SqlConstantExpression
-        reportsQ = 'SELECT Id, Name, Body, TypeId FROM Content WHERE 1=0'
+        sqlReportsQ = 'SELECT Id, Name, Body, TypeId FROM Content WHERE 1=0'
+        pyReportsQ = 'SELECT Id, Name, Body, TypeId FROM Content WHERE 1=0'
         sqlPs = {}
+        pyPs = {}
         for r in inData['reports']:
             rNameL = r['name'].lower()
-            typ = 9999
             if r['type'] == 'sql':
-                typ = 4
                 if rNameL not in sqlPs:
                     sqlPs[rNameL] = []
-                    reportsQ += " OR (Name = '{}' AND TypeId = {})".format(r['name'], typ)
+                    sqlReportsQ += " OR (Name = '{}' AND TypeId = 4)".format(r['name'])
                 sqlPs[rNameL].append(r['p1'])
+            elif r['type'] == 'python':
+                if rNameL not in pyPs:
+                    pyPs[rNameL] = []
+                    pyReportsQ += " OR (Name = '{}' AND TypeId = 5)".format(r['name'])
+                pyPs[rNameL].append(r['p1'])
 
-        Data.sqlPs = sqlPs
+        reportResults = []
 
-        Data.report_results = []
-        for r in q.QuerySql(reportsQ):
-            if r.TypeId == 4:  # SQL
-                rNameL = r.Name.lower()
-                if rNameL in sqlPs:
-                    for p1 in sqlPs[rNameL]:
-                        sql = r.Body.replace("@p1", "'{}'".format(p1))
+        # Evaluate the Python Reports
+        for r in q.QuerySql(pyReportsQ):
+            rNameL = r.Name.lower()
+            for p1 in pyPs[rNameL]:
+                model.Data.p1 = p1
 
-                        Data.report_results.append({
-                            'id': r.Id,
-                            'name': r.Name,
-                            'type': 'sql',
-                            'p1': p1,
-                            'result': model.SqlGrid(sql)[131:-96]  # The substring removes the superfluous html
-                        })
+                reportResults.append({
+                    'id': r.Id,
+                    'name': r.Name,
+                    'type': 'python',
+                    'p1': p1,
+                    'result': model.CallScript(r.Name)
+                })
+
+        # Evaluate the SQL Reports
+        for r in q.QuerySql(sqlReportsQ):
+            rNameL = r.Name.lower()
+            if rNameL in sqlPs:
+                for p1 in sqlPs[rNameL]:
+                    sql = r.Body.replace("@p1", "'{}'".format(p1))
+
+                    reportResults.append({
+                        'id': r.Id,
+                        'name': r.Name,
+                        'type': 'sql',
+                        'p1': p1,
+                        'result': model.SqlGrid(sql)[131:-96]  # The substring removes the superfluous html
+                    })
 
         Data.success = 1
+        Data.report_results = reportResults
 
 if "auth_key_set" in Data.a and model.HttpMethod == "post":
     apiCalled = True

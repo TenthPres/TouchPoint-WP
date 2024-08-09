@@ -98,7 +98,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 		}
 
 		$params['type'] = strtolower($params['type']);
-		if ($params['type'] !== 'sql') {
+		if ($params['type'] !== 'sql' && $params['type'] !== 'python') {
 			throw new TouchPointWP_Exception("Invalid Report type.", 173002);
 		}
 
@@ -283,7 +283,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 
 		if (self::$_indexingMode) {
 			// It has been added to the index already, so our work here is done.
-			return "";
+			return $content;
 		}
 
 		$rc = $report->content();
