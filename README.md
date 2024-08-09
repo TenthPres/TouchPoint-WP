@@ -28,6 +28,10 @@ No login required, just an email address and zip code.
 Show your Staff members, Elders, or other collections of people, automatically kept in sync with TouchPoint.
 [Example.](https://www.tenth.org/about/staff)  (This example and others like is are 100% updated from TouchPoint, including the titles and social links.)
 
+### Embedded Reports
+Any SQL or Python report generated in TouchPoint can be embedded into your website and automatically updated.  For example,
+we have a financial update chart that is automatically updated to reflect giving. 
+
 ### Outreach Partners
 Automatically import partner bios and info from TouchPoint for display on your public website, with 
 appropriate care for their security.
