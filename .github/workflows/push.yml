@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Permissions
         run: chmod +x build.sh
@@ -22,7 +22,7 @@ jobs:
         shell: bash
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: touchpoint-wp.zip
-          path: touchpoint-wp.zip
+          name: touchpoint-wp
+          path: build
