@@ -115,6 +115,8 @@ abstract class Rsvp implements module
 			TouchPointWP::enqueueActionsStyle('rsvp');
 			Person::enqueueUsersForJsInstantiation();
 
+			// TODO merge with Meeting::rsvpButton()
+
 			return "<a href=\"#\" onclick=\"return false;\" $class disabled data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$content</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
 		}
 	}

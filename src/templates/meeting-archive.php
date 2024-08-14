@@ -25,7 +25,7 @@ if (have_posts()) {
     <header class="archive-header has-text-align-center header-footer-group">
         <div class="archive-header-inner section-inner medium">
             <h1 class="archive-title page-title"><?php _ex("Events", "What Meetings should be called, plural.", 'TouchPoint-WP') ?></h1>
-            <?php echo Meeting::filterShortcode(['type' => $postType]); ?>
+<!--   TODO         --><?php //echo Meeting::filterShortcode(['type' => $postType]); ?>
             <?php if ($description) { ?>
                 <div class="archive-description"><?php echo wp_kses_post(wpautop($description)); ?></div>
             <?php } ?>

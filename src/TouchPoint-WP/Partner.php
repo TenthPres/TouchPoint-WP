@@ -814,14 +814,16 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		    && TouchPointWP::instance()->settings->global_primary_tax !== "") {
 
 			$tax     = get_taxonomy(Taxonomies::TAX_GP_CATEGORY);
-			$name    = substr($tax->name, strlen(TouchPointWP::SETTINGS_PREFIX));
-			$content .= "<select class=\"$class-filter\" data-partner-filter=\"$name\">";
-			$content .= "<option disabled selected>$tax->label</option>";
-			$content .= "<option value=\"\">$any</option>";
-			foreach (get_terms(Taxonomies::TAX_GP_CATEGORY) as $t) {
-				$content .= "<option value=\"$t->slug\">$t->name</option>";
+			if ($tax !== false) {
+				$name    = substr($tax->name, strlen(TouchPointWP::SETTINGS_PREFIX));
+				$content .= "<select class=\"$class-filter\" data-partner-filter=\"$name\">";
+				$content .= "<option disabled selected>$tax->label</option>";
+				$content .= "<option value=\"\">$any</option>";
+				foreach (get_terms(Taxonomies::TAX_GP_CATEGORY) as $t) {
+					$content .= "<option value=\"$t->slug\">$t->name</option>";
+				}
+				$content .= "</select>";
 			}
-			$content .= "</select>";
 		}
 
 		if ($params['includeMapWarnings']) {
