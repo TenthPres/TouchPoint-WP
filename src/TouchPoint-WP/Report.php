@@ -305,7 +305,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 
 		$permalink = esc_attr(get_post_permalink($report->getPost()));
 
-        $rc     = "<figure $idAttr class=\"$class\" data-tp-report=\"$permalink\">\n\t" . str_replace("\n", "\n\t", $rc);
+		$rc     = "<figure $idAttr class=\"$class\" data-tp-report=\"$permalink\">\n\t" . str_replace("\n", "\n\t", $rc);
 
 		// If desired, add a caption that indicates when the table was last updated.
 		if ($params['showupdated']) {
@@ -336,24 +336,24 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	{
 		if ( ! $this->_postLoaded || ($this->post === null && $create)) {
 			$q = new WP_Query([
-				'post_type'   => self::POST_TYPE,
-				'meta_query'  => [
-					'relation' => 'AND',
-					[
-						'key'   => self::TYPE_META_KEY,
-						'value' => $this->type
-					],
-					[
-						'key'   => self::NAME_META_KEY,
-						'value' => $this->name
-					],
-					[
-						'key'   => self::P1_META_KEY,
-						'value' => $this->p1
-					]
-				],
-				'numberposts' => 2  // only need one, but if there's two, there should be an error condition.
-			]);
+				                  'post_type'   => self::POST_TYPE,
+				                  'meta_query'  => [
+					                  'relation' => 'AND',
+					                  [
+						                  'key'   => self::TYPE_META_KEY,
+						                  'value' => $this->type
+					                  ],
+					                  [
+						                  'key'   => self::NAME_META_KEY,
+						                  'value' => $this->name
+					                  ],
+					                  [
+						                  'key'   => self::P1_META_KEY,
+						                  'value' => $this->p1
+					                  ]
+				                  ],
+				                  'numberposts' => 2  // only need one, but if there's two, there should be an error condition.
+			                  ]);
 
 			$reportPosts = $q->get_posts();
 			$counts      = count($reportPosts);
@@ -364,15 +364,15 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 				$this->post = reset($reportPosts);
 			} elseif ($create) {
 				$postId = wp_insert_post([
-					'post_type'   => self::POST_TYPE,
-					'post_status' => 'publish',
-					'post_name'   => $this->title() . " " . $this->type,
-					'meta_input'  => [
-						self::NAME_META_KEY => $this->name,
-						self::TYPE_META_KEY => $this->type,
-						self::P1_META_KEY   => $this->p1
-					]
-				]);
+					                         'post_type'   => self::POST_TYPE,
+					                         'post_status' => 'publish',
+					                         'post_name'   => $this->title() . " " . $this->type,
+					                         'meta_input'  => [
+						                         self::NAME_META_KEY => $this->name,
+						                         self::TYPE_META_KEY => $this->type,
+						                         self::P1_META_KEY   => $this->p1
+					                         ]
+				                         ]);
 				if (is_wp_error($postId)) {
 					$this->post = null;
 					new TouchPointWP_WPError($postId);
@@ -490,8 +490,14 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 				continue;
 			}
 
+			$content = $u->result;
+
+			if ($u->type === 'sql') {
+				$content = self::cleanupSqlContent($content);
+			}
+
 			$post               = $report->getPost(true);
-			$post->post_content = self::cleanupContent($u->result);
+			$post->post_content = $content;
 			$submit             = $report->submitUpdate();
 
 			if ( ! in_array($post->ID, $postIdsToNotDelete)) {
@@ -534,7 +540,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	 *
 	 * @return string
 	 */
-	private static function cleanupContent(string $content): string
+	private static function cleanupSqlContent(string $content): string
 	{
 		$closes  = substr($content, strrpos($content, '</tr>') + 5);
 		$content = substr($content, 0, strrpos($content, '<tr'));
