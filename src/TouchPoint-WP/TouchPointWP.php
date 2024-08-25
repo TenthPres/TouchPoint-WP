@@ -13,6 +13,7 @@ use WP;
 use WP_Error;
 use WP_Http;
 use WP_Term;
+use WP_User;
 
 
 if ( ! defined('ABSPATH')) {
@@ -2490,5 +2491,84 @@ class TouchPointWP
 			'groupBy' => null,
 			'context' => null
 		];
+	}
+
+	protected const TPWP_USER = 'touchpoint-wp';
+
+	/**
+	 * @throws TouchPointWP_WPError
+	 */
+	public function validateThatTpWpUserExists(): bool
+	{
+		$displayName = 'TouchPoint-WP Service';
+		$email = 'tpwp@tenth.org';
+
+		// Check if the user already exists
+		if (username_exists(self::TPWP_USER)) {
+			return true; // User already exists, no need to create
+		}
+
+		// Generate a random password
+		$password = wp_generate_password(50, false);
+
+		// Create the user
+		$user_id = wp_create_user(self::TPWP_USER, $password, $email);
+
+		if (is_wp_error($user_id)) {
+			throw new TouchPointWP_WPError($user_id);
+		}
+
+		// Set the role to administrator
+		$user = new WP_User($user_id);
+		$user->set_role('administrator');
+		$user->display_name = $displayName;
+		wp_update_user($user);
+
+		return true;
+	}
+
+	/**
+	 * A variable to hold the actual user, if there is one while we temporarily swap to the TPWP user.
+	 *
+	 * @var WP_User|null
+	 */
+	protected ?WP_User $priorUser = null;
+
+
+	/**
+	 * Make the TPWP user the active one, so permissions are not dependent on whoever happens to be running things
+	 * at the moment. 
+	 *
+	 * @return void
+	 */
+	public function setTpWpUserAsCurrent(): void
+	{
+		try {
+			$this->validateThatTpWpUserExists();
+		} catch (TouchPointWP_WPError) {
+		}
+
+		$priorUser = wp_get_current_user();
+
+		$tpUser = get_user_by('login', 'touchpoint-wp');
+		if ($tpUser && $tpUser !== $priorUser) {
+			$this->priorUser = $priorUser;
+			wp_set_current_user($tpUser->ID, $tpUser->user_login);
+		}
+	}
+
+	/**
+	 * Restore the actual user to the user position.
+	 *
+	 * @return void
+	 */
+	public function unsetTpWpUserAsCurrent(): void
+	{
+		if ($this->priorUser) {
+			wp_set_current_user($this->priorUser->ID, $this->priorUser->user_login);
+			$this->priorUser = null;
+		} else {
+			wp_set_current_user(0);
+		}
 	}
 }

@@ -76,7 +76,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	 *
 	 * @return void
 	 */
-	protected function mergeParams($params)
+	protected function mergeParams($params): void
 	{
 		$this->interval = min($this->interval, $params['interval'] ?? $this->interval);
 	}
@@ -438,6 +438,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	 */
 	public static function updateFromTouchPoint(bool $forceEvenIfNotDue = false): int
 	{
+		TouchPointWP::instance()->setTpWpUserAsCurrent();
+
 		// Find Report Shortcodes in post content and add their involvements to the query.
 		$referencingPosts   = Utilities::getPostContentWithShortcode(self::SHORTCODE_REPORT);
 		$postIdsToNotDelete = [];
@@ -528,6 +530,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 		if ($updateCount > 0) {
 			TouchPointWP::instance()->flushRewriteRules();
 		}
+
+		TouchPointWP::instance()->unsetTpWpUserAsCurrent();
 
 		return $updateCount;
 	}
