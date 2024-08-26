@@ -381,13 +381,17 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			}
 
 			// Divisions
+			$update = false;
 			try {
+				TouchPointWP::instance()->setTpWpUserAsCurrent();
 				$update = self::updateInvolvementPostsForType($type, $verbose);
 			} catch (Exception $e) {
 				if ($verbose) {
 					echo "An exception occurred while syncing $type->namePlural: " . $e->getMessage();
 				}
 				continue;
+			} finally {
+				TouchPointWP::instance()->unsetTpWpUserAsCurrent();
 			}
 
 			if ($update === false) {

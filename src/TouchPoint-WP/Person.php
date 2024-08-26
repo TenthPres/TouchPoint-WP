@@ -678,6 +678,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$queryNeeded = false;
 
 		$verbose &= TouchPointWP::currentUserIsAdmin();
+		
+		TouchPointWP::instance()->setTpWpUserAsCurrent();
 
 		// Existing Users
 		/** @noinspection SqlResolve */
@@ -781,6 +783,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 				echo "Success";
 			}
 		}
+
+		TouchPointWP::instance()->unsetTpWpUserAsCurrent();
 
 		return $count;
 	}

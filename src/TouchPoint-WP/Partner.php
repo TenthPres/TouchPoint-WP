@@ -292,6 +292,8 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 
 		$verbose &= TouchPointWP::currentUserIsAdmin();
 
+		TouchPointWP::instance()->setTpWpUserAsCurrent();
+
 		if (TouchPointWP::instance()->settings->enable_global !== 'on') {
 			if ($verbose) {
 				echo "Global is not enabled.";
@@ -545,6 +547,8 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		if ($count > 0) {
 			TouchPointWP::instance()->flushRewriteRules();
 		}
+		
+		TouchPointWP::instance()->unsetTpWpUserAsCurrent();
 
 		return $count;
 	}
