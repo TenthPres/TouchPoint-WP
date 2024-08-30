@@ -51,7 +51,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 
 	protected string $type;
 	protected string $name;
-	protected float $interval;
+	protected float $interval;  // Hours
 	protected string $p1 = '';
 
 	protected int $status = 0;
@@ -557,12 +557,15 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	/**
 	 * Get the update Interval as a DateInterval for use with DateTime functions.
 	 *
+	 * @param int $diff Number of minutes to subtract from the interval.  Default is 15.
+	 *
 	 * @return DateInterval
 	 */
-	public function intervalAsDateInterval(): DateInterval
+	protected function intervalAsDateInterval(int $diff = 15): DateInterval
 	{
-		$m = ($this->interval * 60) % 60;
-		$h = $this->interval - ($m / 60);
+		$i = $this->interval - ($diff / 60); // subtract to avoid updates shifting later in the day.
+		$m = ($i * 60) % 60;
+		$h = $i - ($m / 60);
 
 		return new DateInterval("PT{$h}H{$m}M");
 	}
