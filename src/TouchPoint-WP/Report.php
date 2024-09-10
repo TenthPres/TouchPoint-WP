@@ -10,6 +10,7 @@ use DateTime;
 use Exception;
 use JsonSerializable;
 use tp\TouchPointWP\Utilities\Http;
+use tp\TouchPointWP\Utilities\ImageConversions;
 use WP_Error;
 use WP_Post;
 use WP_Query;
@@ -21,6 +22,8 @@ if ( ! defined('ABSPATH')) {
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "api.php";
 	require_once "updatesViaCron.php";
+	require_once "Utilities/ImageConversions.php";
+	require_once "Utilities/Http.php";
 }
 
 /**
@@ -218,6 +221,77 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 					}
 					exit;
 			}
+		} else if (count($uri['path']) === 4) {
+			[$filename, $ext] = explode(".", $uri['path'][3], 2);
+
+			switch ($uri['path'][2]) {
+				case "py":
+					TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
+
+					$r = Report::fromParams([
+						                        'type'     => 'python',
+						                        'name'     => $filename,
+						                        'p1'       => $_GET['p1'] ?? ''
+					                        ]);
+					$content = $r->content();
+					if ($content === self::DEFAULT_CONTENT) {
+						http_response_code(Http::NOT_FOUND);
+						exit;
+					}
+
+					switch ($ext) {
+						case "svg":
+							header("Content-Type: image/svg+xml");
+							break;
+
+						case "svg.png":
+							$cached = get_post_meta($r->getPost()->ID, self::META_PREFIX . "svg_png", true);
+							if ($cached !== '') {
+								$content = base64_decode($cached);
+							} else {
+								try {
+									$content = "";
+									$content = ImageConversions::svgToPng($content);
+									update_post_meta($r->getPost()->ID, self::META_PREFIX . "svg_png", base64_encode($content));
+								} catch (TouchPointWP_Exception $e) {
+									http_response_code(Http::SERVICE_UNAVAILABLE);
+									echo $e->getMessage();
+									exit;
+								} catch (Exception $e) {
+									http_response_code(Http::SERVER_ERROR);
+									echo $e->getMessage();
+									exit;
+								}
+							}
+							header("Content-Type: image/png");
+							break;
+
+						default:
+							header("Content-Type: text/plain");
+							break;
+					}
+
+
+					echo $content;
+					exit;
+
+				case "sql":
+					TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
+					header("Cache-Control: max-age=3600, must-revalidate, public");
+					$r = Report::fromParams([
+						                        'type'     => 'sql',
+						                        'name'     => $filename,
+						                        'p1'       => $_GET['p1'] ?? ''
+					                        ]);
+					$content = $r->content();
+					if ($content === self::DEFAULT_CONTENT) {
+						http_response_code(Http::NOT_FOUND);
+						exit;
+					}
+
+					echo $content;
+					exit;
+			}
 		}
 
 		return false;
@@ -404,6 +478,11 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	{
 		if ( ! $this->getPost()) {
 			return null;
+		}
+
+		// Clear the cached PNG if it exists.
+		if (get_post_meta($this->post->ID, self::META_PREFIX . "svg_png", true) !== '') {
+			update_post_meta($this->post->ID, self::META_PREFIX . "svg_png", '');
 		}
 
 		return wp_update_post($this->post);
