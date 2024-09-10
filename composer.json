@@ -30,7 +30,8 @@
     "php": ">=8.0",
     "composer/installers": "~1.0",
     "ext-json": "*",
-    "ext-zip": "*"
+    "ext-zip": "*",
+    "ext-dom": "*"
   },
   "require-dev": {
     "pronamic/wp-documentor": "^1.3",
