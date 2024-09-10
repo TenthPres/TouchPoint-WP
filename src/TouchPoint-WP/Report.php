@@ -221,8 +221,17 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 					}
 					exit;
 			}
-		} else if (count($uri['path']) === 4) {
-			[$filename, $ext] = explode(".", $uri['path'][3], 2);
+		} else if (count($uri['path']) === 4 || count($uri['path']) === 5) {
+			$parts = explode(".", $uri['path'][3], 2);
+			if (count($parts) === 2) {
+				[$filename, $ext] = $parts;
+			} else {
+				$filename = $parts[0];
+				$ext	  = null;
+				if (isset($uri['path'][4])) {
+					$ext = str_replace("_", '.', $uri['path'][4]) ?? null;
+				}
+			}
 
 			switch ($uri['path'][2]) {
 				case "py":
