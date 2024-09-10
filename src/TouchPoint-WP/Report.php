@@ -259,7 +259,6 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 								$content = base64_decode($cached);
 							} else {
 								try {
-									$content = "";
 									$content = ImageConversions::svgToPng($content);
 									update_post_meta($r->getPost()->ID, self::META_PREFIX . "svg_png", base64_encode($content));
 								} catch (TouchPointWP_Exception $e) {
