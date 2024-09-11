@@ -30,7 +30,7 @@ abstract class ImageConversions
 			throw new TouchPointWP_Exception('Imagick extension is not available');
 		}
 
-		if (count(\Imagick::queryformats('SVG')) < 1) {
+		if (count(\Imagick::queryFormats('SVG')) < 1) {
 			throw new TouchPointWP_Exception('Imagick on this server does not support SVG');
 		}
 
@@ -43,7 +43,9 @@ abstract class ImageConversions
 
 		$im = $im->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
 
-		$im->setImageFormat('png');
+		if (!$im->setImageFormat('png')) {
+			throw new TouchPointWP_Exception('Failed to set image format as png');
+		}
 
 		return $im->getImageBlob();
 	}
