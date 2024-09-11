@@ -23,6 +23,7 @@ use DateInterval;
 use DateTimeImmutable;
 use DateTimeZone;
 use Exception;
+use JetBrains\PhpStorm\NoReturn;
 use JsonSerializable;
 use stdClass;
 use tp\TouchPointWP\Utilities\DateFormats;
@@ -623,6 +624,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * @deprecated 0.0.90  Does not take into account all the possible registration types; will be removed in a future
 	 *     version.
 	 *
+	 * @noinspection PHPUnused
 	 * @return bool
 	 */
 	public function useRegistrationForm(): bool
@@ -744,12 +746,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * This is separated out to a static method to prevent involvement from being instantiated (with those database
 	 * hits) when the content is cached.  (10x faster or more)
 	 *
-	 * @param int           $invId
-	 * @param ?Involvement  $inv
+	 * @param int          $invId
+	 * @param ?Involvement $inv
 	 *
 	 * @return ?string
 	 */
-	public static function scheduleString(int $invId, $inv = null): ?string
+	public static function scheduleString(int $invId, ?Involvement $inv = null): ?string
 	{
 		$s = self::scheduleStrings($invId, $inv);
 		return $s['combined'];
@@ -1174,6 +1176,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * Returns an array of the Involvement's Divisions, excluding those that cause it to be included.
 	 *
 	 * @return string[]
+	 * @noinspection PhpUnused
 	 */
 	public function getDivisionsStrings(): array
 	{
@@ -1554,6 +1557,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * @return string
 	 *
 	 * @noinspection PhpUnusedParameterInspection
+	 * @noinspection PhpMissingParamTypeInspection
 	 */
 	public static function listShortcode($params = [], string $content = ""): string
 	{
@@ -1992,7 +1996,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			case "nearby":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
 				self::ajaxNearby();
-				exit;
+//				exit;  ajaxNearby() is no-return.
 
 			case "force-sync":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
@@ -2007,6 +2011,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Handles the API call to get nearby involvements (probably small groups)
 	 */
+	#[NoReturn]
 	public static function ajaxNearby(): void
 	{
 		header('Content-Type: application/json');
@@ -2626,6 +2631,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				$post = wp_insert_post(
 					[ // create new
 						'post_type'  => $typeSets->postType,
+						'post_title' => $inv->titleToUse,
 						'post_name'  => $inv->titleToUse,
 						'post_status' => 'publish',
 						'meta_input' => [
@@ -3010,7 +3016,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		// Return if meetings shouldn't be imported at all.
 		if (!$typeSets->importMeetings && !$inv->showInSites) {
-			self::doMeetingMetaUpdates($post, null, false, $imagePostId, $verbose);
+			self::doMeetingMetaUpdates($post, null, false, $verbose);
 			return [$post->ID];
 		}
 
@@ -3018,19 +3024,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		// Determine Strategy //
 		////////////////////////
 
-		switch (count($inv->meetings)) {
-			case 0:
-				$strategy = self::MEETING_STRATEGY_NONE;
-				break;
-
-			case 1:
-				$strategy = self::MEETING_STRATEGY_SINGLE;
-				break;
-
-			default:
-				$strategy = self::MEETING_STRATEGY_MULTIPLE;
-				break;
-		}
+		$strategy = match (count($inv->meetings)) {
+			0 => self::MEETING_STRATEGY_NONE,
+			1 => self::MEETING_STRATEGY_SINGLE,
+			default => self::MEETING_STRATEGY_MULTIPLE,
+		};
 
 		////////////////////
 		// Title and Slug //
@@ -3066,7 +3064,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		if ($strategy === self::MEETING_STRATEGY_MULTIPLE) {
 
 			// If the main post was previously a single, it needs to have the meeting info removed.
-			self::doMeetingMetaUpdates($post, null, false, $imagePostId, $verbose);
+			self::doMeetingMetaUpdates($post, null, false, $verbose);
 
 			foreach ($inv->meetings as $mtgO) {
 
@@ -3118,8 +3116,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					$loops++;
 				} while ($counts > 1 && $loops < 3);
 
+				$eventIsPast = ($mtgO->mtgEndDt ?? $mtgO->mtgStartDt) < Utilities::dateTimeNow();
+
 				if ($counts > 0) { // post exists already.
 					$mtgP = reset($mtgP);
+				} elseif ($eventIsPast) {
+					if ($verbose) {
+						echo "<p>Post not found for Meeting $mtgO->mtgId.  As it is in the past, it will not be created.</p>";
+					}
+					continue;
 				} else {
 					if ($verbose) {
 						echo "<p>Post not found for Meeting $mtgO->mtgId.  Creating.</p>";
@@ -3139,10 +3144,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				}
 
 				$mtgP->post_title = $title;
-				$mtgP->post_content = Utilities::standardizeHtml($inv->description, "meeting-import");
+				if (!$eventIsPast) {
+					$mtgP->post_content = Utilities::standardizeHtml($inv->description, "meeting-import");
+				}
 				$mtgP->post_parent = $post->ID;
 
-				self::doMeetingMetaUpdates($mtgP, $mtgO, !!$inv->showInSites, $imagePostId, $verbose);
+				self::doMeetingMetaUpdates($mtgP, $mtgO, !!$inv->showInSites, $verbose);
 
 				wp_update_post($mtgP);
 
@@ -3159,9 +3166,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			// TODO resolve Undefined array key 0 warning
 			// TODO make sure synced
 			if ($strategy === self::MEETING_STRATEGY_SINGLE) {
-				self::doMeetingMetaUpdates($post, $inv->meetings[0], !!$inv->showInSites, $imagePostId, $verbose);
+				self::doMeetingMetaUpdates($post, $inv->meetings[0], !!$inv->showInSites, $verbose);
 			} else { // MEETING_STRATEGY_NONE
-				self::doMeetingMetaUpdates($post, null, false, $imagePostId, $verbose);
+				self::doMeetingMetaUpdates($post, null, false, $verbose);
 			}
 
 			wp_update_post($post);
@@ -3181,12 +3188,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * @param WP_Post $mtgP
 	 * @param ?object $mtgO
 	 * @param bool    $feature
-	 * @param int     $imagePostId
 	 * @param bool    $verbose
 	 *
 	 * @return void
 	 */
-	protected static function doMeetingMetaUpdates(WP_Post $mtgP, ?object $mtgO, bool $feature, int $imagePostId, bool $verbose = false): void
+	protected static function doMeetingMetaUpdates(WP_Post $mtgP, ?object $mtgO, bool $feature, bool $verbose = false): void
 	{
 		// If the main post was previously a single, it needs to have the meeting info removed.
 		if ($mtgO === null) {
@@ -3197,6 +3203,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			delete_post_meta($mtgP->ID, Meeting::MEETING_INV_ID_META_KEY);
 			delete_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY);
 		} else {
+			$eventIsPast = ($mtgO->mtgEndDt ?? $mtgO->mtgStartDt) < Utilities::dateTimeNow();
+
 			update_post_meta($mtgP->ID, Meeting::MEETING_META_KEY, $mtgO->mtgId);
 			update_post_meta($mtgP->ID, Meeting::MEETING_START_META_KEY, DateFormats::timestampWithoutOffset($mtgO->mtgStartDt));
 			update_post_meta($mtgP->ID, Meeting::MEETING_END_META_KEY, DateFormats::timestampWithoutOffset($mtgO->mtgEndDt));
@@ -3204,7 +3212,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			update_post_meta($mtgP->ID, Meeting::MEETING_INV_ID_META_KEY, $mtgO->involvementId);
 			update_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY, intval($mtgO->status));
 
-			if ($mtgO->location !== null) {
+			if ($mtgO->location !== null && !$eventIsPast) {
 				update_post_meta($mtgP->ID, Meeting::MEETING_LOCATION_META_KEY, $mtgO->location);
 			}
 
@@ -3757,7 +3765,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		if (Meeting::postIsType($this->post)) {
 			try {
 				return Meeting::fromPost($this->post);
-			} catch (TouchPointWP_Exception $e) {
+			} catch (TouchPointWP_Exception) {
 				return null;
 			}
 		}

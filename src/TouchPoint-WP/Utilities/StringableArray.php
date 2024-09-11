@@ -93,12 +93,13 @@ class StringableArray extends ArrayObject
 	/**
 	 * Convert the array to a list string with ampersands and such.
 	 *
-	 * @param int $limit
+	 * @param int  $limit
+	 * @param bool $andOthers
 	 *
 	 * @return string
 	 */
-	public function toListString(int $limit = PHP_INT_MAX): string
+	public function toListString(int $limit = PHP_INT_MAX, bool $andOthers = false): string
 	{
-		return Utilities::stringArrayToListString($this->getArrayCopy(), $limit);
+		return Utilities::stringArrayToListString($this->getArrayCopy(), $limit, $andOthers);
 	}
 }

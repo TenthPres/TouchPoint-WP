@@ -519,10 +519,16 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		}
 
 		try {
-			$involvementPostId = Meeting::fromPost($post)->getParent()?->post_id();
+			$meeting = Meeting::fromPost($post);
+			$involvementPostId = $meeting->involvement()?->post_id();
 			if (!$involvementPostId) {
 				return $thumbnail_id;
 			}
+
+			if (get_the_content(post: $involvementPostId) !== get_the_content(post: $meeting->post_id())) {
+				return $thumbnail_id;
+			}
+
 			return get_post_thumbnail_id($involvementPostId);
 		} catch (TouchPointWP_Exception) {
 		}
