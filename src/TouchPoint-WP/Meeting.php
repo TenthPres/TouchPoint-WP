@@ -12,6 +12,7 @@ if ( ! defined('ABSPATH')) {
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once 'api.php';
 	require_once 'hierarchical.php';
+	require_once 'scheduled.php';
 }
 
 use DateTime;
@@ -21,12 +22,13 @@ use tp\TouchPointWP\Utilities\DateFormats;
 use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Post;
 use tp\TouchPointWP\Utilities\Http;
+use WP_Query;
 use WP_Term;
 
 /**
  * Handle meeting content, particularly RSVPs.
  */
-class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchical
+class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchical, scheduled
 {
 	use jsInstantiation;
 //	use jsonLd; TODO
@@ -181,7 +183,59 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		$this->registerConstruction();
 	}
 
-	
+
+	/**
+	 * Create a Meeting object from a Meeting ID.  Only Meetings that are already imported as Posts are currently
+	 * available.
+	 *
+	 * @param int $mid A database object from which a Meeting object should be created.
+	 *
+	 * @return ?Meeting  Null if the involvement is not imported/available.
+	 * @throws TouchPointWP_Exception
+	 */
+	private static function fromMtgId(int $mid): ?Meeting
+	{
+		if ( ! isset(self::$_instances[$mid])) {
+			$post                   = self::getWpPostByMeetingId(Involvement::getPostTypes(), $mid);
+			self::$_instances[$mid] = new Meeting($post);
+		}
+
+		return self::$_instances[$mid];
+	}
+
+	/**
+	 * Get a WP_Post by the Meeting ID if it exists.  Return null if it does not.
+	 *
+	 * @param string|string[] $postType
+	 * @param mixed           $meetingId
+	 *
+	 * @return WP_Post|null
+	 */
+	private static function getWpPostByMeetingId($postType, $meetingId): WP_Post|null
+	{
+		$meetingId = (string)$meetingId;
+
+		$q      = new WP_Query([
+			                       'post_type'   => $postType,
+			                       'meta_key'    => self::MEETING_META_KEY,
+			                       'meta_value'  => $meetingId,
+			                       'numberposts' => 2
+			                       // only need one, but if there's two, there should be an error condition.
+		                       ]);
+		/** @var $posts WP_Post[] */
+		$posts  = $q->get_posts();
+		$counts = count($posts);
+		if ($counts > 1) {  // multiple posts match, which isn't great.
+			new TouchPointWP_Exception("Multiple Posts Exist", 170006);
+		}
+		if ($counts > 0) { // post exists already.
+			return reset($posts);
+		} else {
+			return null;
+		}
+	}
+
+
 	/**
 	 * Register scripts and styles to be used on display pages.
 	 */
@@ -299,33 +353,38 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		}
 	}
 
+
 	/**
-	 * Get the human-readable schedule for the meeting as a string.  If multiple elements exist, they will be joined by
-	 * $join.  Returns null if the schedule string is unavailable for some reason.
+	 * Get the meeting date/time in human-readable form.
 	 *
-	 * @param string $join
+	 * @param int      $objId
+	 * @param ?Meeting $obj
 	 *
 	 * @return ?string
-	 *
-	 * @since 0.0.90 Added
 	 */
-	public function scheduleString(string $join): ?string
+	public static function scheduleString(int $objId, $obj = null): ?string
 	{
-		$ss = $this->scheduleStringArray();
-		if (count($ss) > 0) {
-			return implode($join, $ss);
+		if (!$obj) {
+			try {
+				$obj = self::fromMtgId($objId);
+			} catch (TouchPointWP_Exception) {
+				return null;
+			}
 		}
-		return null;
+
+		$s = $obj?->scheduleStringArray();
+
+		return $s?->join();
 	}
 
 	/**
 	 * Get the human-readable schedule for the meeting as a string or set of strings in an array.
 	 *
-	 * @return array
+	 * @return StringableArray
 	 *
 	 * @since 0.0.90 Added
 	 */
-	public function scheduleStringArray(): array
+	public function scheduleStringArray(): StringableArray
 	{
 		return DateFormats::DurationToStringArray($this->startDt, $this->endDt, $this->isMultiDay(), $this->isAllDay());
 	}

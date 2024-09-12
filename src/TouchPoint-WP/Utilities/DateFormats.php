@@ -295,12 +295,14 @@ abstract class DateFormats
 	 * @param ?bool              $multiDay
 	 * @param ?bool              $allDay
 	 *
-	 * @return array|string[]
+	 * @return StringableArray
 	 */
-	public static function DurationToStringArray(?DateTimeInterface $start, ?DateTimeInterface $end, ?bool $multiDay = null, ?bool $allDay = null): array
+	public static function DurationToStringArray(?DateTimeInterface $start, ?DateTimeInterface $end, ?bool $multiDay = null, ?bool $allDay = null): StringableArray
 	{
+		$r = new StringableArray();
+
 		if ($start === null) {
-			return [];
+			return $r;
 		}
 
 		if ($multiDay === null) {
@@ -321,18 +323,17 @@ abstract class DateFormats
 				$date2 = self::DateStringFormattedShort($end);
 
 				// Translators: %1$s is the start date, %2$s is the end date.
-				return [
-					'datetime' => wp_sprintf(__('%1$s &ndash; %2$s', 'TouchPoint-WP'), $date1, $date2)
-				];
+				$r['datetime'] = wp_sprintf(__('%1$s &ndash; %2$s', 'TouchPoint-WP'), $date1, $date2);
+
 			} else {
 				// 011
 				// 101
 				// 111
 
-				return [
-					'datetime' => self::DateStringFormatted($start)
-				];
+				$r['datetime'] = self::DateStringFormatted($start);
 			}
+
+			return $r;
 		}
 
 		if ($multiDay) {
@@ -341,10 +342,10 @@ abstract class DateFormats
 
 				$date = self::DateStringFormatted($start);
 				$time = self::TimeStringFormatted($start);
+
 				// Translators: %1$s is the start date, %2$s is the start time.
-				return [
-					'datetime' => wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $date, $time)
-				];
+				$r['datetime'] = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $date, $time);
+
 			} else {
 				// 100
 
@@ -354,29 +355,27 @@ abstract class DateFormats
 				$time1 = self::TimeStringFormatted($start);
 				$time2 = self::TimeStringFormatted($end);
 
-				return [
-					// translators: %1$s is the start date, %2$s start time, %3$s is the end date, and %4$s end time.
-					'datetime' => wp_sprintf(__('%1$s at %2$s &ndash; %3$s at %4$s', 'TouchPoint-WP'), $date1, $time1, $date2, $time2)
-				];
+				// translators: %1$s is the start date, %2$s start time, %3$s is the end date, and %4$s end time.
+				$r['datetime'] = wp_sprintf(__('%1$s at %2$s &ndash; %3$s at %4$s', 'TouchPoint-WP'), $date1, $time1, $date2, $time2);
 			}
+
+			return $r;
 		}
 
-		$attrs = [
-			'date' => self::DateStringFormatted($start),
-		];
+		$r['date'] = self::DateStringFormatted($start);
 
 		if ($end === null) {
 			// 010
 
 			$time = self::TimeStringFormatted($start);
-			$attrs['time'] = $time;
+			$r['time'] = $time;
 		} else {
 			// 000
 
-			$attrs['time'] = self::TimeRangeStringFormatted($start, $end);
+			$r['time'] = self::TimeRangeStringFormatted($start, $end);
 		}
 
-		return $attrs;
+		return $r;
 
 	}
 }
