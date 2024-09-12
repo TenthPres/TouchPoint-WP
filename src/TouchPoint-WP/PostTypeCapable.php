@@ -9,10 +9,13 @@ namespace tp\TouchPointWP;
 use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Post;
 
+require_once 'module.php';
+require_once 'storedAsPost.php';
+
 /**
  * This is a base class for those objects that can be derived from a Post.
  */
-abstract class PostTypeCapable implements module
+abstract class PostTypeCapable implements module, storedAsPost
 {
 
 	protected int $post_id;
@@ -27,6 +30,14 @@ abstract class PostTypeCapable implements module
 	public function post_id(): int
 	{
 		return $this->post_id;
+	}
+
+	public function getPost(bool $create = false): ?WP_Post
+	{
+		if ($this->post === null) {
+			$this->post = get_post($this->post_id);
+		}
+		return $this->post;
 	}
 
 	/**

@@ -60,6 +60,8 @@ class CalendarGrid {
 	 * @param WP_Query $q
 	 * @param int|null $month
 	 * @param int|null $year
+	 *
+	 * @return void
 	 */
 	public function __construct(WP_Query $q, int $month = null, int $year = null)
 	{
@@ -89,6 +91,10 @@ class CalendarGrid {
 		$d->modify("-$offsetDays days");
 		$r = "";
 
+		// Extra days at the end of the month
+		$daysInMonth = intval($d->format('t'));
+		$daysToShow = ((42 - $daysInMonth - $offsetDays) % 7) + $daysInMonth;
+
 		// Create a table to display the calendar
 		$r .= '<div class="calGrid">';
 		foreach (Utilities::getDaysOfWeekShort() as $dayStr) {
@@ -97,7 +103,34 @@ class CalendarGrid {
 
 		$isMonthBefore = ($offsetDays !== 0);
 		$isMonthAfter = false;
-		$aDay = new DateInterval("P1D");
+
+		// do a query for the whole range of days in the month
+		$d2 = DateTimeImmutable::createFromMutable($d)->add(new DateInterval("P{$daysToShow}D"));
+		try {
+			$newQ = self::adjustQueryForRange($q, $d, $d2, $tz);
+		} catch (Exception $e) {
+			$this->html = "<!-- Could not create calendar grid because an exception occurred: {$e->getMessage()} -->";
+			return;
+		}
+		unset($d2);
+
+		$monthPosts = $newQ->get_posts();
+		$monthEvents = [];
+		foreach ($monthPosts as $e) {
+			try {
+				$monthEvents[] = Meeting::fromPost($e);
+			} catch (Exception) {
+				// Ignore any exceptions
+			}
+		}
+
+		try {
+			$aDay  = new DateInterval("P1D");
+			$d2359 = new DateTime($d->format('Y-m-d 23:59:59'), $tz);
+		} catch (Exception $e) {
+			$this->html = "<!-- Could not create calendar grid because an exception occurred: {$e->getMessage()} -->";
+			return;
+		}
 
 		// Loop through the days of the month
 		do {
@@ -106,95 +139,96 @@ class CalendarGrid {
 			$fullDay = DateFormats::DateStringFormatted($d);
 			$wd =  wp_date("w", $ts);
 
-			try {
-				$newQ = self::adjustQueryForDay($q, $d, $tz);
-
-				$cellClass = ["calDay"];
-				if ($isMonthBefore) {
-					$cellClass[] = "before";
-					$adder = 0;
-				} elseif ($isMonthAfter) {
-					$cellClass[] = "after";
-					$adder = 0;
-				} else {
-					$adder = 1;
-				}
-
-				$calDayPosts = $newQ->get_posts();
-
-				if (count($calDayPosts) === 0) {
-					$cellClass[] = "empty";
-				}
-
-				if ($d < Utilities::dateTimeTodayAtMidnight()) {
-					$cellClass[] = "past";
-				}
-
-				$cellClass[] = "weekday-$wd";
-
-				$dayHtml = "";
-				$hasFirstDays = false;
-
-				foreach ($calDayPosts as $e) {
-					$m = Meeting::fromPost($e);
-
-					$link = $m->permalink();
-
-					$notFirstDay = $m->startDt < $d;
-
-					$attr = "";
-					$status = $m->status();
-
-					if ($status === Meeting::STATUS_CANCELLED) {
-						// Translators: %s is the singular name of the of a Meeting, such as "Event".
-						$title = wp_sprintf(__("%s is cancelled.", "TouchPoint-WP"), TouchPointWP::instance()->settings->mc_name_singular);
-						$attr = "title=\"$title\"";
-					}
-
-					$classes = "event ";
-					$classes .= $status . " ";
-					$classes .= $m->tense();
-					if ($m->isFeatured() && !$notFirstDay) {
-						$classes .= " feat";
-					}
-					if ($notFirstDay) {
-						$classes .= " notFirstDay";
-						$dayHtml .= "<a href=\"$link\" class=\"$classes\" $attr><span class=\"title\">$e->post_title</span></a>";
-					} else {
-						$hasFirstDays = true;
-						$this->eventCount += $adder;
-						$ts = $m->startTimeString();
-						if ($ts) {
-							$ts = "<span class=\"time\">$ts</span> ";
-						} else {
-							$ts = "";
-						}
-						$dayHtml .= "<a href=\"$link\" class=\"$classes\" $attr>$ts<span class=\"title\">$e->post_title</span></a>";
-					}
-				}
-
-				if (!$hasFirstDays) {
-					$cellClass[] = "noFirstDays";
-				}
-
-				$cellClass = implode(" ", $cellClass);
-
-				// Print the cell
-				$r .= "<div class=\"$cellClass\">";
-				$r .= "<h3 class=\"calDayHead\">$fullDay</h3>";
-				$r .= "<span class=\"calDayNum\">$day</span>";
-
-				$r .= $dayHtml;
-
-				$r .= "</div>";
-
-			} catch (Exception $e) {
-				$r .= "<!-- An Exception occurred: {$e->getMessage()} -->";
+			$cellClass = ["calDay"];
+			if ($isMonthBefore) {
+				$cellClass[] = "before";
+				$adder = 0;
+			} elseif ($isMonthAfter) {
+				$cellClass[] = "after";
+				$adder = 0;
+			} else {
+				$adder = 1;
 			}
+
+			$dayEvents = [];
+			foreach ($monthEvents as $m) {
+				if ($m->startDt > $d2359) {
+					break;
+				}
+				if ($m->startDt < $d2359 && ($m->endDt ?? $m->startDt) >= $d) {
+					$dayEvents[] = $m;
+				}
+			}
+
+			if (count($dayEvents) === 0) {
+				$cellClass[] = "empty";
+			}
+
+			if ($d < Utilities::dateTimeTodayAtMidnight()) {
+				$cellClass[] = "past";
+			}
+
+			$cellClass[] = "weekday-$wd";
+
+			$dayHtml = "";
+			$hasFirstDays = false;
+
+			foreach ($dayEvents as $k => $m) {
+				$link = $m->permalink();
+				$notFirstDay = $m->startDt < $d;
+
+				$attr = "";
+				$status = $m->status();
+
+				if ($status === Meeting::STATUS_CANCELLED) {
+					// Translators: %s is the singular name of the of a Meeting, such as "Event".
+					$title = wp_sprintf(__("%s is cancelled.", "TouchPoint-WP"), TouchPointWP::instance()->settings->mc_name_singular);
+					$attr = "title=\"$title\"";
+				}
+
+				$e = $m->getPost();
+
+				$classes = "event ";
+				$classes .= $status . " ";
+				$classes .= $m->tense();
+				if ($m->isFeatured() && !$notFirstDay) {
+					$classes .= " feat";
+				}
+				if ($notFirstDay) {
+					$classes .= " notFirstDay";
+					$dayHtml .= "<a href=\"$link\" class=\"$classes\" $attr><span class=\"title\">$e->post_title</span></a>";
+				} else {
+					$hasFirstDays = true;
+					$this->eventCount += $adder;
+					$ts = $m->startTimeString();
+					if ($ts) {
+						$ts = "<span class=\"time\">$ts</span> ";
+					} else {
+						$ts = "";
+					}
+					$dayHtml .= "<a href=\"$link\" class=\"$classes\" $attr>$ts<span class=\"title\">$e->post_title</span></a>";
+				}
+			}
+
+			if (!$hasFirstDays) {
+				$cellClass[] = "noFirstDays";
+			}
+
+			$cellClass = implode(" ", $cellClass);
+
+			// Print the cell
+			$r .= "<div class=\"$cellClass\">";
+			$r .= "<h3 class=\"calDayHead\">$fullDay</h3>";
+			$r .= "<span class=\"calDayNum\">$day</span>";
+
+			$r .= $dayHtml;
+
+			$r .= "</div>";
 
 			// Increment days
 			$mo1 = $d->format('n');
 			$d->add($aDay);
+			$d2359->add($aDay);
 			$mo2 = $d->format('n');
 
 			if ($mo1 !== $mo2) {
@@ -278,19 +312,20 @@ class CalendarGrid {
 	/**
 	 * Adjust a WP_Query object to filter only to events that overlap with the given day.
 	 *
-	 * @param WP_Query          $q  The original query object.
-	 * @param DateTimeInterface $d  The day to filter down to.  Only events on this day will be included.
-	 * @param DateTimeZone      $tz The timezone to use.
+	 * @param WP_Query          $q   The original query object.
+	 * @param DateTimeInterface $d1  The first day of the range.
+	 * @param DateTimeInterface $d2  The last day of the range.
+	 * @param DateTimeZone      $tz  The timezone to use.
 	 *
 	 * @return WP_Query
 	 * @throws Exception
 	 */
-	private static function adjustQueryForDay(WP_Query $q, DateTimeInterface $d, DateTimeZone $tz): WP_Query
+	private static function adjustQueryForRange(WP_Query $q, DateTimeInterface $d1, DateTimeInterface $d2, DateTimeZone $tz): WP_Query
 	{
 		$q = clone $q;
 
-		$dStart = new DateTime($d->format('Y-m-d 00:00:00'), $tz);
-		$dEnd   = new DateTime($d->format('Y-m-d 23:59:59'), $tz);
+		$dStart = new DateTime($d1->format('Y-m-d 00:00:00'), $tz);
+		$dEnd   = new DateTime($d2->format('Y-m-d 23:59:59'), $tz);
 
 		$existingMq = $q->get('meta_query');
 
@@ -342,6 +377,9 @@ class CalendarGrid {
 		$q->set('meta_key', Meeting::MEETING_START_META_KEY);
 		$q->set('orderby', 'meta_value');
 		$q->set('order', 'ASC');
+
+		$q->set('posts_per_page', 100000);
+		$q->set('posts_per_archive_page', 100000);
 
 		$q->set('post_type', Involvement_PostTypeSettings::getPostTypes());
 

@@ -22,6 +22,7 @@ if ( ! defined('ABSPATH')) {
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "api.php";
 	require_once "updatesViaCron.php";
+	require_once "storedAsPost.php";
 	require_once "Utilities/ImageConversions.php";
 	require_once "Utilities/Http.php";
 }
@@ -29,7 +30,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 /**
  * The Report class gets and processes a SQL or Python report from TouchPoint and presents it in the UX.
  */
-class Report implements api, module, JsonSerializable, updatesViaCron
+class Report implements api, module, JsonSerializable, updatesViaCron, storedAsPost
 {
 	public const SHORTCODE_REPORT = TouchPointWP::SHORTCODE_PREFIX . "Report";
 	public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "report";
