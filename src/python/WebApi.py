@@ -357,7 +357,7 @@ if "Invs" in Data.a:
         cteSchedule AS
         (SELECT cto.OrganizationId, 
             (
-            SELECT FORMAT(os.NextMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as nextStartDt,
+            SELECT DISTINCT FORMAT(os.NextMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as nextStartDt,
                 FORMAT(DATEADD(minute, os.DurationMins, os.NextMeetingDate), 'yyyy-MM-ddTHH:mm:ss') as nextEndDt
             FROM dbo.OrgSchedule os WITH(NOLOCK)
                 INNER JOIN cteTargetOrgs o
