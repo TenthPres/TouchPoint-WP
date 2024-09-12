@@ -1097,12 +1097,17 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$now = Utilities::dateTimeNow();
 
 			// filter meetings to only those not past
-			$originalMeetingCount = count($this->meetings());
-			$meetings = array_filter($this->meetings(), fn($m) => $m->mtgEndDt > $now);
-			if (count($meetings) === 0) {
-				$meetings = $this->meetings();
+			$meetings = $this->meetings();
+			$meetings = array_filter($meetings, fn($m) => $m->status == 1);
+			$uncancelledMeetings = $meetings; // includes historical
+//			$originalMeetingCount = count($meetings);
+			$meetings = array_filter($meetings, fn($m) => $m->mtgEndDt > $now);
+			if (count($meetings) === 0) { // if no future, revert to historical.
+				$meetings = $uncancelledMeetings;
 			}
-			$andOthers = (count($meetings) !== $originalMeetingCount);
+//			$andOthers = (count($meetings) !== $originalMeetingCount);  This, when fed to the ->toListString methods
+//			below can be used to add "and others" to the list of dates/times to indicate that there are historical
+//			meetings that are not being shown.  However, this currently seems more confusing than helpful.
 
 			foreach ($meetings as $m) {
 				$a = DateFormats::DurationToStringArray($m->mtgStartDt, $m->mtgEndDt, null, $m->mtgStartDt->isAllDay);
@@ -1128,10 +1133,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			}
 
 			if ($forceDateTime) {
-				$r['datetime'] = $dateTimeArr->toListString(2, $andOthers);
+				$r['datetime'] = $dateTimeArr->toListString(2);
 				$r['combined'] = $r['datetime'];
 			} else {
-				$dateStr = $dateArr->toListString(2, $andOthers);
+				$dateStr = $dateArr->toListString(2);
 
 				$r['date'] = $dateStr;
 				$r['time'] = $timeArr[0];
@@ -3337,7 +3342,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			if (self::postIsType($post)) {
 				$theDate = self::scheduleString(intval($post->{TouchPointWP::INVOLVEMENT_META_KEY})) ?? "";
 			} elseif (Meeting::postIsType($post)) {
-				$theDate = "tbd";
+				$theDate = Meeting::scheduleString(intval($post->{Meeting::MEETING_META_KEY})) ?? "";
 			}
 		}
 
