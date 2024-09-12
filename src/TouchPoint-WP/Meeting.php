@@ -417,14 +417,14 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 
 		if ($this->status() !== self::STATUS_CANCELLED) {
 			if (($this->endDt ?? $this->startDt) > Utilities::dateTimeNow()) {
-				$ret[] = $inv->getRegisterButton($btnClass, $absoluteLinks);
+				$ret['register'] = $inv->getRegisterButton($btnClass, $absoluteLinks);
 			}
 
 			if ($inv->getRegistrationType() === RegistrationType::RSVP) {
 				if ($absoluteLinks) {
-					$ret[] = $this->getRsvpLink($btnClass);
+					$ret['register'] = $this->getRsvpLink($btnClass);
 				} else {
-					$ret[] = $this->getRsvpButton($btnClass);
+					$ret['register'] = $this->getRsvpButton($btnClass);
 				}
 			}
 		}
@@ -434,7 +434,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 			// Translators: %s is the system name.  "TouchPoint" by default.
 			$title  = wp_sprintf(__("Meeting in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
 			$logo = TouchPointWP::TouchPointIcon();
-			$ret[]  = "<a href=\"$tpHost/Meeting/$this->mtgId\" title=\"$title\" class=\"tp-TouchPoint-logo $btnClass\">$logo</a>";
+			$ret['mtg_tp']  = "<a href=\"$tpHost/Meeting/$this->mtgId\" title=\"$title\" class=\"tp-TouchPoint-logo $btnClass\">$logo</a>";
 		}
 
 		/**

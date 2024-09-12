@@ -43,11 +43,16 @@ class StringableArray extends ArrayObject
 	 * Append to the start of the array.
 	 *
 	 * @param mixed $value
+	 * @param null  $key
 	 */
-	public function prepend($value): void
+	public function prepend(mixed $value, $key = null): void
 	{
 		$array = $this->getArrayCopy();
-		array_unshift($array, $value);
+		if (!is_null($key)) {
+			$array = array_merge([$key => $value], $array);
+		} else {
+			$array = array_merge([$value], $array);
+		}
 		$this->exchangeArray($array);
 	}
 

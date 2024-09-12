@@ -14,7 +14,7 @@ $mtg = Meeting::fromPost($post);
 
 $postTypeClass = get_post_type($post);
 $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
-$postItemClass = $params['itemclass'] ?? "mtg-list-item";
+$postItemClass = $params['itemclass'] ?? "inv-list-item";
 
 ?>
 

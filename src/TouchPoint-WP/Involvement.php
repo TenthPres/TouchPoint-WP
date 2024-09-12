@@ -3624,17 +3624,17 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		if (self::allowContact($this->invType) && $this->leaders()->count() > 0) {
 			$text  = __("Contact Leaders", 'TouchPoint-WP');
 			if (!$absoluteLinks) {
-				$ret[] = "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"contact\" $btnClass>$text</button> ";
+				$ret['contact_leader'] = "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"contact\" $btnClass>$text</button> ";
 				TouchPointWP::enqueueActionsStyle('inv-contact');
 			} else {
 				$iid = $this->invId;
-				$ret[] = "<a href=\"$baseLink#tp-contact-i$iid\"$btnClass>$text</a> ";
+				$ret['contact_leader'] = "<a href=\"$baseLink#tp-contact-i$iid\"$btnClass>$text</a> ";
 			}
 		}
 
 		// Register Button
 		if ($includeRegister === true) {
-			$ret[] = $this->getRegisterButton($classesOnly);
+			$ret['register'] = $this->getRegisterButton($classesOnly);
 		}
 
 		// Show on map button.  (Only works if map is called before this is.)
@@ -3642,9 +3642,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$text = __("Show on Map", 'TouchPoint-WP');
 			if ($ret->count() > 1) {
 				TouchPointWP::requireScript("fontAwesome");
-				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\" $btnClass><i class=\"fa-solid fa-location-pin\"></i></button>");
+				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\" $btnClass><i class=\"fa-solid fa-location-pin\"></i></button>", "map");
 			} else {
-				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>");
+				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>", "map");
 			}
 		}
 
@@ -3653,7 +3653,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			// Translators: %s is the system name.  "TouchPoint" by default.
 			$title  = wp_sprintf(__("Involvement in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
 			$logo = TouchPointWP::TouchPointIcon();
-			$ret[]  = "<a href=\"$tpHost/Org/$this->invId\" title=\"$title\" class=\"tp-TouchPoint-logo $classesOnly\">$logo</a>";
+			$ret['inv_tp']  = "<a href=\"$tpHost/Org/$this->invId\" title=\"$title\" class=\"tp-TouchPoint-logo $classesOnly\">$logo</a>";
 		}
 
 		/**
