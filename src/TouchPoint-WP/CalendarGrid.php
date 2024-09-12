@@ -164,7 +164,12 @@ class CalendarGrid {
 						$hasFirstDays = true;
 						$this->eventCount += $adder;
 						$ts = $m->startTimeString();
-						$dayHtml .= "<a href=\"$link\" class=\"$classes\" $attr><span class=\"time\">$ts</span> <span class=\"title\">$e->post_title</span></a>";
+						if ($ts) {
+							$ts = "<span class=\"time\">$ts</span> ";
+						} else {
+							$ts = "";
+						}
+						$dayHtml .= "<a href=\"$link\" class=\"$classes\" $attr>$ts<span class=\"title\">$e->post_title</span></a>";
 					}
 				}
 
