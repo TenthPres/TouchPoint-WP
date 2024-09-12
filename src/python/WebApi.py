@@ -333,7 +333,7 @@ if "Invs" in Data.a:
         (
             SELECT cto.OrganizationId,
                 (
-                    SELECT om.MeetingId as mtgId,
+                    SELECT DISTINCT om.MeetingId as mtgId,
                         FORMAT(om.MeetingDate, 'yyyy-MM-ddTHH:mm:ss') as mtgStartDt,
                         FORMAT(om.MeetingEnd, 'yyyy-MM-ddTHH:mm:ss') as mtgEndDt,
                         om.Location as location,

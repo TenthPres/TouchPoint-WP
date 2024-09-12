@@ -56,6 +56,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 	protected const SCHEDULE_STRING_CACHE_EXPIRATION = 3600 * 8; // 8 hours.  Automatically deleted during sync.
 	protected const SCHEDULE_STRING_CACHE_GROUP = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
+	protected const ENABLE_SCHEDULE_STRING_CACHE = true;
 
 	protected const MEETING_STRATEGY_NONE = 0;
 	protected const MEETING_STRATEGY_SINGLE = 1;
@@ -654,6 +655,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			if ($m === "") {
 				$m = [];
 			}
+
+			// Make sure items are unique.  #204
+			$m = array_unique($m, SORT_REGULAR);
+
 			$this->_meetings = $m;
 		}
 
@@ -719,7 +724,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		$cacheKey = $invId . "_" . get_locale() . "_v2";
 		$schStr = wp_cache_get($cacheKey, self::SCHEDULE_STRING_CACHE_GROUP);
-		if (!! $schStr) {
+		if (!! $schStr && self::ENABLE_SCHEDULE_STRING_CACHE) {
 			return $schStr;
 		}
 		if (! $inv) {
