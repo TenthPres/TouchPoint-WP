@@ -173,7 +173,7 @@ class CalendarGrid {
 			$dayHtml = "";
 			$hasFirstDays = false;
 
-			foreach ($dayEvents as $k => $m) {
+			foreach ($dayEvents as $m) {
 				$link = $m->permalink();
 				$notFirstDay = $m->startDt < $d;
 
@@ -239,7 +239,7 @@ class CalendarGrid {
 				}
 			} else {
 				if (!$isMonthAfter && $day > 27) {
-					$lastDayOfMonth = DateTimeImmutable::createFromMutable($d);
+					$lastDayOfMonth = $d;
 				}
 			}
 		} while (!$isMonthAfter || $d->format('w') !== '0');
@@ -253,7 +253,7 @@ class CalendarGrid {
 			$this->html = "<div class=\"calGrid noEvents\">$message</div>";
 		}
 
-		$this->next = $lastDayOfMonth->add($aDay);
+		$this->next = DateTimeImmutable::createFromMutable($lastDayOfMonth->add($aDay));
 		$this->prev = $firstDayOfMonth->sub($aDay);
 	}
 
@@ -284,13 +284,14 @@ class CalendarGrid {
 	/**
 	 * This method returns a navigation bar for the calendar grid with simply next/prev month links.
 	 *
-	 * @param bool $withMonthName
+	 * @param bool   $withMonthName
+	 * @param string $class
 	 *
 	 * @return string
 	 */
-	public function navBar(bool $withMonthName = false): string
+	public function navBar(bool $withMonthName = false, string $class=""): string
 	{
-		$r = "<div class=\"calGridNav\">";
+		$r = "<div class=\"calGridNav $class\">";
 		$r .= "<div class=\"prev\">";
 		$r .= $this->getPrevLink();
 		$r .= "</div>";

@@ -47,6 +47,9 @@ if (have_posts()) {
 
 	echo $grid->navBar(true);
     echo $grid;
+    if ($grid->eventCount > 0) {
+	    echo $grid->navBar(false, 'bottom');
+    }
 
     wp_reset_query();
     $taxQuery = [[]];

@@ -46,6 +46,10 @@ div.calGrid div.calDay.after {
     background: #0001;
 }
 
+div.calGridNav.bottom {
+    display: none;
+}
+
 @media screen and (max-width: 1000px) {
     div.calGrid {
         display: grid;
@@ -77,6 +81,10 @@ div.calGrid div.calDay.after {
 
     div.calGrid div.calDay > h3.calDayHead {
         display:block;
+    }
+
+    div.calGridNav.bottom {
+        display: flex;
     }
 }
 
