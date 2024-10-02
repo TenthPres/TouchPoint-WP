@@ -350,13 +350,17 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 				'name'        => '',
 				'interval'    => 24,
 				'p1'          => '',
-				'showupdated' => 'true'
+				'showupdated' => 'true',
+				'inline'      => 'false'
 			],
 			$params,
 			self::SHORTCODE_REPORT
 		);
 
 		$params['showupdated'] = (strtolower($params['showupdated']) === 'true' || $params['showupdated'] === 1);
+		$params['inline'] = (strtolower($params['inline']) === 'true' || $params['inline'] === 1);
+
+		$params['showupdated'] = $params['showupdated'] && !$params['inline'];
 
 		try {
 			$report = self::fromParams($params);
@@ -388,7 +392,11 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 
 		$permalink = esc_attr(get_post_permalink($report->getPost()));
 
-		$rc     = "<figure $idAttr class=\"$class\" data-tp-report=\"$permalink\">\n\t" . str_replace("\n", "\n\t", $rc);
+		$elt = $params['inline'] ? "span" : "figure";
+		$nt  = $params['inline'] ? "" : "\n\t";
+		$n   = $params['inline'] ? "" : "\n";
+
+		$rc = "<$elt $idAttr class=\"$class\" data-tp-report=\"$permalink\">$nt" . str_replace("\n", $nt, $rc);
 
 		// If desired, add a caption that indicates when the table was last updated.
 		if ($params['showupdated']) {
@@ -399,10 +407,10 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 				get_the_modified_time('', $report->getPost())
 			);
 
-			$rc .= "\n\t<figcaption class='tp-report-updated'>$updatedS</figcaption>";
+			$rc .= "$nt<figcaption class='tp-report-updated'>$updatedS</figcaption>";
 		}
 
-		$rc .= "\n</figure>";
+		$rc .= "$n</$elt>";
 
 		return $rc;
 	}
