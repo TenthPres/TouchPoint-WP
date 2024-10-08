@@ -72,7 +72,7 @@ class CalendarGrid {
 			$year  = intval($year);
 			if ($month < 1 || $month > 12 || $year < 2020 || $year > 2100) {
 				$d = new DateTime('now', $tz);
-				$d = new DateTime($d->format('Y-m-01'), $tz);
+				$d = new DateTime($d->format('Y-m-01 00:00:00'), $tz);
 			} else {
 				$d = new DateTime("$year-$month-01", $tz);
 			}
@@ -88,7 +88,11 @@ class CalendarGrid {
 
 		// Get the day of the week for the first day of the month (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
 		$offsetDays = intval($d->format('w')); // w: Numeric representation of the day of the week
-		$d->modify("-$offsetDays days");
+		try {
+			$d->modify("-$offsetDays days");
+		} catch (Exception) { // Exception is not feasible.
+		}
+		$d->setTimezone($tz);
 		$r = "";
 
 		// Extra days at the end of the month
@@ -227,8 +231,24 @@ class CalendarGrid {
 
 			// Increment days
 			$mo1 = $d->format('n');
+			$oldDd = $d->format('d');
 			$d->add($aDay);
-			$d2359->add($aDay);
+			$d->setTimezone($tz);
+
+			// handle fall DST transitions.
+			while ($d->format('d') == $oldDd) {
+				$d->add($aDay);
+				$d->setTimezone($tz);
+			}
+
+			try {
+				$d     = new DateTime($d->format('Y-m-d 00:00:00'), $tz);
+				$d2359 = new DateTime($d->format('Y-m-d 23:59:59'), $tz);
+			} catch (Exception) {
+				// unlikely to ever run, since the format is provided.
+				$d2359->add($aDay);
+				$d2359->setTimezone($tz);
+			}
 			$mo2 = $d->format('n');
 
 			if ($mo1 !== $mo2) {
@@ -253,8 +273,12 @@ class CalendarGrid {
 			$this->html = "<div class=\"calGrid noEvents\">$message</div>";
 		}
 
-		$this->next = DateTimeImmutable::createFromMutable($lastDayOfMonth->add($aDay));
-		$this->prev = $firstDayOfMonth->sub($aDay);
+		$this->next = DateTimeImmutable::createFromMutable($lastDayOfMonth->add($aDay)->setTimezone($tz));
+		try {
+			$this->prev = $firstDayOfMonth->sub($aDay)->setTimezone($tz);
+		} catch (Exception) {
+			$this->prev = null;
+		}
 	}
 
 	/**
