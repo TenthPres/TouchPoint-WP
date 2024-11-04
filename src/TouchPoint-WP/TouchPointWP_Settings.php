@@ -31,6 +31,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string       api_script_name    The name of the script loaded into TouchPoint for API Interfacing
  * @property-read string       google_maps_api_key Google Maps API Key for embedded maps
  * @property-read string       google_geo_api_key Google Maps API Key for geocoding
+ * @property-read string       ipapi_key          The API key for ipapi.co for geolocation.
  *
  * @property-read array        people_contact_keywords Keywords to use for the generic Contact person button.
  * @property-read string       people_ev_bio      Extra Value field that should be imported as a User bio.
@@ -420,6 +421,17 @@ class TouchPointWP_Settings
 					'label'       => __('Google Maps Geocoding API Key', 'TouchPoint-WP'),
 					'description' => __(
 						'Optional.  Allows for reverse geocoding of user locations.',
+						'TouchPoint-WP'
+					),
+					'type'        => 'text',
+					'default'     => '',
+					'placeholder' => '',
+				],
+				[
+					'id'          => 'ipapi_key',
+					'label'       => __('ipapi.co API Key', 'TouchPoint-WP'),
+					'description' => __(
+						'Optional. Allows for geolocation of user IP addresses.  This generally will work without a key, but may be rate limited.',
 						'TouchPoint-WP'
 					),
 					'type'        => 'text',
@@ -1586,6 +1598,11 @@ class TouchPointWP_Settings
 
 		// 0.0.90 - Remove an option that was only briefly used.
 		delete_option(TouchPointWP::SETTINGS_PREFIX . 'mc_cron_last_run');
+
+		// 0.0.94 - Cleanup old IP Geo data
+		$tableName = $wpdb->base_prefix . TouchPointWP::TABLE_IP_GEO;
+		$years = TouchPointWP::TTL_IP_GEO;
+		$wpdb->query("DELETE FROM $tableName WHERE `updatedDT` < NOW() - INTERVAL $years YEAR OR `data` LIKE 'Too many rapid requests.%';");
 
 		// Update version string
 		$this->set('version', TouchPointWP::VERSION);

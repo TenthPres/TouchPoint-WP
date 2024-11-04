@@ -2030,7 +2030,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$type  = $_GET['type'] ?? "";
 		$lat   = $_GET['lat'] ?? null;
 		$lng   = $_GET['lng'] ?? null;
-		$limit = $_GET['limit'] ?? null;
+		$limit = $_GET['limit'] ?? 10;
 
 		$settings = self::getSettingsForPostType($type);
 

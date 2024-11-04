@@ -5,6 +5,7 @@
 
 namespace tp\TouchPointWP;
 
+use JsonException;
 use stdClass;
 use tp\TouchPointWP\Utilities\Cleanup;
 use tp\TouchPointWP\Utilities\Http;
@@ -33,7 +34,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.93";
+	public const VERSION = "0.0.94";
 
 	/**
 	 * The Token
@@ -83,6 +84,8 @@ class TouchPointWP
 	 * Typical amount of time in hours for metadata to last (e.g. genders and resCodes).
 	 */
 	public const CACHE_TTL = 8;
+
+	public const TTL_IP_GEO = 5;  // years
 
 	/**
 	 * Caching
@@ -1169,9 +1172,28 @@ class TouchPointWP
 			return false;
 		}
 
-		$return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/"); // Exceptions thrown here.
+		$ipapi_key = $this->settings->ipapi_key;
+		if ($ipapi_key !== "") {
+			$ipapi_key = [
+				'key' => $ipapi_key
+			];
+		} else {
+			$ipapi_key = [];
+		}
+
+		$return = self::instance()->extGet("https://ipapi.co/" . $ip . "/json/", $ipapi_key); // Exceptions thrown here.
 
 		$return = $return['body'];
+
+		if (str_contains($return, 'Too many rapid requests')) {
+			throw new TouchPointWP_Exception("IP Geolocation Error: Too many requests", 178001);
+		}
+
+		try {
+			json_decode($return, flags: JSON_THROW_ON_ERROR);
+		} catch (JsonException) {
+			throw new TouchPointWP_Exception("IP Geolocation Error: Invalid JSON", 178001);
+		}
 
 		if (property_exists($return, 'error')) {
 			throw new TouchPointWP_Exception("IP Geolocation Error: " . $return->error . " " . $return->reason ?? "", 178001);
