@@ -256,9 +256,6 @@ class CalendarGrid {
 					$isMonthBefore = false;
 				} else {
 					$isMonthAfter = true;
-				}
-			} else {
-				if (!$isMonthAfter && $day > 27) {
 					$lastDayOfMonth = $d;
 				}
 			}
@@ -273,7 +270,7 @@ class CalendarGrid {
 			$this->html = "<div class=\"calGrid noEvents\">$message</div>";
 		}
 
-		$this->next = DateTimeImmutable::createFromMutable($lastDayOfMonth->add($aDay)->setTimezone($tz));
+		$this->next = DateTimeImmutable::createFromMutable($lastDayOfMonth);
 		try {
 			$this->prev = $firstDayOfMonth->sub($aDay)->setTimezone($tz);
 		} catch (Exception) {
