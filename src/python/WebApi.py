@@ -231,10 +231,10 @@ if "Invs" in Data.a:
             GROUP BY m.OrganizationId, o2.OrganizationId, o3.OrganizationId, o3.ParentOrgId
         ),
         -- merge all meeting orgs into one list
-        cteMeetingL as 
+        cteMeetingL as
         (
         SELECT org1 oid, 0 as isParent FROM cteMeetingsQ
-        UNION 
+        UNION
         SELECT org2 oid, 1 as isParent FROM cteMeetingsQ
         UNION
         SELECT org3 oid, 1 as isParent FROM cteMeetingsQ
@@ -281,10 +281,10 @@ if "Invs" in Data.a:
                         WHERE do.OrgId = o.OrganizationId
                         AND do.DivId IN ({0})
                     )
-                    AND o.organizationStatusId = 30 
+                    AND o.organizationStatusId = 30
                 )
-            OR ( o.ShowInSites = {2} 
-                AND ml.oid IS NOT NULL -- means it has meetings, or it has children that have meetings. 
+            OR ( o.ShowInSites = {2}
+                AND ml.oid IS NOT NULL -- means it has meetings, or it has children that have meetings.
                 AND o.OrganizationId NOT IN (
                         SELECT DISTINCT do.OrgId
                         FROM dbo.DivOrg do
@@ -318,7 +318,7 @@ if "Invs" in Data.a:
         (SELECT OrganizationId, STRING_AGG(ag, ',') WITHIN GROUP (ORDER BY ag ASC)  AS PeopleAge
         FROM (
         SELECT omi.OrganizationId, 
-                (IIF(pi.Age > 69, '70+', CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's')) as ag 
+                (IIF(pi.Age > 69, '70+', CONVERT(VARCHAR(2), (FLOOR(pi.Age / 10.0) * 10), 70) + 's')) as ag
             FROM cteOrganizationMembers omi
                 INNER JOIN dbo.People pi WITH(NOLOCK)
                 ON omi.PeopleId = pi.PeopleId
@@ -349,13 +349,13 @@ if "Invs" in Data.a:
                     WHERE om.OrganizationId = cto.OrganizationId AND
                         om.MeetingDate > DATEADD(DAY, {3}, GETDATE()) AND
                         om.MeetingDate < DATEADD(DAY, {4}, GETDATE())
-                    FOR JSON PATH, INCLUDE_NULL_VALUES 
+                    FOR JSON PATH, INCLUDE_NULL_VALUES
                 ) as OrgMeetings
             FROM cteTargetOrgs cto
         ),
         -- pull aggregate schedules for all target organizations
         cteSchedule AS
-        (SELECT cto.OrganizationId, 
+        (SELECT cto.OrganizationId,
             (
             SELECT DISTINCT FORMAT(os.NextMeetingDate, 'yyyy-MM-ddTHH:mm:ss') as nextStartDt,
                 FORMAT(DATEADD(minute, os.DurationMins, os.NextMeetingDate), 'yyyy-MM-ddTHH:mm:ss') as nextEndDt
@@ -363,7 +363,7 @@ if "Invs" in Data.a:
                 INNER JOIN cteTargetOrgs o
                     ON os.OrganizationId = o.OrganizationId
             WHERE cto.OrganizationId = os.OrganizationId
-            FOR JSON PATH, INCLUDE_NULL_VALUES 
+            FOR JSON PATH, INCLUDE_NULL_VALUES
             ) as OrgSchedule
             FROM cteTargetOrgs cto),
         -- pull aggregate divisions for all target organizations
@@ -504,7 +504,7 @@ if "MemTypes" in Data.a:
     divs = regex.sub('', divs)
 
     # noinspection SqlResolve
-    memTypeSql = '''SELECT DISTINCT om.[MemberTypeId] as id, mt.[Code] as code, mt.[Description] as description 
+    memTypeSql = '''SELECT DISTINCT om.[MemberTypeId] as id, mt.[Code] as code, mt.[Description] as description
                     FROM OrganizationMembers om
                     JOIN DivOrg do ON om.OrganizationId = do.OrgId
                     JOIN lookup.MemberType mt ON om.[MemberTypeId] = mt.[Id]'''
@@ -614,7 +614,7 @@ if "src" in Data.a and Data.q is not None:
                  SELECT p.*, 6 as score FROM People p  -- Businesses/Orgs
                     WHERE p.LastName LIKE '{0}%{1}%'
                  UNION
-                 SELECT p.*, 5 as score FROM People p 
+                 SELECT p.*, 5 as score FROM People p
                     WHERE (p.FirstName LIKE '{0}%' OR p.NickName LIKE '{0}%') OR p.LastName LIKE '{1}%'
                  UNION
                  SELECT p.*, 4 as score FROM People p 
@@ -1030,22 +1030,22 @@ if "people_get" in Data.a and model.HttpMethod == "post":
             fevSql = ''
 
     # noinspection SqlResolve,Annotator
-    invSql = """SELECT om.OrganizationId iid, 
-                    CONCAT('mt', mt.Id) memType, 
-                    CONCAT('at', at.Id) attType, 
-                    om.UserData descr 
-                FROM OrganizationMembers om 
-                LEFT JOIN lookup.MemberType mt 
-                    ON om.MemberTypeId = mt.Id 
-                LEFT JOIN lookup.AttendType at 
-                    ON mt.AttendanceTypeId = at.Id 
-                WHERE om.Pending = 0 
-                    AND mt.Inactive = 0 
-                    AND at.Guest = 0 
+    invSql = """SELECT om.OrganizationId iid,
+                    CONCAT('mt', mt.Id) memType,
+                    CONCAT('at', at.Id) attType,
+                    om.UserData descr
+                FROM OrganizationMembers om
+                LEFT JOIN lookup.MemberType mt
+                    ON om.MemberTypeId = mt.Id
+                LEFT JOIN lookup.AttendType at
+                    ON mt.AttendanceTypeId = at.Id
+                WHERE om.Pending = 0
+                    AND mt.Inactive = 0
+                    AND at.Guest = 0
                     AND om.PeopleId = {0} AND om.OrganizationId IN ({1})"""
 
     # noinspection SqlResolve,Annotator
-    famGeoSql = """SELECT geo.Longitude, geo.Latitude 
+    famGeoSql = """SELECT geo.Longitude, geo.Latitude
     FROM AddressInfo ai LEFT JOIN Geocodes geo ON ai.FullAddress = geo.Address WHERE ai.FamilyId = {}"""
 
     Data.Context = inData['context']

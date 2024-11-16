@@ -8,6 +8,8 @@ help you with this.
 [See the Wiki for Installation instructions and other documentation.](https://github.com/TenthPres/TouchPoint-WP/wiki)
 [Sign up here for occasional, non-annoying email updates.](https://my.tenth.org/OnePageReg/396)
 
+If you're a developer looking to leverage this for a church, you're welcome to browse the source code, [but we also have API docs here](https://tenthpres.github.io/TouchPoint-WP/). 
+
 ## Features
 ### Involvement Lists & Small Group Finder
 - Publish a list and map of involvements, with dynamic filtering based on actual data, such as demographics and location.

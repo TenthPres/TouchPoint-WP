@@ -434,8 +434,8 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 				}
 			}
 
-			// Title & Slug
-			if ($post->post_title != $title) { // only update if there's a change.  Otherwise, urls increment.
+			// Title & Slug -- slugs should only be updated if there's a reason, like a title change.  Otherwise, they increment.
+			if ($post->post_title != $title || str_contains($post->post_name, "__trashed")) {
 				$post->post_title = $title;
 				$post->post_name  = ''; // Slug will regenerate;
 			}
