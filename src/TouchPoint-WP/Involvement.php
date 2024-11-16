@@ -3688,13 +3688,14 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Get the HTML for the register button.  Labels depend on several settings within TouchPoint.
 	 *
-	 * @param string $btnClass  Class names
-	 * @param bool   $absoluteLinks  Whether only absolute links should be provided that can be used in emails, apps,
+	 * @param string   $btnClass  Class names
+	 * @param bool     $absoluteLinks  Whether only absolute links should be provided that can be used in emails, apps,
 	 *     etc.
+	 * @param ?Meeting $forMeeting  If these buttons are for a meeting, pass the meeting
 	 *
 	 * @return ?string HTML for the registration button, whatever that should be. Null if nothing to return.
 	 */
-	public function getRegisterButton(string $btnClass, bool $absoluteLinks = false): ?string
+	public function getRegisterButton(string $btnClass, bool $absoluteLinks = false, ?Meeting $forMeeting = null): ?string
 	{
 		if ($btnClass !== "") {
 			$btnClass = " class=\"$btnClass\"";
@@ -3703,7 +3704,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		switch ($this->getRegistrationType()) {
 			case RegistrationType::FORM:
 				$text = __('Register', 'TouchPoint-WP');
-				switch (get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true)) {
+				$regTypeId = get_post_meta($this->post_id, TouchPointWP::SETTINGS_PREFIX . "regTypeId", true);
+				switch ($regTypeId) {
 					case 1:  // Join Involvement (skip other options because this option is common)
 						break;
 					case 5:  // Create Account
@@ -3728,6 +3730,22 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 						$text = __('Get Tickets', 'TouchPoint-WP');
 						break;
 				}
+
+				// If this is a meeting with record attendance type, don't show unless the meeting is within an hour.
+				if ($forMeeting !== null && $regTypeId == 18) {
+					if ($forMeeting->startDt > Utilities::dateTimeNow()->modify('+1 hour') ||
+					    ($forMeeting->endDt ?? $forMeeting->startDt) < Utilities::dateTimeNow()->modify('-1 hour')) {
+						return null;
+					}
+				}
+
+				// If this is a meeting with tickets, don't show unless the meeting is in the present or future.
+				if ($forMeeting !== null && $regTypeId == 21) {
+					if (($forMeeting->endDt ?? $forMeeting->startDt->modify('+1 hour')) < Utilities::dateTimeNow()) {
+						return null;
+					}
+				}
+
 				$link  = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
 				if (!$absoluteLinks) {
 					TouchPointWP::enqueueActionsStyle('inv-register');

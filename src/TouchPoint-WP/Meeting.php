@@ -476,7 +476,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 
 		if ($this->status() !== self::STATUS_CANCELLED) {
 			if (($this->endDt ?? $this->startDt) > Utilities::dateTimeNow()) {
-				$ret['register'] = $inv->getRegisterButton($btnClass, $absoluteLinks);
+				$ret['register'] = $inv->getRegisterButton($btnClass, $absoluteLinks, $this);
 			}
 
 			if ($inv->getRegistrationType() === RegistrationType::RSVP) {
