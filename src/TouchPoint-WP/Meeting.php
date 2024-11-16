@@ -748,7 +748,8 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	}
 
 	/**
-	 * Get a link to RSVP for the meeting that can be used in emails, apps, or other contexts.
+	 * Get a link to RSVP for the meeting that can be used in emails, apps, or other contexts.  This is a link to the
+	 * RSVP function in WordPress, not an RSVP magic link used in TouchPoint emails.
 	 *
 	 * @param string $btnClass
 	 *
