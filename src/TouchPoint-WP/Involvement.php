@@ -3869,6 +3869,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			exit;
 		}
 
+		try {
+			$stats = Stats::instance();
+			$stats->involvementJoins += count($data->success);
+		} catch (Exception) {}
+
 		echo json_encode(['success' => $data->success]);
 		exit;
 	}
@@ -3966,6 +3971,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			echo json_encode(['error' => $ex->getMessage()]);
 			exit;
 		}
+
+		try {
+			$stats = Stats::instance();
+			$stats->involvementContacts += count($data->success);
+		} catch (Exception) {}
 
 		echo json_encode(['success' => $data->success]);
 		exit;

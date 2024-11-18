@@ -5,6 +5,7 @@
 
 namespace tp\TouchPointWP;
 
+use Exception;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\Session;
@@ -441,6 +442,11 @@ abstract class Auth implements api, module
 			$s->auth_sessionToken = null;
 
 			$user = $p->toNewWpUser();
+
+			try {
+				$stats = Stats::instance();
+				$stats->userAuths += 1;
+			} catch (Exception) {}
 
 			// Preload Ident people for potential use with InformalAuth.  Skip if family is already loaded.
 			if ( ! in_array($p->familyId, $s->primaryFam ?? [])) {

@@ -1632,6 +1632,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		$s = Session::instance();
 
+		try {
+			$stats = Stats::instance();
+			$stats->softAuths += count($people);
+		} catch (Exception) {}
+
 		$ret          = [];
 		$primaryFam   = $s->primaryFam ?? [];
 		$secondaryFam = $s->secondaryFam ?? [];

@@ -23,6 +23,7 @@ if ( ! defined('ABSPATH')) {
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Utilities.php";
+	require_once "Stats.php";
 }
 
 
@@ -51,6 +52,7 @@ class TouchPointWP
 	public const API_ENDPOINT_PERSON = "person";
 	public const API_ENDPOINT_MEETING = "mtg";
 	public const API_ENDPOINT_ADMIN = "admin";
+	public const API_ENDPOINT_STATS = "stats";
 	public const API_ENDPOINT_AUTH = "auth";
 	public const API_ENDPOINT_REPORT = "report";
 	public const API_ENDPOINT_ADMIN_SCRIPTZIP = "admin/scriptzip";
@@ -79,6 +81,7 @@ class TouchPointWP
 	 */
 	public const TABLE_PREFIX = "tp_";
 	public const TABLE_IP_GEO = self::TABLE_PREFIX . "ipGeo";
+	public const TABLE_STATS = self::TABLE_PREFIX . "stats";
 
 	/**
 	 * Typical amount of time in hours for metadata to last (e.g. genders and resCodes).
@@ -493,6 +496,13 @@ class TouchPointWP
 				}
 			}
 
+			// Stats endpoints
+			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_STATS) {
+				if ( ! Stats::api($reqUri)) {
+					return $continue;
+				}
+			}
+
 			// Cleanup endpoints
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_CLEANUP) {
 				if ( ! Cleanup::api($reqUri)) {
@@ -638,6 +648,43 @@ class TouchPointWP
 			PRIMARY KEY  (id)
 		)";
 		dbDelta($sql);
+
+		// Table for receiving info from other sites that use this plugin
+		if (site_url() === "https://www.tenth.org") {
+			$tableName = $wpdb->base_prefix . TouchPointWP::TABLE_STATS;
+			$sql = "CREATE TABLE $tableName (
+				intallId varchar(36) NOT NULL,
+				privateKey varchar(36) NOT NULL,
+				siteId varchar(36) NOT NULL,
+				site varchar(255) NOT NULL,
+				plugin varchar(255) NOT NULL,
+				version varchar(10) NOT NULL,
+				php varchar(10) NOT NULL,
+				wp varchar(10) NOT NULL,
+				wpLocale varchar(10) NOT NULL,
+				wpTimezone varchar(50) NOT NULL,
+				adminEmail varchar(255) NOT NULL,
+				siteName varchar(255) NOT NULL,
+				createdDT datetime DEFAULT NOW(),
+				updatedDT datetime DEFAULT NOW() ON UPDATE NOW(),
+				
+				lastQueryDt datetime DEFAULT NULL,
+				lastQueryStatus int(3) DEFAULT NULL,
+				
+				involvementJoins int(10) DEFAULT 0,
+				involvementContacts int(10) DEFAULT 0,
+				involvementPosts int(10) DEFAULT 0,
+				meetings int(10) DEFAULT 0,
+				rsvps int(10) DEFAULT 0,
+				people int(10) DEFAULT 0,
+				partnerPosts int(10) DEFAULT 0,
+				userAuths int(10) DEFAULT 0,
+				softAuths int(10) DEFAULT 0,
+				
+				PRIMARY KEY  (installId)
+			)";
+			dbDelta($sql);
+		}
 	}
 
 	/**

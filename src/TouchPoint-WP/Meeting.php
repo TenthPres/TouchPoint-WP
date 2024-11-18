@@ -720,6 +720,11 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 			exit;
 		}
 
+		try {
+			$stats = Stats::instance();
+			$stats->rsvps += count($data->success);
+		} catch (Exception) {}
+
 		echo json_encode(['success' => $data->success]);
 		exit;
 	}
