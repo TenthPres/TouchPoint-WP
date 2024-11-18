@@ -24,7 +24,6 @@ use DateInterval;
 use DateTimeImmutable;
 use DateTimeZone;
 use Exception;
-use JetBrains\PhpStorm\NoReturn;
 use JsonSerializable;
 use stdClass;
 use tp\TouchPointWP\Utilities\DateFormats;
@@ -2022,7 +2021,6 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Handles the API call to get nearby involvements (probably small groups)
 	 */
-	#[NoReturn]
 	public static function ajaxNearby(): void
 	{
 		header('Content-Type: application/json');
