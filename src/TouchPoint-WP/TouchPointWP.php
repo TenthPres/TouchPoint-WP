@@ -673,6 +673,7 @@ class TouchPointWP
 				createdDT datetime DEFAULT NOW(),
 				updatedDT datetime DEFAULT NOW() ON UPDATE NOW(),
 				
+				listPublicly tinyint(1) DEFAULT 1,
 				lastQueryDT datetime DEFAULT NULL,
 				lastQueryStatus int(3) DEFAULT NULL,
 				

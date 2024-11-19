@@ -33,6 +33,8 @@ if ( ! defined('ABSPATH')) {
  * @property-read string       google_geo_api_key Google Maps API Key for geocoding
  * @property-read string       ipapi_key          The API key for ipapi.co for geolocation.
  *
+ * @property-read string 	   enable_public_listing Whether to allow the site to be listed as using TouchPoint-WP
+ *
  * @property-read array        people_contact_keywords Keywords to use for the generic Contact person button.
  * @property-read string       people_ev_bio      Extra Value field that should be imported as a User bio.
  * @property-read string       people_ev_wpId     The name of the extra value field where the WordPress User ID will be stored.
@@ -437,6 +439,17 @@ class TouchPointWP_Settings
 					'type'        => 'text',
 					'default'     => '',
 					'placeholder' => '',
+				],
+				[
+					'id'          => 'enable_public_listing',
+					'label'       => __('Allow the TouchPoint-WP developers to publicly list your site/church as using TouchPoint-WP', 'TouchPoint-WP'),
+					'description' => __(
+						"Helps other prospective churches see what can be done by combining WordPress with the best ChMS on the planet.  Only applies if this site is accessible on the public internet.",
+						'TouchPoint-WP'
+					),
+					'type'        => 'checkbox',
+					'default'     => 'on',
+					'autoload'    => false,
 				],
 			],
 		];
