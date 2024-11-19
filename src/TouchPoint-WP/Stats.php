@@ -188,7 +188,7 @@ class Stats implements api, \JsonSerializable
 		$data['wpTimezone'] = get_option('timezone_string');
 		$data['adminEmail'] = get_option('admin_email');
 		$data['siteName'] = get_bloginfo('name');
-		$data['listPublicly'] = $sets->enable_public_listing === 'on';
+		$data['listPublicly'] = 1 * ($sets->enable_public_listing === 'on');
 		$data['installId'] = $this->installId;
 		$data['privateKey'] = $this->privateKey;
 
