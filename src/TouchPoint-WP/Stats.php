@@ -342,7 +342,6 @@ class Stats implements api, \JsonSerializable
 		if ($r === false) {
 			http_response_code(Http::SERVER_ERROR);
 			echo "Server error.";
-			echo $wpdb->last_error;
 			return false;
 		}
 
