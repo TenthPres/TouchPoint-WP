@@ -187,7 +187,6 @@ class Stats implements api, \JsonSerializable
 		$data['siteName'] = get_bloginfo('name');
 		$data['installId'] = $this->installId;
 		$data['privateKey'] = $this->privateKey;
-		$data['updatedDT'] = date('Y-m-d H:i:s'); // needs to be forced or update may not happen, which would make insert fail.
 
 		return $data;
 	}
@@ -302,15 +301,15 @@ class Stats implements api, \JsonSerializable
 	/**
 	 * Handle submissions received to this site (presumably tenth.org) from other users of the plugin.
 	 *
-	 * @return void
+	 * @return bool True on success
 	 */
-	public static function handleSubmission(): void
+	public static function handleSubmission(): bool
 	{
 
 		if ($_SERVER['REQUEST_METHOD'] !== "POST") {
 			http_response_code(Http::METHOD_NOT_ALLOWED);
 			echo "Only POST requests are allowed.";
-			exit;
+			return false;
 		}
 
 		$data = $_POST['data'] ?? null;
@@ -318,19 +317,20 @@ class Stats implements api, \JsonSerializable
 		if (empty($data)) {
 			http_response_code(Http::BAD_REQUEST);
 			echo "No data was submitted.";
-			exit;
+			return false;
 		}
 
 		// validate that privateKey, installId, and siteId are all included.
 		if ( ! isset($data['privateKey']) || ! isset($data['installId']) || ! isset($data['siteId'])) {
 			http_response_code(Http::BAD_REQUEST);
 			echo "Keys not provided.";
-			exit;
+			return false;
 		}
 
 		// remove any fields that are not part of the stats object.
 		$s = self::instance();
 		$data = array_intersect_key($data, $s->getStatsForSubmission());
+		$data['updatedDT'] = date('Y-m-d H:i:s');
 
 		// upsert the data into the database into the stats table without destructive replace function
 		global $wpdb;
@@ -343,10 +343,10 @@ class Stats implements api, \JsonSerializable
 			http_response_code(Http::SERVER_ERROR);
 			echo "Server error.";
 			echo $wpdb->last_error;
-			exit;
+			return false;
 		}
 
-//        echo $r;
-		exit;
+        echo $r;
+		return true;
 	}
 }
