@@ -131,7 +131,7 @@ class Stats implements api, \JsonSerializable
 
 	/**
 	 * Setter.  Allows particular statistics to be set.
-	 * 
+	 *
 	 * @param $name
 	 * @param $value
 	 *
@@ -187,7 +187,7 @@ class Stats implements api, \JsonSerializable
 		$data['siteName'] = get_bloginfo('name');
 		$data['installId'] = $this->installId;
 		$data['privateKey'] = $this->privateKey;
-		$data['endpoint'] = TouchPointWP::API_ENDPOINT;
+		$data['updatedDT'] = date('Y-m-d H:i:s'); // needs to be forced or update may not happen, which would make insert fail.
 
 		return $data;
 	}
@@ -204,7 +204,7 @@ class Stats implements api, \JsonSerializable
 		$data = $this->getStatsForSubmission();
 
 		wp_remote_post(self::SUBMISSION_ENDPOINT, [
-			'body' => $data,
+			'body' => ['data' => $data],
 			'timeout' => 10,
 			'blocking' => false,
 		]);
@@ -214,7 +214,7 @@ class Stats implements api, \JsonSerializable
 	 * Assemble the object into a format that can be serialized to JSON.  Only includes
 	 * the parameters that are part of this class, not those that are loaded from the database separately,
 	 * such as version numbers.
-	 * 
+	 *
 	 * @inheritDoc
 	 */
 	public function jsonSerialize()
@@ -233,7 +233,7 @@ class Stats implements api, \JsonSerializable
 
 	/**
 	 * Update the stats that are determined from queries.
-	 * 
+	 *
 	 * @return void
 	 */
 	protected function updateQueriedStats(): void
@@ -274,11 +274,12 @@ class Stats implements api, \JsonSerializable
 			return false;
 		}
 
+		$s = self::instance();
+
 		switch (strtolower($uri['path'][2])) {
 			case "get":
-				$s = self::instance();
 				if (strtolower($_GET['key']) == strtolower($s->privateKey) ||
-				current_user_can('manage_options')) {
+				    current_user_can('manage_options')) {
 					header('Content-Type: application/json');
 					$s->updateQueriedStats();
 					echo json_encode($s->getStatsForSubmission());
@@ -286,42 +287,66 @@ class Stats implements api, \JsonSerializable
 				}
 
 			case "submit":
-				return self::handleSubmission();
+				if ($_SERVER['REQUEST_METHOD'] === "POST") {
+					self::handleSubmission();
+				} else {
+					$s->submitStats();
+				}
+				exit;
 
 		}
 
 		return false;
 	}
-	
-	public static function handleSubmission() {
+
+	/**
+	 * Handle submissions received to this site (presumably tenth.org) from other users of the plugin.
+	 *
+	 * @return void
+	 */
+	public static function handleSubmission(): void
+	{
+
 		if ($_SERVER['REQUEST_METHOD'] !== "POST") {
 			http_response_code(Http::METHOD_NOT_ALLOWED);
-			return false;
+			echo "Only POST requests are allowed.";
+			exit;
 		}
 
-		$data = json_decode(file_get_contents('php://input'), true);
+		$data = $_POST['data'] ?? null;
 
-		if ($data === null) {
+		if (empty($data)) {
 			http_response_code(Http::BAD_REQUEST);
-			return false;
+			echo "No data was submitted.";
+			exit;
 		}
 
 		// validate that privateKey, installId, and siteId are all included.
 		if ( ! isset($data['privateKey']) || ! isset($data['installId']) || ! isset($data['siteId'])) {
 			http_response_code(Http::BAD_REQUEST);
-			return false;
+			echo "Keys not provided.";
+			exit;
 		}
 
-		// upsert the data into the database into the stats table.
+		// remove any fields that are not part of the stats object.
+		$s = self::instance();
+		$data = array_intersect_key($data, $s->getStatsForSubmission());
+
+		// upsert the data into the database into the stats table without destructive replace function
 		global $wpdb;
-		$r = $wpdb->replace($wpdb->prefix . TouchPointWP::TABLE_STATS, $data);
+		$r = $wpdb->update($wpdb->prefix . TouchPointWP::TABLE_STATS, $data, ['installId' => $data['installId']]);
+		if ($r < 1) {
+			$r = $wpdb->insert($wpdb->prefix . TouchPointWP::TABLE_STATS, $data);
+		}
 
 		if ($r === false) {
 			http_response_code(Http::SERVER_ERROR);
-			return false;
+			echo "Server error.";
+			echo $wpdb->last_error;
+			exit;
 		}
 
-		echo $r;
+//        echo $r;
 		exit;
 	}
 }

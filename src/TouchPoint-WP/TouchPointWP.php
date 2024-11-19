@@ -409,7 +409,7 @@ class TouchPointWP
 			if (str_ends_with($reqUri['path'], '/')) {
 				$reqUri['path'] = substr($reqUri['path'], 0, -1);
 			}
-			
+
 			if (isset($_GET['locale']) && strlen($_GET['locale']) > 1) {
 				$l = $_GET['locale'];
 				add_filter('locale', fn() => $l, 1);
@@ -630,6 +630,11 @@ class TouchPointWP
 		load_plugin_textdomain('TouchPoint-WP', false, $dir . '/i18n/');
 	}
 
+	public static function isTenth()
+	{
+		return site_url() === "https://www.tenth.org";
+	}
+
 	/**
 	 * Create or update database tables
 	 */
@@ -650,10 +655,10 @@ class TouchPointWP
 		dbDelta($sql);
 
 		// Table for receiving info from other sites that use this plugin
-		if (site_url() === "https://www.tenth.org") {
+		if (self::isTenth()) {
 			$tableName = $wpdb->base_prefix . TouchPointWP::TABLE_STATS;
 			$sql = "CREATE TABLE $tableName (
-				intallId varchar(36) NOT NULL,
+				installId varchar(36) NOT NULL,
 				privateKey varchar(36) NOT NULL,
 				siteId varchar(36) NOT NULL,
 				site varchar(255) NOT NULL,
@@ -668,7 +673,7 @@ class TouchPointWP
 				createdDT datetime DEFAULT NOW(),
 				updatedDT datetime DEFAULT NOW() ON UPDATE NOW(),
 				
-				lastQueryDt datetime DEFAULT NULL,
+				lastQueryDT datetime DEFAULT NULL,
 				lastQueryStatus int(3) DEFAULT NULL,
 				
 				involvementJoins int(10) DEFAULT 0,
@@ -1379,7 +1384,7 @@ class TouchPointWP
 		wp_clear_scheduled_hook(Report::CRON_HOOK);
 	}
 
-    /**
+	/**
 	 * Drop database tables at uninstallation.
 	 */
 	protected static function dropTables(): void
@@ -2257,7 +2262,7 @@ class TouchPointWP
 		       $this->settings->api_script_name . "?" . http_build_query($parameters);
 
 		self::$apiCallLog[] = $url;
-		
+
 		if ($verbose) {
 			echo "<p>Request to $url</p>";
 		}
@@ -2606,7 +2611,7 @@ class TouchPointWP
 
 	/**
 	 * Make the TPWP user the active one, so permissions are not dependent on whoever happens to be running things
-	 * at the moment. 
+	 * at the moment.
 	 *
 	 * @return void
 	 */
