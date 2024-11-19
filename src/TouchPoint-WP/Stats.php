@@ -220,7 +220,7 @@ class Stats implements api, \JsonSerializable
 	 *
 	 * @inheritDoc
 	 */
-	public function jsonSerialize()
+	public function jsonSerialize(): array
 	{
 		$r = [];
 
