@@ -3872,6 +3872,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		try {
 			$stats = Stats::instance();
 			$stats->involvementJoins += count($data->success);
+			$stats->updateDb();
 		} catch (Exception) {}
 
 		echo json_encode(['success' => $data->success]);
@@ -3975,6 +3976,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		try {
 			$stats = Stats::instance();
 			$stats->involvementContacts += count($data->success);
+			$stats->updateDb();
 		} catch (Exception) {}
 
 		echo json_encode(['success' => $data->success]);

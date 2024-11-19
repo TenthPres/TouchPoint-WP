@@ -5,6 +5,7 @@
 
 namespace tp\TouchPointWP;
 
+use Exception;
 use InvalidArgumentException;
 use tp\TouchPointWP\Utilities\Http;
 
@@ -88,10 +89,10 @@ class Stats implements api, \JsonSerializable
 			$this->_dirty     = true;
 		}
 
-		$sid = get_option('tp_siteId', null);
+		$sid = get_site_option('tp_siteId', null);
 		if (empty($sid)) {
 			$sid = Utilities::createGuid();
-			update_option('tp_siteId', $sid);
+			update_site_option('tp_siteId', $sid);
 		}
 		$this->siteId = $sid;
 
@@ -99,14 +100,14 @@ class Stats implements api, \JsonSerializable
 	}
 
 	/**
-	 * Attempt to save on destruct.
+	 * Make sure saves have happened before the object is destroyed.
+	 *
+	 * @throws Exception
 	 */
 	protected function __destruct()
 	{
-		try {
-			$this->updateDb();
-		} catch (\Exception $e) {
-			// ignore
+		if ($this->_dirty) {
+			throw new Exception("Stats object was not saved.");
 		}
 	}
 

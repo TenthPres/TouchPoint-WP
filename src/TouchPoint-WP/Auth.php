@@ -446,6 +446,7 @@ abstract class Auth implements api, module
 			try {
 				$stats = Stats::instance();
 				$stats->userAuths += 1;
+				$stats->updateDb();
 			} catch (Exception) {}
 
 			// Preload Ident people for potential use with InformalAuth.  Skip if family is already loaded.
