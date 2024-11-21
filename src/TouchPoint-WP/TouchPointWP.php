@@ -731,6 +731,8 @@ class TouchPointWP
 			}
 		}
 
+		Stats::load();
+
 		// Load Auth tool if enabled.
 		if ($instance->settings->enable_authentication === "on") {
 			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
@@ -1344,6 +1346,8 @@ class TouchPointWP
 		self::queueFlushRewriteRules();
 
 		$this->migrate(true);
+
+		Stats::migrate();
 	}
 
 	/**
@@ -1352,6 +1356,8 @@ class TouchPointWP
 	public function deactivation(): void
 	{
 		$this->logVersion();
+
+		Stats::migrate();
 
 		self::clearScheduledHooks();
 
@@ -1366,6 +1372,8 @@ class TouchPointWP
 		// TODO remove all options.
 		// TODO remove all taxonomies (maybe)
 		// TODO remove all posts
+
+		Stats::migrate();
 
 		self::clearScheduledHooks();
 

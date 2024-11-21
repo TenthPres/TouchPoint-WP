@@ -30,8 +30,10 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
  * @property int $userAuths
  * @property int $softAuths
  */
-class Stats implements api, \JsonSerializable
+class Stats implements api, \JsonSerializable, updatesViaCron
 {
+	public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . 'stats_submit';
+
 	protected static ?self $instance = null;
 
 	private bool $_dirty = false;
@@ -109,6 +111,68 @@ class Stats implements api, \JsonSerializable
 		if ($this->_dirty) {
 			throw new Exception("Stats object was not saved.");
 		}
+	}
+
+	/**
+	 * Loads the module and initializes the other actions.
+	 *
+	 * @return bool
+	 */
+	public static function load(): bool
+	{
+		add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'init']);
+
+		//////////////////
+		/// Shortcodes ///
+		//////////////////
+
+
+		///////////////
+		/// Syncing ///
+		///////////////
+
+		// Setup cron for calling home weekly.
+		add_action(self::CRON_HOOK, [self::class, 'updateCron']);
+		if ( ! wp_next_scheduled(self::CRON_HOOK)) {
+			// Runs at 4am EST (9am UTC)
+			wp_schedule_event(
+				date('U', strtotime('tomorrow') + 3600 * 9),
+				'weekly',
+				self::CRON_HOOK
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Call home, triggered by migration.
+	 *
+	 * @return void
+	 */
+	public static function migrate(): void
+	{
+		self::instance()->submitStats();
+	}
+
+	/**
+	 * Call home, triggered by cron.
+	 *
+	 * @return void
+	 */
+	public static function updateCron(): void
+	{
+		self::instance()->submitStats();
+	}
+
+	/**
+	 * Check to see if a cron run is needed, and run it if so.  Connected to an init function.
+	 *
+	 * @return void
+	 */
+	public static function checkUpdates()
+	{
+		// This method does nothing because the overhead is relatively great, and should not be hooked to every page load.
 	}
 
 	/**
