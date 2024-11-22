@@ -15,6 +15,7 @@ if ( ! defined('ABSPATH')) {
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "api.php";
+	require_once "updatesViaCron.php";
 }
 
 /**
@@ -120,8 +121,6 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	 */
 	public static function load(): bool
 	{
-		add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'init']);
-
 		//////////////////
 		/// Shortcodes ///
 		//////////////////
