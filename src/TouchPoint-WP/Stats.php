@@ -24,6 +24,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
  * @property int $involvementJoins
  * @property int $involvementContacts
  * @property int $involvementPosts
+ * @property int $reportPosts
  * @property int $meetings
  * @property int $rsvps
  * @property int $people
@@ -42,6 +43,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	protected int $involvementJoins = 0;
 	protected int $involvementContacts = 0;
 	protected int $involvementPosts = 0;  // updated by query
+	protected int $reportPosts = 0;  // updated by query
 	protected int $meetings = 0;  // updated by query
 	protected int $rsvps = 0;
 	protected int $people = 0; // updated by query
@@ -327,6 +329,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		global $wpdb;
 
 		$this->involvementPosts = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->postmeta WHERE meta_key = 'tp_invId'") ?? -1;
+		$this->reportPosts      = $wpdb->get_var("SELECT COUNT(*) as c FROM $wpdb->posts WHERE post_type = 'tp_report'") ?? -1;
 		$this->meetings         = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->postmeta WHERE meta_key = 'tp_mtgId'") ?? -1;
 		$this->people           = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->usermeta WHERE meta_key = 'tp_peopleId';") ?? -1;
 		$this->partnerPosts     = $wpdb->get_var("SELECT COUNT(*) as c FROM $wpdb->posts WHERE post_type = 'tp_partner'") ?? -1;

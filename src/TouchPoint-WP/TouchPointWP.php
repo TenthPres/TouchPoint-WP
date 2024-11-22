@@ -682,6 +682,7 @@ class TouchPointWP
 				involvementJoins int(10) DEFAULT 0,
 				involvementContacts int(10) DEFAULT 0,
 				involvementPosts int(10) DEFAULT 0,
+				reportPosts int(10) DEFAULT 0,
 				meetings int(10) DEFAULT 0,
 				rsvps int(10) DEFAULT 0,
 				people int(10) DEFAULT 0,
