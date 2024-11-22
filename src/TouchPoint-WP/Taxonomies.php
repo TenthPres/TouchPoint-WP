@@ -281,8 +281,14 @@ abstract class Taxonomies
 		// Campuses
 		$types = self::getPostTypesForTaxonomy($instance, self::TAX_CAMPUS);
 		if (count($types) > 0) {
+			if ($instance->settings->enable_campuses == "on") {
+				$campuses = $instance->getCampuses();
+			} else {
+				$campuses = [];
+			}
+
 			self::insertTermsForLookupBasedTaxonomy(
-				$instance->getCampuses(),
+				$campuses,
 				self::TAX_CAMPUS,
 				self::$forceTermLookupIdUpdate
 			);

@@ -5,8 +5,9 @@ namespace tp\TouchPointWP;
 
 $divs = json_encode($this->parent->getDivisions());
 $kws = json_encode($this->parent->getKeywords());
+$camps = json_encode($this->parent->getCampuses());
 /** @noinspection CommaExpressionJS */
-echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws }</script>";
+echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws, campuses: $camps }</script>";
 ?>
 <form>
 <div data-bind="foreach: invTypes, visible: invTypes().length > 0" style="display:none;">
@@ -50,6 +51,29 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 <p>
                     <input id="it-div" type="checkbox" data-bind="value: 'div' + id, checked: $parent.importDivs, attr: {id: 'it-' + $parent.slug() + '-div-' + id}" />
                     <label for="it-div" data-bind="text: name, attr: {for: 'it-' + $parent.slug() + '-div-' + id}"></label>
+                </p>
+                <!-- /ko -->
+            </td>
+        </tr>
+
+        <tr>
+            <th><?php _e("Import Campuses", "TouchPoint-WP"); ?></th>
+            <td colspan="2">
+                <!-- ko if: $root.campuses.length < 1 -->
+                <p><?php _e("Loading...", "TouchPoint-WP"); ?></p>
+                <!-- /ko -->
+                <p>
+                    <input id="it-campus-all" type="checkbox" data-bind="checked: $data._importCampusesAll, attr: {id: 'it-' + $data.slug() + '-campus-all'}" />
+                    <label for="it-campus-all" data-bind="attr: {for: 'it-' + $data.slug() + '-campus-all'}"><?php _e("All Campuses", "TouchPoint-WP"); ?></label>
+                </p>
+                <p>
+                    <input id="it-campus-no" type="checkbox" value="c0" data-bind="checked: $data.importCampuses, attr: {id: 'it-' + $data.slug() + '-campus-no'}" />
+                    <label for="it-campus-no" data-bind="attr: {for: 'it-' + $data.slug() + '-campus-no'}"><?php _e("(No Campus)", "TouchPoint-WP"); ?></label>
+                </p>
+                <!-- ko foreach: $root.campuses -->
+                <p>
+                    <input id="it-campus" type="checkbox" data-bind="value: 'c' + id, checked: $parent.importCampuses, attr: {id: 'it-' + $parent.slug() + '-campus-' + id}" />
+                    <label for="it-campus" data-bind="text: $data.name, attr: {for: 'it-' + $parent.slug() + '-campus-' + id}"></label>
                 </p>
                 <!-- /ko -->
             </td>
@@ -272,6 +296,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.namePlural = ko.observable(data.namePlural ?? "<?php _e("Small Groups", "TouchPoint-WP"); ?>");
         this.slug = ko.observable(data.slug ?? "smallgroup").extend({slug: 0});
         this.importDivs = ko.observable(data.importDivs ?? []);
+        this.importCampuses = ko.observable(data.importCampuses ?? []);
         this.useGeo = ko.observable(data.useGeo ?? false);
         this.useImages = ko.observable(data.useImages ?? true);
         this.excludeIf = ko.observable(data.excludeIf ?? []);
@@ -302,6 +327,19 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             }
         })
 
+        this._importCampusesAll = ko.pureComputed({
+            read: function() {
+                return self.importCampuses().length === 0;
+            },
+            write: function(value) {
+                if (value) {
+                    self.importCampuses([]);
+                } else if (self.importCampuses().length === 0) {
+                    self.importCampuses(['c0']);
+                }
+            }
+        });
+
         // operations
         this.toggleVisibility = function() {
             self._visible(! self._visible())
@@ -321,6 +359,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         self.invTypes = ko.observableArray(invInits);
         self.divisions = tpvm._vmContext.divs;
         self.keywords = tpvm._vmContext.kws;
+        self.campuses = tpvm._vmContext.campuses;
 
         // Operations
         self.addInvType = function() {

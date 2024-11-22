@@ -1689,10 +1689,6 @@ class TouchPointWP
 	 */
 	public function getCampuses(): array
 	{
-		if ($this->settings->enable_campuses !== "on") {
-			return [];
-		}
-
 		$cObj = $this->settings->get('meta_campuses');
 
 		$needsUpdate = false;

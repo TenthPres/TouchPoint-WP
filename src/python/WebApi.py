@@ -193,10 +193,14 @@ if "Invs" in Data.a:
     regex = re.compile('[^0-9,]')
     divs = regex.sub('', Data.divs)
     exDivs = regex.sub('', Data.exDivs)
+    camps = regex.sub('', Data.camps)
+
     if (len(divs)) < 1:
         divs = '0'
     if (len(exDivs)) < 1:
         exDivs = '-1'
+    if (len(camps)) < 1:
+        camps = '-1'
 
     mtgHist = -int(Data.mtgHist) if Data.mtgHist != "" else 0
     mtgFuture = int(Data.mtgFuture) if Data.mtgFuture != "" else 365
@@ -226,6 +230,7 @@ if "Invs" in Data.a:
                 LEFT JOIN Organizations o3 ON o2.ParentOrgId = o3.OrganizationId
             WHERE m.OrganizationId = o.OrganizationId
                 AND o.ShowInSites = {2}
+                AND (o.CampusId IN ({6}) OR -1 IN ({6}) OR (o.CampusId IS NULL AND 0 IN ({6})))
                 AND m.MeetingDate > DATEADD(day, {3}, GETDATE())
                 AND m.MeetingDate < DATEADD(day, {4}, GETDATE())
             GROUP BY m.OrganizationId, o2.OrganizationId, o3.OrganizationId, o3.ParentOrgId
@@ -463,7 +468,7 @@ if "Invs" in Data.a:
             LEFT JOIN lookup.Campus c
                 ON o.CampusId = c.Id
         ORDER BY o.parentInvId ASC, o.OrganizationId ASC''').
-              format(divs, hostMemTypes, featMtgs, mtgHist, mtgFuture, exDivs))
+              format(divs, hostMemTypes, featMtgs, mtgHist, mtgFuture, exDivs, camps))
 
     groups = model.SqlListDynamicData(invSql)
 
@@ -1143,6 +1148,7 @@ if "report_run" in Data.a and model.HttpMethod == "post":
 
         # noinspection SqlResolve,SqlConstantCondition,SqlConstantExpression
         sqlReportsQ = 'SELECT Id, Name, Body, TypeId FROM Content WHERE 1=0'
+        # noinspection SqlResolve,SqlConstantCondition,SqlConstantExpression
         pyReportsQ = 'SELECT Id, Name, Body, TypeId FROM Content WHERE 1=0'
         sqlPs = {}
         pyPs = {}

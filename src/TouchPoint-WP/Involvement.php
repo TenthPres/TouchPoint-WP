@@ -2490,6 +2490,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		}
 
 		try {
+			$qOpts['camps'] = Utilities::idArrayToIntArray($typeSets->importCampuses, false);
+
 			if ($typeSets->postType === Meeting::POST_TYPE) {
 				$qOpts['featMtgs'] = 1;
 				$qOpts['exDivs'] = Utilities::idArrayToIntArray(Involvement_PostTypeSettings::getAllDivs(), false);
