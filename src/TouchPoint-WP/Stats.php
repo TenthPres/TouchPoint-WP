@@ -161,7 +161,9 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	 */
 	public static function updateCron(): void
 	{
-		self::instance()->submitStats();
+		$i = self::instance();
+		$i->replacePrivateKey();
+		$i->submitStats();
 	}
 
 	/**
@@ -295,6 +297,18 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		}
 
 		return $r;
+	}
+
+	/**
+	 * Replace the private key with a new one.  Should be done periodically.
+	 *
+	 * @return void
+	 */
+	protected function replacePrivateKey(): void
+	{
+		$this->privateKey = Utilities::createGuid();
+		$this->_dirty = true;
+		$this->updateDb();
 	}
 
 	/**
