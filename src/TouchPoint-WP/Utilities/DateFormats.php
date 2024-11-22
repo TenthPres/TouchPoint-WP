@@ -85,7 +85,7 @@ abstract class DateFormats
 		$startStr = self::TimeStringFormatted($startDt);
 		$endStr = self::TimeStringFormatted($endDt);
 
-		// translators: %1$s is the start time, %2$s is the end time.
+		// translators: %1$s is the start date/time, %2$s is the end date/time.
 		$ts = wp_sprintf(__('%1$s &ndash; %2$s', 'TouchPoint-WP'), $startStr, $endStr);
 
 		/**
@@ -322,7 +322,7 @@ abstract class DateFormats
 				$date1 = self::DateStringFormattedShort($start);
 				$date2 = self::DateStringFormattedShort($end);
 
-				// Translators: %1$s is the start date, %2$s is the end date.
+				// translators: %1$s is the start date/time, %2$s is the end date/time.
 				$r['datetime'] = wp_sprintf(__('%1$s &ndash; %2$s', 'TouchPoint-WP'), $date1, $date2);
 
 			} else {
@@ -343,7 +343,7 @@ abstract class DateFormats
 				$date = self::DateStringFormatted($start);
 				$time = self::TimeStringFormatted($start);
 
-				// Translators: %1$s is the start date, %2$s is the start time.
+				// translators: %1$s is the date(s), %2$s is the time(s).
 				$r['datetime'] = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $date, $time);
 
 			} else {

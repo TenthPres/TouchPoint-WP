@@ -35,7 +35,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.94";
+	public const VERSION = "0.0.95";
 
 	/**
 	 * The Token
