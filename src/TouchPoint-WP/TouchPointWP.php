@@ -298,8 +298,10 @@ class TouchPointWP
 		if ($this->admin === null) {
 			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 				require_once 'TouchPointWP_AdminAPI.php';
+				require_once 'TouchPointWP_Widget.php';
 			}
 			$this->admin = new TouchPointWP_AdminAPI();
+			TouchPointWP_Widget::init();
 		}
 
 		return $this->admin;

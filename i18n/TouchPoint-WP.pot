@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-11-22T01:13:58+00:00\n"
+"POT-Creation-Date: 2024-11-22T17:39:16+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: TouchPoint-WP\n"
@@ -361,8 +361,9 @@ msgstr ""
 #: src/TouchPoint-WP/Involvement.php:1027
 #: src/TouchPoint-WP/Involvement.php:1120
 #: src/TouchPoint-WP/Involvement.php:1144
-#: src/TouchPoint-WP/Utilities/DateFormats.php:283
-#: src/TouchPoint-WP/Utilities/DateFormats.php:347
+#: src/TouchPoint-WP/TouchPointWP_Widget.php:67
+#: src/TouchPoint-WP/Utilities/DateFormats.php:288
+#: src/TouchPoint-WP/Utilities/DateFormats.php:352
 msgid "%1$s at %2$s"
 msgstr ""
 
@@ -571,17 +572,17 @@ msgid "Unknown"
 msgstr ""
 
 #: src/TouchPoint-WP/Meeting.php:672
-#: src/TouchPoint-WP/TouchPointWP.php:1029
+#: src/TouchPoint-WP/TouchPointWP.php:1031
 msgid "Only GET requests are allowed."
 msgstr ""
 
 #: src/TouchPoint-WP/Meeting.php:700
-#: src/TouchPoint-WP/TouchPointWP.php:360
+#: src/TouchPoint-WP/TouchPointWP.php:362
 msgid "Only POST requests are allowed."
 msgstr ""
 
 #: src/TouchPoint-WP/Meeting.php:710
-#: src/TouchPoint-WP/TouchPointWP.php:369
+#: src/TouchPoint-WP/TouchPointWP.php:371
 msgid "Invalid data provided."
 msgstr ""
 
@@ -618,7 +619,7 @@ msgid "Person in %s"
 msgstr ""
 
 #: src/TouchPoint-WP/Person.php:1451
-#: src/TouchPoint-WP/Utilities.php:271
+#: src/TouchPoint-WP/Utilities.php:285
 #: assets/js/base-defer.js:18
 msgid "and"
 msgstr ""
@@ -744,42 +745,42 @@ msgstr ""
 msgid "Every 15 minutes"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2027
+#: src/TouchPoint-WP/TouchPointWP.php:2029
 msgid "Unknown Type"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2084
+#: src/TouchPoint-WP/TouchPointWP.php:2086
 msgid "Your Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2087
+#: src/TouchPoint-WP/TouchPointWP.php:2089
 msgid "Public Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2090
+#: src/TouchPoint-WP/TouchPointWP.php:2092
 msgid "Status Flags"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2095
-#: src/TouchPoint-WP/TouchPointWP.php:2096
+#: src/TouchPoint-WP/TouchPointWP.php:2097
+#: src/TouchPoint-WP/TouchPointWP.php:2098
 msgid "Current Value"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2213
-#: src/TouchPoint-WP/TouchPointWP.php:2249
+#: src/TouchPoint-WP/TouchPointWP.php:2215
+#: src/TouchPoint-WP/TouchPointWP.php:2251
 msgid "Invalid or incomplete API Settings."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2263
-#: src/TouchPoint-WP/TouchPointWP.php:2307
+#: src/TouchPoint-WP/TouchPointWP.php:2265
+#: src/TouchPoint-WP/TouchPointWP.php:2309
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2380
+#: src/TouchPoint-WP/TouchPointWP.php:2382
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2439
+#: src/TouchPoint-WP/TouchPointWP.php:2441
 msgid "People Query Failed"
 msgstr ""
 
@@ -1432,231 +1433,248 @@ msgstr ""
 msgid "Save Settings"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:121
+#: src/TouchPoint-WP/TouchPointWP_Widget.php:37
+msgid "TouchPoint-WP Status"
+msgstr ""
+
+#: src/TouchPoint-WP/TouchPointWP_Widget.php:92
+msgid "Imported"
+msgstr ""
+
+#: src/TouchPoint-WP/TouchPointWP_Widget.php:93
+msgid "Last Updated"
+msgstr ""
+
+#: src/TouchPoint-WP/Utilities.php:135
 msgctxt "e.g. event happens weekly on..."
 msgid "Sundays"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:122
+#: src/TouchPoint-WP/Utilities.php:136
 msgctxt "e.g. event happens weekly on..."
 msgid "Mondays"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:123
+#: src/TouchPoint-WP/Utilities.php:137
 msgctxt "e.g. event happens weekly on..."
 msgid "Tuesdays"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:124
+#: src/TouchPoint-WP/Utilities.php:138
 msgctxt "e.g. event happens weekly on..."
 msgid "Wednesdays"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:125
+#: src/TouchPoint-WP/Utilities.php:139
 msgctxt "e.g. event happens weekly on..."
 msgid "Thursdays"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:126
+#: src/TouchPoint-WP/Utilities.php:140
 msgctxt "e.g. event happens weekly on..."
 msgid "Fridays"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:127
+#: src/TouchPoint-WP/Utilities.php:141
 msgctxt "e.g. event happens weekly on..."
 msgid "Saturdays"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:173
+#: src/TouchPoint-WP/Utilities.php:187
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
 msgid "Sun"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:174
+#: src/TouchPoint-WP/Utilities.php:188
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
 msgid "Mon"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:175
+#: src/TouchPoint-WP/Utilities.php:189
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
 msgid "Tue"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:176
+#: src/TouchPoint-WP/Utilities.php:190
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
 msgid "Wed"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:177
+#: src/TouchPoint-WP/Utilities.php:191
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
 msgid "Thu"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:178
+#: src/TouchPoint-WP/Utilities.php:192
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
 msgid "Fri"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:179
+#: src/TouchPoint-WP/Utilities.php:193
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
 msgid "Sat"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:221
+#: src/TouchPoint-WP/Utilities.php:235
 msgctxt "Time of Day"
 msgid "Late Night"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:223
+#: src/TouchPoint-WP/Utilities.php:237
 msgctxt "Time of Day"
 msgid "Early Morning"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:225
+#: src/TouchPoint-WP/Utilities.php:239
 msgctxt "Time of Day"
 msgid "Morning"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:227
+#: src/TouchPoint-WP/Utilities.php:241
 msgctxt "Time of Day"
 msgid "Midday"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:229
+#: src/TouchPoint-WP/Utilities.php:243
 msgctxt "Time of Day"
 msgid "Afternoon"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:231
+#: src/TouchPoint-WP/Utilities.php:245
 msgctxt "Time of Day"
 msgid "Evening"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:233
+#: src/TouchPoint-WP/Utilities.php:247
 msgctxt "Time of Day"
 msgid "Night"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:276
+#: src/TouchPoint-WP/Utilities.php:290
 msgctxt "list of items, and *others*"
 msgid "others"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:482
+#: src/TouchPoint-WP/Utilities.php:496
 msgid "Expand"
 msgstr ""
 
 #. translators: %1$s is the start date/time, %2$s is the end date/time.
 #: src/TouchPoint-WP/Utilities/DateFormats.php:89
-#: src/TouchPoint-WP/Utilities/DateFormats.php:326
+#: src/TouchPoint-WP/Utilities/DateFormats.php:331
 msgid "%1$s &ndash; %2$s"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities/DateFormats.php:119
-#: src/TouchPoint-WP/Utilities/DateFormats.php:191
+#: src/TouchPoint-WP/Utilities/DateFormats.php:194
 msgid "Tonight"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities/DateFormats.php:121
-#: src/TouchPoint-WP/Utilities/DateFormats.php:193
+#: src/TouchPoint-WP/Utilities/DateFormats.php:196
 msgid "Today"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:127
-#: src/TouchPoint-WP/Utilities/DateFormats.php:199
+#: src/TouchPoint-WP/Utilities/DateFormats.php:128
+#: src/TouchPoint-WP/Utilities/DateFormats.php:203
 msgid "Tomorrow"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:134
+#: src/TouchPoint-WP/Utilities/DateFormats.php:130
+#: src/TouchPoint-WP/Utilities/DateFormats.php:205
+msgid "Yesterday"
+msgstr ""
+
+#: src/TouchPoint-WP/Utilities/DateFormats.php:137
 msgctxt "Date string for day of the week, when the year is current."
 msgid "l"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:135
+#: src/TouchPoint-WP/Utilities/DateFormats.php:138
 msgctxt "Date string when the year is current."
 msgid "F j"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:137
+#: src/TouchPoint-WP/Utilities/DateFormats.php:140
 msgctxt "Date string for day of the week, when the year is not current."
 msgid "l"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:138
+#: src/TouchPoint-WP/Utilities/DateFormats.php:141
 msgctxt "Date string when the year is not current."
 msgid "F j, Y"
 msgstr ""
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:144
+#: src/TouchPoint-WP/Utilities/DateFormats.php:147
 msgctxt "Date format string"
 msgid "Last %1$s, %2$s"
 msgstr ""
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:150
+#: src/TouchPoint-WP/Utilities/DateFormats.php:153
 msgctxt "Date format string"
 msgid "This %1$s, %2$s"
 msgstr ""
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:156
+#: src/TouchPoint-WP/Utilities/DateFormats.php:159
 msgctxt "Date format string"
 msgid "Next %1$s, %2$s"
 msgstr ""
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:161
+#: src/TouchPoint-WP/Utilities/DateFormats.php:164
 msgctxt "Date format string"
 msgid "%1$s, %2$s"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:206
+#: src/TouchPoint-WP/Utilities/DateFormats.php:211
 msgctxt "Short date string for day of the week, when the year is current."
 msgid "D"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:207
+#: src/TouchPoint-WP/Utilities/DateFormats.php:212
 msgctxt "Short date string when the year is current."
 msgid "M j"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:209
+#: src/TouchPoint-WP/Utilities/DateFormats.php:214
 msgctxt "Short date string for day of the week, when the year is not current."
 msgid "D"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:210
+#: src/TouchPoint-WP/Utilities/DateFormats.php:215
 msgctxt "Short date string when the year is not current."
 msgid "M j, Y"
 msgstr ""
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:216
+#: src/TouchPoint-WP/Utilities/DateFormats.php:221
 msgctxt "Short date format string"
 msgid "Last %1$s, %2$s"
 msgstr ""
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:222
+#: src/TouchPoint-WP/Utilities/DateFormats.php:227
 msgctxt "Short date format string"
 msgid "This %1$s, %2$s"
 msgstr ""
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:228
+#: src/TouchPoint-WP/Utilities/DateFormats.php:233
 msgctxt "Short date format string"
 msgid "Next %1$s, %2$s"
 msgstr ""
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:233
+#: src/TouchPoint-WP/Utilities/DateFormats.php:238
 msgctxt "Short date format string"
 msgid "%1$s, %2$s"
 msgstr ""
 
 #. translators: %1$s is the start date, %2$s start time, %3$s is the end date, and %4$s end time.
-#: src/TouchPoint-WP/Utilities/DateFormats.php:359
+#: src/TouchPoint-WP/Utilities/DateFormats.php:364
 msgid "%1$s at %2$s &ndash; %3$s at %4$s"
 msgstr ""
 

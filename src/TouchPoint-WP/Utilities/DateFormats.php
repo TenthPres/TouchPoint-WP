@@ -121,10 +121,13 @@ abstract class DateFormats
 				$r = __("Today", "TouchPoint-WP");
 			}
 		} else {
-			// Tomorrow
+			// Tomorrow & Yesterday
 			$tomorrow = Utilities::dateTimeNowPlus1D();
+			$yesterday = Utilities::dateTimeNowMinus1D();
 			if ($tomorrow->format("Ymd") === $dt->format("Ymd")) {
 				$r = __("Tomorrow", "TouchPoint-WP");
+			} elseif ($yesterday->format("Ymd") === $dt->format("Ymd")) {
+				$r = __("Yesterday", "TouchPoint-WP");
 			} else {
 				$ts    = DateFormats::timestampWithoutOffset($dt);
 				$nowTs = DateFormats::timestampWithoutOffset($now);
@@ -142,16 +145,16 @@ abstract class DateFormats
 				if ($ts < $nowTs && $ts - $nowTs > -7 * 86400) {
 					// translators: %1$s is "Monday".  %2$s is "January 1".
 					$r = sprintf(_x('Last %1$s, %2$s', "Date format string", 'TouchPoint-WP'), $day, $date);
-				}
+
 
 				// This week
-				else if ($ts > $nowTs && $ts - $nowTs < 7 * 86400) {
+				} else if ($ts > $nowTs && $ts - $nowTs < 7 * 86400) {
 					// translators: %1$s is "Monday".  %2$s is "January 1".
 					$r = sprintf(_x('This %1$s, %2$s', "Date format string", 'TouchPoint-WP'), $day, $date);
-				}
+
 
 				// Next week
-				else if ($ts > $nowTs && $ts - $nowTs < 14 * 86400) {
+				} else if ($ts > $nowTs && $ts - $nowTs < 14 * 86400) {
 					// translators: %1$s is "Monday".  %2$s is "January 1".
 					$r = sprintf(_x('Next %1$s, %2$s', "Date format string", 'TouchPoint-WP'), $day, $date);
 
@@ -193,16 +196,18 @@ abstract class DateFormats
 				$r = __("Today", "TouchPoint-WP");
 			}
 		} else {
-			// Tomorrow
+			// Tomorrow & Yesterday
 			$tomorrow = Utilities::dateTimeNowPlus1D();
+			$yesterday = Utilities::dateTimeNowMinus1D();
 			if ($tomorrow->format("Ymd") === $dt->format("Ymd")) {
 				$r = __("Tomorrow", "TouchPoint-WP");
+			} elseif ($yesterday->format("Ymd") === $dt->format("Ymd")) {
+				$r = __("Yesterday", "TouchPoint-WP");
 			} else {
 				$ts    = DateFormats::timestampWithoutOffset($dt);
 				$nowTs = DateFormats::timestampWithoutOffset($now);
 
-
-				if ($tomorrow->format("Y") === $dt->format("Y")) { // Same Year
+				if ($now->format("Y") === $dt->format("Y")) { // Same Year
 					$day = wp_date(_x('D', "Short date string for day of the week, when the year is current.", "TouchPoint-WP"), $ts);
 					$date = wp_date(_x('M j', "Short date string when the year is current.", "TouchPoint-WP"), $ts);
 				} else {
@@ -214,16 +219,16 @@ abstract class DateFormats
 				if ($ts < $nowTs && $ts - $nowTs > -7 * 86400) {
 					// translators: %1$s is "Mon".  %2$s is "Jan 1".
 					$r = sprintf(_x('Last %1$s, %2$s', "Short date format string", 'TouchPoint-WP'), $day, $date);
-				}
+
 
 				// This week
-				else if ($ts > $nowTs && $ts - $nowTs < 7 * 86400) {
+				} else if ($ts > $nowTs && $ts - $nowTs < 7 * 86400) {
 					// translators: %1$s is "Mon".  %2$s is "Jan 1".
 					$r = sprintf(_x('This %1$s, %2$s', "Short date format string", 'TouchPoint-WP'), $day, $date);
-				}
+
 
 				// Next week
-				else if ($ts > $nowTs && $ts - $nowTs < 14 * 86400) {
+				} else if ($ts > $nowTs && $ts - $nowTs < 14 * 86400) {
 					// translators: %1$s is "Mon".  %2$s is "Jan 1".
 					$r = sprintf(_x('Next %1$s, %2$s', "Short date format string", 'TouchPoint-WP'), $day, $date);
 

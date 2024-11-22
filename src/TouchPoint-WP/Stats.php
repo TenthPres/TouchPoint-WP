@@ -236,10 +236,16 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	/**
 	 * Assemble the information that's submitted.
 	 *
+	 * @param bool $updateQueried
+	 *
 	 * @return array
 	 */
-	public function getStatsForSubmission(): array
+	public function getStatsForSubmission(bool $updateQueried = false): array
 	{
+		if ($updateQueried) {
+			$this->updateQueriedStats();
+		}
+
 		$data = $this->jsonSerialize();
 
 		$sets = TouchPointWP::instance()->settings;
@@ -321,9 +327,9 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		global $wpdb;
 
 		$this->involvementPosts = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->postmeta WHERE meta_key = 'tp_invId'") ?? -1;
-		$this->meetings = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->postmeta WHERE meta_key = 'tp_mtgId'") ?? -1;
-		$this->people = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->usermeta WHERE meta_key = 'tp_peopleId';") ?? -1;
-		$this->partnerPosts = $wpdb->get_var("SELECT COUNT(*) as c FROM $wpdb->posts WHERE post_type = 'tp_partner'") ?? -1;
+		$this->meetings         = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->postmeta WHERE meta_key = 'tp_mtgId'") ?? -1;
+		$this->people           = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->usermeta WHERE meta_key = 'tp_peopleId';") ?? -1;
+		$this->partnerPosts     = $wpdb->get_var("SELECT COUNT(*) as c FROM $wpdb->posts WHERE post_type = 'tp_partner'") ?? -1;
 
 		$this->_dirty = true;
 	}

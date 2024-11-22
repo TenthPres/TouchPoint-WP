@@ -89,6 +89,19 @@ abstract class Utilities
 
 		return self::$_dateTimeNowPlus1D;
 	}
+
+	/**
+	 * @return DateTimeImmutable
+	 */
+	public static function dateTimeNowMinus1D(): DateTimeImmutable
+	{
+		if (self::$_dateTimeNowMinus1D === null) {
+			$aDay                     = new DateInterval('P-1D');
+			self::$_dateTimeNowMinus1D = self::dateTimeNow()->add($aDay);
+		}
+
+		return self::$_dateTimeNowMinus1D;
+	}
 	
 	/**
 	 * @return DateTimeZone
@@ -106,6 +119,7 @@ abstract class Utilities
 	private static ?DateTimeImmutable $_dateTimeTodayAtMidnight = null;
 	private static ?DateTimeImmutable $_dateTimeNowPlus1Y = null;
 	private static ?DateTimeImmutable $_dateTimeNowPlus1D = null;
+	private static ?DateTimeImmutable $_dateTimeNowMinus1D = null;
 	private static ?DateTimeZone $_utcTimeZone = null;
 
 	/**

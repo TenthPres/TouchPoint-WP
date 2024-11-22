@@ -144,7 +144,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 		/// Cron ///
 		////////////
 
-		// Setup cron for updating People daily.
+		// Setup cron for updating Reports daily.
 		add_action(self::CRON_HOOK, [self::class, 'updateCron']);
 		if ( ! wp_next_scheduled(self::CRON_HOOK)) {
 			// Runs every 15 minutes, starting now.
