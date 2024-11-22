@@ -96,7 +96,8 @@ abstract class Utilities
 	public static function dateTimeNowMinus1D(): DateTimeImmutable
 	{
 		if (self::$_dateTimeNowMinus1D === null) {
-			$aDay                     = new DateInterval('P-1D');
+			$aDay                     = new DateInterval('P1D');
+			$aDay->invert = 1;
 			self::$_dateTimeNowMinus1D = self::dateTimeNow()->add($aDay);
 		}
 

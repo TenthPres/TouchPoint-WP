@@ -50,17 +50,19 @@ abstract class TouchPointWP_Widget
 	{
 		if (!is_numeric($timestamp)) {
 			try {
-				$timestamp = new \DateTime($timestamp);
+				$timestamp = new \DateTime($timestamp, wp_timezone());
 			} catch (\Exception $e) {
 				return 'Never';
 			}
 		} else {
 			try {
-				$timestamp = new \DateTime('@' . $timestamp);
+				$timestamp = new \DateTime('@' . $timestamp, Utilities::utcTimeZone());
+
 			} catch (\Exception $e) {
 				return 'Never';
 			}
 		}
+		$timestamp->setTimezone(wp_timezone());
 
 		return wp_sprintf(
 			// translators: %1$s is the date(s), %2$s is the time(s).
