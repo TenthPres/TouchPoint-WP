@@ -78,7 +78,6 @@ if ( ! defined('ABSPATH')) {
  * @property-read int          mc_future_days     Number of days into the future to import.
  * @property-read int          mc_archive_days    Number of days to wait to move something to history.
  * @property-read int|string   mc_hist_days       Number of days of history to keep.  (Can be '' if module isn't enabled.)
- * @property-read string       mc_deletion_method Determines how meetings should be handled in WordPress if they're deleted in TouchPoint
  *
  * @property-read string       rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
  * @property-read string       rc_name_singular   What a resident code should be called, singular (e.g. "Resident Code" or "Zone")
@@ -905,7 +904,7 @@ class TouchPointWP_Settings
 						'id'          => 'mc_archive_days',
 						'label'       => __('Archive After Days', 'TouchPoint-WP'),
 						'description' => __(
-							'Meetings more than this many days in the past will be moved to the Events Archive.  Once this date passes, meeting information will no longer update.',
+							'Meetings more than this many days in the past will no longer update from TouchPoint, allowing you to keep some historical event information on the calendar for reference, even if you reuse and update the information in the Involvement.',
 							'TouchPoint-WP'
 						),
 						'type'        => 'number',
@@ -918,7 +917,7 @@ class TouchPointWP_Settings
 						'id'          => 'mc_hist_days',
 						'label'       => __('Days of History', 'TouchPoint-WP'),
 						'description' => __(
-							'Meetings will be kept for the public calendar until the event is this many days in the past.',
+							"Meetings will be kept on the calendar until the event is this many days in the past.  Once an event is older than this, it'll be deleted.",
 							'TouchPoint-WP'
 						),
 						'type'        => 'number',
@@ -926,20 +925,6 @@ class TouchPointWP_Settings
 						'placeholder' => 365,
 						'max'         => 1825,
 						'min'         => 0
-					],
-					[
-						'id'          => 'mc_deletion_method',
-						'label'       => __('Meeting Deletion Handling', 'TouchPoint-WP'),
-						'description' => __(
-							'When a Meeting is deleted in TouchPoint that has already been imported to WordPress, how should that be handled?',
-							'TouchPoint-WP'
-						),
-						'type'        => 'select',
-						'options'     => [
-							'delete' => __('Always delete from WordPress', 'TouchPoint-WP'),
-							'cancel' => __('Mark the occurrence as cancelled', 'TouchPoint-WP'),
-						],
-						'default'     => 'delete',
 					],
 				],
 			];
@@ -1616,6 +1601,9 @@ class TouchPointWP_Settings
 		$tableName = $wpdb->base_prefix . TouchPointWP::TABLE_IP_GEO;
 		$years = TouchPointWP::TTL_IP_GEO;
 		$wpdb->query("DELETE FROM $tableName WHERE `updatedDT` < NOW() - INTERVAL $years YEAR OR `data` LIKE 'Too many rapid requests.%';");
+
+		// 0.0.95 - Remove never-really-used option for deletion handling
+		delete_option('tp_mc_deletion_method');
 
 		// Update version string
 		$this->set('version', TouchPointWP::VERSION);
