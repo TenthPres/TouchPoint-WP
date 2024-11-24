@@ -9,6 +9,7 @@ use DateInterval;
 use DateTime;
 use Exception;
 use JsonSerializable;
+use tp\TouchPointWP\Utilities\Database;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\ImageConversions;
 use WP_Error;
@@ -255,13 +256,24 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 							break;
 
 						case "svg.png":
-							$cached = get_post_meta($r->getPost()->ID, self::META_PREFIX . "svg_png", true);
+							$bgColor = $_GET['bg'] ?? null;
+
+							if ($bgColor !== null) {
+								$bgColor = strtolower($bgColor);
+								if (preg_match('/^[0-9a-f]{6}$/', $bgColor)) {
+									$bgColor = "#" . $bgColor;
+								}
+							}
+
+							$bgColorStr = ($bgColor === null) ? "" : "_$bgColor";
+
+							$cached = get_post_meta($r->getPost()->ID, self::META_PREFIX . "svg_png" . $bgColorStr, true);
 							if ($cached !== '') {
 								$content = base64_decode($cached);
 							} else {
 								try {
-									$content = ImageConversions::svgToPng($content);
-									update_post_meta($r->getPost()->ID, self::META_PREFIX . "svg_png", base64_encode($content));
+									$content = ImageConversions::svgToPng($content, $bgColor);
+									update_post_meta($r->getPost()->ID, self::META_PREFIX . "svg_png" . $bgColorStr, base64_encode($content));
 								} catch (TouchPointWP_Exception $e) {
 									http_response_code(Http::SERVICE_UNAVAILABLE);
 									echo $e->getMessage();
@@ -497,10 +509,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 			return null;
 		}
 
-		// Clear the cached PNG if it exists.
-		if (get_post_meta($this->post->ID, self::META_PREFIX . "svg_png", true) !== '') {
-			update_post_meta($this->post->ID, self::META_PREFIX . "svg_png", '');
-		}
+		// Clear the cached PNGs if they exist.
+		Database::deletePostMetaByPrefix($this->post->ID, self::META_PREFIX . "svg_png");
 
 		return wp_update_post($this->post);
 	}

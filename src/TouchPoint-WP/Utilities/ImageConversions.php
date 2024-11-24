@@ -17,7 +17,7 @@ abstract class ImageConversions
 	 * @throws \ImagickException
 	 * @throws TouchPointWP_Exception
 	 */
-	public static function svgToPng($svgContent): string
+	public static function svgToPng($svgContent, ?string $backgroundColor = null): string
 	{
 		$svg = new DOMDocument();
 		$svg->loadXML($svgContent);
@@ -36,7 +36,18 @@ abstract class ImageConversions
 
 		$im = new \Imagick();
 		$im->setResolution(300, 300);
-		$im->setBackgroundColor(new \ImagickPixel('transparent'));
+
+		if (!empty($backgroundColor)) {
+			try {
+				$pxColor = new \ImagickPixel($backgroundColor);
+				$im->setBackgroundColor($pxColor);
+			} catch (\ImagickPixelException) {
+				$im->setBackgroundColor(new \ImagickPixel('transparent'));
+			}
+		} else {
+			$im->setBackgroundColor(new \ImagickPixel('transparent'));
+		}
+
 		$im->readImageBlob($svg->saveXML());
 
 		$im->setImageAlphaChannel(\Imagick::ALPHACHANNEL_ACTIVATE);
