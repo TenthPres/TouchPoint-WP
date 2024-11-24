@@ -5,6 +5,8 @@
 
 namespace tp\TouchPointWP;
 
+use DateTime;
+use Exception;
 use tp\TouchPointWP\Utilities\DateFormats;
 
 if ( ! defined('ABSPATH')) {
@@ -50,15 +52,15 @@ abstract class TouchPointWP_Widget
 	{
 		if (!is_numeric($timestamp)) {
 			try {
-				$timestamp = new \DateTime($timestamp, wp_timezone());
-			} catch (\Exception $e) {
+				$timestamp = new DateTime($timestamp, wp_timezone());
+			} catch (Exception) {
 				return 'Never';
 			}
 		} else {
 			try {
-				$timestamp = new \DateTime('@' . $timestamp, Utilities::utcTimeZone());
+				$timestamp = new DateTime('@' . $timestamp, Utilities::utcTimeZone());
 
-			} catch (\Exception $e) {
+			} catch (Exception) {
 				return 'Never';
 			}
 		}
