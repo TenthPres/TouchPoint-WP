@@ -672,6 +672,7 @@ class TouchPointWP
 				wpTimezone varchar(50) NOT NULL,
 				adminEmail varchar(255) NOT NULL,
 				siteName varchar(255) NOT NULL,
+				siteLogo varchar(512) NOT NULL,
 				createdDT datetime DEFAULT NOW(),
 				updatedDT datetime DEFAULT NOW() ON UPDATE NOW(),
 				

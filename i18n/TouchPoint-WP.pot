@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-11-22T18:07:49+00:00\n"
+"POT-Creation-Date: 2024-11-28T19:12:52+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: TouchPoint-WP\n"
@@ -361,7 +361,7 @@ msgstr ""
 #: src/TouchPoint-WP/Involvement.php:1027
 #: src/TouchPoint-WP/Involvement.php:1120
 #: src/TouchPoint-WP/Involvement.php:1144
-#: src/TouchPoint-WP/TouchPointWP_Widget.php:67
+#: src/TouchPoint-WP/TouchPointWP_Widget.php:71
 #: src/TouchPoint-WP/Utilities/DateFormats.php:288
 #: src/TouchPoint-WP/Utilities/DateFormats.php:352
 msgid "%1$s at %2$s"
@@ -572,7 +572,7 @@ msgid "Unknown"
 msgstr ""
 
 #: src/TouchPoint-WP/Meeting.php:672
-#: src/TouchPoint-WP/TouchPointWP.php:1032
+#: src/TouchPoint-WP/TouchPointWP.php:1033
 msgid "Only GET requests are allowed."
 msgstr ""
 
@@ -619,7 +619,7 @@ msgid "Person in %s"
 msgstr ""
 
 #: src/TouchPoint-WP/Person.php:1451
-#: src/TouchPoint-WP/Utilities.php:285
+#: src/TouchPoint-WP/Utilities.php:286
 #: assets/js/base-defer.js:18
 msgid "and"
 msgstr ""
@@ -637,16 +637,16 @@ msgstr ""
 msgid "You may need to sign in."
 msgstr ""
 
-#: src/TouchPoint-WP/Report.php:176
+#: src/TouchPoint-WP/Report.php:177
 msgid "TouchPoint Reports"
 msgstr ""
 
-#: src/TouchPoint-WP/Report.php:177
+#: src/TouchPoint-WP/Report.php:178
 msgid "TouchPoint Report"
 msgstr ""
 
 #. translators: Last updated date/time for a report. %1$s is the date. %2$s is the time.
-#: src/TouchPoint-WP/Report.php:405
+#: src/TouchPoint-WP/Report.php:417
 msgid "Updated on %1$s at %2$s"
 msgstr ""
 
@@ -745,42 +745,42 @@ msgstr ""
 msgid "Every 15 minutes"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2030
+#: src/TouchPoint-WP/TouchPointWP.php:2031
 msgid "Unknown Type"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2087
+#: src/TouchPoint-WP/TouchPointWP.php:2088
 msgid "Your Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2090
+#: src/TouchPoint-WP/TouchPointWP.php:2091
 msgid "Public Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2093
+#: src/TouchPoint-WP/TouchPointWP.php:2094
 msgid "Status Flags"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2098
 #: src/TouchPoint-WP/TouchPointWP.php:2099
+#: src/TouchPoint-WP/TouchPointWP.php:2100
 msgid "Current Value"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2216
-#: src/TouchPoint-WP/TouchPointWP.php:2252
+#: src/TouchPoint-WP/TouchPointWP.php:2217
+#: src/TouchPoint-WP/TouchPointWP.php:2253
 msgid "Invalid or incomplete API Settings."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2266
-#: src/TouchPoint-WP/TouchPointWP.php:2310
+#: src/TouchPoint-WP/TouchPointWP.php:2267
+#: src/TouchPoint-WP/TouchPointWP.php:2311
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2383
+#: src/TouchPoint-WP/TouchPointWP.php:2384
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2442
+#: src/TouchPoint-WP/TouchPointWP.php:2443
 msgid "People Query Failed"
 msgstr ""
 
@@ -921,11 +921,11 @@ msgid "Optional. Allows for geolocation of user IP addresses.  This generally wi
 msgstr ""
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:444
-msgid "Allow the TouchPoint-WP developers to publicly list your site/church as using TouchPoint-WP"
+msgid "List Site in Directory"
 msgstr ""
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:445
-msgid "Helps other prospective churches see what can be done by combining WordPress with the best ChMS on the planet.  Only applies if this site is accessible on the public internet."
+msgid "Allow the TouchPoint-WP developers to publicly list your site/church as using TouchPoint-WP. Helps other prospective churches see what can be done by combining WordPress with the best ChMS on the planet.  Only applies if this site is accessible on the public internet."
 msgstr ""
 
 #: src/TouchPoint-WP/TouchPointWP_Settings.php:463
@@ -1417,129 +1417,129 @@ msgstr ""
 msgid "Save Settings"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP_Widget.php:37
+#: src/TouchPoint-WP/TouchPointWP_Widget.php:39
 msgid "TouchPoint-WP Status"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP_Widget.php:92
+#: src/TouchPoint-WP/TouchPointWP_Widget.php:96
 msgid "Imported"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP_Widget.php:93
+#: src/TouchPoint-WP/TouchPointWP_Widget.php:97
 msgid "Last Updated"
-msgstr ""
-
-#: src/TouchPoint-WP/Utilities.php:135
-msgctxt "e.g. event happens weekly on..."
-msgid "Sundays"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:136
 msgctxt "e.g. event happens weekly on..."
-msgid "Mondays"
+msgid "Sundays"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:137
 msgctxt "e.g. event happens weekly on..."
-msgid "Tuesdays"
+msgid "Mondays"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:138
 msgctxt "e.g. event happens weekly on..."
-msgid "Wednesdays"
+msgid "Tuesdays"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:139
 msgctxt "e.g. event happens weekly on..."
-msgid "Thursdays"
+msgid "Wednesdays"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:140
 msgctxt "e.g. event happens weekly on..."
-msgid "Fridays"
+msgid "Thursdays"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:141
 msgctxt "e.g. event happens weekly on..."
-msgid "Saturdays"
+msgid "Fridays"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:187
-msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
-msgid "Sun"
+#: src/TouchPoint-WP/Utilities.php:142
+msgctxt "e.g. event happens weekly on..."
+msgid "Saturdays"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:188
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
-msgid "Mon"
+msgid "Sun"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:189
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
-msgid "Tue"
+msgid "Mon"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:190
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
-msgid "Wed"
+msgid "Tue"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:191
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
-msgid "Thu"
+msgid "Wed"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:192
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
-msgid "Fri"
+msgid "Thu"
 msgstr ""
 
 #: src/TouchPoint-WP/Utilities.php:193
 msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
+msgid "Fri"
+msgstr ""
+
+#: src/TouchPoint-WP/Utilities.php:194
+msgctxt "e.g. \"Event happens weekly on...\" or \"This ...\""
 msgid "Sat"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:235
+#: src/TouchPoint-WP/Utilities.php:236
 msgctxt "Time of Day"
 msgid "Late Night"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:237
+#: src/TouchPoint-WP/Utilities.php:238
 msgctxt "Time of Day"
 msgid "Early Morning"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:239
+#: src/TouchPoint-WP/Utilities.php:240
 msgctxt "Time of Day"
 msgid "Morning"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:241
+#: src/TouchPoint-WP/Utilities.php:242
 msgctxt "Time of Day"
 msgid "Midday"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:243
+#: src/TouchPoint-WP/Utilities.php:244
 msgctxt "Time of Day"
 msgid "Afternoon"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:245
+#: src/TouchPoint-WP/Utilities.php:246
 msgctxt "Time of Day"
 msgid "Evening"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:247
+#: src/TouchPoint-WP/Utilities.php:248
 msgctxt "Time of Day"
 msgid "Night"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:290
+#: src/TouchPoint-WP/Utilities.php:291
 msgctxt "list of items, and *others*"
 msgid "others"
 msgstr ""
 
-#: src/TouchPoint-WP/Utilities.php:496
+#: src/TouchPoint-WP/Utilities.php:497
 msgid "Expand"
 msgstr ""
 

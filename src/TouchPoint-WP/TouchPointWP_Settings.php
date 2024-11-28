@@ -441,9 +441,9 @@ class TouchPointWP_Settings
 				],
 				[
 					'id'          => 'enable_public_listing',
-					'label'       => __('Allow the TouchPoint-WP developers to publicly list your site/church as using TouchPoint-WP', 'TouchPoint-WP'),
+					'label'       => __('List Site in Directory', 'TouchPoint-WP'),
 					'description' => __(
-						"Helps other prospective churches see what can be done by combining WordPress with the best ChMS on the planet.  Only applies if this site is accessible on the public internet.",
+						"Allow the TouchPoint-WP developers to publicly list your site/church as using TouchPoint-WP. Helps other prospective churches see what can be done by combining WordPress with the best ChMS on the planet.  Only applies if this site is accessible on the public internet.",
 						'TouchPoint-WP'
 					),
 					'type'        => 'checkbox',

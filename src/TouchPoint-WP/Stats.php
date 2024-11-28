@@ -261,6 +261,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		$data['wpTimezone'] = get_option('timezone_string');
 		$data['adminEmail'] = get_option('admin_email');
 		$data['siteName'] = get_bloginfo('name');
+		$data['siteLogoUrl'] = esc_url( wp_get_attachment_image_src( get_theme_mod( 'custom_logo' ), 'full' )[0] );
 		$data['listPublicly'] = 1 * ($sets->enable_public_listing === 'on');
 		$data['installId'] = $this->installId;
 		$data['privateKey'] = $this->privateKey;
@@ -279,7 +280,25 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 
 		$data = $this->getStatsForSubmission();
 
-		wp_remote_post(self::SUBMISSION_ENDPOINT, [
+		/**
+		 * This plugin is designed to be used by other churches, but to help troubleshoot and understand usage, some
+		 * basic statistics are sent back to Tenth.  This filter allows you to change the endpoint to which the data is
+		 * sent, which may be necessary if you have a proxy system setup.  It also allows you to disable the sending of
+		 * all information back to Tenth by setting the value to an empty string.
+		 *
+		 * The URL must use https.
+		 *
+		 * @since 0.0.96 Added
+		 *
+		 * @param string $endpoint The endpoint value to use.
+		 */
+		$endpoint = (string)apply_filters('tp_stats_endpoint', self::SUBMISSION_ENDPOINT);
+
+		if ( ! str_starts_with($endpoint, 'https://')) {
+			return;
+		}
+
+		wp_remote_post($endpoint, [
 			'body' => ['data' => $data],
 			'timeout' => 10,
 			'blocking' => false,
