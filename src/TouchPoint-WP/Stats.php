@@ -284,6 +284,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 			'timeout' => 10,
 			'blocking' => false,
 		]);
+		echo "ok";
 	}
 
 	/**
@@ -435,7 +436,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 			return false;
 		}
 
-        echo $r;
+		echo $r;
 		return true;
 	}
 }
