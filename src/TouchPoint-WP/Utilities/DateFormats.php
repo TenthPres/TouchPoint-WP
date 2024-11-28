@@ -98,7 +98,7 @@ abstract class DateFormats
 		 * @param string            $startStr The start string, with default formatting.
 		 * @param string            $endStr The end string, with default formatting
 		 * @param DateTimeInterface $startDt The DateTimeInterface object for the start.
-		 * @param DateTimeInterface $endDt The DateTimeInterface object for the $end.
+		 * @param DateTimeInterface $endDt The DateTimeInterface object for the end.
 		 */
 		return apply_filters('tp_adjust_time_range_string', $ts, $startStr, $endStr, $startDt, $endDt);
 	}

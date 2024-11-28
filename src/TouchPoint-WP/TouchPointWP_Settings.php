@@ -1260,6 +1260,8 @@ class TouchPointWP_Settings
 		 * Adjust the settings array before it's returned.
 		 *
 		 * @since 0.0.90 Added
+		 *
+		 * @params array $this->settings The settings array.
 		 */
 		$this->settings = apply_filters('tp_settings_fields', $this->settings);
 

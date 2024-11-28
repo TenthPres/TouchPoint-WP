@@ -394,13 +394,15 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 		// Add Figure elt with a unique ID
 		$idAttr = "id=\"" . wp_unique_id('tp-report-') . "\"";
 
+		$class = self::$classDefault;
+
 		/**
 		 * Filter the class name to be used for the displaying the report.
 		 *
-		 * @param string $className The class name to be used.
+		 * @param string $class The class name to be used.
 		 * @param Report $report The report being displayed.
 		 */
-		$class = apply_filters("tp_rpt_figure_class", self::$classDefault, $report);
+		$class = apply_filters("tp_rpt_figure_class", $class, $report);
 
 		$permalink = esc_attr(get_post_permalink($report->getPost()));
 

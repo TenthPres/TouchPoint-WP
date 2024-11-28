@@ -436,6 +436,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 */
 	public static function templateFilter(string $template): string
 	{
+		$className = self::class;
+		$useTemplates = true;
+
 		/**
 		 * Determines whether the plugin's default templates should be used.  Theme developers can return false in this
 		 * filter to prevent the default templates from applying, especially if they conflict with the theme.
@@ -447,7 +450,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		 * @param bool $value The value to return.  True will allow the default templates to be applied.
 		 * @param string $className The name of the class calling for the template.
 		 */
-		if (!!apply_filters('tp_use_default_templates', true, self::class)) {
+		if (!!apply_filters('tp_use_default_templates', $useTemplates, $className)) {
 			$postTypesToFilter        = Involvement_PostTypeSettings::getPostTypes();
 			$templateFilesToOverwrite = self::TEMPLATES_TO_OVERWRITE;
 
@@ -3891,6 +3894,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 */
 	protected static function allowContact(string $invType): bool
 	{
+		$allowed = true;
+
 		/**
 		 * Determines whether contact of any kind is allowed.  This is meant to prevent abuse in contact forms by
 		 * removing the ability to contact people and thereby hiding the forms.
@@ -3899,7 +3904,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		 *
 		 * @param bool $allowed True if contact is allowed.
 		 */
-		$allowed = !!apply_filters('tp_allow_contact', true);
+		$allowed = !!apply_filters('tp_allow_contact', $allowed);
 
 		/**
 		 * Determines whether contact is allowed for any Involvements.  This is called *after* tp_allow_contact, and

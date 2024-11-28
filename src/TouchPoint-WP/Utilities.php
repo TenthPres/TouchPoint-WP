@@ -357,18 +357,20 @@ abstract class Utilities
 	 */
 	public static function getColorFor(string $itemName, string $setName): string
 	{
+		$current = null;
+
 		/**
 		 * Allows for a custom color function to assign a color for a given value.
 		 *
 		 * @since 0.0.90 Added
 		 *
-		 * @param mixed $current The current value.  Null is provided to the function because the color hasn't otherwise been determined yet.
+		 * @param ?string $current The current value.  Null is provided to the function because the color hasn't otherwise been determined yet.
 		 * @param string $itemName The name of the current item.
 		 * @param string $setName The name of the set to which the item belongs.
 		 *
-		 * @return string|null The color in hex, starting with '#'.  Null to defer to the default color assignment.
+		 * @return ?string The color in hex, starting with '#'.  Null to defer to the default color assignment.
 		 */
-		$r = apply_filters('tp_custom_color_function', null, $itemName, $setName);
+		$r = apply_filters('tp_custom_color_function', $current, $itemName, $setName);
 		if ($r !== null)
 			return $r;
 
@@ -386,6 +388,7 @@ abstract class Utilities
 			self::$colorAssignments[$setName][] = $itemName;
 		}
 
+		$array = [];
 		/**
 		 * Allows for a custom color set to be used for color assignment to match branding. This filter should return an
 		 * array of colors in hex format, starting with '#'.  The colors will be assigned in order, but it is not
@@ -394,10 +397,10 @@ abstract class Utilities
 		 *
 		 * @since 0.0.90 Added
 		 *
-		 * @param string[] $array The array of colors in hex format, starting with '#'.
+		 * @param string[] $array The array of colors in hex format strings, starting with '#'.
 		 * @param string $setName The name of the set for which the colors are needed.
 		 */
-		$colorSet = apply_filters('tp_custom_color_set', [], $setName);
+		$colorSet = apply_filters('tp_custom_color_set', $array, $setName);
 
 		if (count($colorSet) > 0) {
 			return $colorSet[$idx % count($colorSet)];
@@ -678,7 +681,7 @@ abstract class Utilities
 		 * @return string The standardized HTML.
 		 */
 		$html      = apply_filters('tp_pre_standardize_html', $html, $context);
-
+		$maxHeader = 2;
 
 		/**
 		 * The maximum header level to allow in an HTML string.  Default is 2.
@@ -690,7 +693,7 @@ abstract class Utilities
 		 *
 		 * @return int The maximum header level to allow in the HTML.
 		 */
-		$maxHeader = intval(apply_filters('tp_standardize_h_tags_max_h', 2, $context));
+		$maxHeader = intval(apply_filters('tp_standardize_h_tags_max_h', $maxHeader, $context));
 
 		$allowedTags = [
 			'p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li',

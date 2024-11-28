@@ -280,6 +280,8 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 
 		$data = $this->getStatsForSubmission();
 
+		$endpoint = self::SUBMISSION_ENDPOINT;
+
 		/**
 		 * This plugin is designed to be used by other churches, but to help troubleshoot and understand usage, some
 		 * basic statistics are sent back to Tenth.  This filter allows you to change the endpoint to which the data is
@@ -292,7 +294,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		 *
 		 * @param string $endpoint The endpoint value to use.
 		 */
-		$endpoint = (string)apply_filters('tp_stats_endpoint', self::SUBMISSION_ENDPOINT);
+		$endpoint = (string)apply_filters('tp_stats_endpoint', $endpoint);
 
 		if ( ! str_starts_with($endpoint, 'https://')) {
 			return;

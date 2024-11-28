@@ -978,12 +978,15 @@ class TouchPointWP
 	public static function requireStyle(string $name = null): void
 	{
 		$filename = strtolower($name);
+		
+		$includeStyle = true;
+		
 		/**
 		 * Filter to determine if a given stylesheet (which comes with TouchPoint-WP) should be included.
 		 *
 		 * @params bool $include Whether to include the stylesheet.
 		 */
-		if ( ! apply_filters("tp_include_style_$filename", true)) {
+		if ( ! apply_filters("tp_include_style_$filename", $includeStyle)) {
 			return;
 		}
 
@@ -2541,12 +2544,15 @@ class TouchPointWP
 	 */
 	public static function enqueueActionsStyle(string $action): void
 	{
+		$includeActionsStyle = true;
+
 		/**
 		 * Filter to determine if the stylesheet that adjusts SWAL and other action-related items should be included.
 		 *
 		 * @params bool $include Whether to include the styles.  Default true = include.
+		 * @params string $action The action that is being performed.
 		 */
-		$includeActionsStyle = !!apply_filters("tp_include_actions_style", true, $action);
+		$includeActionsStyle = !!apply_filters("tp_include_actions_style", $includeActionsStyle, $action);
 		if ($includeActionsStyle) {
 			wp_enqueue_style(
 				TouchPointWP::SHORTCODE_PREFIX . 'actions-style',

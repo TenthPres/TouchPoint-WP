@@ -563,18 +563,24 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 	 */
 	public static function templateFilter(string $template): string
 	{
+		$className = self::class;
+		$useTemplates = true;
+
 		/**
 		 * Determines whether the plugin's default templates should be used.  Theme developers can return false in this
 		 * filter to prevent the default templates from applying, especially if they conflict with the theme.
 		 *
 		 * Default is true.
 		 *
-		 * @since 0.0.6 Added
+		 *  TODO merge with the same filter in Involvement
 		 *
 		 * @param bool $value The value to return.  True will allow the default templates to be applied.
 		 * @param string $className The name of the class calling for the template.
+		 *
+		 *@since 0.0.6 Added
+		 *
 		 */
-		if (!!apply_filters('tp_use_default_templates', true, self::class)) {
+		if (!!apply_filters('tp_use_default_templates', $useTemplates, $className)) {
 			$postTypesToFilter        = self::POST_TYPE;
 			$templateFilesToOverwrite = self::TEMPLATES_TO_OVERWRITE;
 
@@ -685,6 +691,9 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		}
 		$params = array_change_key_case($params, CASE_LOWER);
 
+		$useCss = true;
+		$className = self::class;
+
 		// set some defaults
 		/** @noinspection SpellCheckingInspection */
 		$params = shortcode_atts(
@@ -697,10 +706,12 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 				 *
 				 * @since 0.0.15 Added
 				 *
+				 * TODO merge with the same filter in Involvement
+				 *
 				 * @param bool $useCss Whether or not to include the default CSS.  True = include
 				 * @param string $className The name of the current calling class.
 				 */
-				'includecss' => apply_filters('tp_use_css', true, self::class),
+				'includecss' => apply_filters('tp_use_css', $useCss, $className),
 				'itemclass'  => self::$itemClass,
 			],
 			$params,
