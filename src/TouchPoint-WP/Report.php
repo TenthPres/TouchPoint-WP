@@ -26,6 +26,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "storedAsPost.php";
 	require_once "Utilities/ImageConversions.php";
 	require_once "Utilities/Http.php";
+	require_once "Utilities/Database.php";
 }
 
 /**
