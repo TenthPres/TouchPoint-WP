@@ -240,12 +240,18 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 				case "py":
 					TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
 
-					$r = Report::fromParams([
-						                        'type'     => 'python',
-						                        'name'     => $filename,
-						                        'p1'       => $_GET['p1'] ?? ''
-					                        ]);
-					$content = $r->content();
+					try {
+						$r       = Report::fromParams([
+							                              'type' => 'python',
+							                              'name' => $filename,
+							                              'p1'   => $_GET['p1'] ?? ''
+						                              ]);
+						$content = $r->content();
+					} catch (TouchPointWP_Exception) {
+						http_response_code(Http::SERVER_ERROR);
+						exit;
+					}
+
 					if ($content === self::DEFAULT_CONTENT) {
 						http_response_code(Http::NOT_FOUND);
 						exit;
@@ -300,11 +306,16 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 				case "sql":
 					TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
 					header("Cache-Control: max-age=3600, must-revalidate, public");
+					try {
 					$r = Report::fromParams([
 						                        'type'     => 'sql',
 						                        'name'     => $filename,
 						                        'p1'       => $_GET['p1'] ?? ''
 					                        ]);
+					} catch (TouchPointWP_Exception) {
+						http_response_code(Http::SERVER_ERROR);
+						exit;
+					}
 					$content = $r->content();
 					if ($content === self::DEFAULT_CONTENT) {
 						http_response_code(Http::NOT_FOUND);
@@ -353,8 +364,9 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 	 *
 	 * @return string
 	 */
-	public static function reportShortcode($params = [], string $content = ""): string
+	public static function reportShortcode(mixed $params = [], string $content = ""): string
 	{
+		/** @noinspection PhpRedundantOptionalArgumentInspection */
 		$params = array_change_key_case($params, CASE_LOWER);
 
 		$params = shortcode_atts(
@@ -506,7 +518,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 	 *
 	 * @return int|WP_Error|null
 	 */
-	protected function submitUpdate()
+	protected function submitUpdate(): int|null|WP_Error
 	{
 		if ( ! $this->getPost()) {
 			return null;
@@ -597,7 +609,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 		foreach ($updates as $u) {
 			try {
 				$report = self::fromParams($u);
-			} catch (TouchPointWP_Exception $e) {
+			} catch (TouchPointWP_Exception) {
 				continue;
 			}
 
@@ -726,7 +738,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 			if ( ! $forked) {
 				self::updateFromTouchPoint();
 			}
-		} catch (Exception $ex) {
+		} catch (Exception) {
 		}
 	}
 
