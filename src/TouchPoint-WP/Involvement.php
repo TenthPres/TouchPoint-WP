@@ -754,7 +754,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * This is separated out to a static method to prevent involvement from being instantiated (with those database
 	 * hits) when the content is cached.  (10x faster or more)
 	 *
-	 * @param int          $objId
+	 * @param int          $objId  Involvement Id.
 	 * @param ?Involvement $obj
 	 *
 	 * @return ?string

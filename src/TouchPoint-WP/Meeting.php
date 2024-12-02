@@ -183,6 +183,16 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		$this->registerConstruction();
 	}
 
+	/**
+	 * Get the Meeting ID.
+	 *
+	 * @return int
+	 */
+	public function mtgId(): int
+	{
+		return $this->mtgId;
+	}
+
 
 	/**
 	 * Create a Meeting object from a Meeting ID.  Only Meetings that are already imported as Posts are currently
