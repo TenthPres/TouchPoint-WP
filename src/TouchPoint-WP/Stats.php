@@ -261,7 +261,12 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		$data['wpTimezone'] = get_option('timezone_string');
 		$data['adminEmail'] = get_option('admin_email');
 		$data['siteName'] = get_bloginfo('name');
-		$data['siteLogoUrl'] = esc_url( wp_get_attachment_image_src( get_theme_mod( 'custom_logo' ), 'full' )[0] );
+		$data['siteLogoUrl'] = get_theme_mod('custom_logo');
+		if ($data['siteLogoUrl']) {
+			$data['siteLogoUrl'] = esc_url(wp_get_attachment_image_src($data['siteLogoUrl'], 'full')[0]);
+		} else {
+			$data['siteLogoUrl'] = '';
+		}
 		$data['listPublicly'] = 1 * ($sets->enable_public_listing === 'on');
 		$data['installId'] = $this->installId;
 		$data['privateKey'] = $this->privateKey;
