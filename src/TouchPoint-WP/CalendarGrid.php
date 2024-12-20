@@ -74,7 +74,9 @@ class CalendarGrid {
 				$d = new DateTime('now', $tz);
 				$d = new DateTime($d->format('Y-m-01 00:00:00'), $tz);
 			} else {
-				$d = new DateTime("$year-$month-01", $tz);
+				$d = new DateTime(null, $tz);
+				$d->setDate($year, $month, 1);
+				$d->setTime(0, 0);
 			}
 		} catch (Exception $e) {
 			$this->html = "<!-- Could not create calendar grid because an exception occurred: {$e->getMessage()} -->";
@@ -88,16 +90,18 @@ class CalendarGrid {
 
 		// Get the day of the week for the first day of the month (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
 		$offsetDays = intval($d->format('w')); // w: Numeric representation of the day of the week
+
+		// Extra days at the end of the month
+		$daysInMonth = intval($d->format('t'));
+		$daysToShow = 7 * ceil(($daysInMonth + $offsetDays) / 7);
+		
+		// Set start of range to be before the offset
 		try {
 			$d->modify("-$offsetDays days");
 		} catch (Exception) { // Exception is not feasible.
 		}
 		$d->setTimezone($tz);
 		$r = "";
-
-		// Extra days at the end of the month
-		$daysInMonth = intval($d->format('t'));
-		$daysToShow = ((42 - $daysInMonth - $offsetDays) % 7) + $daysInMonth;
 
 		// Create a table to display the calendar
 		$r .= '<div class="calGrid">';
