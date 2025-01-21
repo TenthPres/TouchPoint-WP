@@ -84,13 +84,20 @@ article.inv-list-item h2 a {
     text-align: right;
 }
 
+.partner-actions button,
+.partner-actions a.button,
+.involvement-actions button,
+.involvement-actions a.button {
+    display: inline-block;
+}
+
 .partner-list-item .partner-actions button,
 .partner-list-item .partner-actions a.button,
 .inv-list-item .involvement-actions button,
 .inv-list-item .involvement-actions a.button,
 .inv-list-item .child-involvements a {
-    position:relative;
-    z-index:10;
+    position: relative;
+    z-index: 10;
 }
 
 .partner-list-item div.post-meta-single,
@@ -187,7 +194,49 @@ article .TouchPointWP-detail-cell.TouchPointWP-map-container {
     padding-bottom: 30%;
 }
 
+main.TouchPointWP-main {
+    max-width: 1200px;
+    margin: auto;
+    padding: 0 1em;
+}
+
 article .TouchPointWP-detail-cell .TouchPointWP-detail-cell-section {
     text-align:center;
     margin-bottom: 2em;
+}
+
+header div.header-image-container {
+    max-width: 1200px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+header div.header-image-container div.header-image {
+    width: 100%;
+    padding-bottom: 50%;
+    background-size: cover;
+    background-position: center;
+}
+
+header div.header-image-container div.header-image.partner-header-image {
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+header img.tpwp-accessibility-header-image {
+    /* visible to screen readers only */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+header .tpwp-alert-block {
+    margin: 2em 20%;
+    background: #f003;
+    padding: 1em;
 }

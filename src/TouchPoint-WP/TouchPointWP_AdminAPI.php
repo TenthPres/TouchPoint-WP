@@ -29,7 +29,7 @@ class TouchPointWP_AdminAPI implements api
 	 */
 	public function __construct()
 	{
-//        add_action( 'save_post', array( $this, 'save_meta_boxes' ), 10, 1 );
+//		add_action( 'save_post', array( $this, 'save_meta_boxes' ), 10, 1 );
 	}
 
 	/**
@@ -92,7 +92,14 @@ class TouchPointWP_AdminAPI implements api
 				if ( ! TouchPointWP::currentUserIsAdmin()) {
 					return false;
 				}
-				TouchPointWP::instance()->settings->migrate();
+				TouchPointWP::instance()->migrate(true);
+				exit;
+
+			case "phpinfo":
+				if (!TouchPointWP::currentUserIsAdmin()) {
+					return false;
+				}
+				phpinfo();
 				exit;
 		}
 
@@ -125,7 +132,7 @@ class TouchPointWP_AdminAPI implements api
 	{
 		try {
 			$fileName = $this->generatePython(true);
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 			return false;
 		}
 
@@ -377,7 +384,7 @@ class TouchPointWP_AdminAPI implements api
 	 *     array of filename => content.
 	 * @throws TouchPointWP_Exception
 	 */
-	public function generatePython(bool $toZip, array $filenames = ['*'])
+	public function generatePython(bool $toZip, array $filenames = ['*']): array|string
 	{
 		if ($toZip && ! class_exists('\ZipArchive')) {
 			throw new TouchPointWP_Exception("ZipArchive extension is not enabled.");
@@ -466,6 +473,7 @@ class TouchPointWP_AdminAPI implements api
 	private static function getTpFilenameForRepoFilename(string $fn): string
 	{
 		$newFn = '';
+		/** @noinspection PhpSwitchStatementWitSingleBranchInspection */
 		switch ($fn) {
 			case 'WebApi':
 				$newFn = TouchPointWP::instance()->settings->api_script_name;
@@ -485,7 +493,7 @@ class TouchPointWP_AdminAPI implements api
 	/**
 	 * Display an error when there's something wrong with the TouchPoint connection.
 	 */
-	public static function showError($message)
+	public static function showError($message): void
 	{
 		add_action('admin_notices',
 			function () use ($message) {

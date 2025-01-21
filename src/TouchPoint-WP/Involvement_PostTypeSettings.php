@@ -19,9 +19,11 @@ if ( ! defined('ABSPATH')) {
  * @property-read string   $namePlural
  * @property-read string   $slug
  * @property-read string[] $importDivs
+ * @property-read string[] $importCampuses
  * @property-read bool     $useImages
  * @property-read bool     $useGeo
  * @property-read bool     $hierarchical
+ * @property-read bool     $importMeetings
  * @property-read string   $groupBy
  * @property-read string[] $excludeIf
  * @property-read string[] $leaderTypes
@@ -42,9 +44,11 @@ class Involvement_PostTypeSettings
 	protected string $namePlural;
 	protected string $slug;
 	protected array $importDivs = [];
+	protected array $importCampuses = [];
 	protected bool $useImages = false;
 	protected bool $useGeo = false;
 	protected bool $hierarchical = false;
+	protected bool $importMeetings = false;
 	protected string $groupBy = "";
 	protected array $excludeIf = [];
 	protected array $leaderTypes = [];
@@ -62,7 +66,7 @@ class Involvement_PostTypeSettings
 	 */
 	final public static function &instance(): array
 	{
-		if ( ! isset(self::$settings)) {
+		if (!isset(self::$settings)) {
 			$json        = json_decode(TouchPointWP::instance()->settings->inv_json);
 			$settingsArr = [];
 
@@ -70,7 +74,24 @@ class Involvement_PostTypeSettings
 				$settingsArr[] = new Involvement_PostTypeSettings($o);
 			}
 
-			self::$settings = $settingsArr;
+			if (TouchPointWP::instance()->settings->enable_meeting_cal === 'on') {
+				$settingsArr[] = Meeting::getTypeSettings();
+			}
+
+			/**
+			 * Adjust Involvement Post Type Settings.  These settings define virtually all attributes of how a set of 
+			 * Involvements is synced to WordPress.
+			 *
+			 * If you're using this filter, you will need to add your function VERY early (init with a low sequence
+			 * number or earlier) because post types are registered early.
+			 *
+			 * @see Involvement_PostTypeSettings
+			 *
+			 * @since 0.0.90 Added
+			 *
+			 * @param Involvement_PostTypeSettings[] $settingsArr An array of the Post Type Settings objects.
+			 */
+			self::$settings = apply_filters("tp_get_involvement_type_settings", $settingsArr);
 		}
 
 		return self::$settings;
@@ -92,6 +113,25 @@ class Involvement_PostTypeSettings
 		}
 	}
 
+	/**
+	 * Get a list of all division IDs that are being imported by all types.
+	 *
+	 * @return int[]
+	 */
+	public static function getAllDivs(): array
+	{
+		$r = [];
+		foreach (self::instance() as $s) {
+			$r = [...$r, ...$s->importDivs];
+		}
+		return array_unique($r);
+	}
+
+	/**
+	 * Get the Post Type for use with WordPress functions
+	 *
+	 * @return string
+	 */
 	public function postTypeWithPrefix(): string
 	{
 		self::instance();
@@ -99,6 +139,11 @@ class Involvement_PostTypeSettings
 		return TouchPointWP::HOOK_PREFIX . $this->postType;
 	}
 
+	/**
+	 * Get the Post Type without the hook prefix.
+	 *
+	 * @return string
+	 */
 	public function postTypeWithoutPrefix(): string
 	{
 		self::instance();
@@ -167,11 +212,11 @@ class Involvement_PostTypeSettings
 		$prefixLength = strlen(self::POST_TYPE_PREFIX);
 		foreach (self::instance() as $type) {
 			if ($type->postType === $postType ||
-			    $type->__get('postType') === $postType ||
-			    (
-				    substr($type->postType, 0, $prefixLength) === self::POST_TYPE_PREFIX &&
-				    substr($type->postType, $prefixLength) === $postType
-			    )
+				$type->__get('postType') === $postType ||
+				(
+					substr($type->postType, 0, $prefixLength) === self::POST_TYPE_PREFIX &&
+					substr($type->postType, $prefixLength) === $postType
+				)
 			) {
 				return $type;
 			}
@@ -214,7 +259,7 @@ class Involvement_PostTypeSettings
 				$name = preg_replace('/\W+/', '-', strtolower($type->namePlural));
 				try {
 					$type->slug = $name . ($first ? "" : "-" . bin2hex(random_bytes(1)));
-				} catch (Exception $e) {
+				} catch (Exception) {
 					$type->slug = $name . ($first ? "" : "-" . bin2hex($count++));
 				}
 				$first = false;
@@ -249,7 +294,7 @@ class Involvement_PostTypeSettings
 				$slug = preg_replace('/\W+/', '', strtolower($type->slug));
 				try {
 					$type->postType = self::POST_TYPE_PREFIX . $slug . ($first ? "" : "_" . bin2hex(random_bytes(1)));
-				} catch (Exception $e) {
+				} catch (Exception) {
 					$type->postType = self::POST_TYPE_PREFIX . $slug . ($first ? "" : "_" . bin2hex($count++));
 				}
 				$first          = false;
@@ -284,26 +329,13 @@ class Involvement_PostTypeSettings
 	}
 
 	/**
-	 * @param string|string[]|int[] $memberTypes
-	 *
-	 * @return int[]
-	 */
-	protected static function memberTypesToInts($memberTypes): array
-	{
-		$memberTypes = str_replace('mt', '', $memberTypes);
-
-		/** @noinspection SpellCheckingInspection */
-		return array_map('intval', $memberTypes);
-	}
-
-	/**
 	 * Get the leader member types, as an array of ints
 	 *
 	 * @return int[]
 	 */
 	public function leaderTypeInts(): array
 	{
-		return self::memberTypesToInts($this->leaderTypes);
+		return Utilities::idArrayToIntArray($this->leaderTypes);
 	}
 
 	/**
@@ -317,6 +349,6 @@ class Involvement_PostTypeSettings
 			return null;
 		}
 
-		return self::memberTypesToInts($this->hostTypes);
+		return Utilities::idArrayToIntArray($this->hostTypes);
 	}
 }

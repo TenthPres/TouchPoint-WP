@@ -5,8 +5,9 @@ namespace tp\TouchPointWP;
 
 $divs = json_encode($this->parent->getDivisions());
 $kws = json_encode($this->parent->getKeywords());
+$camps = json_encode($this->parent->getCampuses());
 /** @noinspection CommaExpressionJS */
-echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws }</script>";
+echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws, campuses: $camps }</script>";
 ?>
 <form>
 <div data-bind="foreach: invTypes, visible: invTypes().length > 0" style="display:none;">
@@ -56,6 +57,29 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         </tr>
 
         <tr>
+            <th><?php _e("Import Campuses", "TouchPoint-WP"); ?></th>
+            <td colspan="2">
+                <!-- ko if: $root.campuses.length < 1 -->
+                <p><?php _e("Loading...", "TouchPoint-WP"); ?></p>
+                <!-- /ko -->
+                <p>
+                    <input id="it-campus-all" type="checkbox" data-bind="checked: $data._importCampusesAll, attr: {id: 'it-' + $data.slug() + '-campus-all'}" />
+                    <label for="it-campus-all" data-bind="attr: {for: 'it-' + $data.slug() + '-campus-all'}"><?php _e("All Campuses", "TouchPoint-WP"); ?></label>
+                </p>
+                <p>
+                    <input id="it-campus-no" type="checkbox" value="c0" data-bind="checked: $data.importCampuses, attr: {id: 'it-' + $data.slug() + '-campus-no'}" />
+                    <label for="it-campus-no" data-bind="attr: {for: 'it-' + $data.slug() + '-campus-no'}"><?php _e("(No Campus)", "TouchPoint-WP"); ?></label>
+                </p>
+                <!-- ko foreach: $root.campuses -->
+                <p>
+                    <input id="it-campus" type="checkbox" data-bind="value: 'c' + id, checked: $parent.importCampuses, attr: {id: 'it-' + $parent.slug() + '-campus-' + id}" />
+                    <label for="it-campus" data-bind="text: $data.name, attr: {for: 'it-' + $parent.slug() + '-campus-' + id}"></label>
+                </p>
+                <!-- /ko -->
+            </td>
+        </tr>
+
+        <tr>
             <th>
                 <label for="it-hierarchical" data-bind="attr: { for: 'it-' + slug() + '-hierarchical'}"><?php _e("Import Hierarchically (Parent-Child Relationships)", "TouchPoint-WP"); ?></label>
             </th>
@@ -71,6 +95,15 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 <label for="it-useImages" data-bind="attr: { for: 'it-' + slug() + '-useImages'}"><?php _e("Importing images sometimes conflicts with other plugins. Disabling image imports can help.", "TouchPoint-WP"); ?></label>
             </td>
         </tr>
+
+        <?php if ($this->enable_meeting_cal === "on") { ?>
+        <tr>
+            <th>
+                <label for="it-importMeetings" data-bind="attr: { for: 'it-' + slug() + '-importMeetings'}"><?php _e("Import All Meetings to Calendar", "TouchPoint-WP"); ?></label>
+            </th>
+            <td colspan="2"><input id="it-importMeetings" type="checkbox" data-bind="checked: importMeetings, attr: { id: 'it-' + slug() + '-importMeetings'}" /></td>
+        </tr>
+        <?php } ?>
 
         <tr>
             <th>
@@ -146,19 +179,44 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             <td colspan="2">
                 <select id="it-tense" data-bind="value: groupBy, attr: { id: 'it-' + slug() + '-tense'}">
                     <option value=""><?php _e("No Grouping", "TouchPoint-WP"); ?></option>
-                    <option value="-<?php echo TouchPointWP::TAX_TENSE; ?>"><?php _e("Upcoming / Current", "TouchPoint-WP"); ?></option>
-                    <option value="<?php echo TouchPointWP::TAX_TENSE; ?>"><?php _e("Current / Upcoming", "TouchPoint-WP"); ?></option>
+                    <option value="-<?php echo Taxonomies::TAX_TENSE; ?>"><?php _e("Upcoming / Current", "TouchPoint-WP"); ?></option>
+                    <option value="<?php echo Taxonomies::TAX_TENSE; ?>"><?php _e("Current / Upcoming", "TouchPoint-WP"); ?></option>
                 </select>
             </td>
         </tr>
         <tr>
             <th>
-                <?php _e("Default Filters", "TouchPoint-WP"); ?>
+                <?php
+
+                _e("Default Filters", "TouchPoint-WP");
+
+                $divisionsLabel = wp_sprintf(
+                        // Translators: %1$s is the user-provided name for Divisions.  %2$s is "Division" or translated equivalent.
+                        _x('%1$s (%2$s)', "TouchPoint-WP"),
+                        $this->get('dv_name_singular'),
+                        __("Division", "TouchPoint-WP")
+                    );
+
+                $resCodeLabel = wp_sprintf(
+                    // Translators: %1$s is the user-provided name for ResCode.  %2$s is "Resident Code" or translated equivalent.
+	                _x('%1$s (%2$s)', "TouchPoint-WP"),
+	                $this->get('rc_name_singular'),
+	                __("Resident Code", "TouchPoint-WP")
+                );
+
+                $campusLabel = wp_sprintf(
+                    // Translators: %1$s is the user-provided name for Campus.  %2$s is "Campus" or translated equivalent.
+	                _x('%1$s (%2$s)', "TouchPoint-WP"),
+	                $this->get('camp_name_singular'),
+	                __("Campus", "TouchPoint-WP")
+                );
+
+                ?>
             </th>
             <td colspan="2">
                 <p>
                     <input id="it-filt-div" type="checkbox" value="div" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-div'}" />
-                    <label for="it-filt-div" data-bind="attr: { for: 'it-' + slug() + '-filt-div'}"><?php echo $this->get('dv_name_singular') ?></label>
+                    <label for="it-filt-div" data-bind="attr: { for: 'it-' + slug() + '-filt-div'}"><?php echo $divisionsLabel ?></label>
                 </p>
                 <p>
                     <input id="it-filt-genderId" type="checkbox" value="genderId" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-genderId'}" />
@@ -166,12 +224,12 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 </p>
                 <p data-bind="visible: useGeo">
                     <input id="it-filt-rescode" type="checkbox" value="rescode" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-rescode'}" />
-                    <label for="it-filt-rescode" data-bind="attr: { for: 'it-' + slug() + '-filt-rescode'}"><?php echo $this->get('rc_name_singular') ?></label>
+                    <label for="it-filt-rescode" data-bind="attr: { for: 'it-' + slug() + '-filt-rescode'}"><?php echo $resCodeLabel ?></label>
                 </p>
                 <?php if ($this->get('enable_campuses') === "on") { ?>
                 <p>
                     <input id="it-filt-campus" type="checkbox" value="campus" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-campus'}" />
-                    <label for="it-filt-campus" data-bind="attr: { for: 'it-' + slug() + '-filt-campus'}"><?php echo $this->get('camp_name_singular') ?></label>
+                    <label for="it-filt-campus" data-bind="attr: { for: 'it-' + slug() + '-filt-campus'}"><?php echo $campusLabel ?></label>
                 </p>
                 <?php } ?>
                 <p>
@@ -238,10 +296,12 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.namePlural = ko.observable(data.namePlural ?? "<?php _e("Small Groups", "TouchPoint-WP"); ?>");
         this.slug = ko.observable(data.slug ?? "smallgroup").extend({slug: 0});
         this.importDivs = ko.observable(data.importDivs ?? []);
+        this.importCampuses = ko.observable(data.importCampuses ?? []);
         this.useGeo = ko.observable(data.useGeo ?? false);
         this.useImages = ko.observable(data.useImages ?? true);
         this.excludeIf = ko.observable(data.excludeIf ?? []);
         this.hierarchical = ko.observable(data.hierarchical ?? false);
+        this.importMeetings = ko.observable(data.importMeetings ?? false);
         this.groupBy = ko.observable(data.groupBy ?? "");
         this.leaderTypes = ko.observableArray(data.leaderTypes ?? []);
         this.hostTypes = ko.observableArray(data.hostTypes ?? []);
@@ -267,6 +327,19 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             }
         })
 
+        this._importCampusesAll = ko.pureComputed({
+            read: function() {
+                return self.importCampuses().length === 0;
+            },
+            write: function(value) {
+                if (value) {
+                    self.importCampuses([]);
+                } else if (self.importCampuses().length === 0) {
+                    self.importCampuses(['c0']);
+                }
+            }
+        });
+
         // operations
         this.toggleVisibility = function() {
             self._visible(! self._visible())
@@ -286,6 +359,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         self.invTypes = ko.observableArray(invInits);
         self.divisions = tpvm._vmContext.divs;
         self.keywords = tpvm._vmContext.kws;
+        self.campuses = tpvm._vmContext.campuses;
 
         // Operations
         self.addInvType = function() {
@@ -328,7 +402,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 
         let types = tpvm._vmContext.invTypesVM.invTypes();
         for (let i in types) {
-            let name = tpvm.people[invData[i].taskOwner]?.displayName ?? "(named person)";
+            let name = tpvm.people[invData[i].taskOwner]?.displayName ?? "<?php _e("(named person)", "TouchPoint-WP") ?>";
             applySelect2ForData('#it-' + types[i].slug() + '-taskOwner', name, invData[i].taskOwner);
         }
 

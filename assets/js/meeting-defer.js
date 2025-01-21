@@ -54,7 +54,6 @@ class TP_Meeting {
                             e.stopPropagation();
                             mtg[action + "Action"]();
                         });
-                        tpvm._utils.handleHash(action);
                     }
                 }
 

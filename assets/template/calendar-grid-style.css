@@ -1,0 +1,95 @@
+
+div.calGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+
+div.calGrid,
+div.calGrid > div.calWeekdayHead,
+div.calGrid > div.calDay {
+    border: 1px solid black;
+}
+
+div.calGrid > div.calDay {
+    min-height: 5em;
+}
+
+div.calGrid div.calDay > h3.calDayHead {
+    display: none;
+}
+
+div.calGrid div.calDay > * {
+    display: block;
+}
+
+div.calGrid div.calDay > a.event.feat {
+    font-weight: bold;
+    font-size: 1.2em;
+    padding-bottom: .5em;
+}
+
+div.calGrid div.calDay > a.event.cancelled {
+    color: #f446;
+    text-decoration: line-through;
+}
+
+div.calGrid div.calDay > a,
+div.calGrid div.calWeekdayHead,
+div.calGrid div.calDay > h3.calDayHead,
+div.calGrid div.calDay > span.calDayNum {
+    padding: .2em 5px;
+}
+
+div.calGrid div.calDay.before,
+div.calGrid div.calDay.after {
+    opacity: .8;
+    background: #0001;
+}
+
+div.calGridNav.bottom {
+    display: none;
+}
+
+@media screen and (max-width: 1000px) {
+    div.calGrid {
+        display: grid;
+        grid-template-columns: unset;
+    }
+
+    div.calGrid,
+    div.calGrid > div.calDay {
+        border: unset;
+        min-height: unset;
+        margin-bottom: 1em;
+    }
+
+    div.calGrid div.calDay > a.event.notFirstDay,
+    div.calGrid div.calDay.noFirstDays {
+        display: none;
+    }
+
+    div.calGrid div.calWeekdayHead,
+    div.calGrid div.calDay.before,
+    div.calGrid div.calDay.empty,
+    div.calGrid div.calDay.after {
+        display: none;
+    }
+
+    div.calGrid div.calDay > span.calDayNum {
+        display: none;
+    }
+
+    div.calGrid div.calDay > h3.calDayHead {
+        display:block;
+    }
+
+    div.calGridNav.bottom {
+        display: flex;
+    }
+}
+
+div.calGridNav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}

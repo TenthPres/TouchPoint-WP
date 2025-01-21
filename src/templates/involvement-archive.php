@@ -46,6 +46,8 @@ if (have_posts()) {
         </div>
     </header>
 
+    <main class="TouchPointWP-main">
+
     <?php
 
     Involvement::doInvolvementList($wp_query);
@@ -62,4 +64,7 @@ if (have_posts()) {
     }
 }
 
+?>
+    </main><!-- .TouchPointWP-main -->
+<?php
 get_footer();

@@ -42,6 +42,8 @@ if (have_posts()) {
             <?php } ?>
         </div>
     </header>
+
+    <main class="TouchPointWP-main">
     <div class="partner-list">
     <?php
 
@@ -54,6 +56,7 @@ if (have_posts()) {
     }
     ?>
     </div>
+    </main>
     <?php
 } else {
     $loadedPart = get_template_part('list-none', 'involvement-list-none');

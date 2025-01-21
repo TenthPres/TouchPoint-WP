@@ -12,12 +12,14 @@ composer.lock
 /.idea/deployment.xml
 /.idea/dataSources.xml
 /.idea/webServers.xml
+/.idea/runConfigurations/Local.xml
 
 *.min.js
 node_modules
 
 /i18n/*.json
 /i18n/*.mo
+/i18n/*.l10n.php
 
 package-lock.json
 

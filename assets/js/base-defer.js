@@ -69,7 +69,11 @@ function utilInit() {
     }
 
     tpvm._utils.clearHash = function() {
-        window.location.hash = "";
+        if (!!window.history) {
+            window.history.pushState("", "", `${window.location.pathname}${window.location.search}`)
+        } else {
+            window.location.hash = "";
+        }
     }
 
     /**
@@ -354,7 +358,11 @@ class TP_MapMarker
     }
 
     get inBounds() {
-        return this.gMkr.getMap().getBounds().contains(this.gMkr.getPosition());
+        let map = this.gMkr.getMap();
+        if (!map) { // if map failed to render for some reason, this prevents entries from being hidden.
+            return true;
+        }
+        return map.getBounds().contains(this.gMkr.getPosition());
     }
 
     get useIcon() {
@@ -513,7 +521,13 @@ class TP_Mappable {
             this.connectedElements[ei].addEventListener('mouseenter', function(e){e.stopPropagation(); mappable.toggleHighlighted(true);});
             this.connectedElements[ei].addEventListener('mouseleave', function(e){e.stopPropagation(); mappable.toggleHighlighted(false);});
 
-            let actionBtns = this.connectedElements[ei].querySelectorAll('[data-tp-action]')
+            let ce = this.connectedElements[ei],
+                actionBtns = Array.from(ce.querySelectorAll('[data-tp-action]'));
+            if (ce.hasAttribute('data-tp-action')) {
+                // if there's a sole button, it should be added to the list so it works, too.
+                actionBtns.push(ce);
+            }
+
             for (const ai in actionBtns) {
                 if (!actionBtns.hasOwnProperty(ai)) continue;
                 const action = actionBtns[ai].getAttribute('data-tp-action');

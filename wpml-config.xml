@@ -22,6 +22,7 @@
         <custom-field action="ignore">tp_groupclosed</custom-field>
         <custom-field action="ignore">tp_hasregquestions</custom-field>
         <custom-field action="ignore">tp_regtypeid</custom-field>
+        <custom-field action="ignore">tp_siteregtypeid</custom-field>
         <custom-field action="ignore">tp_meetings</custom-field>
         <custom-field action="ignore">tp_schedules</custom-field>
         <custom-field action="ignore">tp_geo_lat</custom-field>
