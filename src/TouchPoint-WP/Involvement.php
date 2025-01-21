@@ -2419,6 +2419,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			if ($params['all']) {
 				self::requireAllObjectsInJs();
 				self::$_hasArchiveMap = true;
+			} else {
+				// enqueue this object for js instantiation
+				$post = get_post();
+				if ($post) {
+					self::fromPost($post)?->enqueueForJsInstantiation();
+				}
 			}
 
 			$script = file_get_contents(TouchPointWP::$dir . "/src/js-partials/involvement-map-inline.js");
