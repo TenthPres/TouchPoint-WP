@@ -68,15 +68,14 @@ class CalendarGrid {
 		try {
 			// Validate month & year; create $d as a day within the month
 			$tz = wp_timezone();
-			$month = intval($month);
+			$monthInt = intval($month);
+			$monthStr = substr("0$monthInt", -2);
 			$year  = intval($year);
-			if ($month < 1 || $month > 12 || $year < 2020 || $year > 2100) {
+			if ($monthInt < 1 || $monthInt > 12 || $year < 2020 || $year > 2100) {
 				$d = new DateTime('now', $tz);
 				$d = new DateTime($d->format('Y-m-01 00:00:00'), $tz);
 			} else {
-				$d = new DateTime(null, $tz);
-				$d->setDate($year, $month, 1);
-				$d->setTime(0, 0);
+				$d = new DateTime("$year-$monthStr-01 00:00:00", $tz);
 			}
 		} catch (Exception $e) {
 			$this->html = "<!-- Could not create calendar grid because an exception occurred: {$e->getMessage()} -->";
