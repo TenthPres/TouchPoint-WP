@@ -3021,7 +3021,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	}
 
 	/**
-	 * @param \WP_Post|object              $post  The parent post, which could be a group or Meeting.
+	 * @param WP_Post|object               $post  The parent post, which could be a group or Meeting.
 	 * @param object                       $inv   The involvement object from the API.
 	 * @param Involvement_PostTypeSettings $typeSets
 	 * @param int                          $imagePostId
@@ -3837,13 +3837,25 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Indicates if the given post can be instantiated as an Involvement.
 	 *
-	 * @param \WP_Post $post
+	 * @param WP_Post $post
 	 *
 	 * @return bool
 	 */
-	public static function postIsType(\WP_Post $post): bool
+	public static function postIsType(WP_Post $post): bool
 	{
 		return intval(get_post_meta($post->ID, TouchPointWP::INVOLVEMENT_META_KEY, true)) > 0;
+	}
+
+	/**
+	 * Indicates if the given post type name is the post type for this class.
+	 *
+	 * @param string $postType
+	 *
+	 * @return bool
+	 */
+	public static function postTypeMatches(string $postType): bool
+	{
+		return str_starts_with($postType, "tp_inv_") || $postType == "tp_smallgroup" || $postType == "tp_course";
 	}
 
 	/**

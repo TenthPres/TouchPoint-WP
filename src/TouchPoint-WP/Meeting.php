@@ -799,6 +799,18 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		return intval(get_post_meta($post->ID, Meeting::MEETING_META_KEY, true)) > 0;
 	}
 
+	/**
+	 * Indicates if the given post type name is the post type for this class.
+	 *
+	 * @param string $postType
+	 *
+	 * @return bool
+	 */
+	public static function postTypeMatches(string $postType): bool
+	{
+		return $postType === self::POST_TYPE;
+	}
+
 	public static function load(): bool
 	{
 		if (self::$_isLoaded) {

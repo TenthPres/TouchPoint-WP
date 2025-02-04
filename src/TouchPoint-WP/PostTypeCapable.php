@@ -123,6 +123,16 @@ abstract class PostTypeCapable implements module, storedAsPost
 
 
 	/**
+	 * Indicates if the given post type name is the post type for this class.
+	 *
+	 * @param string $postType
+	 *
+	 * @return bool
+	 */
+	public static abstract function postTypeMatches(string $postType): bool;
+
+
+	/**
 	 * Gets a TouchPoint item ID number, regardless of what type of object this is.
 	 *
 	 * @return int

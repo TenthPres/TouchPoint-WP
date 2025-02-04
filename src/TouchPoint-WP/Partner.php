@@ -1457,6 +1457,18 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 	}
 
 	/**
+	 * Indicates if the given post type name is the post type for this class.
+	 *
+	 * @param string $postType
+	 *
+	 * @return bool
+	 */
+	public static function postTypeMatches(string $postType): bool
+	{
+		return $postType === self::POST_TYPE;
+	}
+
+	/**
 	 * Serialize.  Mostly, manage the security requirements.
 	 *
 	 * @return object
