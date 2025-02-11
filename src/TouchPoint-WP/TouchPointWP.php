@@ -1234,6 +1234,11 @@ class TouchPointWP
 			return false;
 		}
 
+		if (intval($this->settings->ipapi_ratelimit_exp) > time()) {
+			// Rate limited.
+			return false;
+		}
+
 		$ipapi_key = $this->settings->ipapi_key;
 		if ($ipapi_key !== "") {
 			$ipapi_key = [
@@ -1248,7 +1253,13 @@ class TouchPointWP
 		$return = $return['body'];
 
 		if (str_contains($return, 'Too many rapid requests')) {
+			$this->settings->set('ipapi_ratelimit_exp', time() + 10);  // defer for 10 seconds.
 			throw new TouchPointWP_Exception("IP Geolocation Error: Too many requests", 178001);
+		}
+
+		if (str_contains($return, 'RateLimited')) {
+			$this->settings->set('ipapi_ratelimit_exp', time() + 300);  // defer for 5 minutes.
+			throw new TouchPointWP_Exception("IP Geolocation Error: Rate Limited", 178001);
 		}
 
 		try {

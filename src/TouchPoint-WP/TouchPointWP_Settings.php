@@ -32,6 +32,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string       google_maps_api_key Google Maps API Key for embedded maps
  * @property-read string       google_geo_api_key Google Maps API Key for geocoding
  * @property-read string       ipapi_key          The API key for ipapi.co for geolocation.
+ * @property-read ?int         ipapi_ratelimit_exp The time at which the rate limit for ipapi.co will expire.
  *
  * @property-read string 	   enable_public_listing Whether to allow the site to be listed as using TouchPoint-WP
  *
