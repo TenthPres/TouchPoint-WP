@@ -70,7 +70,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 	{
 		$this->name     = $params['name'];
 		$this->type     = $params['type'];
-		$this->interval = max(floor(floatval($params['interval']) * 4) / 4, 0.25);
+		$interval       = $params['interval'] ?? 24;
+		$this->interval = max(floor(floatval($interval) * 4) / 4, 0.25);
 		$this->p1       = $params['p1'] ?? "";
 	}
 
@@ -107,6 +108,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 		if ($params['type'] !== 'sql' && $params['type'] !== 'python') {
 			throw new TouchPointWP_Exception("Invalid Report type.", 173002);
 		}
+
+		$params['interval'] = floatval($params['interval'] ?? 24);
 
 		$key = self::cacheKey($params);
 		if (isset(self::$_instances[$key])) {
