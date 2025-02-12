@@ -1256,12 +1256,12 @@ class TouchPointWP
 
 		if (str_contains($return, 'Too many rapid requests')) {
 			$this->settings->set('ipapi_ratelimit_exp', time() + 10);  // defer for 10 seconds.
-			throw new TouchPointWP_Exception("IP Geolocation Error: Too many requests", 178001);
+			throw new TouchPointWP_Exception("IP Geolocation Error: Too many requests. Backing off for 10 seconds.", 178001);
 		}
 
 		if (str_contains($return, 'RateLimited')) {
 			$this->settings->set('ipapi_ratelimit_exp', time() + 300);  // defer for 5 minutes.
-			throw new TouchPointWP_Exception("IP Geolocation Error: Rate Limited", 178001);
+			throw new TouchPointWP_Exception("IP Geolocation Error: Rate Limited. Backing off for 5 minutes.", 178001);
 		}
 
 		try {

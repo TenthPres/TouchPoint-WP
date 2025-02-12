@@ -1603,7 +1603,7 @@ class TouchPointWP_Settings
 		// 0.0.94 - Cleanup old IP Geo data
 		$tableName = $wpdb->base_prefix . TouchPointWP::TABLE_IP_GEO;
 		$years = TouchPointWP::TTL_IP_GEO;
-		$wpdb->query("DELETE FROM $tableName WHERE `updatedDT` < NOW() - INTERVAL $years YEAR OR `data` LIKE 'Too many rapid requests.%';");
+		$wpdb->query("DELETE FROM $tableName WHERE `updatedDT` < NOW() - INTERVAL $years YEAR OR `data` LIKE '%error\": true%';");
 
 		// 0.0.95 - Remove never-really-used option for deletion handling
 		delete_option('tp_mc_deletion_method');
