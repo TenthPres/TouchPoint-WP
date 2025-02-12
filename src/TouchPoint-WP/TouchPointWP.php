@@ -88,7 +88,8 @@ class TouchPointWP
 	 */
 	public const CACHE_TTL = 8;
 
-	public const TTL_IP_GEO = 5;  // years
+	public const TTL_IP_GEO = 5;  // years until deleted
+	public const TTU_IP_GEO = 180; // days until updated
 
 	/**
 	 * Caching
@@ -1214,8 +1215,9 @@ class TouchPointWP
 
 		global $wpdb;
 		$tableName = $wpdb->base_prefix . self::TABLE_IP_GEO;
+		$days = self::TTU_IP_GEO;
 		/** @noinspection SqlResolve */
-		$q = $wpdb->prepare("SELECT * FROM $tableName WHERE ip = %s and updatedDt > (NOW() - INTERVAL 30 DAY)", $ip_pton);
+		$q = $wpdb->prepare("SELECT * FROM $tableName WHERE ip = %s and updatedDt > (NOW() - INTERVAL $days DAY)", $ip_pton);
 		$cache = $wpdb->get_row($q);
 		if ($cache) {
 			$this->ipData = $cache->data;
