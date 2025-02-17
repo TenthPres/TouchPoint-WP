@@ -109,7 +109,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	 *
 	 * @throws Exception
 	 */
-	protected function __destruct()
+	public function __destruct()
 	{
 		if ($this->_dirty) {
 			throw new Exception("Stats object was not saved.");
