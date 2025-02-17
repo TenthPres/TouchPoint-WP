@@ -2423,7 +2423,13 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				// enqueue this object for js instantiation
 				$post = get_post();
 				if ($post) {
-					self::fromPost($post)?->enqueueForJsInstantiation();
+					$inv = null;
+					if (Meeting::postIsType($post)) {
+						$inv = Meeting::fromPost($post)?->involvement();
+					} elseif (Involvement::postIsType($post)) {
+						$inv = Involvement::fromPost($post);
+					}
+					$inv?->enqueueForJsInstantiation();
 				}
 			}
 
