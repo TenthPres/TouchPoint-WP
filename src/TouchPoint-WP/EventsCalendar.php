@@ -20,6 +20,8 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
  * Provides an interface to bridge the gap between The Events Calendar plugin (by Modern Tribe) and the TouchPoint
  * mobile app.
  *
+ * This class and its features are deprecated since it will no longer be needed when mobile v2 is retired.
+ *
  * @since 0.0.90 Deprecated.  Will be removed once v2.0 apps are no longer in use, as this won't be necessary for 3.0+.
  * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
  */

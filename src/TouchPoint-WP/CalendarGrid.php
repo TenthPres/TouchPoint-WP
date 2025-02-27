@@ -29,7 +29,14 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
  * @package TouchPointWP
  */
 class CalendarGrid {
+	/**
+	 * @var ?DateTimeImmutable The date of the next month.
+	 */
 	public ?DateTimeImmutable $next = null;
+
+	/**
+	 * @var ?DateTimeImmutable The date of the previous month.
+	 */
 	public ?DateTimeImmutable $prev = null;
 
 	/**
