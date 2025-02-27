@@ -488,4 +488,27 @@ class CalendarGrid {
 		}
 		return self::$defaultItem;
 	}
+
+	/**
+	 * @return void
+	 */
+	public static function shortcode(): void
+	{
+		if (have_posts()) {
+			global $wp_query;
+
+			$grid = self::getDefaultGrid();
+			echo $grid->navBar(true);
+			echo $grid;
+			if ($grid->eventCount > 0) {
+				echo $grid->navBar(false, 'bottom');
+			}
+
+			wp_reset_query();
+			$taxQuery                          = [[]];
+			$wp_query->tax_query->queries      = $taxQuery;
+			$wp_query->query_vars['tax_query'] = $taxQuery;
+			$wp_query->is_tax                  = false;  // prevents templates from thinking this is a taxonomy archive
+		}
+	}
 }

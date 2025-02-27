@@ -36,18 +36,8 @@ if (have_posts()) {
 
     <?php
 
-    $grid = CalendarGrid::getDefaultGrid();
-	echo $grid->navBar(true);
-    echo $grid;
-    if ($grid->eventCount > 0) {
-	    echo $grid->navBar(false, 'bottom');
-    }
+    CalendarGrid::shortcode();
 
-    wp_reset_query();
-    $taxQuery = [[]];
-    $wp_query->tax_query->queries = $taxQuery;
-    $wp_query->query_vars['tax_query'] = $taxQuery;
-    $wp_query->is_tax = false;  // prevents templates from thinking this is a taxonomy archive
 }
     ?>
 </main><!-- .TouchPointWP-main -->
