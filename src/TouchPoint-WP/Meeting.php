@@ -43,7 +43,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	public const MEETING_STATUS_META_KEY = TouchPointWP::SETTINGS_PREFIX . "status";
 	public const MEETING_INV_ID_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgInvId";
 
-	public const SHORTCODE_GRID = TouchPointWP::SHORTCODE_PREFIX . "calendar";
+	public const SHORTCODE_GRID = TouchPointWP::SHORTCODE_PREFIX . "Calendar";
 
 	public const STATUS_CANCELLED = "cancelled";
 	public const STATUS_SCHEDULED = "scheduled";
@@ -822,6 +822,10 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		self::$_isLoaded = true;
 
 		add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'init']);
+
+		//////////////////
+		/// Shortcodes ///
+		//////////////////
 
 		if ( ! shortcode_exists(self::SHORTCODE_GRID)) {
 			add_shortcode(self::SHORTCODE_GRID, [CalendarGrid::class, "shortcode"]);
