@@ -8,7 +8,7 @@ namespace tp\TouchPointWP;
 use WP_Post;
 
 /**
- * This is a base interface for classes that have "schedule" strings.
+ * This is a base interface for classes that store TouchPoint items as posts in WordPress.
  */
 interface storedAsPost
 {
