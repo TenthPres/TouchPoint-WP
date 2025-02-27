@@ -464,4 +464,28 @@ class CalendarGrid {
 		}
 		return $label;
 	}
+
+
+	protected static ?CalendarGrid $defaultItem = null;
+
+	/**
+	 * Get a standard calendar grid, as would be used for most applications on a standard archive page.
+	 *
+	 * @return CalendarGrid
+	 */
+	public final static function getDefaultGrid(): CalendarGrid
+	{
+		global $wp_query;
+		if (self::$defaultItem === null) {
+			if (!isset($_GET['page']) || !preg_match('/^(?P<mo>[0-9]{2})-(?P<yr>[0-9]{4})$/', $_GET['page'], $matches)) {
+				$matches = [
+					'mo' => null,
+					'yr' => null
+				];
+			}
+
+			self::$defaultItem = new CalendarGrid($wp_query, $matches['mo'], $matches['yr']);
+		}
+		return self::$defaultItem;
+	}
 }

@@ -36,15 +36,7 @@ if (have_posts()) {
 
     <?php
 
-    if (!isset($_GET['page']) || !preg_match('/^(?P<mo>[0-9]{2})-(?P<yr>[0-9]{4})$/', $_GET['page'], $matches)) {
-	    $matches = [
-		    'mo' => null,
-		    'yr' => null
-	    ];
-    }
-
-    $grid = new CalendarGrid($wp_query, $matches['mo'], $matches['yr']);
-
+    $grid = CalendarGrid::getDefaultGrid();
 	echo $grid->navBar(true);
     echo $grid;
     if ($grid->eventCount > 0) {
