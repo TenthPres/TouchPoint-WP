@@ -194,7 +194,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 				'capability_type'   => 'post',
 				'capabilities' => [
 					'create_posts'        => 'do_not_allow', // Disable creating new posts
-					'edit_posts'          => 'do_not_allow',   // Disable editing posts
+					'edit_posts'          => 'do_not_allow', // Disable editing posts
 					'edit_others_posts'   => 'do_not_allow', // Disable editing others' posts
 					'delete_posts'        => 'do_not_allow', // Disable deleting posts
 					'delete_others_posts' => 'do_not_allow', // Disable deleting others' posts

@@ -237,14 +237,13 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 				'capability_type'   => 'post',
 				'capabilities' => [
 					'create_posts'        => 'do_not_allow', // Disable creating new posts
-					'edit_posts'          => 'do_not_allow',   // Disable editing posts
+					'edit_posts'          => 'do_not_allow', // Disable editing posts
 					'edit_others_posts'   => 'do_not_allow', // Disable editing others' posts
 					'delete_posts'        => 'do_not_allow', // Disable deleting posts
 					'delete_others_posts' => 'do_not_allow', // Disable deleting others' posts
 					'publish_posts'       => 'do_not_allow', // Disable publishing posts
 				],
 				'map_meta_cap' => true, // Ensure users can still view posts
-
 			]
 		);
 
