@@ -297,7 +297,17 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					],
 					'query_var'         => $type->slug,
 					'can_export'        => false,
-					'delete_with_user'  => false
+					'delete_with_user'  => false,
+					'capability_type'   => 'post',
+					'capabilities' => [
+						'create_posts'        => 'do_not_allow', // Disable creating new posts
+						'edit_posts'          => 'do_not_allow',   // Disable editing posts
+						'edit_others_posts'   => 'do_not_allow', // Disable editing others' posts
+						'delete_posts'        => 'do_not_allow', // Disable deleting posts
+						'delete_others_posts' => 'do_not_allow', // Disable deleting others' posts
+						'publish_posts'       => 'do_not_allow', // Disable publishing posts
+					],
+					'map_meta_cap' => true, // Ensure users can still view posts
 				]
 			);
 		}

@@ -26,7 +26,7 @@ abstract class Taxonomies
 	public const TAX_GP_CATEGORY = TouchPointWP::HOOK_PREFIX . "partner_category";
 	public const TAX_WEEKDAY = TouchPointWP::HOOK_PREFIX . "weekday";
 	public const TAX_TENSE_FUTURE = "future";
-	public const TAX_DAYTIME = TouchPointWP::HOOK_PREFIX . "timeOfDay";
+	public const TAX_DAYTIME = TouchPointWP::HOOK_PREFIX . "timeofday";
 	public const TAX_TENSE = TouchPointWP::HOOK_PREFIX . "tense";
 	public const TAXMETA_LOOKUP_ID = TouchPointWP::HOOK_PREFIX . "lookup_id";
 
