@@ -1012,12 +1012,13 @@ class TouchPointWP
 	 */
 	public function filterByTag(?string $tag, ?string $handle): string
 	{
-		if (str_contains($tag, 'async') &&
-			strpos($handle, '-async') > 0) {
+		if (!str_contains($tag, ' async') &&
+		    strpos($handle, '-async') > 0
+		) {
 			$tag = str_replace(' src=', ' async="async" src=', $tag);
 		}
-		if (str_contains($tag, 'defer') &&
-			strpos($handle, '-defer') > 0
+		if (!str_contains($tag, ' defer') &&
+		    strpos($handle, '-defer') > 0
 		) {
 			$tag = str_replace('<script ', '<script defer ', $tag);
 		}
