@@ -10,18 +10,23 @@ if ( ! defined('ABSPATH')) {
 }
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once 'api.php';
-	require_once 'hierarchical.php';
-	require_once 'scheduled.php';
+	require_once "Interfaces/api.php";
+	require_once "Interfaces/hierarchical.php";
+	require_once "Interfaces/scheduled.php";
 }
 
 use DateTime;
 use DateTimeImmutable;
 use Exception;
+use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\hasGeo;
+use tp\TouchPointWP\Interfaces\hierarchical;
+use tp\TouchPointWP\Interfaces\module;
+use tp\TouchPointWP\Interfaces\scheduled;
 use tp\TouchPointWP\Utilities\DateFormats;
+use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Post;
-use tp\TouchPointWP\Utilities\Http;
 use WP_Query;
 use WP_Term;
 
@@ -667,7 +672,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	 */
 	private static function getMeetingInfoForRsvp($opts): object
 	{
-		return TouchPointWP::instance()->apiPost('mtg', $opts);
+		return TouchPointWP::instance()->api->pyPost('mtg', $opts);
 	}
 
 	/**
@@ -725,7 +730,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		}
 
 		try {
-			$data = TouchPointWP::instance()->apiPost('mtg_rsvp', json_decode($inputData));
+			$data = TouchPointWP::instance()->api->pyPost('mtg_rsvp', json_decode($inputData));
 		} catch (Exception $ex) {
 			http_response_code(Http::SERVER_ERROR);
 			echo json_encode(['error' => $ex->getMessage()]);

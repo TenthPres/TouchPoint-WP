@@ -10,15 +10,19 @@ if ( ! defined('ABSPATH')) {
 }
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once "api.php";
+	require_once "Interfaces/api.php";
 	require_once "jsInstantiation.php";
-	require_once "updatesViaCron.php";
+	require_once "Interfaces/updatesViaCron.php";
 	require_once "Utilities.php";
 }
 
 use Exception;
 use JsonSerializable;
 use stdClass;
+use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\hasGeo;
+use tp\TouchPointWP\Interfaces\module;
+use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Error;
 use WP_Post;

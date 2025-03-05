@@ -9,6 +9,10 @@ use DateInterval;
 use DateTime;
 use Exception;
 use JsonSerializable;
+use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\module;
+use tp\TouchPointWP\Interfaces\storedAsPost;
+use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\Database;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\ImageConversions;
@@ -21,9 +25,9 @@ if ( ! defined('ABSPATH')) {
 }
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once "api.php";
-	require_once "updatesViaCron.php";
-	require_once "storedAsPost.php";
+	require_once "Interfaces/api.php";
+	require_once "Interfaces/updatesViaCron.php";
+	require_once "Interfaces/storedAsPost.php";
 	require_once "Utilities/ImageConversions.php";
 	require_once "Utilities/Http.php";
 	require_once "Utilities/Database.php";
@@ -609,7 +613,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 
 		$updates = [];
 		if (count($needsUpdate) > 0) {
-			$data    = TouchPointWP::instance()->apiPost('report_run', ['reports' => $needsUpdate], 60);
+			$data    = TouchPointWP::instance()->api->pyPost('report_run', ['reports' => $needsUpdate], 60);
 			$updates = $data->report_results ?? [];
 		}
 

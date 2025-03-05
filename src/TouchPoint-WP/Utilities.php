@@ -951,5 +951,4 @@ abstract class Utilities
 		}
 		return true;
 	}
-
 }

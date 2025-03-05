@@ -3,9 +3,7 @@
  * @package TouchPointWP
  */
 
-namespace tp\TouchPointWP;
-
-use WP_Post;
+namespace tp\TouchPointWP\Interfaces;
 
 if ( ! defined('ABSPATH')) {
 	exit(1);

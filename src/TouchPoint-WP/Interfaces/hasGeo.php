@@ -3,7 +3,9 @@
  * @package TouchPointWP
  */
 
-namespace tp\TouchPointWP;
+namespace tp\TouchPointWP\Interfaces;
+
+use tp\TouchPointWP\Geo;
 
 if ( ! defined('ABSPATH')) {
 	exit(1);

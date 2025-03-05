@@ -10,10 +10,10 @@ if ( ! defined('ABSPATH')) {
 }
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once "api.php";
+	require_once "Interfaces/api.php";
 	require_once "extraValues.php";
 	require_once "jsInstantiation.php";
-	require_once "updatesViaCron.php";
+	require_once "Interfaces/updatesViaCron.php";
 	require_once "InvolvementMembership.php";
 	require_once "Utilities.php";
 	require_once "Utilities/PersonQuery.php";
@@ -23,6 +23,9 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 use Exception;
 use JsonSerializable;
 use stdClass;
+use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\module;
+use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
@@ -1117,7 +1120,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			return;
 		}
 		try {
-			TouchPointWP::instance()->apiPost('person_wpIds', [
+			TouchPointWP::instance()->api->pyPost('person_wpIds', [
 				'people' => self::$_peopleWhoNeedWpIdUpdatedInTouchPoint,
 				'evName' => TouchPointWP::instance()->settings->people_ev_wpId
 			]);
@@ -1619,7 +1622,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	{
 		try {
 			$inputData->context = "ident";
-			$data               = TouchPointWP::instance()->apiPost('ident', $inputData, 30);
+			$data               = TouchPointWP::instance()->api->pyPost('ident', $inputData, 30);
 		} catch (Exception $ex) {
 			http_response_code(Http::SERVER_ERROR);
 			echo json_encode(['error' => $ex->getMessage()]);
@@ -1696,7 +1699,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		if ($q['q'] !== '') {
 			try {
-				$data = TouchPointWP::instance()->apiGet('src', $q, 30);
+				$data = TouchPointWP::instance()->api->pyGet('src', $q, 30);
 				$data = $data->people ?? [];
 			} catch (Exception $ex) {
 				http_response_code(Http::SERVER_ERROR);
@@ -1857,7 +1860,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		// Submit the contact
 		try {
-			$data = TouchPointWP::instance()->apiPost('person_contact', $inputData);
+			$data = TouchPointWP::instance()->api->pyPost('person_contact', $inputData);
 		} catch (Exception $ex) {
 			http_response_code(Http::SERVER_ERROR);
 			echo json_encode(['error' => $ex->getMessage()]);

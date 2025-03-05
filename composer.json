@@ -23,7 +23,8 @@
   "autoload": {
     "psr-4": {
       "tp\\TouchPointWP\\": "src/TouchPoint-WP",
-      "tp\\TouchPointWP\\Utilities\\": "src/TouchPoint-WP/Utilities"
+      "tp\\TouchPointWP\\Utilities\\": "src/TouchPoint-WP/Utilities",
+      "tp\\TouchPointWP\\Interfaces\\": "src/TouchPoint-WP/Interfaces"
     }
   },
   "require": {

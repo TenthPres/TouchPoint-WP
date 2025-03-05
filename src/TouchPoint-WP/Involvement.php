@@ -10,12 +10,11 @@ if ( ! defined('ABSPATH')) {
 }
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once "api.php";
 	require_once "jsInstantiation.php";
 	require_once "jsonLd.php";
-	require_once "hierarchical.php";
-	require_once "scheduled.php";
-	require_once "updatesViaCron.php";
+	require_once "Interfaces/hierarchical.php";
+	require_once "Interfaces/scheduled.php";
+	require_once "Interfaces/updatesViaCron.php";
 	require_once "Utilities.php";
 	require_once "Involvement_PostTypeSettings.php";
 }
@@ -26,6 +25,12 @@ use DateTimeZone;
 use Exception;
 use JsonSerializable;
 use stdClass;
+use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\hasGeo;
+use tp\TouchPointWP\Interfaces\hierarchical;
+use tp\TouchPointWP\Interfaces\module;
+use tp\TouchPointWP\Interfaces\scheduled;
+use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\DateFormats;
 use tp\TouchPointWP\Utilities\DateTimeExtended;
 use tp\TouchPointWP\Utilities\Http;
@@ -2534,7 +2539,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				$qOpts['mtgFuture'] = 365;
 			}
 
-			$response = TouchPointWP::instance()->apiGet("Invs", $qOpts, 180, $verbose);
+			$response = TouchPointWP::instance()->api->pyGet("Invs", $qOpts, 180, $verbose);
 
 		} catch (TouchPointWP_Exception) {
 			return false;
@@ -3901,7 +3906,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		}
 
 		try {
-			$data = TouchPointWP::instance()->apiPost('inv_join', $inputData);
+			$data = TouchPointWP::instance()->api->pyPost('inv_join', $inputData);
 		} catch (TouchPointWP_Exception $ex) {
 			http_response_code(Http::SERVER_ERROR);
 			echo json_encode(['error' => $ex->getMessage()]);
@@ -4007,7 +4012,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		// Submit the contact
 		try {
-			$data = TouchPointWP::instance()->apiPost('inv_contact', $inputData);
+			$data = TouchPointWP::instance()->api->pyPost('inv_contact', $inputData);
 		} catch (TouchPointWP_Exception $ex) {
 			http_response_code(Http::SERVER_ERROR);
 			echo json_encode(['error' => $ex->getMessage()]);

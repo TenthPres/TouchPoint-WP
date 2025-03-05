@@ -9,12 +9,10 @@ if ( ! defined('ABSPATH')) {
 	exit(1);
 }
 
+use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\module;
 use WP_Post;
 use WP_Query;
-
-if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once 'api.php';
-}
 
 /**
  * Provides an interface to bridge the gap between The Events Calendar plugin (by Modern Tribe) and the TouchPoint

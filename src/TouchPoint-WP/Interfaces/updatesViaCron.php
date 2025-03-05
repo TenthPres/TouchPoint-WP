@@ -3,7 +3,7 @@
  * @package TouchPointWP
  */
 
-namespace tp\TouchPointWP;
+namespace tp\TouchPointWP\Interfaces;
 
 if ( ! defined('ABSPATH')) {
 	exit(1);

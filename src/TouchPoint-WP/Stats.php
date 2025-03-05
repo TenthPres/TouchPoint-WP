@@ -7,6 +7,8 @@ namespace tp\TouchPointWP;
 
 use Exception;
 use InvalidArgumentException;
+use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\Http;
 
 if ( ! defined('ABSPATH')) {
@@ -14,8 +16,8 @@ if ( ! defined('ABSPATH')) {
 }
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once "api.php";
-	require_once "updatesViaCron.php";
+	require_once "Interfaces/api.php";
+	require_once "Interfaces/updatesViaCron.php";
 }
 
 /**
@@ -188,9 +190,19 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		if ($this->_dirty) {
 			$d = $this->jsonSerialize();
 			unset($d['siteId']);
-			$r = update_option('tp_wp_stats', json_encode($d));
+
+			// Check if update is actually needed. If not, return true.
+			$d = json_encode($d);
+			if ($d === get_option('tp_wp_stats')) {
+				$this->_dirty = false;
+				return true;
+			}
+
+			$r = update_option('tp_wp_stats', $d);
 			if ($r) {
 				$this->_dirty = false;
+			} else if (WP_DEBUG) {
+				error_log("TouchPoint-WP Stats: Failed to save update to local database.");
 			}
 			return $r;
 		}
@@ -261,11 +273,11 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		$data['wpTimezone'] = get_option('timezone_string');
 		$data['adminEmail'] = get_option('admin_email');
 		$data['siteName'] = get_bloginfo('name');
-		$data['siteLogoUrl'] = get_theme_mod('custom_logo');
-		if ($data['siteLogoUrl']) {
-			$data['siteLogoUrl'] = esc_url(wp_get_attachment_image_src($data['siteLogoUrl'], 'full')[0]);
+		$data['siteLogo'] = get_theme_mod('custom_logo');
+		if ($data['siteLogo']) {
+			$data['siteLogo'] = esc_url(wp_get_attachment_image_src($data['siteLogo'], 'full')[0]);
 		} else {
-			$data['siteLogoUrl'] = '';
+			$data['siteLogo'] = '';
 		}
 		$data['listPublicly'] = 1 * ($sets->enable_public_listing === 'on');
 		$data['installId'] = $this->installId;
@@ -305,11 +317,12 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 			return;
 		}
 
-		wp_remote_post($endpoint, [
+		$r = wp_remote_post($endpoint, [
 			'body' => ['data' => $data],
 			'timeout' => 10,
-			'blocking' => false,
+//			'blocking' => false,
 		]);
+		var_dump($endpoint, $r, $data);
 		echo "ok";
 	}
 
@@ -343,7 +356,6 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	{
 		$this->privateKey = Utilities::createGuid();
 		$this->_dirty = true;
-		$this->updateDb();
 	}
 
 	/**
@@ -362,6 +374,8 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		$this->partnerPosts     = $wpdb->get_var("SELECT COUNT(*) as c FROM $wpdb->posts WHERE post_type = 'tp_partner'") ?? -1;
 
 		$this->_dirty = true;
+
+		$this->updateDb();
 	}
 
 	/**
@@ -394,13 +408,14 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 
 		switch (strtolower($uri['path'][2])) {
 			case "get":
-				if (strtolower($_GET['key']) == strtolower($s->privateKey) ||
+				if (strtolower($_GET['key'] ?? "") == strtolower($s->privateKey) ||
 				    current_user_can('manage_options')) {
 					header('Content-Type: application/json');
-					$s->updateQueriedStats();
-					echo json_encode($s->getStatsForSubmission());
+					echo json_encode($s->getStatsForSubmission(true));
+					$s->updateDb();
 					exit;
 				}
+				break;
 
 			case "submit":
 				if ($_SERVER['REQUEST_METHOD'] === "POST") {

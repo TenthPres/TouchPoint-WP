@@ -7,6 +7,8 @@ namespace tp\TouchPointWP;
 
 // TODO sort out what goes here, and what goes in Meetings.  Answer: all of this should go to Meetings.
 
+use tp\TouchPointWP\Interfaces\module;
+
 if ( ! defined('ABSPATH')) {
 	exit(1);
 }

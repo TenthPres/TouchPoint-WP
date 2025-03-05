@@ -6,6 +6,8 @@
 namespace tp\TouchPointWP;
 
 use Exception;
+use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\Session;
@@ -251,7 +253,7 @@ abstract class Auth implements api, module
 		$k    = self::validateApiKey(null, $host); // will return true or a new key.
 
 		if ($k !== true) {  // Only if the saved key is unset or invalid.  (
-			TouchPointWP::instance()->apiPost("auth_key_set", [
+			TouchPointWP::instance()->api->pyPost("auth_key_set", [
 				'apiKey' => $k,
 				'host'   => $host
 			]);

@@ -19,7 +19,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once 'api.php';
+	require_once "Interfaces/api.php";
 }
 
 /**

@@ -45,9 +45,10 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP_WPError.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP_Settings.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Api.php";
 
-	require_once __DIR__ . "/src/TouchPoint-WP/api.php";
-	require_once __DIR__ . "/src/TouchPoint-WP/module.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/api.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/module.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/PostTypeCapable.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/RegistrationType.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Geo.php";
@@ -60,7 +61,7 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/DateTimeExtended.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Http.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Taxonomies.php";
-	require_once __DIR__ . "/src/TouchPoint-WP/hasGeo.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/hasGeo.php";
 
 	require_once __DIR__ . "/src/TouchPoint-WP/Person.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Meeting.php";

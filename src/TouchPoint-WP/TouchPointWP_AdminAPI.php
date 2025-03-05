@@ -5,12 +5,13 @@
 
 namespace tp\TouchPointWP;
 
+use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\Utilities\Http;
 use WP_Post;
 use ZipArchive;
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once 'api.php';
+	require_once "Interfaces/api.php";
 }
 
 if ( ! defined('ABSPATH')) {

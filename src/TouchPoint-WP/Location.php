@@ -5,6 +5,8 @@
 
 namespace tp\TouchPointWP;
 
+use tp\TouchPointWP\Interfaces\hasGeo;
+
 /**
  * A Location is generally a physical place, with an internet connection.  These likely correspond to campuses, but
  * don't necessarily need to.

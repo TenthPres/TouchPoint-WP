@@ -6,11 +6,13 @@
 
 namespace tp\TouchPointWP;
 
+use tp\TouchPointWP\Interfaces\module;
+use tp\TouchPointWP\Interfaces\storedAsPost;
 use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Post;
 
-require_once 'module.php';
-require_once 'storedAsPost.php';
+require_once 'Interfaces/module.php';
+require_once 'Interfaces/storedAsPost.php';
 
 /**
  * This is a base class for those objects that can be derived from a Post.

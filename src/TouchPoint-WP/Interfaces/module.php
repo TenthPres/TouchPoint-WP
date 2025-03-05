@@ -3,7 +3,7 @@
  * @package TouchPointWP
  */
 
-namespace tp\TouchPointWP;
+namespace tp\TouchPointWP\Interfaces;
 
 /**
  * This is a base interface for all feature classes.

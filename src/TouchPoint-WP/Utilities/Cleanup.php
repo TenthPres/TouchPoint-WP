@@ -6,8 +6,8 @@
 namespace tp\TouchPointWP\Utilities;
 
 use Exception;
-use tp\TouchPointWP\api;
 use tp\TouchPointWP\ExtraValueHandler;
+use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\Partner;
 use tp\TouchPointWP\Person;
 use tp\TouchPointWP\TouchPointWP;

@@ -1623,7 +1623,7 @@ class TouchPointWP_Settings
 		$scripts = ["WebApi"];
 
 		$scriptContent = TouchPointWP::instance()->admin()->generatePython(false, $scripts);
-		$data          = TouchPointWP::instance()->apiPost('updateScripts', $scriptContent, 60);
+		$data          = TouchPointWP::instance()->api->pyPost('updateScripts', $scriptContent, 60);
 		$updates       = $data->scriptsUpdated ?? 0;
 
 		if (count($scriptContent) !== $updates) {

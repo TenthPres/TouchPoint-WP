@@ -3,7 +3,7 @@
  * @package TouchPointWP
  */
 
-namespace tp\TouchPointWP;
+namespace tp\TouchPointWP\Interfaces;
 
 use WP_Post;
 
