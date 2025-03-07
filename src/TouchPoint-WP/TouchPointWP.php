@@ -304,10 +304,10 @@ class TouchPointWP
 		if ($this->admin === null) {
 			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 				require_once 'TouchPointWP_AdminAPI.php';
-				require_once 'TouchPointWP_Widget.php';
+				require_once 'StatusWidget.php';
 			}
 			$this->admin = new TouchPointWP_AdminAPI();
-			TouchPointWP_Widget::init();
+			StatusWidget::init();
 		}
 
 		return $this->admin;
@@ -684,12 +684,14 @@ class TouchPointWP
 				adminEmail varchar(255) NOT NULL,
 				siteName varchar(255) NOT NULL,
 				siteLogo varchar(512) NOT NULL,
+
 				createdDT datetime DEFAULT NOW(),
 				updatedDT datetime DEFAULT NOW() ON UPDATE NOW(),
 				
 				listPublicly tinyint(1) DEFAULT 1,
 				lastQueryDT datetime DEFAULT NULL,
 				lastQueryStatus int(3) DEFAULT NULL,
+				siteLogoStatus int(3) DEFAULT NULL,
 				
 				involvementJoins int(10) DEFAULT 0,
 				involvementContacts int(10) DEFAULT 0,

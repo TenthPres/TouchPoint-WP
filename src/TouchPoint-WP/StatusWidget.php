@@ -14,13 +14,15 @@ if ( ! defined('ABSPATH')) {
 }
 
 /**
- * Class TouchPointWP_Widget
+ * Class StatusWidget
  *
  * Provides an admin dashboard widget that shows some basic stats about the plugin.
  *
+ * @since 0.0.95
+ *
  * @package tp\TouchPointWP
  */
-abstract class TouchPointWP_Widget
+abstract class StatusWidget
 {
 	/**
 	 * Initialize the widget.
