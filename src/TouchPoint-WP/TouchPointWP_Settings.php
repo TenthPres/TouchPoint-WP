@@ -1483,6 +1483,11 @@ class TouchPointWP_Settings
 			}
 		}
 
+		// 0.0.95 -- Make sure the TpWp user exists
+		try {
+			TouchPointWP::instance()->validateThatTpWpUserExists();
+		} catch (TouchPointWP_WPError) {}
+
 		// 0.0.4 to 0.0.5 -- Merging Small Groups and Courses Components into a single Involvement Component
 		$sgEnabled = $this->getWithoutDefault('enable_small_groups') === "on";
 		$csEnabled = $this->getWithoutDefault('enable_courses') === "on";
