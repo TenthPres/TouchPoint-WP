@@ -16,6 +16,7 @@ abstract class ImageConversions
 	/**
 	 * @throws \ImagickException
 	 * @throws TouchPointWP_Exception
+	 * @noinspection PhpFullyQualifiedNameUsageInspection - Imagick is helpful but not required.
 	 */
 	public static function svgToPng($svgContent, ?string $backgroundColor = null): string
 	{

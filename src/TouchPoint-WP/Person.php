@@ -658,7 +658,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	{
 		try {
 			self::updateFromTouchPoint();
-		} catch (Exception $ex) {
+		} catch (Exception) {
 		}
 	}
 
@@ -1125,7 +1125,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 				'evName' => TouchPointWP::instance()->settings->people_ev_wpId
 			]);
 			self::$_peopleWhoNeedWpIdUpdatedInTouchPoint = [];
-		} catch (Exception $ex) { // If it fails this time, it'll probably get fixed next time
+		} catch (Exception) { // If it fails this time, it'll probably get fixed next time
 		}
 	}
 
@@ -1232,11 +1232,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	public static function enqueueForJS_byPeopleId(int $pid): ?bool
 	{
 		$p = self::fromPeopleId($pid);
-		if ($p === null) {
-			return null;
-		}
 
-		return $p->enqueueForJsInstantiation();
+		return $p?->enqueueForJsInstantiation();
 	}
 
 	/**
@@ -1920,7 +1917,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		if (TouchPointWP::instance()->settings->person_cron_last_run * 1 < time() - 86400 - 3600) {
 			try {
 				self::updateFromTouchPoint();
-			} catch (Exception $ex) {
+			} catch (Exception) {
 			}
 		}
 	}
