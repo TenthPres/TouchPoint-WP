@@ -224,6 +224,8 @@ class TouchPointWP
 		$this->debug      = get_option(TouchPointWP::SETTINGS_PREFIX . "DEBUG", "") === "true";
 		$this->script_ext = ($this->debug || !file_exists($this->assets_dir . "/js/base-defer.min.js")) ? '.js' : '.min.js';
 
+		$this->api = Api::instance($this);
+
 		register_activation_hook($this->file, [$this, 'activation']);
 		register_deactivation_hook($this->file, [$this, 'deactivation']);
 		register_uninstall_hook($this->file, [self::class, 'uninstall']);
@@ -746,10 +748,6 @@ class TouchPointWP
 			if (is_admin()) {
 				$instance->migrate();
 			}
-		}
-
-		if (is_null($instance->api)) {
-			$instance->api = Api::instance($instance);
 		}
 
 		Stats::load();
