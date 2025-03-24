@@ -141,11 +141,12 @@ class Api
 	 * @param string $command The thing to post
 	 * @param ?mixed $data Data to post
 	 * @param int    $timeout Amount of time in sec to wait before timing out.
+	 * @param float  $timeTaken The time taken to complete the request.
 	 *
 	 * @return stdClass|array An object that corresponds to the Data python object in TouchPoint.
 	 * @throws TouchPointWP_Exception  If anything went wrong.
 	 */
-	public function pyPost(string $command, mixed $data = null, int $timeout = 5): array|stdClass
+	public function pyPost(string $command, mixed $data = null, int $timeout = 5, float &$timeTaken = 0): array|stdClass
 	{
 		$this->checkApiValidity();
 
@@ -163,6 +164,8 @@ class Api
 
 		self::$apiCallLog[] = $url;
 
+		$tik = microtime(true);
+
 		$r = $this->getHttpClient()->request(
 			$url,
 			[
@@ -174,6 +177,8 @@ class Api
 				'timeout' => $timeout
 			]
 		);
+
+		$timeTaken = microtime(true) - $tik;
 
 		return self::parseApiResponse($r);
 	}

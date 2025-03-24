@@ -1055,7 +1055,19 @@ if "people_get" in Data.a and model.HttpMethod == "post":
 
     Data.Context = inData['context']
 
-    for po in q.QueryList(rules, sort.lower()):
+    # Paging -- note that paging and grouping should not really be combined.
+    offset  = 0
+    if inData.has_key('offset'):
+        offset = int(inData['offset'])
+    perPage = 10000000000
+    if inData.has_key('perPage'):
+        perPage = int(inData['perPage'])
+
+    # Do the query
+    results = q.QueryList(rules, sort.lower(), perPage, offset)
+    qCount = q.QueryCount(rules)
+
+    for po in results:
         pr = get_person_info_for_sync(po)
 
         if pr is None:  # Make sure person should not be excluded
@@ -1134,6 +1146,7 @@ if "people_get" in Data.a and model.HttpMethod == "post":
             outPeople[grpId]["People"].append(pr)
 
     Data.people = outPeople
+    Data.items = qCount
     Data.inData = inData
     Data.rules = rules  # handy for debugging
     Data.success = True
