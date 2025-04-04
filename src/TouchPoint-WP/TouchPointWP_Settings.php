@@ -918,13 +918,14 @@ class TouchPointWP_Settings
 						'id'          => 'mc_hist_days',
 						'label'       => __('Days of History', 'TouchPoint-WP'),
 						'description' => __(
-							"Meetings will be kept on the calendar until the event is this many days in the past.  Once an event is older than this, it'll be deleted.",
+							// for reference: https://github.com/TenthPres/TouchPoint-WP/issues/224
+							"Meetings will be kept on the calendar until the event is this many days in the past.  Once an event is older than this, it'll be deleted.  Strongly recommend either very little history (less than a month) or a lot of history (at least 15 months).",
 							'TouchPoint-WP'
 						),
 						'type'        => 'number',
-						'default'     => 365,
-						'placeholder' => 365,
-						'max'         => 1825,
+						'default'     => 1825,
+						'placeholder' => 1825,
+						'max'         => 3650,
 						'min'         => 0
 					],
 				],
