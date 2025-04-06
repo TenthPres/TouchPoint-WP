@@ -591,11 +591,7 @@ abstract class Utilities
 			}
 		}
 
-		if (is_wp_error($attId)) {
-			echo "Exception occurred: " . $attId->get_error_message();
-			return 0;
-		}
-		return $attId;
+		return $newAttId;
 	}
 
 	/**
