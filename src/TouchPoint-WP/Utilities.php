@@ -9,7 +9,6 @@ use DateInterval;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
-use Exception;
 use WP_Post_Type;
 
 /**
@@ -526,65 +525,71 @@ abstract class Utilities
 	 * @param int         $postId
 	 * @param string|null $newUrl
 	 * @param string      $title
+	 * @param bool        $verbose
 	 *
-	 * @return int|string The attachmentId for the image.  Can be reused for other posts.
+	 * @return int The attachmentId for the image.  Can be reused for other posts.
 	 * @since 0.0.24 Added
 	 */
-	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title)
+	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title, bool $verbose = false): int
 	{
 		// Required for image handling
 		require_once(ABSPATH . 'wp-admin/includes/media.php');
 		require_once(ABSPATH . 'wp-admin/includes/file.php');
 		require_once(ABSPATH . 'wp-admin/includes/image.php');
 
-		// If an image sideload was started but not finished within the last hour, something has gone wrong.
-		if (intval(get_option(TouchPointWP::SETTINGS_PREFIX . "image_sideload")) > (time() - 60*60)) {
-			new TouchPointWP_Exception("Image import appears to have gotten stuck.", 170008);
-			return 0;
-		}
-
-		update_option(TouchPointWP::SETTINGS_PREFIX . "image_sideload", time(), false);
-
-		// Post image
+		// some standardization
 		global $wpdb;
-		$oldAttId = get_post_thumbnail_id($postId);
-		$oldFName = $wpdb->get_var( "SELECT meta_value FROM $wpdb->postmeta WHERE post_id = '$oldAttId' AND meta_key = '_wp_attached_file'" ) ?? "";
-		$oldFName = substr($oldFName, strrpos($oldFName, '/') + 1);
-
 		$newUrl = trim((string)$newUrl); // nulls are now ""
 		$title = sprintf('%1$s Image', $title);
 
-		$newFName = "";
+		$newAttId = 0;
+
+		// check if target image already exists in media library
 		if ($newUrl !== "") {
-			$newFName = substr($newUrl, strrpos($newUrl, '/') + 1);
+			$newAttId = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT p.Id FROM $wpdb->posts p JOIN $wpdb->postmeta pm ON p.ID = pm.post_id WHERE post_type = 'attachment' AND meta_key = '_source_url' AND meta_value = %s",
+					$newUrl
+				)
+			);
+			$newAttId = (int)$newAttId;
+
+			if ($verbose) {
+				echo "<p>Existing Attachment ID with matching URL: $newAttId</p>";
+			}
 		}
 
-		// Compare image file names without extensions, versions, and increments.
-		$newFName = explode(".", $newFName, 2)[0];
-		if (strlen($newFName) > 5) {
-			$oldFName = substr($oldFName, 0, strlen($newFName));
-		}
+		// get existing post image, if any
+		$oldAttId = get_post_thumbnail_id($postId);
 
-		$attId = 0;
-		try {
-			if ($newFName !== $oldFName) {
-				if ($oldAttId > 0) { // Remove and delete old one.
-					wp_delete_attachment($oldAttId, true);
-				}
-				if ($newUrl !== "") { // Load and save new one
-					set_time_limit(60);
-					$attId = media_sideload_image($newUrl, $postId, $title, 'id');
-					set_post_thumbnail($postId, $attId);
+		// determine if a change is needed
+		if ($newAttId !== $oldAttId || ($newUrl !== "" && $oldAttId === 0)) {
+			if ($oldAttId > 0) { // Remove and delete old one.
+				wp_delete_attachment($oldAttId, true);
+			}
+			if ($newAttId === 0 && $newUrl !== "") { // New image isn't in media yet.
+				set_time_limit(60);
+				$newAttId = media_sideload_image($newUrl, $postId, $title, 'id');
+
+				if (is_wp_error($newAttId)) {
+					$newAttId->add('', "Error encountered while trying to import image: $newUrl");
+					new TouchPointWP_WPError($newAttId);
+					if ($verbose)
+						echo "Error occurred: " . $newAttId->get_error_message();
+					return 0;
+
 				}
 			}
-		} catch (Exception $e) {
-			echo "Exception occurred: " . $e->getMessage();
-			update_option(TouchPointWP::SETTINGS_PREFIX . "image_sideload", 0, false);
-			wp_delete_attachment($attId, true);
-			return 0;
+			if ($newAttId > 0) { // New image is in media.
+				set_post_thumbnail($postId, $newAttId);
+			} else {
+				// If the image is blank, remove the post thumbnail.
+				if ($verbose) {
+					echo "<p>Image URL is blank.  Removing post thumbnail.</p>";
+				}
+				delete_post_thumbnail($postId);
+			}
 		}
-
-		update_option(TouchPointWP::SETTINGS_PREFIX . "image_sideload", 0, false);
 
 		if (is_wp_error($attId)) {
 			echo "Exception occurred: " . $attId->get_error_message();

@@ -17,6 +17,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Interfaces/updatesViaCron.php";
 	require_once "Utilities.php";
 	require_once "Involvement_PostTypeSettings.php";
+	require_once "MeetingArray.php";
 }
 
 use DateInterval;
@@ -2024,7 +2025,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			case "nearby":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
 				self::ajaxNearby();
-//				exit;  ajaxNearby() is no-return.
+				exit;
 
 			case "force-sync":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
@@ -2810,7 +2811,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$imageUrl = $inv->imageUrl;
 		}
 
-		$imageId = Utilities::updatePostImageFromUrl($post->ID, $imageUrl, $post->post_title);
+		$imageId = Utilities::updatePostImageFromUrl($post->ID, $imageUrl, $post->post_title, $verbose);
 
 		////////////////////
 		//// SCHEDULING ////
@@ -3193,6 +3194,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				self::doMeetingMetaUpdates($mtgP, $mtgO, !!$inv->showInSites, $verbose);
 
 				wp_update_post($mtgP);
+
+				if ($imagePostId > 0) {
+					set_post_thumbnail($mtgP->ID, $imagePostId);
+				} else {
+					delete_post_thumbnail($mtgP->ID);
+				}
 
 				if ($mtgP->post_name !== $slug) {
 					Utilities::forceSlugUpdate($mtgP->ID, $slug);
