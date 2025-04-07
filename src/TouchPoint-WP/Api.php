@@ -41,9 +41,9 @@ class Api
 	/**
 	 * Shortcut to the settings object.
 	 *
-	 * @return TouchPointWP_Settings
+	 * @return Settings
 	 */
-	protected function settings(): TouchPointWP_Settings
+	protected function settings(): Settings
 	{
 		return $this->parent->settings;
 	}

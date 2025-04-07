@@ -4,6 +4,7 @@ import re
 import json
 import linecache
 import sys
+import urllib
 
 VERSION = "0.0.95"
 
@@ -1059,7 +1060,7 @@ if "people_get" in Data.a and model.HttpMethod == "post":
     offset  = 0
     if inData.has_key('offset'):
         offset = int(inData['offset'])
-    perPage = 10000000000
+    perPage = 1000000
     if inData.has_key('perPage'):
         perPage = int(inData['perPage'])
 

@@ -95,13 +95,13 @@ if ( ! defined('ABSPATH')) {
  * @property-read array        dv_divisions       Which divisions should be imported
  * @property-read array        dv_additional_post_types  Which post types should have the division taxonomy.
  */
-class TouchPointWP_Settings
+class Settings
 {
 
 	/**
 	 * The singleton of TouchPointWP_Settings.
 	 */
-	private static ?TouchPointWP_Settings $_instance = null;
+	private static ?Settings $_instance = null;
 
 	/**
 	 * The main plugin object.
@@ -146,12 +146,12 @@ class TouchPointWP_Settings
 	 *
 	 * @param ?TouchPointWP $parent Object instance.
 	 *
-	 * @return TouchPointWP_Settings instance
+	 * @return Settings instance
 	 * @since 0.0.90 Added
 	 * @static
 	 * @see TouchPointWP()
 	 */
-	public static function instance(?TouchPointWP $parent = null): TouchPointWP_Settings
+	public static function instance(?TouchPointWP $parent = null): Settings
 	{
 		if (is_null($parent)) {
 			$parent = TouchPointWP::instance();
@@ -183,10 +183,10 @@ class TouchPointWP_Settings
 	{
 		$host = $this->getWithoutDefault('host');
 
-		return ! ($this->getWithoutDefault('api_script_name') === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER ||
-				  $host === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER || $host === '' ||
-				  $this->getWithoutDefault('api_user') === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER ||
-				  $this->getWithoutDefault('api_pass') === TouchPointWP_Settings::UNDEFINED_PLACEHOLDER);
+		return ! ($this->getWithoutDefault('api_script_name') === Settings::UNDEFINED_PLACEHOLDER ||
+		          $host === Settings::UNDEFINED_PLACEHOLDER || $host === '' ||
+		          $this->getWithoutDefault('api_user') === Settings::UNDEFINED_PLACEHOLDER ||
+		          $this->getWithoutDefault('api_pass') === Settings::UNDEFINED_PLACEHOLDER);
 	}
 
 	/**

@@ -121,7 +121,7 @@ class TouchPointWP
 	/**
 	 * Settings object
 	 */
-	public ?TouchPointWP_Settings $settings = null;
+	public ?Settings $settings = null;
 
 	/**
 	 * API object
@@ -744,7 +744,7 @@ class TouchPointWP
 		$instance = self::instance($file);
 
 		if (is_null($instance->settings)) {
-			$instance->settings = TouchPointWP_Settings::instance($instance);
+			$instance->settings = Settings::instance($instance);
 			if (is_admin()) {
 				$instance->migrate();
 			}
@@ -2333,7 +2333,7 @@ class TouchPointWP
 	}
 
 	/**
-	 * @depecated 0.0.95 Use Api version instead.
+	 * @deprecated 0.0.95 Use Api version instead.
 	 *
 	 * @return WP_Http|null
 	 */

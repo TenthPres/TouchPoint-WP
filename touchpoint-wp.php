@@ -44,7 +44,7 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP_Exception.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP_WPError.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP.php";
-	require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP_Settings.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Settings.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Api.php";
 
 	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/api.php";

@@ -1,7 +1,7 @@
 <?php
 namespace tp\TouchPointWP;
 
-/** @var TouchPointWP_Settings $this */
+/** @var Settings $this */
 
 ?>
 <form>

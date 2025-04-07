@@ -201,7 +201,7 @@ abstract class EventsCalendar implements api, module
 	 * @return array
 	 *
 	 * @since 0.0.90 Added and Deprecated.  Will be removed once v2.0 apps are no longer in use, as this won't be necessary for 3.0+.
-	 * @depreacted
+	 * @deprecated
 	 */
 	protected static function generateEventsListFromMeetings(array $params = []): array
 	{

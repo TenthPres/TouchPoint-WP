@@ -1,7 +1,7 @@
 <?php
 namespace tp\TouchPointWP;
 
-/** @var TouchPointWP_Settings $this */
+/** @var Settings $this */
 
 $divs = json_encode($this->parent->getDivisions());
 $kws = json_encode($this->parent->getKeywords());

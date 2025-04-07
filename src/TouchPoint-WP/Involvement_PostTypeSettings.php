@@ -163,7 +163,7 @@ class Involvement_PostTypeSettings
 			return $this->$what;
 		}
 
-		return TouchPointWP_Settings::UNDEFINED_PLACEHOLDER;
+		return Settings::UNDEFINED_PLACEHOLDER;
 	}
 
 	/**

@@ -7,6 +7,7 @@ namespace tp\TouchPointWP;
 
 use Exception;
 use Throwable;
+use WP_Error;
 
 if ( ! defined('ABSPATH')) {
 	exit;
@@ -108,5 +109,16 @@ class TouchPointWP_Exception extends Exception
 								   'location' => $this->getFile() . " @ L" . $this->getLine()
 							   ]
 						   ]);
+	}
+
+
+	/**
+	 * Convert this exception to a WP_Error object that can be passed through the WordPress API.
+	 *
+	 * @return WP_Error
+	 */
+	public function toWpError(): WP_Error
+	{
+		return new WP_Error($this->getCode(), $this->getMessage());
 	}
 }

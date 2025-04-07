@@ -79,6 +79,19 @@ abstract class Utilities
 	/**
 	 * @return DateTimeImmutable
 	 */
+	public static function dateTimeNowPlus90D(): DateTimeImmutable
+	{
+		if (self::$_dateTimeNowPlus90D === null) {
+			$someDays                  = new DateInterval('P90D');
+			self::$_dateTimeNowPlus90D = self::dateTimeNow()->add($someDays);
+		}
+
+		return self::$_dateTimeNowPlus90D;
+	}
+
+	/**
+	 * @return DateTimeImmutable
+	 */
 	public static function dateTimeNowPlus1D(): DateTimeImmutable
 	{
 		if (self::$_dateTimeNowPlus1D === null) {
@@ -118,6 +131,7 @@ abstract class Utilities
 	private static ?DateTimeImmutable $_dateTimeNow = null;
 	private static ?DateTimeImmutable $_dateTimeTodayAtMidnight = null;
 	private static ?DateTimeImmutable $_dateTimeNowPlus1Y = null;
+	private static ?DateTimeImmutable $_dateTimeNowPlus90D = null;
 	private static ?DateTimeImmutable $_dateTimeNowPlus1D = null;
 	private static ?DateTimeImmutable $_dateTimeNowMinus1D = null;
 	private static ?DateTimeZone $_utcTimeZone = null;
