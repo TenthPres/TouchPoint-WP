@@ -28,6 +28,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string       system_name        What the church calls TouchPoint
  * @property-read string       api_user           Username of a user account with API access
  * @property-read string       api_pass           Password for a user account with API access
+ * @property-read string       api_pat            The Personal Access Token used for newer API calls
  * @property-read string       api_script_name    The name of the script loaded into TouchPoint for API Interfacing
  * @property-read string       google_maps_api_key Google Maps API Key for embedded maps
  * @property-read string       google_geo_api_key Google Maps API Key for geocoding

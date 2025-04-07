@@ -17,7 +17,6 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "InvolvementMembership.php";
 	require_once "Utilities.php";
 	require_once "Utilities/PersonQuery.php";
-	require_once "Utilities/Session.php";
 }
 
 use Exception;
@@ -29,7 +28,6 @@ use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
-use tp\TouchPointWP\Utilities\Session;
 use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Term;
 use WP_User;
@@ -44,9 +42,6 @@ use WP_User;
  * @property ?int          campus_term_id    The Campus term ID
  * @property-read ?WP_Term resCode  The ResCode taxonomy, if present
  * @property ?int          rescode_term_id   The ResCode term ID
- * @property ?string       $loginSessionToken  A token that is saved on the Session variable and used to ensure links
- *	 aren't used between sessions.
- * @property ?string       $loginToken    A token used to validate the user.
  */
 class Person extends WP_User implements api, JsonSerializable, module, updatesViaCron
 {
@@ -116,8 +111,6 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	private const FIELDS_FOR_META = [
 		'picture',
 		'familyId',
-		'loginToken',
-		'loginSessionToken',
 		'campus_term_id',
 		'rescode_term_id'
 	];
@@ -1095,21 +1088,6 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
-	 * Used for setting or clearing a user's login tokens
-	 *
-	 * @param string|null $session
-	 * @param string|null $login
-	 *
-	 * @return void
-	 */
-	public function setLoginTokens(?string $session, ?string $login): void
-	{
-		$this->loginToken        = $login;
-		$this->loginSessionToken = $session;
-		$this->submitUpdate();
-	}
-
-	/**
 	 * Send WordPress User IDs to WordPress for storage in an extra value
 	 *
 	 * @return void
@@ -1247,6 +1225,29 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		self::$_enqueueUsersForJsInstantiation = true;
 	}
 
+
+	/**
+	 * TODO there has to be a better way to do this.
+	 *
+	 * @return Person[]
+	 */
+	protected static function getPeopleFromTransient(): array
+	{
+		$loggedInUser = TouchPointWP::currentUserPerson();
+
+		if ($loggedInUser === null) {
+			return [];
+		}
+
+		$peopleTransient = get_transient("tp_person_ident_" . $loggedInUser->peopleId);
+		if (!$peopleTransient || !isset($peopleTransient->people)) {
+			return [];
+		}
+
+		return $peopleTransient->people;
+	}
+
+
 	/**
 	 * Return the instances to be used for instantiation.
 	 *
@@ -1261,8 +1262,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		}
 
 		if (self::$_enqueueUsersForJsInstantiation) {
-			$s    = Session::instance();
-			$list = array_merge($list, $s->people ?? []);
+			$list = array_merge($list, self::getPeopleFromTransient());
 		}
 
 		// Remove duplicates.  (array_unique won't handle objects cleanly)
@@ -1306,12 +1306,13 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$out = "\ttpvm.addOrTriggerEventListener('Person_class_loaded', function() {\n";
 		$out .= "\t\tTP_Person.fromObjArray($listStr);\n";
 
-		if (self::$_enqueueUsersForJsInstantiation) {
-			$s     = Session::instance();
-			$pFids = json_encode($s->primaryFam ?? []);
-			$sFids = json_encode($s->secondaryFam ?? []);
-			$out   .= "\t\tTP_Person.identByFamily($pFids, $sFids);\n";
-		}
+// TODO restore, better.
+//		if (self::$_enqueueUsersForJsInstantiation) {
+//			$s     = Session::instance();
+//			$pFids = json_encode($s->primaryFam ?? []);
+//			$sFids = json_encode($s->secondaryFam ?? []);
+//			$out   .= "\t\tTP_Person.identByFamily($pFids, $sFids);\n";
+//		}
 
 		$out .= "\t});\n";
 
@@ -1607,7 +1608,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
-	 * Make the API call to get family members, store the results to the Session, and return them.
+	 * Make the API call to get family members and return them.
 	 *
 	 * This is used for both formal and informal auth.  Email addresses should be checked for spam likelihood before this point.
 	 *
@@ -1629,8 +1630,6 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$people = $data->people ?? [];
 
 		$data->primaryFam = $data->primaryFam ?? [];
-
-		$s = Session::instance();
 
 		try {
 			$stats = Stats::instance();
@@ -1660,10 +1659,17 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$sPeople   = array_merge($s->people ?? [], $ret);
 		$ids       = array_map(fn($p) => $p->peopleId, $sPeople);
 		$uniqIds   = array_unique($ids);
-		$s->people = array_values(array_intersect_key($sPeople, $uniqIds));
 
-		$s->primaryFam   = $primaryFam;
-		$s->secondaryFam = $secondaryFam;
+		// TODO determine if this is ever actually used or, more importantly, useful.  There has to be a better way to do this.
+		$primaryPerson = $sPeople[0] ?? null;
+		if ($primaryPerson) {
+			$personTransient = (object)[
+				'people'       => array_values(array_intersect_key($sPeople, $uniqIds)),
+				'primaryFam'   => $primaryFam,
+				'secondaryFam' => $secondaryFam
+			];
+			set_transient("tp_person_ident_" . $primaryPerson->peopleId, $personTransient, 60 * 60 * 12);
+		}
 
 		return [
 			'people'     => $ret,
@@ -1673,6 +1679,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 	/**
 	 * Return JSON for a people search, validating that the person has access to those people.
+	 * 
+	 * @deprecated Needs to be rewritten with proper API.
 	 *
 	 * @return void
 	 */

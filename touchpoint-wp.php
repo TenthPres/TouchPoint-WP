@@ -57,6 +57,7 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Translation.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/PersonArray.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/StringableArray.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Session.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/DateFormats.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/DateTimeExtended.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Http.php";

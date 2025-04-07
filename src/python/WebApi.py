@@ -1241,7 +1241,7 @@ if "logout" in Data.a and model.HttpMethod == "get":
         "<iframe id=\"logoutIFrame\" src=\"/Account/LogOff/\" style=\"position:absolute; top:-1000px; left:-10000px; width:2px; height:2px;\" ></iframe>")
     apiCalled = True
 
-if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r parameter implies desired redir after login.
+elif ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r parameter implies desired redir after login.
     apiCalled = True
     pid = 0
     if hasattr(model, "UserPeopleId"):
@@ -1255,14 +1255,6 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
                                                                                                             "the church staff") + "</b>.</p>")
 
     else:
-        po = model.GetPerson(pid)
-
-        body = {
-            "p": get_person_info_for_sync(po)
-        }
-
-        response = ""
-
         try:
             # separate method / host / path
             useSsl = True
@@ -1296,61 +1288,11 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
             [host, path] = r.split('/', 1)
             host = host.lower()
 
-            apiSettingKey = "wp_api_" + host.replace(".", "_")
-            apiKey = model.Setting(apiSettingKey, "")
-
-            headers = {
-                "X-API-KEY": apiKey,
-                "content-type": "application/json"
-            }
-
-            if apiKey == '':
-                model.Title = "Error"
-                model.Header = "Site not authorized"
-
-                print("<p><b>This site is not authorized to use authentication.</b> (Error 177001)</p>")
-
-            else:
-                if Data.sToken is not '':
-                    body["sToken"] = Data.sToken  # Note that this key is absent if no value is available.
-
-                # noinspection HttpUrlsUsage
-                http = "https://" if useSsl else "http://"
-
-                response = model.RestPostJson(http + host + "/touchpoint-api/auth/token", headers, body)
-                response = response.replace('﻿', '').strip()  # deal with inserted whitespaces by some plugins
-
-                model.Title = "Login"
-                model.Header = "Processing..."
-
-                if response == "":
-                    raise Exception("Could not communicate with WordPress server.")
-
-                response = json.loads(response)
-
-                if "error" in response:
-                    if response['error']['code'] == 177006:
-                        print("Your login session has expired.  Try again.")
-                        model.Header = "Session Expired"
-                    else:
-                        raise Exception(response['error']['message'])
-
-                else:
-                    if ("apiKey" in response) and (model.Setting(apiKey, "") != response["apiKey"]):
-                        model.SetSetting(apiSettingKey, response["apiKey"])
-
-                    if ("wpid" in response and "wpevk" in response and
-                            model.ExtraValueInt(pid, response["wpevk"]) != response["wpid"]):
-                        model.AddExtraValueInt(pid, response["wpevk"], response["wpid"])
-
-                    loginPathSettingKey = "wp_loginPath_" + host.replace(".", "_")
-                    loginPath = model.Setting(loginPathSettingKey, "/wp-login.php")
-                    redir = http + host + loginPath + '?loginToken=' + response["userLoginToken"]
-
-                    if path is not '':
-                        redir += "&redirect_to=" + path
-
-                    print("REDIRECT=" + redir)
+            # noinspection PyUnresolvedReferences
+            redir = urllib.urlencode({'redirect_to': path})
+            # noinspection HttpUrlsUsage
+            redir = ("https://" if useSsl else "http://") + host + "/wp-login.php?tptoken={token}&" + redir
+            print("REDIRECT=" + "/api/v1/Account/RedirectWithCredentials?destination=" + redir)
 
         except Exception as e:
             model.Title = "Error"
@@ -1358,7 +1300,7 @@ if ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r param
 
             print("<p>Please email the following error message to <b>" +
                   model.Setting("AdminMail", "the church staff") + "</b>.</p><pre>")
-            print(response)
+            # print(response)  TODO
             print_exception()
             print("</pre>")
 

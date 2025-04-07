@@ -133,11 +133,13 @@ class Api
 			]
 		);
 
-		return self::parseApiResponse($r);
+		return self::parsePyApiResponse($r);
 	}
 
 
 	/**
+	 * Do a POST to the Python-Defined API.
+	 *
 	 * @param string $command The thing to post
 	 * @param ?mixed $data Data to post
 	 * @param int    $timeout Amount of time in sec to wait before timing out.
@@ -163,7 +165,6 @@ class Api
 		$url = $host . "/PythonApi/" . $this->settings()->api_script_name . "?" . http_build_query(['a' => $command]);
 
 		self::$apiCallLog[] = $url;
-
 		$tik = microtime(true);
 
 		$r = $this->getHttpClient()->request(
@@ -180,7 +181,183 @@ class Api
 
 		$timeTaken = microtime(true) - $tik;
 
-		return self::parseApiResponse($r);
+		return self::parsePyApiResponse($r);
+	}
+
+
+	/**
+	 * Do a GET to the standard API using a PAB.
+	 *
+	 * @param string $command The API endpoint to call
+	 * @param array  $headers Headers to send with the request.
+	 * @param ?int   $onBehalfPid The PID of the user to act on behalf of.
+	 * @param int    $timeout Amount of time in sec to wait before timing out.
+	 * @param float  $timeTaken The time taken to complete the request.
+	 *
+	 * @return array|WP_Error The response from the Http request call.
+	 * @throws TouchPointWP_Exception  If anything went wrong.
+	 */
+	public function get(string $command, array $headers = [], ?int $onBehalfPid = null, int $timeout = 5, float &$timeTaken = 0): array|WP_Error
+	{
+		if (!is_array($headers)) {
+			$headers = (array)$headers;
+		}
+
+		$this->checkApiValidity();
+		$host = $this->parent->host();
+		$url = $host . $command;
+
+		self::$apiCallLog[] = $url;
+		$tik = microtime(true);
+
+		$headers['Authorization'] = 'PAT ' . $this->getPAT();
+
+		if (!isset($headers['Content-Type'])) {
+			$headers['Content-Type'] = 'text/plain';
+		}
+
+		if ($onBehalfPid) {
+			$headers['X-On-Behalf-Of'] = $onBehalfPid;
+		}
+
+		$r = $this->getHttpClient()->request(
+			$url,
+			[
+				'method'  => 'GET',
+				'headers' => $headers,
+				'timeout' => $timeout
+			]
+		);
+
+		$timeTaken = microtime(true) - $tik;
+
+		return $r;
+	}
+
+
+	/**
+	 * Do a POST to the standard API using a PAB.
+	 *
+	 * @param string $command The API endpoint to call
+	 * @param ?mixed $data Data to post
+	 * @param array  $headers Headers to send with the request.
+	 * @param ?int   $onBehalfPid The PID of the user to act on behalf of.
+	 * @param int    $timeout Amount of time in sec to wait before timing out.
+	 * @param float  $timeTaken The time taken to complete the request.
+	 *
+	 * @return array|WP_Error The response from the Http request call.
+	 * @throws TouchPointWP_Exception  If anything went wrong.
+	 */
+	public function post(string $command, mixed $data = null, array $headers = [], ?int $onBehalfPid = null, int $timeout = 5, float &$timeTaken = 0): array|WP_Error
+	{
+		if (!is_array($headers)) {
+			$headers = (array)$headers;
+		}
+
+		$this->checkApiValidity();
+		$host = $this->parent->host();
+		$url = $host . $command;
+
+		self::$apiCallLog[] = $url;
+		$tik = microtime(true);
+
+		$headers['Authorization'] = 'PAT ' . $this->getPAT();
+
+		if (!isset($headers['Content-Type'])) {
+			$headers['Content-Type'] = 'text/plain';
+		}
+
+		if ($onBehalfPid) {
+			$headers['X-On-Behalf-Of'] = $onBehalfPid;
+		}
+
+		$r = $this->getHttpClient()->request(
+			$url,
+			[
+				'method'  => 'POST',
+				'headers' => $headers,
+				'body'    => $data,
+				'timeout' => $timeout
+			]
+		);
+
+		$timeTaken = microtime(true) - $tik;
+
+		return $r;
+	}
+
+
+	/**
+	 * Gets the PAT token to use.  Generates one if it doesn't exist.
+	 *
+	 * @throws TouchPointWP_Exception
+	 */
+	protected final function getPAT(): string
+	{
+		if (!$this->settings()->hasValidApiSettings()) {
+			throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", "TouchPoint-WP"), 170001);
+		}
+
+		if (!$this->settings()->api_pat) {
+			$this->cyclePAT();
+		}
+
+		return $this->settings()->api_pat;
+	}
+
+
+	/**
+	 * @return void
+	 * @throws TouchPointWP_Exception
+	 * @throws TouchPointWP_WPError
+	 */
+	protected final function cyclePAT(): void
+	{
+//		$this->invalidatePAT(); TODO this.
+		$this->getNewPAT();
+	}
+
+
+	/**
+	 * @throws TouchPointWP_Exception
+	 * @throws TouchPointWP_WPError
+	 */
+	private function getNewPAT(): void
+	{
+		$host = $this->parent->host();
+
+		if ( ! $host) {
+			throw new TouchPointWP_Exception(__("Host appears to be missing from TouchPoint-WP configuration.", "TouchPoint-WP"), 170002);
+		}
+
+		$url = $host . "/api/v1/Account/CreateUserAccessToken";
+
+		self::$apiCallLog[] = $url;
+
+		$r = $this->getHttpClient()->request(
+			$url,
+			[
+				'method'  => 'POST',
+				'headers' => [
+					'Authorization' => 'Basic ' . base64_encode($this->settings()->api_user . ':' . $this->settings()->api_pass),
+					'Content-Type'  => 'plain/text'
+				],
+				'body'    => Utilities::dateTimeNowPlus90D()->format("Y-m-d\TH:i:s"),
+			]
+		);
+
+		if ($r instanceof WP_Error) {
+			throw new TouchPointWP_WPError($r);
+		}
+
+		if ($r['response']['code'] !== 200) {
+			throw new TouchPointWP_Exception("Error Creating PAT: " . $r['response']['code'], 179005);
+		}
+
+		$response = json_decode($r['body']);
+
+		update_option('tp_api_pat', $response->personalAccessToken);
+		update_option('tp_api_pat_expires', $response->expirationDate);
 	}
 
 
@@ -226,13 +403,13 @@ class Api
 
 
 	/**
-	 * @param $response
+	 * @param WP_Error|array $response
 	 *
 	 * @return stdClass|array
 	 * @throws TouchPointWP_Exception
 	 * @throws TouchPointWP_WPError
 	 */
-	private static function parseApiResponse($response): array|stdClass
+	private static function parsePyApiResponse(WP_Error|array $response): array|stdClass
 	{
 		if ($response instanceof WP_Error) {
 			throw new TouchPointWP_WPError($response);
@@ -269,10 +446,7 @@ class Api
 			if (in_array("updateScripts", $respDecoded->data->a ?? [])) {
 				if (class_exists("TouchPointWP_AdminAPI")) {
 					TouchPointWP_AdminAPI::showError(
-						__(
-							"The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed.",
-							"TouchPoint-WP"
-						)
+						__("The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed.", "TouchPoint-WP")
 					);
 				}
 			} else {

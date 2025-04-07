@@ -2458,7 +2458,9 @@ class TouchPointWP
 			'src'     => [],
 			'meta'    => [],
 			'groupBy' => null,
-			'context' => null
+			'context' => null,
+			'perPage' => 1000000,
+			'offset'  => 0,
 		];
 	}
 
