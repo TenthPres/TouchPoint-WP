@@ -86,11 +86,11 @@ abstract class Auth implements api, module
 
 	/**
 	 * Clear variables and potentially create a flag for the logout of TouchPoint.
-	 *
-	 * Does NOT actually log out of WordPress as this should be called by wp_logout, which accomplishes that.
 	 */
 	public static function logout(): void
 	{
+		wp_set_current_user(0);
+
 		$tpwp = TouchPointWP::instance();
 		if ($tpwp->settings->auth_full_logout === "on") {
 			$redir = $tpwp->host() . '/PyScript/' . $tpwp->settings->api_script_name . '?' . http_build_query([
@@ -335,7 +335,7 @@ abstract class Auth implements api, module
 			}
 
 			$pq = TouchPointWP::newQueryObject();
-			$pq['pid'] = [$userData->peopleId];
+			$pq['pid'] = [(string)($userData->peopleId)];
 			$pq['context'] = 'users';
 
 			try {

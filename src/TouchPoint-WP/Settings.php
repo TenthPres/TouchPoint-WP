@@ -29,6 +29,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read string       api_user           Username of a user account with API access
  * @property-read string       api_pass           Password for a user account with API access
  * @property-read string       api_pat            The Personal Access Token used for newer API calls
+ * @property-read string       api_pat_expires    The date/time when the PAT is expected to expire.
  * @property-read string       api_script_name    The name of the script loaded into TouchPoint for API Interfacing
  * @property-read string       google_maps_api_key Google Maps API Key for embedded maps
  * @property-read string       google_geo_api_key Google Maps API Key for geocoding
@@ -356,7 +357,10 @@ class Settings
 					'default'     => '',
 					'autoload'    => true,
 					'placeholder' => 'mychurch.tpsdb.com',
-					'callback'    => [$this, 'validation_lowercase']
+					'callback'    => function ($new) {
+						$new = $this->validation_lowercase($new);
+						return $this->validation_invalidatePATIfChanged($new, "host");
+					}
 				],
 				[
 					'id'          => 'host_deeplink',
@@ -381,6 +385,7 @@ class Settings
 					'default'     => '',
 					'autoload'    => true,
 					'placeholder' => '',
+					'callback'    => fn($new) => $this->validation_invalidatePATIfChanged($new, 'api_user')
 				],
 				[
 					'id'          => 'api_pass',
@@ -393,7 +398,10 @@ class Settings
 					'default'     => '',
 					'autoload'    => true,
 					'placeholder' => $this->passwordPlaceholder('api_pass'),
-					'callback'    => fn($new) => $this->validation_secret($new, 'api_pass')
+					'callback'    => function($new) {
+						$new = $this->validation_secret($new, 'api_pass');
+						return $this->validation_invalidatePATIfChanged($new, 'api_pass');
+					}
 				],
 				[
 					'id'          => 'api_script_name',
@@ -1900,6 +1908,23 @@ class Settings
 	{
 		if ($new !== $this->$field) {
 			TouchPointWP::queueUpdateDeployedScripts();
+		}
+
+		return $new;
+	}
+
+	/**
+	 * If a setting is changed that impacts the PATs, invalidate the existing PAT.
+	 *
+	 * @param mixed  $new the new value, which could be anything
+	 * @param string $field The name of the field that's getting updated
+	 *
+	 * @return mixed lower-case string
+	 */
+	protected function validation_invalidatePATIfChanged(mixed $new, string $field): mixed
+	{
+		if ($new !== $this->$field) {
+			TouchPointWP::instance()->api->invalidatePAT();
 		}
 
 		return $new;

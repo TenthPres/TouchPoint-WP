@@ -660,10 +660,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @param bool $verbose Whether to print debugging info.
 	 *
-	 * @return false|int False on failure, or the number of partner posts that were updated or deleted.
+	 * @return false|int False on failure, or the number of people that were updated or deleted.
 	 * @throws TouchPointWP_Exception
 	 */
-	protected static function updateFromTouchPoint(bool $verbose = false)
+	protected static function updateFromTouchPoint(bool $verbose = false): bool|int
 	{
 		global $wpdb;
 
@@ -764,8 +764,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		self::$_indexingQueries['meta']['pev'] = TouchPointWP::instance()->getPersonEvFields($pevFieldIds);
 		self::$_indexingQueries['context']     = 'peopleLists';
 
+		$timeout = min((count(self::$_indexingQueries['pid']) / 4) + 10, 50);
+
 		// Submit to API
-		$people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, 50);
+		$people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, $timeout);
 
 		set_time_limit(count($people->people) * 5 + 10); // a very generous time limit.
 

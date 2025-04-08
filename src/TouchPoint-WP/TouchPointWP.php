@@ -411,6 +411,8 @@ class TouchPointWP
 	 */
 	public function parseRequest($continue, $wp, $extraVars): bool
 	{
+		$this->logOutTpWpUser();
+
 		if ($continue) {
 			$reqUri         = parse_url(trim($_SERVER['REQUEST_URI'], '/'));
 			$reqUri['path'] = $reqUri['path'] ?? "";
@@ -825,6 +827,13 @@ class TouchPointWP
 	{
 		if (self::$_hasBeenInited)
 			return;
+
+		// If log in/out is happening, cron can make bad things happen.
+		$uri = $_SERVER['REQUEST_URI'] ?? '';
+		if (!defined('DISABLE_WP_CRON') &&
+		    (str_contains($uri, 'login') || str_contains($uri, 'logout'))) {
+			define('DISABLE_WP_CRON', true);
+		}
 
 		self::instance()->loadLocalizations();
 
@@ -2504,6 +2513,20 @@ class TouchPointWP
 	 * @var WP_User|null
 	 */
 	protected ?WP_User $priorUser = null;
+
+
+	/**
+	 * If the TPWP user is logged in, log them out.  This is useful for testing.  This user should never be used
+	 * interactively.
+	 *
+	 * @return void
+	 */
+	public function logOutTpWpUser(): void
+	{
+		if (self::TPWP_USER === wp_get_current_user()?->user_login) {
+			set_current_user(0);
+		}
+	}
 
 
 	/**

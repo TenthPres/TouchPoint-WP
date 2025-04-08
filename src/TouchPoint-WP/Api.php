@@ -186,6 +186,42 @@ class Api
 
 
 	/**
+	 * Prepares the request to be sent to the API.  Handles common elements between all PAT requests.
+	 *
+	 * @param string $command The API endpoint to call
+	 * @param mixed  $headers Headers to send with the request.
+	 * @param ?int   $onBehalfPid The PID of the user to act on behalf of.
+	 *
+	 * @return string The URL to call.
+	 * @throws TouchPointWP_Exception
+	 */
+	protected function prepareRequest(string $command, mixed &$headers, ?int $onBehalfPid): string
+	{
+		if (!is_array($headers)) {
+			$headers = (array)$headers;
+		}
+
+		$this->checkApiValidity();
+		$host = $this->parent->host();
+		$url = $host . $command;
+
+		self::$apiCallLog[] = $url;
+
+		$headers['Authorization'] = 'PAT ' . $this->getPAT();
+
+		if (!isset($headers['Content-Type'])) {
+			$headers['Content-Type'] = 'text/plain';
+		}
+
+		if ($onBehalfPid) {
+			$headers['X-On-Behalf-Of'] = $onBehalfPid;
+		}
+
+		return $url;
+	}
+
+
+	/**
 	 * Do a GET to the standard API using a PAB.
 	 *
 	 * @param string $command The API endpoint to call
@@ -199,27 +235,9 @@ class Api
 	 */
 	public function get(string $command, array $headers = [], ?int $onBehalfPid = null, int $timeout = 5, float &$timeTaken = 0): array|WP_Error
 	{
-		if (!is_array($headers)) {
-			$headers = (array)$headers;
-		}
-
-		$this->checkApiValidity();
-		$host = $this->parent->host();
-		$url = $host . $command;
-
-		self::$apiCallLog[] = $url;
 		$tik = microtime(true);
 
-		$headers['Authorization'] = 'PAT ' . $this->getPAT();
-
-		if (!isset($headers['Content-Type'])) {
-			$headers['Content-Type'] = 'text/plain';
-		}
-
-		if ($onBehalfPid) {
-			$headers['X-On-Behalf-Of'] = $onBehalfPid;
-		}
-
+		$url = $this->prepareRequest($command,$headers,$onBehalfPid);
 		$r = $this->getHttpClient()->request(
 			$url,
 			[
@@ -250,26 +268,9 @@ class Api
 	 */
 	public function post(string $command, mixed $data = null, array $headers = [], ?int $onBehalfPid = null, int $timeout = 5, float &$timeTaken = 0): array|WP_Error
 	{
-		if (!is_array($headers)) {
-			$headers = (array)$headers;
-		}
-
-		$this->checkApiValidity();
-		$host = $this->parent->host();
-		$url = $host . $command;
-
-		self::$apiCallLog[] = $url;
 		$tik = microtime(true);
 
-		$headers['Authorization'] = 'PAT ' . $this->getPAT();
-
-		if (!isset($headers['Content-Type'])) {
-			$headers['Content-Type'] = 'text/plain';
-		}
-
-		if ($onBehalfPid) {
-			$headers['X-On-Behalf-Of'] = $onBehalfPid;
-		}
+		$url = $this->prepareRequest($command,$headers,$onBehalfPid);
 
 		$r = $this->getHttpClient()->request(
 			$url,
@@ -288,6 +289,28 @@ class Api
 
 
 	/**
+	 * Determine if PAT has not yet expired.
+	 *
+	 * @return bool
+	 */
+	protected function checkPATValidity(): bool
+	{
+		$expires = $this->settings()->api_pat_expires;
+
+		if ($expires) {
+			$expires = strtotime($expires) - (60 * 60 * 24); // 1 day buffer
+			$now = time();
+
+			if ($now > $expires) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+
+	/**
 	 * Gets the PAT token to use.  Generates one if it doesn't exist.
 	 *
 	 * @throws TouchPointWP_Exception
@@ -301,24 +324,68 @@ class Api
 		if (!$this->settings()->api_pat) {
 			$this->cyclePAT();
 		}
+		
+		if (!$this->checkPATValidity()) {
+			$this->cyclePAT();
+		}
 
 		return $this->settings()->api_pat;
 	}
 
 
 	/**
+	 * Invalidate the existing PAT and get a new one.
+	 *
 	 * @return void
 	 * @throws TouchPointWP_Exception
 	 * @throws TouchPointWP_WPError
 	 */
 	protected final function cyclePAT(): void
 	{
-//		$this->invalidatePAT(); TODO this.
+		$this->invalidatePAT();
 		$this->getNewPAT();
 	}
 
 
 	/**
+	 * Invalidate the existing PAT, both here and on the server.
+	 *
+	 * @return void
+	 */
+	public final function invalidatePAT(): void
+	{
+		// get existing PAT
+		$pat = $this->settings()->api_pat;
+		$host = $this->parent->host();
+
+		// if existing PAT exists, send delete request to invalidate it on the server
+		if ($pat && $host) {
+			$url = $host . "/api/v1/Account/DeleteUserAccessToken";
+			$this->getHttpClient()->request(
+				$url,
+				[
+					'method' => 'POST',
+					'headers' => [
+						'Authorization' => 'Basic ' . base64_encode(
+								$this->settings()->api_user . ':' . $this->settings()->api_pass
+							),
+						'Content-Type'  => 'text/plain'
+					],
+					'body' => $pat,
+					'blocking' => false
+				]
+			);
+		}
+
+		// remove it and the expiration date from the local settings
+		update_option('tp_api_pat', null);
+		update_option('tp_api_pat_expires', null);
+	}
+
+
+	/**
+	 * Get a new PAT
+	 *
 	 * @throws TouchPointWP_Exception
 	 * @throws TouchPointWP_WPError
 	 */
@@ -340,7 +407,7 @@ class Api
 				'method'  => 'POST',
 				'headers' => [
 					'Authorization' => 'Basic ' . base64_encode($this->settings()->api_user . ':' . $this->settings()->api_pass),
-					'Content-Type'  => 'plain/text'
+					'Content-Type'  => 'text/plain'
 				],
 				'body'    => Utilities::dateTimeNowPlus90D()->format("Y-m-d\TH:i:s"),
 			]
@@ -357,7 +424,7 @@ class Api
 		$response = json_decode($r['body']);
 
 		update_option('tp_api_pat', $response->personalAccessToken);
-		update_option('tp_api_pat_expires', $response->expirationDate);
+		update_option('tp_api_pat_expires', $response->expirationDate ?? null);
 	}
 
 
