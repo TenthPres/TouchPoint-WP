@@ -81,6 +81,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read int          mc_future_days     Number of days into the future to import.
  * @property-read int          mc_archive_days    Number of days to wait to move something to history.
  * @property-read int|string   mc_hist_days       Number of days of history to keep.  (Can be '' if module isn't enabled.)
+ * @property-read string       mc_grouping_method Whether and how to collect meetings into groups.
  *
  * @property-read string       rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
  * @property-read string       rc_name_singular   What a resident code should be called, singular (e.g. "Resident Code" or "Zone")
@@ -458,7 +459,6 @@ class Settings
 					),
 					'type'        => 'checkbox',
 					'default'     => 'on',
-					'autoload'    => false,
 				],
 			],
 		];
@@ -935,7 +935,24 @@ class Settings
 						'default'     => 1825,
 						'placeholder' => 1825,
 						'max'         => 3650,
-						'min'         => 0
+						'min'         => 0,
+						'auto'
+					],
+					[
+						'id'          => 'mc_grouping_method',
+						'label'       => __("Collect Meetings for Larger Events", "TouchPoint-WP"),
+						'description' => __("Allows multiple meetings that are part of one larger event to be grouped together, such as sessions within a conference.  For meetings to be collected, they must be in the same involvement and must not have gaps between them larger than 23 hours.", "TouchPoint-WP"),
+						'type'        => 'select',
+						'options'     => [
+							Meeting::GROUP_NONE => __("No Collecting", "TouchPoint-WP"),
+							Meeting::GROUP_UNSCHEDULED => __(
+								"Collect Meetings only from Involvements without Schedules",
+								"TouchPoint-WP"
+							),
+							Meeting::GROUP_ALL => __("Collect Meetings for all Involvements", "TouchPoint-WP"),
+						],
+						'default'     => Meeting::GROUP_UNSCHEDULED,
+						'autoload'    => false
 					],
 				],
 			];

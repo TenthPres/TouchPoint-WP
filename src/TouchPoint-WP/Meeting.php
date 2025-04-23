@@ -47,6 +47,11 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	public const MEETING_FEAT_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgFeatured";
 	public const MEETING_STATUS_META_KEY = TouchPointWP::SETTINGS_PREFIX . "status";
 	public const MEETING_INV_ID_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgInvId";
+	public const MEETING_IS_GROUP_MEMBER = TouchPointWP::SETTINGS_PREFIX . "isGroupMember";
+
+	public const GROUP_NONE = "none";
+	public const GROUP_UNSCHEDULED = "unscheduled";
+	public const GROUP_ALL = "all";
 
 	public const SHORTCODE_GRID = TouchPointWP::SHORTCODE_PREFIX . "Calendar";
 
@@ -283,14 +288,15 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	{
 		if (self::$_typeSet == null) {
 			self::$_typeSet = new Involvement_PostTypeSettings((object)[
-				'namePlural'      => _x("Events", "What Meetings should be called, plural.", 'TouchPoint-WP'),
-				'nameSingular'    => _x("Event", "What Meetings should be called, singular.", 'TouchPoint-WP'),
-				'slug'            => TouchPointWP::instance()->settings->mc_slug,
-				'importMeetings'  => true,
-				'useImages'       => true,
-				'useGeo'          => false,
-				'hierarchical'    => true,
-				'postType'        => self::POST_TYPE_WO_PRE
+				'namePlural'            => _x("Events", "What Meetings should be called, plural.", 'TouchPoint-WP'),
+				'nameSingular'          => _x("Event", "What Meetings should be called, singular.", 'TouchPoint-WP'),
+				'slug'                  => TouchPointWP::instance()->settings->mc_slug,
+				'importMeetings'        => true,
+				'useImages'             => true,
+				'useGeo'                => false,
+				'hierarchical'          => true,
+				'postType'              => self::POST_TYPE_WO_PRE,
+				'meetingGroupingMethod' => TouchPointWP::instance()->settings->mc_grouping_method
 			]);
 		}
 		return self::$_typeSet;
@@ -489,23 +495,25 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 			return new StringableArray();
 		}
 
-		$ret = $inv->getActionButtons($context . "_meeting", $btnClass, false, $absoluteLinks, false);
+		$ret = $inv->getActionButtons($context . "_meeting", $btnClass,
+		                              $withTouchPointLink && $this->isMeetingGroup(),
+		                              $absoluteLinks, false);
 
 		if ($this->status() !== self::STATUS_CANCELLED) {
-			if (($this->endDt ?? $this->startDt) > Utilities::dateTimeNow()) {
-				$ret['register'] = $inv->getRegisterButton($btnClass, $absoluteLinks, $this);
-			}
-
 			if ($inv->getRegistrationType() === RegistrationType::RSVP) {
 				if ($absoluteLinks) {
 					$ret['register'] = $this->getRsvpLink($btnClass);
 				} else {
 					$ret['register'] = $this->getRsvpButton($btnClass);
 				}
+			} else {
+				if (($this->endDt ?? $this->startDt) > Utilities::dateTimeNow()) {
+					$ret['register'] = $inv->getRegisterButton($btnClass, $absoluteLinks, $this);
+				}
 			}
 		}
 
-		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
+		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin() && !$this->isMeetingGroup()) {
 			$tpHost = TouchPointWP::instance()->host();
 			// Translators: %s is the system name.  "TouchPoint" by default.
 			$title  = wp_sprintf(__("Meeting in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
@@ -529,6 +537,11 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		 *     elements.
 		 */
 		return apply_filters("tp_meeting_actions", $ret, $this, $context, $btnClass);
+	}
+
+	public function isMeetingGroup(): bool
+	{
+		return $this->mtgId < 0;
 	}
 	
 	public function isFeatured(): bool
@@ -803,7 +816,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	 */
 	public static function postIsType(WP_Post $post): bool
 	{
-		return intval(get_post_meta($post->ID, Meeting::MEETING_META_KEY, true)) > 0;
+		return intval(get_post_meta($post->ID, Meeting::MEETING_META_KEY, true)) != 0;
 	}
 
 	/**

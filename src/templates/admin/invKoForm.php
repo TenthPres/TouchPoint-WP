@@ -103,6 +103,19 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             </th>
             <td colspan="2"><input id="it-importMeetings" type="checkbox" data-bind="checked: importMeetings, attr: { id: 'it-' + slug() + '-importMeetings'}" /></td>
         </tr>
+
+        <tr data-bind="visible: importMeetings">
+            <th>
+                <label for="it-meetingGroupingMethod" data-bind="attr: { for: 'it-' + slug() + '-meetingGroupingMethod'}"><?php _e("Collect Meetings for Larger Events", "TouchPoint-WP"); ?></label>
+            </th>
+            <td colspan="2">
+                <select id="it-meetingGroupingMethod" data-bind="value: meetingGroupingMethod, attr: { id: 'it-' + slug() + '-meetingGroupingMethod'}">
+                    <option value="<?php echo Meeting::GROUP_NONE; ?>"><?php _e("No Collecting", "TouchPoint-WP"); ?></option>
+                    <option value="<?php echo Meeting::GROUP_UNSCHEDULED; ?>"><?php _e("Collect Meetings only from Involvements without Schedules", "TouchPoint-WP"); ?></option>
+                    <option value="<?php echo Meeting::GROUP_ALL; ?>"><?php _e("Collect Meetings for all Involvements", "TouchPoint-WP"); ?></option>
+                </select>
+                <br /><label for="it-meetingGroupingMethod" data-bind="attr: { for: 'it-' + slug() + '-meetingGroupingMethod'}"><?php _e("Allows multiple meetings that are part of one larger event to be grouped together, such as sessions within a conference.  For meetings to be collected, they must be in the same involvement and must not have gaps between them larger than 23 hours.", "TouchPoint-WP"); ?></label></td>
+        </tr>
         <?php } ?>
 
         <tr>
@@ -302,6 +315,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.excludeIf = ko.observable(data.excludeIf ?? []);
         this.hierarchical = ko.observable(data.hierarchical ?? false);
         this.importMeetings = ko.observable(data.importMeetings ?? false);
+        this.meetingGroupingMethod = ko.observable(data.meetingGroupingMethod ?? <?php echo Meeting::GROUP_NONE ?>);
         this.groupBy = ko.observable(data.groupBy ?? "");
         this.leaderTypes = ko.observableArray(data.leaderTypes ?? []);
         this.hostTypes = ko.observableArray(data.hostTypes ?? []);

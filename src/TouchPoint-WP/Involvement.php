@@ -2300,6 +2300,22 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		}
 	}
 
+	protected static DateTimeImmutable $_updateExpiry;
+
+	protected static function updateExpiry(): DateTimeImmutable
+	{
+		if (!isset(self::$_updateExpiry)) {
+			$diff = TouchPointWP::instance()->settings->mc_archive_days;
+			try {
+				$interval = new DateInterval("P{$diff}D");
+				self::$_updateExpiry = Utilities::dateTimeNow()->sub($interval);
+			} catch (Exception) {
+				self::$_updateExpiry = Utilities::dateTimeNow();
+			}
+		}
+		return self::$_updateExpiry;
+	}
+
 	/**
 	 * Returns distance to the given involvement from the $compareGeo point.
 	 *
@@ -3108,104 +3124,59 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			// If the main post was previously a single, it needs to have the meeting info removed.
 			self::doMeetingMetaUpdates($post, null, false, $verbose);
 
+			// Group meetings together if they're adjacent and settings allow.
+			$doGrouping = match($typeSets->meetingGroupingMethod) {
+				Meeting::GROUP_UNSCHEDULED => count($inv->schedules) === 0,
+				Meeting::GROUP_ALL => true,
+				default => false
+			};
+
+			usort($inv->meetings, fn($a, $b) => $a->mtgStartDt <=> $b->mtgStartDt);
+
+			$c = 0;
+			foreach ($inv->meetings as $i => $mtgO) {
+				$mtgO->group = $c;
+				if ($i > 0 && $doGrouping) {
+					$diff = $mtgO->mtgStartDt->diff($inv->meetings[$i - 1]->mtgStartDt);
+
+					if ($diff->days === 0 && $diff->h < 23) {
+						$c--;
+						$mtgO->group = $c;
+					}
+				}
+				$c++;
+			}
+			unset($c);
+			$grouped = [];
 			foreach ($inv->meetings as $mtgO) {
+				if (!isset($grouped[$mtgO->group])) {
+					$grouped[$mtgO->group] = new MeetingArray(involvement:$inv);
+				}
+				$grouped[$mtgO->group][] = $mtgO;
+			}
 
-				////////////////////
-				// Title and Slug //
-				////////////////////
+			// execute the changes
+			foreach ($grouped as $g) {
 
-				$title = $mtgO->name ?? $inv->titleToUse;
-				$slug = $mtgO->mtgId; // Default slug of the meeting ID -- collision-safe.
-				foreach ($slugFormats as $f) {
-					$s = $mtgO->mtgStartDt->format($f);
-					if ($slugStrategy[$s] == 1) {
-						$slug = $s;
-						break;
+				$groupPost = null;
+				$groupingActive = count($g) > 1;
+				if ($groupingActive) {
+					// A meeting group exists. Create a MeetingGroup post
+					$groupPost = self::updateMeeting($g, $inv, $slugFormats, $slugStrategy, $typeSets, $post, $imagePostId, $verbose);
+					if ($groupPost) {
+						$postsToKeep[] = $groupPost->ID;
 					}
 				}
 
-
-				/////////////////////////
-				// Find or Create Post //
-				/////////////////////////
-
-				$loops = 1;
-				do {
-					$mtgP = new WP_Query([
-						                     'post_type'      => $typeSets->postTypeWithPrefix(),
-						                     'post_name'      => $slug,
-						                     'post_parent'    => $post->ID,
-						                     'posts_per_page' => 10,
-						                     'numberposts'    => 10,
-						                     'meta_key'       => Meeting::MEETING_META_KEY,
-						                     'meta_value'     => $mtgO->mtgId,
-						                     'meta_compare'   => '='
-					                     ]);
-
-					$counts = $mtgP->post_count;
-					$mtgP   = $mtgP->get_posts();
-
-					if ($counts > 1) {  // multiple posts match, which isn't great.
-						new TouchPointWP_Exception("Multiple Posts Exist, Attempting to Remedy Automatically", 170007);
-						if ($verbose) {
-							echo "<p><b>Multiple Posts Exist.  An attempt will be made to remove them.</b></p>";
-						}
-
-						for ($i = 1; $i <= $counts; $i++) {
-							wp_delete_post($mtgP[$i]->ID, true);
-						}
+				foreach ($g as $mtgO) {
+					if ($groupingActive) {
+						$mtgO->isGroupMember = true;
 					}
-					$loops++;
-				} while ($counts > 1 && $loops < 3);
-
-				$eventIsPast = ($mtgO->mtgEndDt ?? $mtgO->mtgStartDt) < Utilities::dateTimeNow();
-
-				if ($counts > 0) { // post exists already.
-					$mtgP = reset($mtgP);
-				} elseif ($eventIsPast) {
-					if ($verbose) {
-						echo "<p>Post not found for Meeting $mtgO->mtgId.  As it is in the past, it will not be created.</p>";
+					$updatedPost = self::updateMeeting($mtgO, $inv, $slugFormats, $slugStrategy, $typeSets, $groupPost ?? $post, $imagePostId, $verbose);
+					if ($updatedPost) {
+						$postsToKeep[] = $updatedPost->ID;
 					}
-					continue;
-				} else {
-					if ($verbose) {
-						echo "<p>Post not found for Meeting $mtgO->mtgId.  Creating.</p>";
-					}
-					// create new
-					$mtgP = wp_insert_post([
-						                       'post_type'   => $typeSets->postTypeWithPrefix(),
-						                       'post_title'  => $title,
-						                       'post_name'   => $slug,
-						                       'post_parent' => $post->ID,
-						                       'post_status' => 'publish',
-						                       'meta_input'  => [
-							                       Meeting::MEETING_META_KEY => $mtgO->mtgId
-						                       ]
-					                       ]);
-					$mtgP = get_post($mtgP);
 				}
-
-				$mtgP->post_title = $title;
-				if (!$eventIsPast) {
-					$mtgP->post_content = Utilities::standardizeHtml($inv->description, "meeting-import");
-				}
-				$mtgP->post_parent = $post->ID;
-
-				self::doMeetingMetaUpdates($mtgP, $mtgO, !!$inv->showInSites, $verbose);
-
-				wp_update_post($mtgP);
-
-				if ($imagePostId > 0) {
-					set_post_thumbnail($mtgP->ID, $imagePostId);
-				} else {
-					delete_post_thumbnail($mtgP->ID);
-				}
-
-				if ($mtgP->post_name !== $slug) {
-					Utilities::forceSlugUpdate($mtgP->ID, $slug);
-				}
-
-				$postsToKeep[] = $mtgP->ID;
 			}
 		} else { // Single and None
 			$post->post_title = $inv->titleToUse;
@@ -3225,6 +3196,128 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		}
 
 		return $postsToKeep;
+	}
+
+
+	/**
+	 * Update a meeting post, or create it if it doesn't exist.
+	 *
+	 * @param Interfaces\apiMeeting $mtgO
+	 * @param object                $inv
+	 * @param array                 $slugFormats
+	 * @param array                 $slugStrategy
+	 * @param Involvement_PostTypeSettings $typeSets
+	 * @param ?WP_Post              $parentPost
+	 * @param int                   $imagePostId
+	 * @param bool                  $verbose
+	 *
+	 * @return ?WP_Post
+	 */
+	protected static function updateMeeting($mtgO, $inv, $slugFormats, $slugStrategy, $typeSets, $parentPost, $imagePostId, $verbose): ?WP_Post
+	{
+		////////////////////////////
+		// Meeting Title and Slug //
+		////////////////////////////
+
+		$title = $mtgO->name ?? $inv->titleToUse;
+		$slug  = $mtgO->mtgId; // Default slug of the meeting ID -- collision-safe.
+		foreach ($slugFormats as $f) {
+			$s = $mtgO->mtgStartDt->format($f);
+			if ($slugStrategy[$s] == 1) {
+				$slug = $s;
+				break;
+			}
+		}
+
+
+		/////////////////////////////////
+		// Find or Create Meeting Post //
+		/////////////////////////////////
+
+		$loops = 1;
+		do {
+			$mtgP = new WP_Query([
+				                     'post_type'      => $typeSets->postTypeWithPrefix(),
+				                     'post_name'      => $slug,
+				                     'post_parent'    => $parentPost->ID,
+				                     'posts_per_page' => 10,
+				                     'numberposts'    => 10,
+				                     'meta_key'       => Meeting::MEETING_META_KEY,
+				                     'meta_value'     => $mtgO->mtgId,
+				                     'meta_compare'   => '='
+			                     ]);
+
+			$counts = $mtgP->post_count;
+			$mtgP   = $mtgP->get_posts();
+
+			if ($counts > 1) {  // multiple posts match, which isn't great.
+				new TouchPointWP_Exception(
+					"Multiple Posts Exist, Attempting to Remedy Automatically",
+					170007
+				);
+				if ($verbose) {
+					echo "<p><b>Multiple Posts Exist.  An attempt will be made to remove them.</b></p>";
+				}
+
+				for ($i = 1; $i <= $counts; $i++) {
+					wp_delete_post($mtgP[$i]->ID, true);
+				}
+			}
+			$loops++;
+		} while ($counts > 1 && $loops < 3);
+
+		$eventIsPast = ($mtgO->mtgEndDt ?? $mtgO->mtgStartDt) < self::updateExpiry();
+
+		if ($counts > 0) { // post exists already.
+			$mtgP = reset($mtgP);
+		} elseif ($eventIsPast) {
+			if ($verbose) {
+				echo "<p>Post not found for Meeting $mtgO->mtgId.  As it is in the past, it will not be created.</p>";
+			}
+			return null;
+		} else {
+			if ($verbose) {
+				echo "<p>Post not found for Meeting $mtgO->mtgId.  Creating.</p>";
+			}
+			// create new
+			$mtgP = wp_insert_post([
+				                       'post_type'   => $typeSets->postTypeWithPrefix(),
+				                       'post_title'  => $title,
+				                       'post_name'   => $slug,
+				                       'post_parent' => $parentPost->ID,
+				                       'post_status' => 'publish',
+				                       'meta_input'  => [
+					                       Meeting::MEETING_META_KEY => $mtgO->mtgId
+				                       ]
+			                       ]);
+			$mtgP = get_post($mtgP);
+		}
+
+		$mtgP->post_title = $title;
+		if (!$eventIsPast) {
+			if (isset($mtgO->isGroupMember) && $mtgO->isGroupMember) {
+				$mtgP->post_content = "";
+			} else {
+				$mtgP->post_content = Utilities::standardizeHtml($inv->description, "meeting-import");
+			}
+		}
+		$mtgP->post_parent = $parentPost->ID;
+
+		self::doMeetingMetaUpdates($mtgP, $mtgO, ! ! $inv->showInSites, $verbose);
+
+		wp_update_post($mtgP);
+
+		if ($imagePostId > 0) {
+			set_post_thumbnail($mtgP->ID, $imagePostId);
+		} else {
+			delete_post_thumbnail($mtgP->ID);
+		}
+
+		if ($mtgP->post_name !== $slug) {
+			Utilities::forceSlugUpdate($mtgP->ID, $slug);
+		}
+
+		return $mtgP;
 	}
 
 	/**
@@ -3250,6 +3343,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			delete_post_meta($mtgP->ID, Meeting::MEETING_FEAT_META_KEY);
 			delete_post_meta($mtgP->ID, Meeting::MEETING_INV_ID_META_KEY);
 			delete_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY);
+			delete_post_meta($mtgP->ID, Meeting::MEETING_IS_GROUP_MEMBER);
 		} else {
 			$eventIsPast = ($mtgO->mtgEndDt ?? $mtgO->mtgStartDt) < Utilities::dateTimeNow();
 
@@ -3259,6 +3353,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			update_post_meta($mtgP->ID, Meeting::MEETING_FEAT_META_KEY, !!$feature);
 			update_post_meta($mtgP->ID, Meeting::MEETING_INV_ID_META_KEY, $mtgO->involvementId);
 			update_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY, intval($mtgO->status));
+			update_post_meta($mtgP->ID, Meeting::MEETING_IS_GROUP_MEMBER, 1 * isset($mtgO->isGroupMember));
 
 			if ($mtgO->location !== null && !$eventIsPast) {
 				update_post_meta($mtgP->ID, Meeting::MEETING_LOCATION_META_KEY, $mtgO->location);

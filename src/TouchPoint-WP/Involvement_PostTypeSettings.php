@@ -24,6 +24,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read bool     $useGeo
  * @property-read bool     $hierarchical
  * @property-read bool     $importMeetings
+ * @property-read string   $meetingGroupingMethod
  * @property-read string   $groupBy
  * @property-read string[] $excludeIf
  * @property-read string[] $leaderTypes
@@ -49,6 +50,7 @@ class Involvement_PostTypeSettings
 	protected bool $useGeo = false;
 	protected bool $hierarchical = false;
 	protected bool $importMeetings = false;
+	protected string $meetingGroupingMethod = Meeting::GROUP_NONE;
 	protected string $groupBy = "";
 	protected array $excludeIf = [];
 	protected array $leaderTypes = [];

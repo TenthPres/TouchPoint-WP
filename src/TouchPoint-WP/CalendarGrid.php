@@ -391,7 +391,12 @@ class CalendarGrid {
 			[
 				'key' => Meeting::MEETING_META_KEY,
 				'value' => 0,
-				'compare' => ">"
+				'compare' => "!="
+			],
+			[
+				'key' => Meeting::MEETING_IS_GROUP_MEMBER,
+				'value' => 0,
+				'compare' => "="
 			],
 			'relation' => 'AND'
 		];
