@@ -763,6 +763,26 @@ abstract class Utilities
 	}
 
 	/**
+	 * Convert a string to something that's acceptable for use as a slug.
+	 *
+	 * @param string $s
+	 *
+	 * @return string
+	 */
+	public static function stringToSlug(string $s): string
+	{
+		// split $s to only include anything before punctuation
+		$pos = strcspn($s, ".,:;!|?");
+		if ($pos > 0) {
+			$s = substr($s, 0, $pos);
+		}
+		$s = trim($s);
+		$s = preg_replace("/[^a-zA-Z0-9]/", "-", $s);
+		$s = strtolower($s);
+		return preg_replace("/-+/", "-", $s);
+	}
+
+	/**
 	 * Returns true if a new release is available.
 	 *
 	 * @return ?object

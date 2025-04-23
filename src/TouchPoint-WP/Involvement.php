@@ -2001,6 +2001,30 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 
 	/**
+	 * Create an Involvement object from an object from its involvement ID.
+	 *
+	 * @param string $postType
+	 * @param int    $involvementId
+	 *
+	 * @return ?Involvement
+	 *
+	 * @throws TouchPointWP_Exception If the involvement can't be created, an exception is thrown.
+	 */
+	public static function fromInvolvementId(string $postType, int $involvementId): ?Involvement
+	{
+		if ( ! isset(self::$_instances[$involvementId])) {
+			$post = self::getWpPostByInvolvementId($postType, $involvementId);
+			if ($post === null) {
+				return null;
+			}
+			self::$_instances[$involvementId] = Involvement::fromPost($post);
+		}
+
+		return self::$_instances[$involvementId];
+	}
+
+
+	/**
 	 * Handle API requests
 	 *
 	 * @param array $uri The request URI already parsed by parse_url()
@@ -2739,7 +2763,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Does the heavy-lifting of updating a given post, with the given information.
 	 *
-	 * @param mixed                        $post TODO give a firm type
+	 * @param mixed                        $post
 	 * @param object                       $inv
 	 * @param Involvement_PostTypeSettings $typeSets
 	 * @param bool                         $verbose
@@ -3059,6 +3083,67 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	}
 
 	/**
+	 * Compute the slug strategy for a set of meetings.
+	 *
+	 * @param apiMeeting[] $set An array of Meeting objects, grouped by their start date.
+	 *
+	 * @noinspection PhpUndefinedClassInspection
+	 */
+	protected static function computeSlugs(iterable $set, $inv, $includeTitle = false): void
+	{
+		// Slugs for groups (or ungrouped meetings)
+		$slugStrategy = [];
+
+		$slugFormats = [ // Define possible slugs, in increasing specificity.
+			//'Y',  Causes issues with Core. https://wordpress.stackexchange.com/a/367757/185189
+			'Y-m',
+			'Y-m-d',
+			'Y-m-d-g',
+			'Y-m-d-ga',
+			'Y-m-d-gia',
+			'Y-m-d-His',
+		];
+		foreach ($set as $mtgO) {
+			$mtgO->titleToUse = $mtgO->name ?? $inv->titleToUse;
+			if ($includeTitle && isset($mtgO->titleToUse)) {
+				$s = Utilities::stringToSlug($mtgO->titleToUse);
+				if (!isset($slugStrategy[$s])) {
+					$slugStrategy[$s] = 1;
+				} else {
+					$slugStrategy[$s]++;
+				}
+			}
+			foreach ($slugFormats as $f) {
+				$s = $mtgO->mtgStartDt->format($f);
+				if (!isset($slugStrategy[$s])) {
+					$slugStrategy[$s] = 1;
+				} else {
+					$slugStrategy[$s]++;
+				}
+			}
+		}
+
+		foreach ($set as $mtgO) {
+			$slug  = $mtgO->mtgId; // Default slug of the meeting ID -- collision-safe.
+			if ($includeTitle && isset($mtgO->titleToUse)) {
+				$s = Utilities::stringToSlug($mtgO->titleToUse);
+				if ($slugStrategy[$s] == 1) {
+					$mtgO->slugToUse = $s;
+					continue;
+				}
+			}
+			foreach ($slugFormats as $f) {
+				$s = $mtgO->mtgStartDt->format($f);
+				if ($slugStrategy[$s] == 1) {
+					$slug = $s;
+					break;
+				}
+			}
+			$mtgO->slugToUse = $slug;
+		}
+	}
+
+	/**
 	 * @param WP_Post|object               $post  The parent post, which could be a group or Meeting.
 	 * @param object                       $inv   The involvement object from the API.
 	 * @param Involvement_PostTypeSettings $typeSets
@@ -3087,35 +3172,6 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			1 => self::MEETING_STRATEGY_SINGLE,
 			default => self::MEETING_STRATEGY_MULTIPLE,
 		};
-
-		////////////////////
-		// Title and Slug //
-		////////////////////
-
-		$slugStrategy = [];
-		$slugFormats = [ // Define possible slugs, in increasing specificity.
-			//'Y',  Causes issues with Core. https://wordpress.stackexchange.com/a/367757/185189
-			'Y-m',
-			'Y-m-d',
-			'Y-m-d-g',
-			'Y-m-d-ga',
-			'Y-m-d-gia',
-			'Y-m-d-His',
-		];
-		if ($strategy === self::MEETING_STRATEGY_SINGLE) {
-			$inv->titleToUse = $inv->meetings[0]->name ?? $inv->titleToUse;
-		} elseif ($strategy === self::MEETING_STRATEGY_MULTIPLE) {
-			foreach ($inv->meetings as $mtgO) {
-				foreach ($slugFormats as $f) {
-					$s = $mtgO->mtgStartDt->format($f);
-					if (!isset($slugStrategy[$s])) {
-						$slugStrategy[$s] = 1;
-					} else {
-						$slugStrategy[$s]++;
-					}
-				}
-			}
-		}
 
 		$postsToKeep = [];
 
@@ -3155,30 +3211,41 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				$grouped[$mtgO->group][] = $mtgO;
 			}
 
+			self::computeSlugs($grouped, $inv);
+
 			// execute the changes
 			foreach ($grouped as $g) {
 
 				$groupPost = null;
 				$groupingActive = count($g) > 1;
+
+				// A Meeting group, if it exists.
 				if ($groupingActive) {
-					// A meeting group exists. Create a MeetingGroup post
-					$groupPost = self::updateMeeting($g, $inv, $slugFormats, $slugStrategy, $typeSets, $post, $imagePostId, $verbose);
+					$groupPost = self::updateMeeting($g, $inv, $typeSets, $post, $imagePostId, $verbose);
 					if ($groupPost) {
 						$postsToKeep[] = $groupPost->ID;
 					}
+					self::computeSlugs($g, $inv, true);
 				}
 
+				// Meetings within group
 				foreach ($g as $mtgO) {
 					if ($groupingActive) {
 						$mtgO->isGroupMember = true;
+					} else {
+						$mtgO->slugToUse    = $g->slugToUse;
+						$mtgO->titleToUse   = $g->titleToUse;
 					}
-					$updatedPost = self::updateMeeting($mtgO, $inv, $slugFormats, $slugStrategy, $typeSets, $groupPost ?? $post, $imagePostId, $verbose);
+					$updatedPost = self::updateMeeting($mtgO, $inv, $typeSets, $groupPost ?? $post, $imagePostId, $verbose);
 					if ($updatedPost) {
 						$postsToKeep[] = $updatedPost->ID;
 					}
 				}
 			}
 		} else { // Single and None
+			if ($strategy == self::MEETING_STRATEGY_SINGLE) {
+				$inv->titleToUse = $inv->meetings[0]->name ?? $inv->titleToUse;
+			}
 			$post->post_title = $inv->titleToUse;
 
 			// TODO resolve $post declarations.
@@ -3213,32 +3280,18 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 *
 	 * @return ?WP_Post
 	 */
-	protected static function updateMeeting($mtgO, $inv, $slugFormats, $slugStrategy, $typeSets, $parentPost, $imagePostId, $verbose): ?WP_Post
+	protected static function updateMeeting($mtgO, $inv, $typeSets, $parentPost, $imagePostId, $verbose): ?WP_Post
 	{
-		////////////////////////////
-		// Meeting Title and Slug //
-		////////////////////////////
-
-		$title = $mtgO->name ?? $inv->titleToUse;
-		$slug  = $mtgO->mtgId; // Default slug of the meeting ID -- collision-safe.
-		foreach ($slugFormats as $f) {
-			$s = $mtgO->mtgStartDt->format($f);
-			if ($slugStrategy[$s] == 1) {
-				$slug = $s;
-				break;
-			}
-		}
-
-
 		/////////////////////////////////
 		// Find or Create Meeting Post //
 		/////////////////////////////////
+
+		var_dump($mtgO);
 
 		$loops = 1;
 		do {
 			$mtgP = new WP_Query([
 				                     'post_type'      => $typeSets->postTypeWithPrefix(),
-				                     'post_name'      => $slug,
 				                     'post_parent'    => $parentPost->ID,
 				                     'posts_per_page' => 10,
 				                     'numberposts'    => 10,
@@ -3282,8 +3335,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			// create new
 			$mtgP = wp_insert_post([
 				                       'post_type'   => $typeSets->postTypeWithPrefix(),
-				                       'post_title'  => $title,
-				                       'post_name'   => $slug,
+				                       'post_title'  => $mtgO->titleToUse,
+				                       'post_name'   => $mtgO->slugToUse,
 				                       'post_parent' => $parentPost->ID,
 				                       'post_status' => 'publish',
 				                       'meta_input'  => [
@@ -3293,7 +3346,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$mtgP = get_post($mtgP);
 		}
 
-		$mtgP->post_title = $title;
+		$mtgP->post_title = $mtgO->titleToUse;
 		if (!$eventIsPast) {
 			if (isset($mtgO->isGroupMember) && $mtgO->isGroupMember) {
 				$mtgP->post_content = "";
@@ -3313,8 +3366,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			delete_post_thumbnail($mtgP->ID);
 		}
 
-		if ($mtgP->post_name !== $slug) {
-			Utilities::forceSlugUpdate($mtgP->ID, $slug);
+		if ($mtgP->post_name !== $mtgO->slugToUse) {
+			Utilities::forceSlugUpdate($mtgP->ID, $mtgO->slugToUse);
 		}
 
 		return $mtgP;

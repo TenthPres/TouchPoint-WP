@@ -350,9 +350,9 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		if (Involvement::postIsType($this->post)) {
 			return Involvement::fromPost($this->post);
 		}
-		$parent = get_post_parent($this->post_id);
-		if (Involvement::postIsType($parent)) {
-			return Involvement::fromPost(get_post($parent));
+		$inv = Involvement::fromInvolvementId($this->post->post_type, $this->involvementId());
+		if ($inv) {
+			return $inv;
 		}
 		throw new TouchPointWP_Exception("Meeting is not associated with an Involvement.", 171002);
 	}
@@ -365,10 +365,19 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	 *
 	 * In cases where a meeting post is also an involvement post, it will return the involvement, which has the same post_id.
 	 *
-	 * @return ?Involvement
+	 * @return ?Involvement|Meeting
 	 */
-	public function getParent(): ?Involvement
+	public function getParent(): Involvement|Meeting|null
 	{
+		if (!$this->isMeetingGroup() && $this->isMeetingGroupMember()) {
+			$parent = get_post($this->post->post_parent);
+			if ($parent) {
+				try {
+					return Meeting::fromPost($parent);
+				} catch (TouchPointWP_Exception) {
+				}
+			}
+		}
 		try {
 			return $this->involvement();
 		} catch (TouchPointWP_Exception) {
@@ -450,7 +459,6 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		if ($loc) {
 			$attrs['location'] = $loc;
 		}
-
 
 
 		$attrs = $this->processAttributeExclusions($attrs, $exclude);
@@ -542,6 +550,11 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	public function isMeetingGroup(): bool
 	{
 		return $this->mtgId < 0;
+	}
+
+	public function isMeetingGroupMember(): bool
+	{
+		return !!get_post_meta($this->post_id, Meeting::MEETING_IS_GROUP_MEMBER, true);
 	}
 	
 	public function isFeatured(): bool

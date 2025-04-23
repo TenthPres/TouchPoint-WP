@@ -32,6 +32,9 @@ class MeetingArray implements apiMeeting, IteratorAggregate, ArrayAccess, Counta
 	protected ?\stdClass $_involvement = null;
 	protected array $_meetings = [];
 
+	public string $slugToUse = "";
+	public string $titleToUse = "";
+
 	public function __construct($meetingArray = [], $involvement = null)
 	{
 		$this->_meetings = $meetingArray;
