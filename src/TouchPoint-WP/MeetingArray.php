@@ -26,6 +26,7 @@ use tp\TouchPointWP\Interfaces\apiMeeting;
  * @property-read DateTimeInterface mtgEndDt
  * @property-read ?string location
  * @property-read int status
+ * @property-read ?int involvementId
  */
 class MeetingArray implements apiMeeting, IteratorAggregate, ArrayAccess, Countable
 {
@@ -54,6 +55,7 @@ class MeetingArray implements apiMeeting, IteratorAggregate, ArrayAccess, Counta
 			'mtgEndDt' => $this->mtgEndDt(),
 			'location' => $this->_involvement?->location ?? null,
 			'status' => $this->status(),
+			'involvementId' => $this->_involvement?->involvementId ?? null,
 			default => null,
 		};
 	}
