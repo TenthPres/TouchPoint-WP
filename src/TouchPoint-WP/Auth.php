@@ -52,6 +52,9 @@ abstract class Auth implements api, module
 		// If configured, bypass the login form and redirect straight to TouchPoint
 		add_action('login_init', [self::class, 'redirectLoginFormMaybe'], 20);
 
+		// If configured, upon login, if no redirect is specified, redirect to the homepage
+		add_filter('login_redirect', [self::class, 'redirectLoginCompleteMaybe'], 10, 3);
+
 		// If configured, prevent admin bar from appearing for subscribers
 		add_action('after_setup_theme', [self::class, 'removeAdminBarMaybe']);
 	}
@@ -71,6 +74,9 @@ abstract class Auth implements api, module
 		self::$_isLoaded = true;
 
 		add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'init']);
+
+		// If configured, prevent user from accessing the admin area
+		add_action('admin_init', [self::class, 'preventAdminAccessMaybe']);
 
 		//////////////////
 		/// Shortcodes ///
@@ -138,7 +144,6 @@ abstract class Auth implements api, module
 	 * Generates the URL used to initiate a sign-in with TouchPoint.
 	 *
 	 * @return string The authorization URL used for a TouchPoint login.
-	 * @noinspection SpellCheckingInspection
 	 */
 	public static function getLoginUrl(): string
 	{
@@ -174,8 +179,35 @@ abstract class Auth implements api, module
 
 		if (self::wantsToLogin() && $redirect && $_SERVER['REQUEST_METHOD'] === "GET") {
 			wp_redirect(self::getLoginUrl(), Http::SEE_OTHER_TEMP);
-			die();
+			exit();
 		}
+	}
+
+
+	/**
+	 * Determines whether to redirect to allow the user to continue to the destination page after logging in.
+	 */
+	public static function redirectLoginCompleteMaybe(string $redirect_to, ?string $requested_redirect_to = null, WP_User|WP_Error|null $user = null): string
+	{
+		if (!is_a($user, 'WP_User')) {
+			return $redirect_to;
+		}
+
+		$redirect = TouchPointWP::instance()->settings->auth_change_profile_urls === 'on';
+
+		/**
+		 * Controls whether to redirect to the TouchPoint login automatically.
+		 *
+		 * @param bool $redirect Value preset from setting TouchPoint login as default.
+		 */
+		$redirect = apply_filters('tp_redirect_after_login', $redirect);
+
+		// if there is no defined redirect page, redirect to the home page
+		if ($redirect && (!isset($_GET['redirect_to']) || $_GET['redirect_to'] == '')) {
+			return home_url();
+		}
+
+		return $redirect_to;
 	}
 
 
@@ -197,6 +229,44 @@ abstract class Auth implements api, module
 
 		if ($removeBar) {
 			show_admin_bar(false);
+		}
+	}
+
+
+	/**
+	 * Prevents access to the WordPress admin area for users who can't edit or change anything.
+	 *
+	 * @return void
+	 */
+	public static function preventAdminAccessMaybe(): void
+	{
+		$preventAdmin = (TouchPointWP::instance()->settings->auth_change_profile_urls === 'on')
+					 && is_admin()  // means: request is in the admin area, not that user is an admin.
+					 && !current_user_can('edit_posts');
+
+
+		$destination = null;
+
+		if ($preventAdmin) {
+			// if profile.php, redirect to the profile page
+			if (isset($_SERVER['REQUEST_URI']) && str_contains($_SERVER['REQUEST_URI'], 'profile.php')) {
+				$destination = self::getProfileUrl();
+			} else {
+				// otherwise, redirect to the home page
+				$destination = home_url();
+			}
+		}
+
+		/**
+		 * Allows for preventing access to the WordPress admin area.
+		 *
+		 * @param ?string $destination The url to which the user should be redirected, or null to allow default behavior.
+		 */
+		$destination = apply_filters('tp_admin_area_redirect', $destination);
+
+		if ($destination) {
+			wp_redirect($destination, Http::SEE_OTHER_TEMP);
+			exit;
 		}
 	}
 
@@ -240,14 +310,33 @@ abstract class Auth implements api, module
 	{
 		$tpwp = TouchPointWP::instance();
 		if ($tpwp->settings->auth_change_profile_urls === 'on') {
-			$userId   = get_current_user_id();
-			$peopleId = (int)(get_user_meta($userId, Person::META_PEOPLEID, true));
-			if ($peopleId > 0) { // make sure we have a PeopleId.  Users aren't necessarily TouchPoint users.
-				return $tpwp->host() . '/Person2/' . $peopleId . "#tab-personal";
-			}
+			$newUrl = self::getProfileUrl();
+			if ($newUrl)
+				return $newUrl;
 		}
 
 		return $url;
+	}
+
+	/**
+	 * Assembles the URL to the TouchPoint profile for a given People ID.  Assumes current user if no peopleId is given.
+	 *
+	 * @param int|null $peopleId
+	 *
+	 * @return string|null
+	 */
+	public static function getProfileUrl(?int $peopleId = null): ?string
+	{
+		$tpwp = TouchPointWP::instance();
+		if ($peopleId === null) {
+			$userId   = get_current_user_id();
+			$peopleId = (int)(get_user_meta($userId, Person::META_PEOPLEID, true));
+		}
+		if ($peopleId >= 0) {
+			return $tpwp->host() . '/Person2/' . $peopleId . "#tab-personal";
+		}
+
+		return null;
 	}
 
 

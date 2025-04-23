@@ -473,7 +473,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	 *
 	 * @return StringableArray
 	 */
-	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray
+	public function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray
 	{
 		if (!$absoluteLinks) {
 			TouchPointWP::requireScript('swal2-defer');

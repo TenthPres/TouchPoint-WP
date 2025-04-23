@@ -202,7 +202,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 			if ($r) {
 				$this->_dirty = false;
 			} else if (WP_DEBUG) {
-				error_log("TouchPoint-WP Stats: Failed to save update to local database.");
+				error_log("TouchPoint-WP: Stats: Failed to save update to local database.");
 			}
 			return $r;
 		}

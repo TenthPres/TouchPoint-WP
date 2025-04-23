@@ -352,8 +352,10 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		$q['groupBy']     = 'FamilyId';
 		$q['context']     = 'partner';
 
+		$timeout = max(20, TouchPointWP::instance()->doPersonCount($q, 10) * 3);
+
 		// Submit to API
-		$familyData = TouchPointWP::instance()->doPersonQuery($q, $verbose, 50);
+		$familyData = TouchPointWP::instance()->doPersonQuery($q, $verbose, $timeout);
 
 		$postsToKeep = [];
 		$count       = 0;
@@ -1329,7 +1331,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 	 *
 	 * @return StringableArray
 	 */
-	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray
+	public function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray
 	{
 		$this->enqueueForJsInstantiation();
 

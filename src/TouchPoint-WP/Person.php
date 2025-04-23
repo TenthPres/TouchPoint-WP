@@ -674,8 +674,6 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$queryNeeded = false;
 
 		$verbose &= TouchPointWP::currentUserIsAdmin();
-		
-		TouchPointWP::instance()->setTpWpUserAsCurrent();
 
 		// Existing Users
 		/** @noinspection SqlResolve */
@@ -764,10 +762,12 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		self::$_indexingQueries['meta']['pev'] = TouchPointWP::instance()->getPersonEvFields($pevFieldIds);
 		self::$_indexingQueries['context']     = 'peopleLists';
 
-		$timeout = min((count(self::$_indexingQueries['pid']) / 4) + 10, 50);
+		$timeout = max((count(self::$_indexingQueries['pid']) / 2) + (count(self::$_indexingQueries['inv']) * 10) + 10, 50);
 
 		// Submit to API
 		$people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, $timeout);
+
+		TouchPointWP::instance()->setTpWpUserAsCurrent();
 
 		set_time_limit(count($people->people) * 5 + 10); // a very generous time limit.
 
@@ -1156,11 +1156,12 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @param ?string $context A reference to where the action buttons are meant to be used.
 	 * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button
-	 *	 elements.
+	 *     elements.
+	 * @param bool    $withTouchPointLink
 	 *
 	 * @return string
 	 */
-	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true): string
+	public function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true): string
 	{
 		TouchPointWP::requireScript('swal2-defer');
 		TouchPointWP::requireScript('base-defer');

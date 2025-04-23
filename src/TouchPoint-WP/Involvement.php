@@ -3651,7 +3651,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 *
 	 * @return StringableArray
 	 */
-	public function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false, bool $includeRegister = true): StringableArray
+	public function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false, bool $includeRegister = true): StringableArray
 	{
 		if (!$absoluteLinks) {
 			TouchPointWP::requireScript('swal2-defer');

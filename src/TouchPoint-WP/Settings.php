@@ -572,7 +572,7 @@ class Settings
 					],
 					[
 						'id'          => 'auth_change_profile_urls',
-						'label'       => __('Change \'Edit Profile\' links', 'TouchPoint-WP'),
+						'label'       => __('Change Profile Links', 'TouchPoint-WP'),
 						'description' => __(
 							'"Edit Profile" links will take the user to their TouchPoint profile, instead of their WordPress profile.',
 							'TouchPoint-WP'

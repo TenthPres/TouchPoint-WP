@@ -38,8 +38,8 @@ class TouchPointWP_Exception extends Exception
 			}
 			self::showAdminError($message);
 		}
-		error_log($message);
-		self::debugLog($this->getCode(), $this->getFile(), $this->getLine(), $this->getMessage());
+		error_log("TouchPoint-WP: " . $message);
+		self::debugLog($this->getCode(), $this->getFile(), $this->getLine(), $this->getMessage() . " " . $this->getTraceAsString());
 	}
 
 	/**

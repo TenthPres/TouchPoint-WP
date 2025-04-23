@@ -93,21 +93,20 @@ meetings through the plugin.
 Making this work requires notable configuration of your TouchPoint database.  We've scripted what we can, and the
 remainder is in [the Installation Instructions](https://github.com/TenthPres/TouchPoint-WP/wiki/Installation).
 
-Some features require other plugins, which may have fees attached.
-
 You will need a TouchPoint user account with API-level access. New TouchPoint databases do not have one by default. 
 If your church doesn't have one, open a support ticket with TouchPoint to create one, referencing this plugin.
 
 If you're using the Authentication component, your WordPress site **MUST** use HTTPS with a valid certificate.
 
 We don't promise support for old versions of WordPress or PHP.  You will need to keep both up to date.
+[See currently-supported PHP versions here.](https://www.php.net/supported-versions.php)
 
 ## Multisite Support
 
 At the moment, this plugin won't perform very well in a multisite environment.  We're working on that, though, as we 
-plan on moving our own infrastructure toward multisite soon.  As currently planned, ALL sites in a multisite network 
-will share ONE TouchPoint connection, and many (though not all) of the settings would be shared across the network.  If 
-you're interested in using this plugin in a multisite environment, [please get in touch](mailto:jkurtz@tenth.org). 
+plan on moving our own infrastructure toward multisite eventually.  As currently planned, ALL sites in a multisite 
+network will share ONE TouchPoint connection, and many (though not all) of the settings would be shared across the 
+network.  If you're interested in using this plugin in a multisite environment, [please get in touch](mailto:jkurtz@tenth.org). 
 
 ## Credit & Hat-Tips
 

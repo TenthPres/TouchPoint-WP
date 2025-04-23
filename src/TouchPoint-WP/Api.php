@@ -3,6 +3,7 @@
 namespace tp\TouchPointWP;
 
 use stdClass;
+use tp\TouchPointWP\Utilities\Http;
 use WP_Error;
 use WP_Http;
 
@@ -237,15 +238,31 @@ class Api
 	{
 		$tik = microtime(true);
 
-		$url = $this->prepareRequest($command,$headers,$onBehalfPid);
-		$r = $this->getHttpClient()->request(
-			$url,
-			[
-				'method'  => 'GET',
-				'headers' => $headers,
-				'timeout' => $timeout
-			]
-		);
+		for ($attempt = 0; $attempt < 2; $attempt++) {
+			$url = $this->prepareRequest($command, $headers, $onBehalfPid);
+			$r   = $this->getHttpClient()->request(
+				$url,
+				[
+					'method'  => 'GET',
+					'headers' => $headers,
+					'timeout' => $timeout
+				]
+			);
+
+			if ($r instanceof WP_Error) {
+				return $r;
+			}
+
+			if ($r['response']['code'] === Http::FORBIDDEN) {
+				//if unauthorized, cycle PAT
+				$this->cyclePAT();
+			} elseif ($r['response']['code'] === Http::TOO_MANY_REQUESTS) {
+				self::$allowApiCalls = false;
+				throw new TouchPointWP_Exception("TouchPoint has received too many requests.", 170009);
+			} elseif ($r['response']['code'] === Http::OK) {
+				break;
+			}
+		}
 
 		$timeTaken = microtime(true) - $tik;
 
@@ -270,17 +287,32 @@ class Api
 	{
 		$tik = microtime(true);
 
-		$url = $this->prepareRequest($command,$headers,$onBehalfPid);
+		for ($attempt = 0; $attempt < 2; $attempt++) {
+			$url = $this->prepareRequest($command, $headers, $onBehalfPid);
+			$r   = $this->getHttpClient()->request(
+				$url,
+				[
+					'method'  => 'POST',
+					'headers' => $headers,
+					'body'    => $data,
+					'timeout' => $timeout
+				]
+			);
 
-		$r = $this->getHttpClient()->request(
-			$url,
-			[
-				'method'  => 'POST',
-				'headers' => $headers,
-				'body'    => $data,
-				'timeout' => $timeout
-			]
-		);
+			if ($r instanceof WP_Error) {
+				return $r;
+			}
+
+			if ($r['response']['code'] === Http::FORBIDDEN) {
+				//if unauthorized, cycle PAT
+				$this->cyclePAT();
+			} elseif ($r['response']['code'] === Http::TOO_MANY_REQUESTS) {
+				self::$allowApiCalls = false;
+				throw new TouchPointWP_Exception("TouchPoint has received too many requests.", 170009);
+			} elseif ($r['response']['code'] === Http::OK) {
+				break;
+			}
+		}
 
 		$timeTaken = microtime(true) - $tik;
 
@@ -418,13 +450,15 @@ class Api
 		}
 
 		if ($r['response']['code'] !== 200) {
-			throw new TouchPointWP_Exception("Error Creating PAT: " . $r['response']['code'], 179005);
+			throw new TouchPointWP_Exception("Error Creating PAT: " . $r['response']['code'], 179006);
 		}
 
 		$response = json_decode($r['body']);
 
 		update_option('tp_api_pat', $response->personalAccessToken);
 		update_option('tp_api_pat_expires', $response->expirationDate ?? null);
+
+		error_log("TouchPoint-WP INFO: PAT updated.");
 	}
 
 

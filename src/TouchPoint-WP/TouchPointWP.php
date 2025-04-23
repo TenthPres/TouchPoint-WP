@@ -35,7 +35,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.95";
+	public const VERSION = "0.0.96";
 
 	/**
 	 * The Token
@@ -340,7 +340,7 @@ class TouchPointWP
 	/**
 	 * Spit out headers that prevent caching.  Useful for API calls.
 	 */
-	public static function doCacheHeaders(int $cacheLevel = null): void
+	public static function doCacheHeaders(?int $cacheLevel = null): void
 	{
 		if ($cacheLevel !== null) {
 			self::setCaching($cacheLevel);
@@ -411,8 +411,6 @@ class TouchPointWP
 	 */
 	public function parseRequest($continue, $wp, $extraVars): bool
 	{
-		$this->logOutTpWpUser();
-
 		if ($continue) {
 			$reqUri         = parse_url(trim($_SERVER['REQUEST_URI'], '/'));
 			$reqUri['path'] = $reqUri['path'] ?? "";
@@ -745,10 +743,16 @@ class TouchPointWP
 	{
 		$instance = self::instance($file);
 
+		register_shutdown_function([$instance, 'handlePhpShutdown']);
+
 		if (is_null($instance->settings)) {
 			$instance->settings = Settings::instance($instance);
 			if (is_admin()) {
-				$instance->migrate();
+				if (!function_exists('get_user_by')) {
+					add_action("init", fn() => $instance->migrate(), 0);
+				} else {
+					$instance->migrate();
+				}
 			}
 		}
 
@@ -852,7 +856,7 @@ class TouchPointWP
 		/**
 		 * Fires after the plugin has been initialized.
 		 */
-		do_action("tp_init");
+		do_action(self::INIT_ACTION_HOOK);
 	}
 
 	/**
@@ -965,7 +969,7 @@ class TouchPointWP
 	 *
 	 * @param ?string $name
 	 */
-	public static function requireScript(string $name = null): void
+	public static function requireScript(?string $name = null): void
 	{
 		$filename = strtolower($name);
 		/**
@@ -999,7 +1003,7 @@ class TouchPointWP
 	 *
 	 * @param ?string $name
 	 */
-	public static function requireStyle(string $name = null): void
+	public static function requireStyle(?string $name = null): void
 	{
 		$filename = strtolower($name);
 		
@@ -2314,6 +2318,29 @@ class TouchPointWP
 	 * Submit a person query to TouchPoint with a structured array with the parameters.
 	 *
 	 * @param array $q
+	 * @param int   $timeout
+	 *
+	 * @return int  The number of people returned.
+	 * @throws TouchPointWP_Exception  Upon failure.
+	 */
+	public function doPersonCount(array $q, int $timeout = 5): int
+	{
+		set_time_limit($timeout + 2);
+		$data = TouchPointWP::instance()->api->pyPost('people_count', $q, $timeout);
+		// An exception may already be thrown.
+
+		// Validate that the API returned something
+		if (!$data->success) {
+			throw new TouchPointWP_Exception(__("People Count Failed", "TouchPoint-WP"), 179004);
+		}
+
+		return intval($data->count);
+	}
+
+	/**
+	 * Submit a person query to TouchPoint with a structured array with the parameters.
+	 *
+	 * @param array $q
 	 * @param bool  $verbose
 	 * @param int   $timeout
 	 *
@@ -2327,7 +2354,7 @@ class TouchPointWP
 		// An exception may already be thrown.
 
 		// Validate that the API returned something
-		if ( ! isset($data->people) || ( ! is_array($data->people) && ! is_object($data->people))) {
+		if (!$data->success || !isset($data->people) || (!is_array($data->people) && ! is_object($data->people))) {
 			throw new TouchPointWP_Exception(__("People Query Failed", "TouchPoint-WP"), 179004);
 		}
 
@@ -2516,20 +2543,6 @@ class TouchPointWP
 
 
 	/**
-	 * If the TPWP user is logged in, log them out.  This is useful for testing.  This user should never be used
-	 * interactively.
-	 *
-	 * @return void
-	 */
-	public function logOutTpWpUser(): void
-	{
-		if (self::TPWP_USER === wp_get_current_user()?->user_login) {
-			set_current_user(0);
-		}
-	}
-
-
-	/**
 	 * Make the TPWP user the active one, so permissions are not dependent on whoever happens to be running things
 	 * at the moment.
 	 *
@@ -2563,6 +2576,32 @@ class TouchPointWP
 			$this->priorUser = null;
 		} else {
 			wp_set_current_user(0);
+		}
+	}
+
+
+	/**
+	 * Deal with the fallout should PHP timeout, probably on a sync operation.  This needs to be very VERY
+	 * graceful since its tied into fatal error handling.
+	 *
+	 * @return void
+	 */
+	public static function handlePhpShutdown(): void
+	{
+		$e = error_get_last();
+		if ($e == null)
+			return;
+
+		$tpwp = self::$_instance;
+		if (!$tpwp) {
+			return;
+		}
+
+		// Logout the TPWP user if active.
+		if (function_exists('wp_get_current_user')) {
+			if (self::TPWP_USER === wp_get_current_user()?->user_login) {
+				$tpwp->unsetTpWpUserAsCurrent();
+			}
 		}
 	}
 }

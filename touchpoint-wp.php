@@ -14,13 +14,13 @@ Plugin Name:        TouchPoint WP
 Plugin URI:         https://github.com/tenthpres/touchpoint-wp
 Update URI:         https://github.com/tenthpres/touchpoint-wp
 Description:        A WordPress Plugin for integrating with TouchPoint Church Management Software.
-Version:            0.0.95
+Version:            0.0.96
 Author:             James K
 Author URI:         https://github.com/jkrrv
 License:            AGPLv3+
 Text Domain:        TouchPoint-WP
 Requires at least:  6.0
-Tested up to:       6.7
+Tested up to:       6.8
 Requires PHP:       8.0
 Release Asset:      true
 */

@@ -6,7 +6,7 @@ import linecache
 import sys
 import urllib
 
-VERSION = "0.0.95"
+VERSION = "0.0.96"
 
 sgContactEvName = "Contact"
 
@@ -947,7 +947,7 @@ if "mtg_rsvp" in Data.a and model.HttpMethod == "post":
             model.EditCommitment(mid, pid, "Regrets")
             Data.success.append(pid)
 
-if "people_get" in Data.a and model.HttpMethod == "post":
+if ("people_get" in Data.a or "people_count" in Data.a) and model.HttpMethod == "post":
     apiCalled = True
 
     Data.Title = 'People Query'
@@ -1065,90 +1065,91 @@ if "people_get" in Data.a and model.HttpMethod == "post":
         perPage = int(inData['perPage'])
 
     # Do the query
-    results = q.QueryList(rules, sort.lower(), perPage, offset)
     qCount = q.QueryCount(rules)
 
-    for po in results:
-        pr = get_person_info_for_sync(po)
+    if "people_get" in Data.a:
+        results = q.QueryList(rules, sort.lower(), perPage, offset)
+        for po in results:
+            pr = get_person_info_for_sync(po)
 
-        if pr is None:  # Make sure person should not be excluded
-            continue
-        if pr.Exclude is True:  # Make sure person should not be excluded if PersonInfo didn't go right.
-            continue
+            if pr is None:  # Make sure person should not be excluded
+                continue
+            if pr.Exclude is True:  # Make sure person should not be excluded if PersonInfo didn't go right.
+                continue
 
-        if len(invsMembershipsToImport) > 0:
-            pr.Inv = q.QuerySql(invSql.format(pr.PeopleId, ', '.join(invsMembershipsToImport)))
+            if len(invsMembershipsToImport) > 0:
+                pr.Inv = q.QuerySql(invSql.format(pr.PeopleId, ', '.join(invsMembershipsToImport)))
 
-        # Make People Extra Values orderly
-        if pevSql != '':
-            pr.PeopleEV = {}
-            for pev in q.QuerySql(pevSql.format(pr.PeopleId)):
-                if pev.Type == 'Int':
-                    pev.Data = pev.IntValue
-                elif pev.Type == 'Bit':
-                    pev.Data = pev.BitValue
-                elif pev.Type == 'Date':
-                    pev.Data = pev.DateValue
-                pr.PeopleEV[pev.Hash] = {
-                    'field': pev.Field,
-                    'type': pev.Type,
-                    'value': pev.Data
-                }
-
-        if not inData.has_key('groupBy') or inData['groupBy'] is None:
-            outPeople.append(pr)
-        else:
-            grpId = getattr(po, inData['groupBy'])
-            if not outPeople.has_key(grpId):  # group key does not yet exist.
-
-                if fevSql != '':  # If grouped by family, and we have Family EVs to return
-                    fevOut = {}
-                    for fev in q.QuerySql(fevSql.format(po.FamilyId)):
-                        if fev.Type == 'Int':
-                            fev.Data = fev.IntValue
-                        elif fev.Type == 'Bit':
-                            fev.Data = fev.BitValue
-                        elif fev.Type == 'Date':
-                            fev.Data = fev.DateValue
-                        elif fev.Type == 'Code':
-                            fev.Data = fev.StrValue
-                        fevOut[fev.Hash] = {
-                            'field': fev.Field,
-                            'type': fev.Type,
-                            'value': fev.Data
-                        }
-
-                    outPeople[grpId] = {
-                        inData['groupBy']: grpId,
-                        "People": [],
-                        "FamilyEV": fevOut,
-                        "Picture": None
+            # Make People Extra Values orderly
+            if pevSql != '':
+                pr.PeopleEV = {}
+                for pev in q.QuerySql(pevSql.format(pr.PeopleId)):
+                    if pev.Type == 'Int':
+                        pev.Data = pev.IntValue
+                    elif pev.Type == 'Bit':
+                        pev.Data = pev.BitValue
+                    elif pev.Type == 'Date':
+                        pev.Data = pev.DateValue
+                    pr.PeopleEV[pev.Hash] = {
+                        'field': pev.Field,
+                        'type': pev.Type,
+                        'value': pev.Data
                     }
 
-                    # Family's Picture
-                    if po.Family.Picture is not None:
-                        outPeople[grpId]['Picture'] = {
-                            'large': po.Family.Picture.LargeUrl,
-                            'medium': po.Family.Picture.MediumUrl,
-                            'small': po.Family.Picture.SmallUrl,
-                            'thumb': po.Family.Picture.ThumbUrl,
-                            'x': po.Family.Picture.X,
-                            'y': po.Family.Picture.Y
+            if not inData.has_key('groupBy') or inData['groupBy'] is None:
+                outPeople.append(pr)
+            else:
+                grpId = getattr(po, inData['groupBy'])
+                if not outPeople.has_key(grpId):  # group key does not yet exist.
+
+                    if fevSql != '':  # If grouped by family, and we have Family EVs to return
+                        fevOut = {}
+                        for fev in q.QuerySql(fevSql.format(po.FamilyId)):
+                            if fev.Type == 'Int':
+                                fev.Data = fev.IntValue
+                            elif fev.Type == 'Bit':
+                                fev.Data = fev.BitValue
+                            elif fev.Type == 'Date':
+                                fev.Data = fev.DateValue
+                            elif fev.Type == 'Code':
+                                fev.Data = fev.StrValue
+                            fevOut[fev.Hash] = {
+                                'field': fev.Field,
+                                'type': fev.Type,
+                                'value': fev.Data
+                            }
+
+                        outPeople[grpId] = {
+                            inData['groupBy']: grpId,
+                            "People": [],
+                            "FamilyEV": fevOut,
+                            "Picture": None
                         }
-                else:
-                    outPeople[grpId] = {
-                        inData['groupBy']: grpId,
-                        "People": []
-                    }
 
-                if useFamGeo:
-                    outPeople[grpId]['geo'] = q.QuerySqlTop1(famGeoSql.format(po.FamilyId))
+                        # Family's Picture
+                        if po.Family.Picture is not None:
+                            outPeople[grpId]['Picture'] = {
+                                'large': po.Family.Picture.LargeUrl,
+                                'medium': po.Family.Picture.MediumUrl,
+                                'small': po.Family.Picture.SmallUrl,
+                                'thumb': po.Family.Picture.ThumbUrl,
+                                'x': po.Family.Picture.X,
+                                'y': po.Family.Picture.Y
+                            }
+                    else:
+                        outPeople[grpId] = {
+                            inData['groupBy']: grpId,
+                            "People": []
+                        }
 
-            outPeople[grpId]["People"].append(pr)
+                    if useFamGeo:
+                        outPeople[grpId]['geo'] = q.QuerySqlTop1(famGeoSql.format(po.FamilyId))
+
+                outPeople[grpId]["People"].append(pr)
 
     Data.people = outPeople
-    Data.items = qCount
-    Data.inData = inData
+    Data.count = qCount
+    # Data.inData = inData
     Data.rules = rules  # handy for debugging
     Data.success = True
 
@@ -1289,10 +1290,13 @@ elif ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r par
             host = host.lower()
 
             # noinspection PyUnresolvedReferences
-            redir = urllib.urlencode({'redirect_to': path})
+            redir = urllib.urlencode({'redirect_to': path, 'tptoken': 'TOKENJAWN'})
             # noinspection HttpUrlsUsage
-            redir = ("https://" if useSsl else "http://") + host + "/wp-login.php?tptoken={token}&" + redir
-            print("REDIRECT=" + "/api/v1/Account/RedirectWithCredentials?destination=" + redir)
+            redir = ("https://" if useSsl else "http://") + host + "/wp-login.php?" + redir
+            # noinspection PyUnresolvedReferences
+            redir = urllib.urlencode({'destination': redir})
+            redir = redir.replace("TOKENJAWN", "{token}")
+            print("REDIRECT=" + "/api/v1/Account/RedirectWithCredentials?" + redir)
 
         except Exception as e:
             model.Title = "Error"

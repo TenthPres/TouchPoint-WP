@@ -112,7 +112,7 @@ abstract class PostTypeCapable implements module, storedAsPost
 	 *
 	 * @return StringableArray
 	 */
-	public abstract function getActionButtons(string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray;
+	public abstract function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray;
 
 	/**
 	 * Indicates if the given post can be instantiated as the given post type.
