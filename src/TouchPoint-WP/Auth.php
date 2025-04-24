@@ -242,7 +242,7 @@ abstract class Auth implements api, module
 	{
 		$preventAdmin = (TouchPointWP::instance()->settings->auth_change_profile_urls === 'on')
 					 && is_admin()  // means: request is in the admin area, not that user is an admin.
-					 && !current_user_can('edit_posts');
+					 && !TouchPointWP::userHasEditingPermissions();
 
 
 		$destination = null;

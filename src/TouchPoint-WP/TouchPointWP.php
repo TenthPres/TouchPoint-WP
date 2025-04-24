@@ -550,6 +550,47 @@ class TouchPointWP
 		return current_user_can('manage_options');
 	}
 
+
+	/**
+	 * Determine if the current user can edit anything and therefore may need access to wp-admin.
+	 *
+	 * @param int|null $userId
+	 *
+	 * @return bool
+	 */
+	public static function userHasEditingPermissions(?int $userId = null): bool
+	{
+		if (!function_exists('get_current_user_id')) {
+			return false;
+		}
+
+		if ($userId === null) {
+			$userId = get_current_user_id();
+		}
+
+		$user = get_user($userId);
+
+		foreach ($user->roles as $role) {
+			$role = get_role($role);
+			if ($role === null) {
+				continue;
+			}
+			$caps = $role->capabilities;
+			foreach ($caps as $cap) {
+				// if cap starts with any of several terms "edit", "Manage", etc, return true.
+				if (str_starts_with($cap, 'edit_') ||
+				    str_starts_with($cap, 'manage_') ||
+				    str_starts_with($cap, 'publish_') ||
+				    str_starts_with($cap, 'delete_') ||
+				    str_starts_with($cap, 'create_')
+				) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Print Dynamic Instantiation scripts.
 	 *
