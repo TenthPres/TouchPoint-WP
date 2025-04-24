@@ -1640,6 +1640,10 @@ class Settings
 		// 0.0.95 - Remove never-really-used option for deletion handling
 		delete_option('tp_mc_deletion_method');
 
+		// 0.0.96 - Remove old API key settings -- all options that start with tp_api_key
+		/** @noinspection SqlResolve */
+		$wpdb->query("DELETE FROM $wpdb->options WHERE option_name LIKE 'tp_api_key%'");
+
 		// Update version string
 		$this->set('version', TouchPointWP::VERSION);
 	}

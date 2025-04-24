@@ -253,7 +253,7 @@ class Api
 				return $r;
 			}
 
-			if ($r['response']['code'] === Http::FORBIDDEN) {
+			if ($r['response']['code'] === Http::UNAUTHORIZED) {
 				//if unauthorized, cycle PAT
 				$this->cyclePAT();
 			} elseif ($r['response']['code'] === Http::TOO_MANY_REQUESTS) {
@@ -303,7 +303,7 @@ class Api
 				return $r;
 			}
 
-			if ($r['response']['code'] === Http::FORBIDDEN) {
+			if ($r['response']['code'] === Http::UNAUTHORIZED) {
 				//if unauthorized, cycle PAT
 				$this->cyclePAT();
 			} elseif ($r['response']['code'] === Http::TOO_MANY_REQUESTS) {
