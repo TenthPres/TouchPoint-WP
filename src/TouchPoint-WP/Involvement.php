@@ -2812,7 +2812,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				}
 			}
 
-			$post->post_parent = $parent;
+			if ($parent > 0) {
+				$post->post_parent = $parent;
+			} else {
+				$post->post_parent = 0;
+			}
 		}
 
 		// Status & Submit
@@ -3228,13 +3232,13 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					self::computeSlugs($g, $inv, true);
 				}
 
-				// Meetings within group
+				// Meetings within group (or ungrouped)
 				foreach ($g as $mtgO) {
 					if ($groupingActive) {
 						$mtgO->isGroupMember = true;
 					} else {
-						$mtgO->slugToUse    = $g->slugToUse;
-						$mtgO->titleToUse   = $g->titleToUse;
+						$mtgO->slugToUse     = $g->slugToUse;
+						$mtgO->titleToUse    = $mtgO->name ?? $g->titleToUse;
 					}
 					$updatedPost = self::updateMeeting($mtgO, $inv, $typeSets, $groupPost ?? $post, $imagePostId, $verbose);
 					if ($updatedPost) {
@@ -3285,8 +3289,6 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		/////////////////////////////////
 		// Find or Create Meeting Post //
 		/////////////////////////////////
-
-		var_dump($mtgO);
 
 		$loops = 1;
 		do {
@@ -3551,10 +3553,16 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		if (in_array(get_post_type($postId), $invTypes)) {
 			$post = get_post($postId);
-			try {
-				$i = Involvement::fromPost($post);
 
-				$author = $i->leaders()->__toString();
+			$author = null;
+			try {
+				if (Involvement::postIsType($post)) {
+					$inv    = Involvement::fromPost($post);
+					$author = $inv->leaders()->__toString();
+				} elseif (Meeting::postIsType($post)) {
+					$mtg    = Meeting::fromPost($post);
+					$author = $mtg->involvement()->leaders()->__toString();
+				}
 			} catch (TouchPointWP_Exception) {
 			}
 		}

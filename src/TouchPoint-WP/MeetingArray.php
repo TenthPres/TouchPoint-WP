@@ -11,6 +11,7 @@ use ArrayIterator;
 use Countable;
 use DateTimeInterface;
 use IteratorAggregate;
+use stdClass;
 use tp\TouchPointWP\Interfaces\apiMeeting;
 
 /**
@@ -30,7 +31,7 @@ use tp\TouchPointWP\Interfaces\apiMeeting;
  */
 class MeetingArray implements apiMeeting, IteratorAggregate, ArrayAccess, Countable
 {
-	protected ?\stdClass $_involvement = null;
+	protected ?stdClass $_involvement = null; // This is NOT an Involvement class instance.
 	protected array $_meetings = [];
 
 	public string $slugToUse = "";
