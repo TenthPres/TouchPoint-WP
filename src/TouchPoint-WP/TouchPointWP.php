@@ -575,14 +575,18 @@ class TouchPointWP
 			if ($role === null) {
 				continue;
 			}
-			$caps = $role->capabilities;
-			foreach ($caps as $cap) {
+			foreach ($role->capabilities as $cap => $enabled) {
+				if (!$enabled) {
+					continue;
+				}
+
 				// if cap starts with any of several terms "edit", "Manage", etc, return true.
 				if (str_starts_with($cap, 'edit_') ||
 				    str_starts_with($cap, 'manage_') ||
 				    str_starts_with($cap, 'publish_') ||
 				    str_starts_with($cap, 'delete_') ||
-				    str_starts_with($cap, 'create_')
+				    str_starts_with($cap, 'create_') ||
+				    str_starts_with($cap, 'switch_')
 				) {
 					return true;
 				}
