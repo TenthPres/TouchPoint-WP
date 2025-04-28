@@ -588,13 +588,18 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 		//////////////////
 
 		self::$_indexingMode = true;
+
+		global $post;
+		$originalPost = $post;
+
 		foreach ($referencingPosts as $postI) {
-			global $post;
 			$post = $postI;
 			set_time_limit(10);
 			apply_shortcodes($postI->post_content);
 		}
 		self::$_indexingMode = false;
+
+		$post = $originalPost;
 
 		$needsUpdate = [];
 		foreach (self::$_instances as $report) {

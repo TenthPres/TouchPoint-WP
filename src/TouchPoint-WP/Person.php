@@ -687,14 +687,25 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		if (TouchPointWP::instance()->settings->enable_people_lists) {
 			$posts = Utilities::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_LIST);
 
+			global $post;
+			$originalPost = $post;
+
 			self::$_indexingMode = true;
 			foreach ($posts as $postI) {
-				global $post;
+				if (!is_object($postI)) {
+					continue;
+				}
+				if (!property_exists($postI, 'post_content')) {
+					continue;
+				}
+
 				$post = $postI;
 				set_time_limit(10);
 				apply_shortcodes($postI->post_content);
 			}
 			self::$_indexingMode = false;
+
+			$post = $originalPost;
 		}
 
 		// Add Involvement Leaders to the query.
