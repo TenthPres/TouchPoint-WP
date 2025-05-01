@@ -127,8 +127,6 @@ class Settings
 	{
 		$this->parent = $parent;
 
-		$this->initSettings();
-
 		// Register plugin settings.
 		add_action('admin_init', [$this, 'registerSettings']);
 
@@ -174,6 +172,11 @@ class Settings
 	 */
 	public function initSettings(): void
 	{
+		if (count($this->settings) > 0) {
+			// Settings are already loaded.
+			return;
+		}
+
 		$this->settings = $this->settingsFields();
 	}
 
@@ -257,7 +260,9 @@ class Settings
 			return $this->settings;
 		}
 
-		$this->settings['basic'] = [
+		$settings = [];
+
+		$settings['basic'] = [
 			'title'       => __('Basic Settings', 'TouchPoint-WP'),
 			'description' => __('Connect to TouchPoint and choose which features you wish to use.', 'TouchPoint-WP'),
 			'fields'      => [
@@ -468,7 +473,7 @@ class Settings
 			&& $this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
 			&& $this->hasValidApiSettings()) {
 			/** @noinspection HtmlUnknownTarget */
-			$this->settings['basic']['fields'][] = [
+			$settings['basic']['fields'][] = [
 				'id'          => 'generate-scripts',
 				'label'       => __('Generate Scripts', 'TouchPoint-WP'),
 				'type'        => 'instructions',
@@ -490,7 +495,7 @@ class Settings
 			$includeThis              = $includeDetail === true || $includeDetail === 'people';
 			$urlParts = wp_parse_url(home_url());
 			$defaultUserPev = $urlParts['host'] . " User ID";
-			$this->settings['people'] = [
+			$settings['people'] = [
 				'title'       => __('People', 'TouchPoint-WP'),
 				'description' => __('Manage how people are synchronized between TouchPoint and WordPress.', 'TouchPoint-WP'),
 				'fields'      => [
@@ -546,7 +551,7 @@ class Settings
 
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on") { // TODO MULTI
 //			$includeThis = $includeDetail === true || $includeDetail === 'authentication';
-			$this->settings['authentication'] = [
+			$settings['authentication'] = [
 				'title'       => __('Authentication', 'TouchPoint-WP'),
 				'description' => __('Allow users to log into WordPress using TouchPoint.', 'TouchPoint-WP'),
 				'fields'      => [
@@ -603,7 +608,7 @@ class Settings
 
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {  // TODO MULTI
 			$includeThis                    = $includeDetail === true || $includeDetail === 'involvements';
-			$this->settings['involvements'] = [
+			$settings['involvements'] = [
 				'title'       => __('Involvements', 'TouchPoint-WP'),
 				'description' => __('Import Involvements from TouchPoint to list them on your website, for Small Groups, Classes, and more.  Select the division(s) that immediately correspond to the type of Involvement you want to list.  For example, if you want a Small Group list and have a Small Group Division, only select the Small Group Division.  If you want Involvements to be filterable by additional Divisions, select those Divisions on the Divisions tab, not here.', 'TouchPoint-WP'),
 				'fields'      => [
@@ -639,7 +644,7 @@ class Settings
 
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on") { // TODO MULTI
 			$includeThis              = $includeDetail === true || $includeDetail === 'global';
-			$this->settings['global'] = [
+			$settings['global'] = [
 				'title'       => __('Global Partners', 'TouchPoint-WP'),
 				'description' => __('Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners are grouped by family, and content is provided through Family Extra Values.  This works for both People and Business records.', 'TouchPoint-WP'),
 				'fields'      => [
@@ -807,7 +812,7 @@ class Settings
 			}
 
 			/** @noinspection HtmlUnknownTarget */
-			$this->settings['events_calendar'] = [
+			$settings['events_calendar'] = [
 				'title'       => __('App 2.0 Calendar', 'TouchPoint-WP'),
 				'description' => __('Integrate Custom Mobile app version 2.0 with The Events Calendar from Modern Tribe.', 'TouchPoint-WP'),
 				'fields'      => [
@@ -856,7 +861,7 @@ class Settings
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_meeting_cal') === "on") { // TODO MULTI
 //			$includeThis = $includeDetail === true || $includeDetail === 'events';
 			$tribe = TouchPointWP::useTribeCalendar();
-			$this->settings['meetCal'] = [
+			$settings['meetCal'] = [
 				'title'       => __('Meeting Calendars', 'TouchPoint-WP'),
 				'description' => __('Import Meetings from TouchPoint to a calendar on your website.', 'TouchPoint-WP'),
 				'fields'      => [
@@ -959,7 +964,7 @@ class Settings
 		}
 
 		$includeThis = $includeDetail === true || $includeDetail === 'divisions';
-		$this->settings['divisions'] = [
+		$settings['divisions'] = [
 			'title'       => __('Divisions', 'TouchPoint-WP'),
 			'description' => __('Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', 'TouchPoint-WP'),
 			'fields'      => [
@@ -1028,7 +1033,7 @@ class Settings
 			],
 		];
 
-		$this->settings['locations'] = [
+		$settings['locations'] = [
 			'title'       => __('Locations', 'TouchPoint-WP'),
 			'description' => __('Locations are physical places, probably campuses.  None are required, but they can help present geographic information clearly.', 'TouchPoint-WP'),
 			'fields'      => [
@@ -1053,7 +1058,7 @@ class Settings
 		];
 
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_campuses') === "on") { // TODO MULTI
-			$this->settings['campuses'] = [
+			$settings['campuses'] = [
 				'title'       => __('Campuses', 'TouchPoint-WP'),
 				'description' => __(
 					'Import Campuses from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.',
@@ -1102,7 +1107,7 @@ class Settings
 		}
 
 		$includeThis = $includeDetail === true || $includeDetail === 'resident_codes';
-		$this->settings['resident_codes'] = [
+		$settings['resident_codes'] = [
 			'title'       => __('Resident Codes', 'TouchPoint-WP'),
 			'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements that have locations.', 'TouchPoint-WP'),
 			'fields'      => [
@@ -1289,11 +1294,9 @@ class Settings
 		 *
 		 * @since 0.0.90 Added
 		 *
-		 * @params array $this->settings The settings array.
+		 * @params array $settings The settings array.
 		 */
-		$this->settings = apply_filters('tp_settings_fields', $this->settings);
-
-		return $this->settings;
+		return apply_filters('tp_settings_fields', $settings);
 	}
 
 	/**
@@ -1442,6 +1445,8 @@ class Settings
 	 */
 	public function get(string $what): mixed
 	{
+		$this->initSettings();
+
 		$v = $this->getWithoutDefault($what);
 
 		$meta = $this->getFieldMeta($what); // $meta can be null if option isn't in settings (e.g. cached meta fields)
