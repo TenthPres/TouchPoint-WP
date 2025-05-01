@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-05-01T18:06:39+00:00\n"
+"POT-Creation-Date: 2025-05-01T19:21:04+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: TouchPoint-WP\n"
@@ -58,7 +58,7 @@ msgid "Slug"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:48
-#: src/TouchPoint-WP/Settings.php:1010
+#: src/TouchPoint-WP/Settings.php:1041
 msgid "Divisions to Import"
 msgstr ""
 
@@ -103,27 +103,27 @@ msgid "Import All Meetings to Calendar"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:109
-#: src/TouchPoint-WP/Settings.php:948
+#: src/TouchPoint-WP/Settings.php:979
 msgid "Collect Meetings for Larger Events"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:113
-#: src/TouchPoint-WP/Settings.php:952
+#: src/TouchPoint-WP/Settings.php:983
 msgid "No Collecting"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:114
-#: src/TouchPoint-WP/Settings.php:953
+#: src/TouchPoint-WP/Settings.php:984
 msgid "Collect Meetings only from Involvements without Schedules"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:115
-#: src/TouchPoint-WP/Settings.php:957
+#: src/TouchPoint-WP/Settings.php:988
 msgid "Collect Meetings for all Involvements"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:117
-#: src/TouchPoint-WP/Settings.php:949
+#: src/TouchPoint-WP/Settings.php:980
 msgid "Allows multiple meetings that are part of one larger event to be grouped together, such as sessions within a conference.  For meetings to be collected, they must be in the same involvement and must not have gaps between them larger than 23 hours."
 msgstr ""
 
@@ -688,636 +688,636 @@ msgstr ""
 msgid "Updated on %1$s at %2$s"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:266
+#: src/TouchPoint-WP/Settings.php:297
 msgid "Basic Settings"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:267
+#: src/TouchPoint-WP/Settings.php:298
 msgid "Connect to TouchPoint and choose which features you wish to use."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:271
+#: src/TouchPoint-WP/Settings.php:302
 msgid "Enable Authentication"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:272
+#: src/TouchPoint-WP/Settings.php:303
 msgid "Allow TouchPoint users to sign into this website with TouchPoint."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:283
+#: src/TouchPoint-WP/Settings.php:314
 msgid "Enable RSVP Tool"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:284
+#: src/TouchPoint-WP/Settings.php:315
 msgid "Add a crazy-simple RSVP button to WordPress event pages."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:291
+#: src/TouchPoint-WP/Settings.php:322
 msgid "Enable Involvements"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:292
+#: src/TouchPoint-WP/Settings.php:323
 msgid "Load Involvements from TouchPoint for involvement listings and entries native in your website."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:302
+#: src/TouchPoint-WP/Settings.php:333
 msgid "Enable Meeting Calendar"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:303
+#: src/TouchPoint-WP/Settings.php:334
 msgid "Load Meetings from TouchPoint for a calendar, native in your website."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:313
+#: src/TouchPoint-WP/Settings.php:344
 msgid "Enable Public People Lists"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:314
+#: src/TouchPoint-WP/Settings.php:345
 msgid "Import public people listings from TouchPoint (e.g. staff or elders)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:324
+#: src/TouchPoint-WP/Settings.php:355
 msgid "Enable Global Partner Listings"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:325
+#: src/TouchPoint-WP/Settings.php:356
 msgid "Import ministry partners from TouchPoint to list publicly."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:335
+#: src/TouchPoint-WP/Settings.php:366
 msgid "Enable Campuses"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:336
+#: src/TouchPoint-WP/Settings.php:367
 msgid "Import campuses as a taxonomy. (You probably want to do this if you're multi-campus.)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:346
+#: src/TouchPoint-WP/Settings.php:377
 msgid "Display Name"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:347
+#: src/TouchPoint-WP/Settings.php:378
 msgid "What your church calls your TouchPoint database."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:357
+#: src/TouchPoint-WP/Settings.php:388
 msgid "TouchPoint Host Name"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:358
+#: src/TouchPoint-WP/Settings.php:389
 msgid "The domain for your TouchPoint database, without the https or any slashes."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:373
+#: src/TouchPoint-WP/Settings.php:404
 msgid "Custom Mobile App Deeplink Host Name"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:374
+#: src/TouchPoint-WP/Settings.php:405
 msgid "The domain for your mobile app deeplinks, without the https or any slashes.  If you aren't using the custom mobile app, leave this blank."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:385
+#: src/TouchPoint-WP/Settings.php:416
 msgid "TouchPoint API Username"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:386
+#: src/TouchPoint-WP/Settings.php:417
 msgid "The username of a user account in TouchPoint with API permissions.  It is strongly recommended that you create a separate person/user for this purpose, rather than using a staff member's account."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:398
+#: src/TouchPoint-WP/Settings.php:429
 msgid "TouchPoint API User Password"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:399
+#: src/TouchPoint-WP/Settings.php:430
 msgid "The password of a user account in TouchPoint with API permissions."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:414
+#: src/TouchPoint-WP/Settings.php:445
 msgid "TouchPoint API Script Name"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:415
+#: src/TouchPoint-WP/Settings.php:446
 msgid "The name of the Python script loaded into TouchPoint.  Don't change this unless you know what you're doing."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:426
+#: src/TouchPoint-WP/Settings.php:457
 msgid "Google Maps Javascript API Key"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:427
+#: src/TouchPoint-WP/Settings.php:458
 msgid "Required for embedding maps."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:438
+#: src/TouchPoint-WP/Settings.php:469
 msgid "Google Maps Geocoding API Key"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:439
+#: src/TouchPoint-WP/Settings.php:470
 msgid "Optional.  Allows for reverse geocoding of user locations."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:449
+#: src/TouchPoint-WP/Settings.php:480
 msgid "ipapi.co API Key"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:450
+#: src/TouchPoint-WP/Settings.php:481
 msgid "Optional. Allows for geolocation of user IP addresses.  This generally will work without a key, but may be rate limited."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:460
+#: src/TouchPoint-WP/Settings.php:491
 msgid "List Site in Directory"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:461
+#: src/TouchPoint-WP/Settings.php:492
 msgid "Allow the TouchPoint-WP developers to publicly list your site/church as using TouchPoint-WP. Helps other prospective churches see what can be done by combining WordPress with the best ChMS on the planet.  Only applies if this site is accessible on the public internet."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:478
-#: src/TouchPoint-WP/Settings.php:483
+#: src/TouchPoint-WP/Settings.php:509
+#: src/TouchPoint-WP/Settings.php:514
 msgid "Generate Scripts"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:481
+#: src/TouchPoint-WP/Settings.php:512
 msgid "Once your settings on this page are set and saved, use this tool to generate the scripts needed for TouchPoint in a convenient installation package."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:482
+#: src/TouchPoint-WP/Settings.php:513
 msgid "Upload the package to {tpName} here"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:499
+#: src/TouchPoint-WP/Settings.php:530
 msgid "People"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:500
+#: src/TouchPoint-WP/Settings.php:531
 msgid "Manage how people are synchronized between TouchPoint and WordPress."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:504
+#: src/TouchPoint-WP/Settings.php:535
 msgid "Contact Keywords"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:505
+#: src/TouchPoint-WP/Settings.php:536
 msgid "These keywords will be used when someone clicks the \"Contact\" button on a Person's listing or profile."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:516
+#: src/TouchPoint-WP/Settings.php:547
 msgid "Extra Value for WordPress User ID"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:517
+#: src/TouchPoint-WP/Settings.php:548
 msgid "The name of the extra value to use for the WordPress User ID.  If you are using multiple WordPress instances with one TouchPoint database, you will need these values to be unique between WordPress instances.  In most cases, the default is fine."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:527
+#: src/TouchPoint-WP/Settings.php:558
 msgid "Extra Value: Biography"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:528
+#: src/TouchPoint-WP/Settings.php:559
 msgid "Import a Bio from a Person Extra Value field.  Can be an HTML or Text Extra Value.  This will overwrite any values set by WordPress.  Leave blank to not import."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:538
-#: src/TouchPoint-WP/Settings.php:776
+#: src/TouchPoint-WP/Settings.php:569
+#: src/TouchPoint-WP/Settings.php:807
 msgid "Extra Values to Import"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:539
+#: src/TouchPoint-WP/Settings.php:570
 msgid "Import People Extra Value fields as User Meta data."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:555
+#: src/TouchPoint-WP/Settings.php:586
 msgid "Authentication"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:556
+#: src/TouchPoint-WP/Settings.php:587
 msgid "Allow users to log into WordPress using TouchPoint."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:560
+#: src/TouchPoint-WP/Settings.php:591
 msgid "Make TouchPoint the default authentication method."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:561
+#: src/TouchPoint-WP/Settings.php:592
 msgid "By checking this box, the TouchPoint login page will become the default.  To prevent the redirect and reach the standard WordPress login page, add 'tp_no_redirect' as a URL parameter."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:570
+#: src/TouchPoint-WP/Settings.php:601
 msgid "Enable Auto-Provisioning"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:571
+#: src/TouchPoint-WP/Settings.php:602
 msgid "Automatically create WordPress users, if needed, to match authenticated TouchPoint users."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:580
+#: src/TouchPoint-WP/Settings.php:611
 msgid "Change Profile Links"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:581
+#: src/TouchPoint-WP/Settings.php:612
 msgid "\"Edit Profile\" links will take the user to their TouchPoint profile, instead of their WordPress profile."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:590
+#: src/TouchPoint-WP/Settings.php:621
 msgid "Enable full logout"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:591
+#: src/TouchPoint-WP/Settings.php:622
 msgid "Logout of TouchPoint when logging out of WordPress."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:597
+#: src/TouchPoint-WP/Settings.php:628
 msgid "Prevent Subscriber Admin Bar"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:598
+#: src/TouchPoint-WP/Settings.php:629
 msgid "By enabling this option, users who can't edit anything won't see the Admin bar."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:612
+#: src/TouchPoint-WP/Settings.php:643
 msgid "Involvements"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:613
+#: src/TouchPoint-WP/Settings.php:644
 msgid "Import Involvements from TouchPoint to list them on your website, for Small Groups, Classes, and more.  Select the division(s) that immediately correspond to the type of Involvement you want to list.  For example, if you want a Small Group list and have a Small Group Division, only select the Small Group Division.  If you want Involvements to be filterable by additional Divisions, select those Divisions on the Divisions tab, not here."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:618
+#: src/TouchPoint-WP/Settings.php:649
 msgid "Involvement Post Types"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:648
+#: src/TouchPoint-WP/Settings.php:679
 msgid "Global Partners"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:649
+#: src/TouchPoint-WP/Settings.php:680
 msgid "Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners are grouped by family, and content is provided through Family Extra Values.  This works for both People and Business records."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:653
+#: src/TouchPoint-WP/Settings.php:684
 msgid "Global Partner Name (Plural)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:654
+#: src/TouchPoint-WP/Settings.php:685
 msgid "What you call Global Partners at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:664
+#: src/TouchPoint-WP/Settings.php:695
 msgid "Global Partner Name (Singular)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:665
+#: src/TouchPoint-WP/Settings.php:696
 msgid "What you call a Global Partner at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:675
+#: src/TouchPoint-WP/Settings.php:706
 msgid "Global Partner Name for Secure Places (Plural)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:676
+#: src/TouchPoint-WP/Settings.php:707
 msgid "What you call Secure Global Partners at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:686
+#: src/TouchPoint-WP/Settings.php:717
 msgid "Global Partner Name for Secure Places (Singular)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:687
+#: src/TouchPoint-WP/Settings.php:718
 msgid "What you call a Secure Global Partner at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:697
+#: src/TouchPoint-WP/Settings.php:728
 msgid "Global Partner Slug"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:698
+#: src/TouchPoint-WP/Settings.php:729
 msgid "The root path for Global Partner posts"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:710
+#: src/TouchPoint-WP/Settings.php:741
 msgid "Saved Search"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:711
+#: src/TouchPoint-WP/Settings.php:742
 msgid "Anyone who is included in this saved search will be included in the listing."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:721
+#: src/TouchPoint-WP/Settings.php:752
 msgid "Extra Value: Description"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:722
+#: src/TouchPoint-WP/Settings.php:753
 msgid "Import a description from a Family Extra Value field.  Can be an HTML or Text Extra Value.  This becomes the body of the Global Partner post."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:732
+#: src/TouchPoint-WP/Settings.php:763
 msgid "Extra Value: Summary"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:733
+#: src/TouchPoint-WP/Settings.php:764
 msgid "Optional. Import a short description from a Family Extra Value field.  Can be an HTML or Text Extra Value.  If not provided, the full bio will be truncated."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:743
+#: src/TouchPoint-WP/Settings.php:774
 msgid "Latitude Override"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:744
+#: src/TouchPoint-WP/Settings.php:775
 msgid "Designate a text Family Extra Value that will contain a latitude that overrides any locations on the partner's profile for the partner map.  Both latitude and longitude must be provided for an override to take place."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:754
+#: src/TouchPoint-WP/Settings.php:785
 msgid "Longitude Override"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:755
+#: src/TouchPoint-WP/Settings.php:786
 msgid "Designate a text Family Extra Value that will contain a longitude that overrides any locations on the partner's profile for the partner map.  Both latitude and longitude must be provided for an override to take place."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:765
+#: src/TouchPoint-WP/Settings.php:796
 msgid "Public Location"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:766
+#: src/TouchPoint-WP/Settings.php:797
 msgid "Designate a text Family Extra Value that will contain the partner's location, as you want listed publicly.  For partners who have DecoupleLocation enabled, this field will be associated with the map point, not the list entry."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:777
+#: src/TouchPoint-WP/Settings.php:808
 msgid "Import Family Extra Value fields as Meta data on the partner's post"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:788
+#: src/TouchPoint-WP/Settings.php:819
 msgid "Primary Taxonomy"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:789
+#: src/TouchPoint-WP/Settings.php:820
 msgid "Import a Family Extra Value as the primary means by which partners are organized."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:806
+#: src/TouchPoint-WP/Settings.php:837
 msgid "Events Calendar plugin by Modern Tribe"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:810
+#: src/TouchPoint-WP/Settings.php:841
 msgid "TouchPoint Meetings"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:816
+#: src/TouchPoint-WP/Settings.php:847
 msgid "App 2.0 Calendar"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:817
+#: src/TouchPoint-WP/Settings.php:848
 msgid "Integrate Custom Mobile app version 2.0 with The Events Calendar from Modern Tribe."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:821
+#: src/TouchPoint-WP/Settings.php:852
 msgid "Events Provider"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:822
+#: src/TouchPoint-WP/Settings.php:853
 msgid "The source of events for version 2.0 of the Custom Mobile App."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:832
+#: src/TouchPoint-WP/Settings.php:863
 msgid "Events for Custom Mobile App"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:835
+#: src/TouchPoint-WP/Settings.php:866
 msgid "To use your Events Calendar events in the Custom mobile app, set the Provider to <code>Wordpress Plugin - Modern Tribe</code> (regardless of which provider you're using above) and use this url:"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:837
+#: src/TouchPoint-WP/Settings.php:868
 msgid "Preview"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:852
+#: src/TouchPoint-WP/Settings.php:883
 msgid "Use Standardizing Stylesheet"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:853
+#: src/TouchPoint-WP/Settings.php:884
 msgid "Inserts some basic CSS into the events feed to clean up display"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:865
+#: src/TouchPoint-WP/Settings.php:896
 msgid "Meeting Calendars"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:866
+#: src/TouchPoint-WP/Settings.php:897
 msgid "Import Meetings from TouchPoint to a calendar on your website."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:870
+#: src/TouchPoint-WP/Settings.php:901
 msgid "Meeting Name (Plural)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:871
+#: src/TouchPoint-WP/Settings.php:902
 msgid "What you call Meetings at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:876
-#: src/TouchPoint-WP/Settings.php:878
+#: src/TouchPoint-WP/Settings.php:907
+#: src/TouchPoint-WP/Settings.php:909
 msgid "Meetings"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:876
-#: src/TouchPoint-WP/Settings.php:878
+#: src/TouchPoint-WP/Settings.php:907
+#: src/TouchPoint-WP/Settings.php:909
 msgid "Events"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:882
+#: src/TouchPoint-WP/Settings.php:913
 msgid "Meeting Name (Singular)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:883
+#: src/TouchPoint-WP/Settings.php:914
 msgid "What you call a Meeting at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:888
-#: src/TouchPoint-WP/Settings.php:890
+#: src/TouchPoint-WP/Settings.php:919
+#: src/TouchPoint-WP/Settings.php:921
 msgid "Meeting"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:888
-#: src/TouchPoint-WP/Settings.php:890
+#: src/TouchPoint-WP/Settings.php:919
+#: src/TouchPoint-WP/Settings.php:921
 msgid "Event"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:894
+#: src/TouchPoint-WP/Settings.php:925
 msgid "Meetings Slug"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:895
+#: src/TouchPoint-WP/Settings.php:926
 msgid "The root path for Meetings"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:907
+#: src/TouchPoint-WP/Settings.php:938
 msgid "Days of Future"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:908
+#: src/TouchPoint-WP/Settings.php:939
 msgid "Meetings more than this many days in the future will not be imported."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:920
+#: src/TouchPoint-WP/Settings.php:951
 msgid "Archive After Days"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:921
+#: src/TouchPoint-WP/Settings.php:952
 msgid "Meetings more than this many days in the past will no longer update from TouchPoint, allowing you to keep some historical event information on the calendar for reference, even if you reuse and update the information in the Involvement."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:933
+#: src/TouchPoint-WP/Settings.php:964
 msgid "Days of History"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:934
+#: src/TouchPoint-WP/Settings.php:965
 msgid "Meetings will be kept on the calendar until the event is this many days in the past.  Once an event is older than this, it'll be deleted.  Strongly recommend either very little history (less than a month) or a lot of history (at least 15 months)."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:968
+#: src/TouchPoint-WP/Settings.php:999
 msgid "Divisions"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:969
+#: src/TouchPoint-WP/Settings.php:1000
 msgid "Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:973
+#: src/TouchPoint-WP/Settings.php:1004
 msgid "Division Name (Plural)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:974
+#: src/TouchPoint-WP/Settings.php:1005
 msgid "What you call Divisions at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:985
+#: src/TouchPoint-WP/Settings.php:1016
 msgid "Division Name (Singular)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:986
+#: src/TouchPoint-WP/Settings.php:1017
 msgid "What you call a Division at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:997
+#: src/TouchPoint-WP/Settings.php:1028
 msgid "Division Slug"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:998
+#: src/TouchPoint-WP/Settings.php:1029
 msgid "The root path for the Division Taxonomy"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1011
+#: src/TouchPoint-WP/Settings.php:1042
 msgid "These Divisions will be imported for the taxonomy"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1022
-#: src/TouchPoint-WP/Settings.php:1153
+#: src/TouchPoint-WP/Settings.php:1053
+#: src/TouchPoint-WP/Settings.php:1184
 msgid "Post Types"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1023
+#: src/TouchPoint-WP/Settings.php:1054
 msgid "Select post types which should have Divisions available as a native taxonomy."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1037
-#: src/TouchPoint-WP/Settings.php:1043
+#: src/TouchPoint-WP/Settings.php:1068
+#: src/TouchPoint-WP/Settings.php:1074
 msgid "Locations"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1038
+#: src/TouchPoint-WP/Settings.php:1069
 msgid "Locations are physical places, probably campuses.  None are required, but they can help present geographic information clearly."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1062
+#: src/TouchPoint-WP/Settings.php:1093
 msgid "Campuses"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1063
+#: src/TouchPoint-WP/Settings.php:1094
 msgid "Import Campuses from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1070
+#: src/TouchPoint-WP/Settings.php:1101
 msgid "Campus Name (Plural)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1071
+#: src/TouchPoint-WP/Settings.php:1102
 msgid "What you call Campuses at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1082
+#: src/TouchPoint-WP/Settings.php:1113
 msgid "Campus Name (Singular)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1083
+#: src/TouchPoint-WP/Settings.php:1114
 msgid "What you call a Campus at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1094
+#: src/TouchPoint-WP/Settings.php:1125
 msgid "Campus Slug"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1095
+#: src/TouchPoint-WP/Settings.php:1126
 msgid "The root path for the Campus Taxonomy"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1111
+#: src/TouchPoint-WP/Settings.php:1142
 msgid "Resident Codes"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1112
+#: src/TouchPoint-WP/Settings.php:1143
 msgid "Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements that have locations."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1116
+#: src/TouchPoint-WP/Settings.php:1147
 msgid "Resident Code Name (Plural)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1117
+#: src/TouchPoint-WP/Settings.php:1148
 msgid "What you call Resident Codes at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1128
+#: src/TouchPoint-WP/Settings.php:1159
 msgid "Resident Code Name (Singular)"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1129
+#: src/TouchPoint-WP/Settings.php:1160
 msgid "What you call a Resident Code at your church"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1140
+#: src/TouchPoint-WP/Settings.php:1171
 msgid "Resident Code Slug"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1141
+#: src/TouchPoint-WP/Settings.php:1172
 msgid "The root path for the Resident Code Taxonomy"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1154
+#: src/TouchPoint-WP/Settings.php:1185
 msgid "Select post types which should have Resident Codes available as a native taxonomy."
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1317
+#: src/TouchPoint-WP/Settings.php:1348
 msgid "password saved"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1371
-#: src/TouchPoint-WP/Settings.php:1372
+#: src/TouchPoint-WP/Settings.php:1402
+#: src/TouchPoint-WP/Settings.php:1403
 msgid "TouchPoint-WP"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1420
+#: src/TouchPoint-WP/Settings.php:1451
 msgid "Settings"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1671
+#: src/TouchPoint-WP/Settings.php:1700
 msgid "Script Update Failed"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1793
+#: src/TouchPoint-WP/Settings.php:1822
 msgid "TouchPoint-WP Settings"
 msgstr ""
 
-#: src/TouchPoint-WP/Settings.php:1844
+#: src/TouchPoint-WP/Settings.php:1873
 msgid "Save Settings"
 msgstr ""
 
