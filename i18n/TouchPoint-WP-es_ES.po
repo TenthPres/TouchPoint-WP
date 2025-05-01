@@ -224,53 +224,53 @@ msgstr "Cualquier"
 msgid "The %s listed are only those shown on the map."
 msgstr "Los %s enumerados son solo los que se muestran en el mapa."
 
-#: src/TouchPoint-WP/Involvement.php:3741
+#: src/TouchPoint-WP/Involvement.php:3749
 msgid "Men Only"
 msgstr "Solo hombres"
 
-#: src/TouchPoint-WP/Involvement.php:3744
+#: src/TouchPoint-WP/Involvement.php:3752
 msgid "Women Only"
 msgstr "Solo mujeres"
 
-#: src/TouchPoint-WP/Involvement.php:3821
+#: src/TouchPoint-WP/Involvement.php:3829
 msgid "Contact Leaders"
 msgstr "Contacta con las líderes"
 
-#: src/TouchPoint-WP/Involvement.php:3891
-#: src/TouchPoint-WP/Involvement.php:3950
+#: src/TouchPoint-WP/Involvement.php:3899
+#: src/TouchPoint-WP/Involvement.php:3958
 msgid "Register"
 msgstr "Regístrate ahora"
 
-#: src/TouchPoint-WP/Involvement.php:3897
+#: src/TouchPoint-WP/Involvement.php:3905
 msgid "Create Account"
 msgstr "Crear cuenta"
 
-#: src/TouchPoint-WP/Involvement.php:3901
+#: src/TouchPoint-WP/Involvement.php:3909
 msgid "Schedule"
 msgstr "Programe"
 
-#: src/TouchPoint-WP/Involvement.php:3906
+#: src/TouchPoint-WP/Involvement.php:3914
 msgid "Give"
 msgstr "Dar"
 
-#: src/TouchPoint-WP/Involvement.php:3909
+#: src/TouchPoint-WP/Involvement.php:3917
 msgid "Manage Subscriptions"
 msgstr "Administrar suscripciones"
 
-#: src/TouchPoint-WP/Involvement.php:3912
+#: src/TouchPoint-WP/Involvement.php:3920
 msgid "Record Attendance"
 msgstr "Registre su asistencia"
 
-#: src/TouchPoint-WP/Involvement.php:3915
+#: src/TouchPoint-WP/Involvement.php:3923
 msgid "Get Tickets"
 msgstr "Obtener boletos"
 
-#: src/TouchPoint-WP/Involvement.php:3941
+#: src/TouchPoint-WP/Involvement.php:3949
 #: assets/js/base-defer.js:1001
 msgid "Join"
 msgstr "Únete"
 
-#: src/TouchPoint-WP/Involvement.php:3838
+#: src/TouchPoint-WP/Involvement.php:3846
 #: src/TouchPoint-WP/Partner.php:1345
 msgid "Show on Map"
 msgstr "Muestra en el mapa"
@@ -292,7 +292,7 @@ msgstr "No se proporcionó una identificación de usuario de WordPress para inic
 msgid "TouchPoint People ID"
 msgstr "ID de Personas de TouchPoint"
 
-#: src/TouchPoint-WP/Person.php:1176
+#: src/TouchPoint-WP/Person.php:1187
 msgid "Contact"
 msgstr "Contacta"
 
@@ -302,24 +302,24 @@ msgstr "Contacta"
 msgid "RSVP"
 msgstr "RSVP"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2075
+#: src/TouchPoint-WP/TouchPointWP.php:2120
 msgid "Unknown Type"
 msgstr "Tipo desconocido"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2132
+#: src/TouchPoint-WP/TouchPointWP.php:2177
 msgid "Your Searches"
 msgstr "Tus búsquedas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2135
+#: src/TouchPoint-WP/TouchPointWP.php:2180
 msgid "Public Searches"
 msgstr "Búsquedas públicas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2138
+#: src/TouchPoint-WP/TouchPointWP.php:2183
 msgid "Status Flags"
 msgstr "Indicadores de Estado"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2143
-#: src/TouchPoint-WP/TouchPointWP.php:2144
+#: src/TouchPoint-WP/TouchPointWP.php:2188
+#: src/TouchPoint-WP/TouchPointWP.php:2189
 msgid "Current Value"
 msgstr "Valor actual"
 
@@ -335,7 +335,7 @@ msgstr "Configuración de API no válida o incompleta."
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr "Parece que falta el host en la configuración de TouchPoint-WP."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2358
+#: src/TouchPoint-WP/TouchPointWP.php:2403
 msgid "People Query Failed"
 msgstr "Consulta de registros de personas fallida"
 
@@ -782,19 +782,19 @@ msgstr "TouchPoint-WP"
 msgid "Settings"
 msgstr "Ajustes"
 
-#: src/TouchPoint-WP/Settings.php:1662
+#: src/TouchPoint-WP/Settings.php:1666
 msgid "Script Update Failed"
 msgstr "Actualización de secuencia de comandos fallida"
 
-#: src/TouchPoint-WP/Settings.php:1784
+#: src/TouchPoint-WP/Settings.php:1788
 msgid "TouchPoint-WP Settings"
 msgstr "Configuración de TouchPoint-WP"
 
-#: src/TouchPoint-WP/Settings.php:1835
+#: src/TouchPoint-WP/Settings.php:1839
 msgid "Save Settings"
 msgstr "Guardar ajustes"
 
-#: src/TouchPoint-WP/Person.php:1455
+#: src/TouchPoint-WP/Person.php:1466
 #: src/TouchPoint-WP/Utilities.php:299
 #: assets/js/base-defer.js:18
 msgid "and"
@@ -1249,7 +1249,7 @@ msgstr "%1$s, hasta el %2$s"
 
 #. translators: number of miles
 #: src/templates/parts/involvement-nearby-list.php:10
-#: src/TouchPoint-WP/Involvement.php:3762
+#: src/TouchPoint-WP/Involvement.php:3770
 msgctxt "miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'"
 msgid "%2.1fmi"
 msgstr "%2.1fmi"
@@ -1279,7 +1279,7 @@ msgid "Could not locate."
 msgstr "No se pudo localizar."
 
 #: src/TouchPoint-WP/Meeting.php:715
-#: src/TouchPoint-WP/TouchPointWP.php:1065
+#: src/TouchPoint-WP/TouchPointWP.php:1110
 msgid "Only GET requests are allowed."
 msgstr "Solo se permiten solicitudes GET."
 
@@ -1293,8 +1293,8 @@ msgstr "Solo se permiten solicitudes POST."
 msgid "Invalid data provided."
 msgstr "Datos proporcionados no válidos."
 
-#: src/TouchPoint-WP/Involvement.php:4058
-#: src/TouchPoint-WP/Involvement.php:4163
+#: src/TouchPoint-WP/Involvement.php:4066
+#: src/TouchPoint-WP/Involvement.php:4171
 msgid "Invalid Post Type."
 msgstr "Tipo de publicación no válida."
 
@@ -1426,7 +1426,7 @@ msgstr "Importar imágenes desde TouchPoint"
 msgid "Importing images sometimes conflicts with other plugins. Disabling image imports can help."
 msgstr "La importación de imágenes a veces entra en conflicto con otros complementos. Deshabilitar las importaciones de imágenes puede ayudar."
 
-#: src/TouchPoint-WP/Person.php:1462
+#: src/TouchPoint-WP/Person.php:1473
 msgctxt "list of people, and *others*"
 msgid "others"
 msgstr "otros"
@@ -1451,8 +1451,8 @@ msgstr "Slug de reuniones"
 msgid "The root path for Meetings"
 msgstr "La ruta raíz para las reuniones"
 
-#: src/TouchPoint-WP/Involvement.php:4150
-#: src/TouchPoint-WP/Person.php:1844
+#: src/TouchPoint-WP/Involvement.php:4158
+#: src/TouchPoint-WP/Person.php:1855
 msgid "Contact Prohibited."
 msgstr "Contacto prohibido."
 
@@ -1472,16 +1472,16 @@ msgstr "Una vez que haya configurado y guardado la configuración en esta págin
 msgid "Something went wrong."
 msgstr "Algo salió mal."
 
-#: src/TouchPoint-WP/Person.php:1699
+#: src/TouchPoint-WP/Person.php:1710
 msgid "You may need to sign in."
 msgstr "Es posible que tengas que iniciar sesión."
 
-#: src/TouchPoint-WP/Involvement.php:4140
-#: src/TouchPoint-WP/Person.php:1861
+#: src/TouchPoint-WP/Involvement.php:4148
+#: src/TouchPoint-WP/Person.php:1872
 msgid "Contact Blocked for Spam."
 msgstr "Contacto bloqueado por spam."
 
-#: src/TouchPoint-WP/Person.php:1601
+#: src/TouchPoint-WP/Person.php:1612
 msgid "Registration Blocked for Spam."
 msgstr "Registro bloqueado por spam."
 
@@ -1594,7 +1594,7 @@ msgid "%s is cancelled."
 msgstr "%s esta cancelado."
 
 #. Translators: %s is the system name.  "TouchPoint" by default.
-#: src/TouchPoint-WP/Involvement.php:3850
+#: src/TouchPoint-WP/Involvement.php:3858
 msgid "Involvement in %s"
 msgstr "Participaciones en %s"
 
@@ -1608,7 +1608,7 @@ msgid "Meeting in %s"
 msgstr "Reunión en %s"
 
 #. Translators: %s is the system name.  "TouchPoint" by default.
-#: src/TouchPoint-WP/Person.php:1184
+#: src/TouchPoint-WP/Person.php:1195
 msgid "Person in %s"
 msgstr "Persona en %s"
 
@@ -1871,7 +1871,7 @@ msgstr "Las reuniones se mantendrán en el calendario hasta que el evento tenga 
 msgid "Change Profile Links"
 msgstr "Cambiar enlaces de perfil"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2334
+#: src/TouchPoint-WP/TouchPointWP.php:2379
 msgid "People Count Failed"
 msgstr "El recuento de personas falló"
 
