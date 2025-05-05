@@ -70,7 +70,7 @@ class CalendarGrid {
 	 *
 	 * @return void
 	 */
-	public function __construct(WP_Query $q, int $month = null, int $year = null)
+	public function __construct(WP_Query $q, ?int $month = null, ?int $year = null)
 	{
 		try {
 			// Validate month & year; create $d as a day within the month

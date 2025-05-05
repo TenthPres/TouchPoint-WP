@@ -87,7 +87,7 @@ class StringableArray extends ArrayObject
 	 *
 	 * @since 0.0.90 Added
 	 */
-	public function join(string $separator = null): string
+	public function join(?string $separator = null): string
 	{
 		if (is_null($separator)) {
 			$separator = $this->separator;
