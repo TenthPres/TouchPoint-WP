@@ -912,7 +912,7 @@ class TouchPointWP
 	 */
 	public static function renderBaseInlineScript(): void
 	{
-		include self::instance()->assets_dir . '/js/base-inline.php';
+		include_once self::instance()->assets_dir . '/js/base-inline.php';
 	}
 
 	public function registerScriptsAndStyles(): void

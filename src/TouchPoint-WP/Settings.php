@@ -217,7 +217,7 @@ class Settings
 		) {
 			return true;
 		}
-		foreach (self::settingsFields(false) as $page) {
+		foreach ($this->settings as $page) {
 			foreach ($page['fields'] as $f) {
 				if ($f['id'] === $settingName) {
 					if (isset($f['autoload'])) {
@@ -237,7 +237,7 @@ class Settings
 	 */
 	private function getFieldMeta($fieldId): ?array
 	{
-		foreach ($this->settingsFields(false) as $category) {
+		foreach ($this->settings as $category) {
 			foreach ($category['fields'] as $field) {
 				if ($field['id'] === $fieldId) {
 					return $field;
