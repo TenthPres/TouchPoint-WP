@@ -289,9 +289,11 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	/**
 	 * Submit stats to Tenth.
 	 *
+	 * @param bool $blocking If true, will wait for the response from the server before returning and the method will print a status.
+	 *
 	 * @return void
 	 */
-	protected function submitStats(): void
+	protected function submitStats(bool $blocking = false): void
 	{
 		$this->updateQueriedStats();
 
@@ -320,10 +322,24 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		$r = wp_remote_post($endpoint, [
 			'body' => ['data' => $data],
 			'timeout' => 10,
-//			'blocking' => false,
+			'blocking' => $blocking,
 		]);
-		var_dump($endpoint, $r, $data);
-		echo "ok";
+
+		if (!$blocking) {
+			if (is_wp_error($r)) {
+				echo "error";
+				error_log("TouchPoint-WP: Stats: Failed to submit telemetry to $endpoint: " . $r->get_error_message());
+			} else {
+				$code = wp_remote_retrieve_response_code($r);
+				if ($code !== 200) {
+					echo "error";
+					error_log("TouchPoint-WP: Stats: Failed to submit telemetry to $endpoint: " . wp_remote_retrieve_body($r));
+				} else {
+					echo "ok";
+				}
+			}
+
+		}
 	}
 
 	/**
@@ -421,7 +437,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 				if ($_SERVER['REQUEST_METHOD'] === "POST") {
 					self::handleSubmission();
 				} else {
-					$s->submitStats();
+					$s->submitStats(true);
 				}
 				exit;
 
