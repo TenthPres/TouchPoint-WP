@@ -793,9 +793,9 @@ if "inv_join" in Data.a and model.HttpMethod == "post":
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
-    SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
+    SELECT TOP 1 MainLeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
     UNION
-    SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
+    SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
     '''.format(oid, sgContactEvName, memTypes)
     orgContact = q.QuerySqlTop1(orgContactSql)
     orgContactPid = orgContact.contactId if orgContact is not None else None  # None if not found.  Falls back to Owner
@@ -843,9 +843,9 @@ if "inv_contact" in Data.a and model.HttpMethod == "post":
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
-    SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
+    SELECT TOP 1 MainLeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
     UNION
-    SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
+    SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
     '''.format(oid, sgContactEvName, memTypes)
     orgContact = q.QuerySqlTop1(orgContactSql)
     orgContactPid = orgContact.contactId if orgContact is not None else None  # None if not found. Fall back to Owner
