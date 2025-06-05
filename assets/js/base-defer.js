@@ -331,25 +331,36 @@
         geoStr = "";
 
         /**
-         * @type {google.maps.Marker}
+         * @type {google.maps.marker.AdvancedMarkerElement}
          */
         gMkr = null;
+        map = null;
 
         constructor(options) {
-            if (!options.hasOwnProperty('icon')) {
-                options.icon = {
-                    path: "M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z", // from FontAwesome
-                    fillColor: options.color ?? "#000",
-                    fillOpacity: .85,
-                    anchor: new google.maps.Point(172.268, 501.67),
-                    strokeWeight: 1,
-                    scale: 0.04,
-                    labelOrigin: new google.maps.Point(190, 198)
-                }
+            this.color = options.color ?? "#000";
+            this.map = options.map;
+
+            if (options.hasOwnProperty('color')) {
+                delete options.color; // can't be passed to AdvancedMarkerElement
             }
-            this.gMkr = new google.maps.Marker(options);
+
+            if (!options.hasOwnProperty('content')) {
+                const label = document.createElement('div');
+                label.classList.add("map-marker-label");
+                const pin = new google.maps.marker.PinElement({
+                    glyph: label,
+                    glyphColor: "#000",
+                    background: this.color,
+                    borderColor: "#000",
+                    scale: .65,
+                });
+                options.content = pin.element;
+            }
+
+            this.gMkr = new google.maps.marker.AdvancedMarkerElement(options);
             let that = this;
-            this.gMkr.addListener("click", () => that.handleClick());
+            this.gMkr.addListener("gmp-click", () => that.handleClick());
+            this.gMkr.content.classList.add("tp-map-marker");
         }
 
         get visibleItems() {
@@ -361,11 +372,11 @@
         }
 
         get inBounds() {
-            let map = this.gMkr.getMap();
+            let map = this.gMkr.map;
             if (!map) { // if map failed to render for some reason, this prevents entries from being hidden.
                 return true;
             }
-            return map.getBounds().contains(this.gMkr.getPosition());
+            return map.getBounds().contains(this.gMkr.position);
         }
 
         get useIcon() {
@@ -381,41 +392,31 @@
                 return;
             }
 
-            let icon = this.gMkr.getIcon();
+            let icon = this.gMkr.content;
 
             // Update icon color
-            this.color = tpvm._utils.averageColor(this.visibleItems.map((i) => i.color))
+            this.color = tpvm._utils.averageColor(this.visibleItems.map((i) => i.color));
             if (icon !== undefined && icon.hasOwnProperty("fillColor")) {
                 icon.fillColor = this.color;
-                this.gMkr.setIcon(icon);
+                this.gMkr.content.style.backgroundColor = this.color; // Update AdvancedMarkerElement content style
             }
 
             // Update visibility
-            this.gMkr.setVisible(this.visibleItems.length > 0);
+            this.gMkr.map = (this.visibleItems.length > 0 ? this.map : null);
 
             // Update title
-            this.gMkr.setTitle(tpvm._utils.stringArrayToListString(this.visibleItems.map((i) => i.name)))
+            this.gMkr.title = tpvm._utils.stringArrayToListString(this.visibleItems.map((i) => i.name));
 
-            // Update label proper
-            if (highlighted) {
-                this.gMkr.setLabel(null); // Remove label if highlighted, because labels don't animate.
-            } else {
-                this.gMkr.setLabel(this.getLabelContent());
-            }
+            this.gMkr.content.getElementsByTagName('div')[0].innerHTML = this.getLabelContent() || ""; // Set label content
         }
 
         getLabelContent() {
-            let label = null;
             if (this.visibleItems.length > 1) {
-                label = {
-                    text: this.visibleItems.length.toString(),
-                    color: "#000000",
-                    fontSize: "100%"
-                }
+                return this.visibleItems.length.toString();
             } else if (this.useIcon !== false) { // icon for secure partners
-                label = this.useIcon;
+                return this.useIcon;
             }
-            return label;
+            return null;
         }
 
         // noinspection JSUnusedGlobalSymbols  Used dynamically from markers.
@@ -426,8 +427,8 @@
 
             tpvm._utils.clearHash();
 
-            const mp = this.gMkr.getMap();
-            TP_MapMarker.smoothZoom(mp, this.gMkr.getPosition()).then(() => 1)
+            const mp = this.gMkr.map;
+            TP_MapMarker.smoothZoom(mp, this.gMkr.position).then(() => 1)
 
             tpvm._utils.ga('send', 'event', this.items[0].itemTypeName, 'mapMarker click', this.gMkr.getTitle());
         }
@@ -451,12 +452,12 @@
                 });
                 if (map.getZoom() < zoomTo) { // zoom in
                     map.setZoom(map.getZoom() + 1);
-                } else { // zoom out
+                } else if (map.getZoom() > zoomTo) { // zoom out
                     map.setZoom(map.getZoom() - 1);
                 }
                 if (position !== null) {
                     let oldPos = map.getCenter(),
-                        newPos = new google.maps.LatLng((oldPos.lat() + position.lat() * 2) / 3, (oldPos.lng() + position.lng() * 2) / 3);
+                        newPos = new google.maps.LatLng((oldPos.lat() + position.lat * 2) / 3, (oldPos.lng() + position.lng * 2) / 3);
                     map.panTo(newPos);
                 }
             } else {
@@ -583,7 +584,7 @@
 
                     const item = list[ii],
                         geoStr = "" + item.geo[gi].lat + "," + item.geo[gi].lng;
-                    let mkr = this.markers.find((m) => m.gMkr.getMap() === map && m.geoStr === geoStr);
+                    let mkr = this.markers.find((m) => m.gMkr.map === map && m.geoStr === geoStr);
 
                     // If there isn't already a marker for the item on the right map, create one.
                     if (mkr === undefined) {
@@ -591,7 +592,6 @@
                             position: item.geo[gi],
                             color: item.color,
                             map: map,
-                            animation: google.maps.Animation.DROP,
                         });
                         mkr.geoStr = geoStr;
 
@@ -599,7 +599,7 @@
                         this.markers.push(mkr);
                     }
 
-                    bounds.extend(mkr.gMkr.getPosition());
+                    bounds.extend(mkr.gMkr.position);
 
                     // If the marker doesn't already have a reference to this item, add one.
                     if (!mkr.items.includes(item)) {
@@ -621,6 +621,7 @@
             }
 
             map.fitBounds(bounds);
+            let originalZoom = map.getZoom();
 
             map.addListener('bounds_changed', this.handleZoom);
 
@@ -634,15 +635,6 @@
                     map.fitBounds(bounds);
                 });
             }
-        }
-
-        // noinspection JSUnusedGlobalSymbols  Used dynamically from warning text.
-        /**
-         *
-         * @param {google.maps.Map} map
-         */
-        static resetMap(map) {
-            console.log("reset " + map.getMapTypeId())
         }
 
         /**
@@ -695,12 +687,12 @@
 
             // One marker (probably typical)
             if (this.markers.length === 1) {
-                let mp = this.markers[0].gMkr.getMap(),
+                let mp = this.markers[0].gMkr.map,
                     el = mp.getDiv(),
                     rect = el.getBoundingClientRect(),
                     viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight),
                     mpWithinView = !(rect.bottom < 0 || rect.top - viewHeight >= 0);
-                TP_MapMarker.smoothZoom(mp, this.markers[0].gMkr.getPosition()).then(() => 1);
+                TP_MapMarker.smoothZoom(mp, this.markers[0].gMkr.position).then(() => 1);
                 if (!mpWithinView) {
                     window.scroll({
                         top: rect.top,
@@ -796,8 +788,8 @@
                 for (let mi in this.markers) {
                     const mk = item.markers[mi];
                     if (TP_Mappable.items.length > 1) {
-                        if (mk.gMkr.getAnimation() !== google.maps.Animation.BOUNCE) {
-                            mk.gMkr.setAnimation(google.maps.Animation.BOUNCE);
+                        if (!mk.gMkr.content.classList.contains("highlighted-marker")) {
+                            mk.gMkr.content.classList.add("highlighted-marker");
                         }
                     }
                     mk.updateLabel(this.highlighted)
@@ -805,8 +797,8 @@
             } else {
                 for (const mi in this.markers) {
                     let mk = this.markers[mi];
-                    if (mk.gMkr.getAnimation() !== null) {
-                        mk.gMkr.setAnimation(null)
+                    if (mk.gMkr.content.classList.contains("highlighted-marker")) {
+                        mk.gMkr.content.classList.remove("highlighted-marker");
                     }
                     mk.updateLabel(this.highlighted)
                 }
@@ -1036,10 +1028,6 @@
             }
         }
 
-        get itemTypeName() {
-            return this.invType;
-        }
-
         // noinspection JSUnusedGlobalSymbols  Used dynamically from btns.
         contactAction() {
             let inv = this,
@@ -1093,8 +1081,9 @@
         static initMap(mapDivId) {
             let mapOptions = {
                 mapTypeId: google.maps.MapTypeId.ROADMAP,
+                mapId: "f0fb8ca5f6beff5288b80a8d",
                 linksControl: false,
-                maxZoom: 15,
+                maxZoom: 16,
                 minZoom: 2,
                 panControl: false,
                 addressControl: false,
@@ -1102,26 +1091,6 @@
                 mapTypeControl: false,
                 zoomControl: false,
                 gestureHandling: 'greedy',
-                styles: [
-                    {
-                        featureType: "poi", //points of interest
-                        stylers: [
-                            {visibility: 'off'}
-                        ]
-                    },
-                    {
-                        featureType: "road",
-                        stylers: [
-                            {visibility: 'on'}
-                        ]
-                    },
-                    {
-                        featureType: "transit",
-                        stylers: [
-                            {visibility: 'on'}
-                        ]
-                    }
-                ],
                 zoom: 15,
                 center: {lat: 0, lng: 0}, // gets overwritten by bounds later.
                 streetViewControl: false,
@@ -1561,3 +1530,4 @@
     TP_Person.init();
 
 })();
+
