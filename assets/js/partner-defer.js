@@ -44,19 +44,19 @@
             return ret;
         };
 
+        // noinspection JSUnusedGlobalSymbols
         get useIcon() {
             if (this.post_id === 0) {
-                return {
-                    text: " ",
-                    fontFamily: "\"Font Awesome 6 Free\", FontAwesome",
-                    color: "#00000088",
-                    fontSize: "90%",
-                    className: "fa fa-solid fa-lock"
-                }
+                return "<i class=\"fa fa-solid fa-lock\" style=\"font-size:90%\"></i>";
             }
             return false;
         }
 
+        // noinspection JSUnusedGlobalSymbols
+        /**
+         * @overrides tpvm.TP_Mappable
+         * @returns {boolean}
+         */
         get highlightable() {
             return this.post_id !== 0;
         }
@@ -120,6 +120,7 @@
         static initMap(mapDivId) {
             let mapOptions = {
                 mapTypeId: google.maps.MapTypeId.HYBRID,
+                mapId: 'f0fb8ca5f6beff5237d51d79',
                 linksControl: false,
                 maxZoom: 10,
                 minZoom: 2,
@@ -129,26 +130,6 @@
                 mapTypeControl: false,
                 zoomControl: false,
                 gestureHandling: 'greedy',
-                styles: [
-                    {
-                        featureType: "poi", //points of interest
-                        stylers: [
-                            {visibility: 'off'}
-                        ]
-                    },
-                    {
-                        featureType: "road",
-                        stylers: [
-                            {visibility: 'off'}
-                        ]
-                    },
-                    {
-                        featureType: "transit",
-                        stylers: [
-                            {visibility: 'off'}
-                        ]
-                    }
-                ],
                 zoom: 6,
                 center: {lat: 0, lng: 0}, // gets overwritten by bounds later.
                 streetViewControl: false,

@@ -974,7 +974,7 @@ class TouchPointWP
 		wp_register_script(
 			TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
 			sprintf(
-				"https://maps.googleapis.com/maps/api/js?key=%s&v=3&loading=async&libraries=geometry&language=$lang",
+				"https://maps.googleapis.com/maps/api/js?key=%s&v=3&loading=async&libraries=geometry,marker&language=$lang",
 				TouchPointWP::instance()->settings->google_maps_api_key
 			),
 			[TouchPointWP::SHORTCODE_PREFIX . "base-defer"],

@@ -181,6 +181,14 @@ h1.archive-title.page-title {
     text-align: inherit;
 }
 
+@keyframes bouncing-marker {
+    from { transform: translate3d(0, 0, 0);}
+    to { transform: translate3d(0, -15px, 0);}
+}
+.tp-map-marker.highlighted-marker {
+    animation: bouncing-marker .5s ease-in-out infinite alternate;
+}
+
 article .section-inner.TouchPointWP-detail {
     display: flex;
 }
