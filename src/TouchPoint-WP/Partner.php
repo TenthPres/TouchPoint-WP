@@ -795,7 +795,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 				// language=javascript
 				"
                 tpvm.addEventListener('Partner_fromObjArray', function() {
-                    TP_Partner.initFilters();
+                    tpvm.TP_Partner.initFilters();
                 });"
 			);
 			self::$filterJsAdded = true;
@@ -1380,7 +1380,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		$listStr = json_encode($queue);
 
 		return "\ttpvm.addEventListener('Partner_class_loaded', function() {
-        TP_Partner.fromObjArray($listStr);\n\t});\n";
+        tpvm.TP_Partner.fromObjArray($listStr);\n\t});\n";
 	}
 
 	/**

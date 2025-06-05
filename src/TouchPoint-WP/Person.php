@@ -1318,7 +1318,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$listStr = json_encode($queue);
 
 		$out = "\ttpvm.addOrTriggerEventListener('Person_class_loaded', function() {\n";
-		$out .= "\t\tTP_Person.fromObjArray($listStr);\n";
+		$out .= "\t\ttpvm.TP_Person.fromObjArray($listStr);\n";
 
 // TODO restore, better.
 //		if (self::$_enqueueUsersForJsInstantiation) {

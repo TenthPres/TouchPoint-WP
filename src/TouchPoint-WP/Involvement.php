@@ -1396,7 +1396,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				// language=javascript
 				"
                 tpvm.addEventListener('Involvement_fromObjArray', function() {
-                    TP_Involvement.initFilters();
+                    tpvm.TP_Involvement.initFilters();
                 });"
 			);
 			self::$filterJsAdded = true;
@@ -4010,7 +4010,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$listStr = json_encode($queue);
 
 		return "\ttpvm.addEventListener('Involvement_class_loaded', function() {
-		TP_Involvement.fromObjArray($listStr);\n\t});\n";
+		tpvm.TP_Involvement.fromObjArray($listStr);\n\t});\n";
 	}
 
 	public function getTouchPointId(): int

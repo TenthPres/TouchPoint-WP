@@ -677,7 +677,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		return "";  // TODO someday, probably.
 
 //		return "\ttpvm.addEventListener('Involvement_class_loaded', function() {
-//		TP_Involvement.fromObjArray($listStr);\n\t});\n";
+//		tpvm.TP_Involvement.fromObjArray($listStr);\n\t});\n";
 	}
 
 	/**

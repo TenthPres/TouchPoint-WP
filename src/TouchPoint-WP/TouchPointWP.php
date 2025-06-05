@@ -935,7 +935,8 @@ class TouchPointWP
 		);
 		wp_set_script_translations(
 			self::SHORTCODE_PREFIX . 'base-defer',
-			'TouchPoint-WP', $this->getJsLocalizationDir()
+			'TouchPoint-WP',
+			$this->getJsLocalizationDir()
 		);
 
 		wp_register_script(
@@ -973,7 +974,7 @@ class TouchPointWP
 		wp_register_script(
 			TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
 			sprintf(
-				"https://maps.googleapis.com/maps/api/js?key=%s&v=3&libraries=geometry&language=$lang",
+				"https://maps.googleapis.com/maps/api/js?key=%s&v=3&loading=async&libraries=geometry&language=$lang",
 				TouchPointWP::instance()->settings->google_maps_api_key
 			),
 			[TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
@@ -1085,7 +1086,7 @@ class TouchPointWP
 	public function filterByTag(?string $tag, ?string $handle): string
 	{
 		if (!str_contains($tag, ' async') &&
-		    strpos($handle, '-async') > 0
+		    strpos($handle, '-async')
 		) {
 			$tag = str_replace(' src=', ' async="async" src=', $tag);
 		}
