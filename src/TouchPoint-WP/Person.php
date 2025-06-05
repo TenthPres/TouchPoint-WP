@@ -1170,9 +1170,9 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *     elements.
 	 * @param bool    $withTouchPointLink
 	 *
-	 * @return string
+	 * @return StringableArray
 	 */
-	public function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true): string
+	public function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true): StringableArray
 	{
 		TouchPointWP::requireScript('swal2-defer');
 		TouchPointWP::requireScript('base-defer');

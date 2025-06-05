@@ -74,7 +74,7 @@ article.inv-list-item h2 a {
     opacity: 0;
 }
 
-.person-list-item:hover .person-actions {
+.person-list-item.has-actions:hover .person-actions {
     opacity: 1;
 }
 
@@ -136,7 +136,7 @@ div.inv-list article.inv-list-item h2.entry-title {
     text-shadow: 0 0 3px #000, 0 0 5px #000;
 }
 
-.person-list-item:hover header.entry-header > * {
+.person-list-item.has-actions:hover header.entry-header > * {
     opacity: 0;
 }
 
