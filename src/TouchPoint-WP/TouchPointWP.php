@@ -69,7 +69,7 @@ class TouchPointWP
 	 */
 	public const HOOK_PREFIX = "tp_";
 
-	public const INIT_ACTION_HOOK = "tp_init"; // Note that this is also hard-coded where the action is declared.
+	public const INIT_ACTION_HOOK = "tp_init";  // Note that this is also hard-coded where the action is called.
 
 	/**
 	 * Prefix to use for all settings.
@@ -901,7 +901,7 @@ class TouchPointWP
 		/**
 		 * Fires after the plugin has been initialized.
 		 */
-		do_action(self::INIT_ACTION_HOOK);
+		do_action("tp_init"); // needs to be hard-coded for documenter
 	}
 
 	/**
