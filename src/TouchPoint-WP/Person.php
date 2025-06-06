@@ -1202,6 +1202,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		 * on the Person to allow the user to interact with them.
 		 *
 		 * @since 0.0.90 Added
+		 * @since 0.0.96 Adjusted parameters and return value for StringableArray rather than string.
 		 *
 		 * @see Person::getActionButtons()
 		 *
@@ -1211,7 +1212,15 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		 * @param string $btnClass A string for classes to add to the buttons.  Note that buttons can be 'a' or 'button'
 		 *     elements.
 		 */
-		return apply_filters("tp_person_actions", $ret, $this, $context, $btnClass);
+		$ret = apply_filters("tp_person_actions", $ret, $this, $context, $btnClass);
+
+		if ($ret instanceof StringableArray) {
+			return $ret;
+		}
+
+		$r = new StringableArray();
+		$r->append($ret);
+		return $r;
 	}
 
 	/**
