@@ -222,7 +222,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 				'hierarchical'      => false,
 				'show_ui'           => false,
 				'show_in_nav_menus' => true,
-				'show_in_rest'      => false, // For the benefit of secure partners
+				'show_in_rest'      => true, // For the benefit of secure partners
 				'supports'          => [
 					'title',
 					'custom-fields',
@@ -1326,7 +1326,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 	 *
 	 * @param string|null $context A string that gives filters some context for where the request is coming from
 	 * @param string      $btnClass HTML class names to put into the buttons/links
-	 * @param bool        $withTouchPointLink Whether to include a link to the item within TouchPoint.
+	 * @param bool        $withTouchPointLink Whether to include a link to the item within TouchPoint. (not used)
 	 * @param bool        $absoluteLinks  Set true to make the links absolute, so they work from apps or emails.
 	 *
 	 * @return StringableArray
