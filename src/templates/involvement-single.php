@@ -70,12 +70,8 @@ TouchPointWP::enqueuePartialsStyle();
         <div class="TouchPointWP-detail-cell">
             <div class="TouchPointWP-detail-cell-section involvement-logistics">
                 <?php
-                $metaStrings = [];
-                foreach ($obj->notableAttributes() as $a)
-                {
-                    $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-                }
-                echo implode("<br />", $metaStrings);
+                $notableAttributes = $obj->notableAttributes();
+                echo $notableAttributes->join("<br />");
                 ?>
             </div>
             <div class="TouchPointWP-detail-cell-section involvement-actions">

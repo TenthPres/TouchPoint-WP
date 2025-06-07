@@ -35,6 +35,7 @@ use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\DateFormats;
 use tp\TouchPointWP\Utilities\DateTimeExtended;
 use tp\TouchPointWP\Utilities\Http;
+use tp\TouchPointWP\Utilities\NotableAttributes;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\StringableArray;
@@ -3710,13 +3711,20 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Get notable attributes, such as gender restrictions, as strings.
 	 *
-	 * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent inv, not needed
-	 *	 here.)
+	 * @param array|StringableArray $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent inv,
+	 * not needed here.)
 	 *
-	 * @return string[]
+	 * @return NotableAttributes
+	 *
+	 * @since 0.0.11
+	 * @since 0.0.96 Changed to use NotableAttributes class, which is a StringableArray.
 	 */
-	public function notableAttributes(array $exclude = []): array
+	public function notableAttributes(array|StringableArray $exclude = []): NotableAttributes
 	{
+		if (!is_array($exclude)) {
+			$exclude = $exclude->getArrayCopy();
+		}
+
 		$asMeeting = $this->AsAMeeting();
 		if ($asMeeting !== null) {
 			$attrs = $asMeeting->notableAttributes(['involvement']);
@@ -3724,6 +3732,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$attrs = self::scheduleStrings($this->invId, $this);
 			unset($attrs['combined']);
 			$attrs = array_filter($attrs);
+			$attrs = new NotableAttributes($attrs);
 		}
 		unset($schStr);
 
@@ -3779,6 +3788,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		$attrs = $this->processAttributeExclusions($attrs, $exclude);
 
+		$inv = $this;
+
 		/**
 		 * Allows for manipulation of the notable attributes strings for an Involvement.  An array of strings.
 		 * Typically, these are the standardized strings that appear on the Involvement to give information about it,
@@ -3789,10 +3800,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		 *
 		 * @since 0.0.11 Added
 		 *
-		 * @param string[] $attrs The list of notable attributes.
-		 * @param Involvement $this The Involvement object.
+		 * @param NotableAttributes $attrs The list of notable attributes.
+		 * @param Involvement $inv The Involvement object.
 		 */
-		return apply_filters("tp_involvement_attributes", $attrs, $this);
+		return apply_filters("tp_involvement_attributes", $attrs, $inv);
 	}
 
 	/**

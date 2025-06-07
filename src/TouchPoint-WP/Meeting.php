@@ -25,6 +25,7 @@ use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Interfaces\scheduled;
 use tp\TouchPointWP\Utilities\DateFormats;
 use tp\TouchPointWP\Utilities\Http;
+use tp\TouchPointWP\Utilities\NotableAttributes;
 use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Post;
 use WP_Query;
@@ -425,25 +426,37 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	/**
 	 * Get notable attributes, such as gender restrictions, as strings.
 	 *
-	 * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
+	 * @param array|StringableArray $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not
+	 * needed here.)
 	 *
-	 * @return string[]
+	 * @return NotableAttributes
 	 */
-	public function notableAttributes(array $exclude = []): array
+	public function notableAttributes(array|StringableArray $exclude = []): NotableAttributes
 	{
+		if (!is_array($exclude)) {
+			$exclude = $exclude->getArrayCopy();
+		}
+
 		if (in_array('involvement', $exclude)) {
-			$attrs = [];
+			$attrs = null;
 		} else {
 			try {
 				$attrs = $this->involvement()->notableAttributes(['date', 'datetime', 'time', 'firstLast']);
 			} catch (TouchPointWP_Exception) {
-				$attrs = [];
+				$attrs = null;
 			}
 		}
 
 		$d = $this->scheduleStringArray();
-
-		$attrs = [...$d, ...$attrs];
+		if ($attrs !== null) {
+			foreach ($attrs as $k => $v) {
+				if (is_string($v) && $v !== "") {
+					$d[$k] = $v;
+				}
+			}
+		}
+		$attrs = $d;
+		unset($d);
 
 		$status = $this->status_i18n(true);
 		if ($status) {
@@ -460,8 +473,8 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 			$attrs['location'] = $loc;
 		}
 
-
 		$attrs = $this->processAttributeExclusions($attrs, $exclude);
+		$mtg = $this;
 
 		/**
 		 * Allows for manipulation of the notable attributes strings for a Meeting.  An array of strings.
@@ -472,11 +485,12 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		 * @see PostTypeCapable::notableAttributes()
 		 *
 		 * @since 0.0.90 Added
+		 * @since 0.0.96 Changed to use NotableAttributes instead of array.
 		 *
-		 * @param string[] $attrs The list of notable attributes.
-		 * @param Meeting $this The Meeting object.
+		 * @param NotableAttributes $attrs The list of notable attributes.
+		 * @param Meeting $mtg The Meeting object.
 		 */
-		return apply_filters("tp_meeting_attributes", $attrs, $this);
+		return apply_filters("tp_meeting_attributes", $attrs, $mtg);
 	}
 
 	/**

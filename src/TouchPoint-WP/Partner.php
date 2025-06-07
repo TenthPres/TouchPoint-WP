@@ -23,6 +23,7 @@ use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\Interfaces\hasGeo;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Interfaces\updatesViaCron;
+use tp\TouchPointWP\Utilities\NotableAttributes;
 use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Error;
 use WP_Post;
@@ -1198,8 +1199,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 			if ($format == '') {
 				try {
 					$gp      = self::fromPost($post);
-					$theDate = $gp->notableAttributes();
-					$theDate = implode(TouchPointWP::$joiner, $theDate);
+					$theDate = $gp->notableAttributes()->join();
 				} catch (TouchPointWP_Exception $e) {
 				}
 			} else {
@@ -1261,33 +1261,40 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 	/**
 	 * Get notable attributes as strings.
 	 *
-	 * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
+	 * @param array|StringableArray $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
 	 *
-	 * @return string[]
+	 * @return NotableAttributes
+	 * @since 0.0.6 Added
+	 * @since 0.0.96 Changed to use NotableAttributes instead of array.
+	 *
 	 */
-	public function notableAttributes(array $exclude = []): array
+	public function notableAttributes(array|StringableArray $exclude = []): NotableAttributes
 	{
-		$r = [];
+		$attrs = new NotableAttributes();
+		if (!is_array($exclude)) {
+			$exclude = $exclude->getArrayCopy();
+		}
 
 		$l = $this->locationName();
 		if ($this->decoupleLocation) {
-			$r['secure'] = $l;
+			$attrs['secure'] = $l;
 		} elseif ($l) {
-			$r['location'] = $l;
+			$attrs['location'] = $l;
 		}
 		unset($l);
 
 		foreach ($this->category as $c) {
-			$r['category'] = $c->name;
+			$attrs['category'] = $c->name;
 		}
 
 		// Not shown on map (only if there is a map, and the partner isn't on it because they lack geo.)
 		if (self::$_hasArchiveMap && $this->geo === null && ! $this->decoupleLocation) {
-			$r['hidden'] = __("Not Shown on Map", "TouchPoint-WP");
+			$attrs['hidden'] = __("Not Shown on Map", "TouchPoint-WP");
 			TouchPointWP::requireScript("fontAwesome");  // For map icons
 		}
 
-		$r = $this->processAttributeExclusions($r, $exclude);
+		$attrs = $this->processAttributeExclusions($attrs, $exclude);
+		$partner = $this;
 
 		/**
 		 * Allows for manipulation of the notable attributes strings for an Partner.  An array of strings.
@@ -1298,11 +1305,12 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		 * @see PostTypeCapable::notableAttributes()
 		 *
 		 * @since 0.0.6 Added
+		 * @since 0.0.96 Changed to use NotableAttributes instead of array.
 		 *
-		 * @param string[] $attrs The list of notable attributes.
-		 * @param Partner $this The Partner object.
+		 * @param NotableAttributes $attrs The list of notable attributes.
+		 * @param Partner $partner The Partner object.
 		 */
-		return apply_filters("tp_partner_attributes", $r, $this);
+		return apply_filters("tp_partner_attributes", $attrs, $partner);
 	}
 
 	/**
