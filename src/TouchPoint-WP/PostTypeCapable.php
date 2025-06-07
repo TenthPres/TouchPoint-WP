@@ -6,18 +6,19 @@
 
 namespace tp\TouchPointWP;
 
+use tp\TouchPointWP\Interfaces\actionButtons;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Interfaces\storedAsPost;
-use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Post;
 
+require_once 'Interfaces/actionButtons.php';
 require_once 'Interfaces/module.php';
 require_once 'Interfaces/storedAsPost.php';
 
 /**
  * This is a base class for those objects that can be derived from a Post.
  */
-abstract class PostTypeCapable implements module, storedAsPost
+abstract class PostTypeCapable implements module, storedAsPost, actionButtons
 {
 
 	protected int $post_id;
@@ -103,16 +104,6 @@ abstract class PostTypeCapable implements module, storedAsPost
 		}
 		return $subject;
 	}
-
-	/**
-	 * @param string|null $context A string that gives filters some context for where the request is coming from
-	 * @param string      $btnClass HTML class names to put into the buttons/links
-	 * @param bool        $withTouchPointLink Whether to include a link to the item within TouchPoint.
-	 * @param bool        $absoluteLinks  Set true to make the links absolute, so they work from apps or emails.
-	 *
-	 * @return StringableArray
-	 */
-	public abstract function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray;
 
 	/**
 	 * Indicates if the given post can be instantiated as the given post type.

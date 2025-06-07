@@ -523,7 +523,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 
 		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin() && !$this->isMeetingGroup()) {
 			$tpHost = TouchPointWP::instance()->host();
-			// Translators: %s is the system name.  "TouchPoint" by default.
+			// Translators: %s is the system name, "TouchPoint" by default.
 			$title  = wp_sprintf(__("Meeting in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
 			$logo = TouchPointWP::TouchPointIcon();
 			$ret['mtg_tp']  = "<a href=\"$tpHost/Meeting/$this->mtgId\" title=\"$title\" class=\"tp-TouchPoint-logo $btnClass\">$logo</a>";

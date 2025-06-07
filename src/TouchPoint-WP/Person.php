@@ -13,6 +13,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Interfaces/api.php";
 	require_once "extraValues.php";
 	require_once "jsInstantiation.php";
+	require_once "Interfaces/actionButtons.php";
 	require_once "Interfaces/updatesViaCron.php";
 	require_once "InvolvementMembership.php";
 	require_once "Utilities.php";
@@ -22,6 +23,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 use Exception;
 use JsonSerializable;
 use stdClass;
+use tp\TouchPointWP\Interfaces\actionButtons;
 use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Interfaces\updatesViaCron;
@@ -43,7 +45,7 @@ use WP_User;
  * @property-read ?WP_Term resCode  The ResCode taxonomy, if present
  * @property ?int          rescode_term_id   The ResCode term ID
  */
-class Person extends WP_User implements api, JsonSerializable, module, updatesViaCron
+class Person extends WP_User implements api, JsonSerializable, module, updatesViaCron, actionButtons
 {
 	use jsInstantiation;
 	use extraValues;
@@ -1163,38 +1165,50 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 	/**
 	 * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with
-	 * the `data-tp-person` attribute with the invId as the value.
+	 *  the `data-tp-person` attribute with the peopleId as the value.
 	 *
 	 * @param ?string $context A reference to where the action buttons are meant to be used.
 	 * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button
 	 *     elements.
 	 * @param bool    $withTouchPointLink
+	 * @param bool    $absoluteLinks
 	 *
 	 * @return StringableArray
 	 */
-	public function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true): StringableArray
+	public function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray
 	{
-		TouchPointWP::requireScript('swal2-defer');
-		TouchPointWP::requireScript('base-defer');
-		$this->enqueueForJsInstantiation();
+		if (!$absoluteLinks) {
+			TouchPointWP::requireScript('swal2-defer');
+			TouchPointWP::requireScript('base-defer');
+			$this->enqueueForJsInstantiation();
+			Person::enqueueUsersForJsInstantiation();
+		}
 
+		$classesOnly = $btnClass;
 		if ($btnClass !== "") {
 			$btnClass = " class=\"$btnClass\"";
 		}
+		global $wp;
+		$baseLink = add_query_arg($wp->query_vars, home_url($wp->request));
 
 		$ret = new StringableArray();
 		if (self::allowContact()) {
 			$text = __("Contact", "TouchPoint-WP");
-			TouchPointWP::enqueueActionsStyle('person-contact');
-			self::enqueueUsersForJsInstantiation();
-			$ret[] = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
+			$pid = $this->peopleId;
+			if (!$absoluteLinks) {
+				$ret['contact'] = "<button type=\"button\" data-tp-person=\"$pid\" data-tp-action=\"contact\" $btnClass>$text</button> ";
+				TouchPointWP::enqueueActionsStyle('person-contact');
+				self::enqueueUsersForJsInstantiation();
+			} else {
+				$ret['contact'] = "<a href=\"$baseLink#tp-contact-p$pid\"$btnClass>$text</a> ";
+			}
 		}
 
 		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
-			// Translators: %s is the system name.  "TouchPoint" by default.
-			$title  = sprintf(__("Person in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
+			// Translators: %s is the system name, "TouchPoint" by default.
+			$title  = wp_sprintf(__("Person in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
 			$logo = TouchPointWP::TouchPointIcon();
-			$ret[]  = "<a href=\"{$this->getProfileUrl()}\" title=\"$title\" class=\"tp-TouchPoint-logo $btnClass\">$logo</a>";
+			$ret['inv_tp']  = "<a href=\"{$this->getProfileUrl()}\" title=\"$title\" class=\"tp-TouchPoint-logo $classesOnly\">$logo</a>";
 		}
 
 		/**
@@ -1202,7 +1216,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		 * on the Person to allow the user to interact with them.
 		 *
 		 * @since 0.0.90 Added
-		 * @since 0.0.96 Adjusted parameters and return value for StringableArray rather than string.
+		 * @since 0.0.96 Adjusted parameters and return value to have type StringableArray rather than string.  If the
+		 *      return value is not a StringableArray, it will be forced into one.
 		 *
 		 * @see Person::getActionButtons()
 		 *

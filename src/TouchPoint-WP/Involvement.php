@@ -3854,7 +3854,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
 			$tpHost = TouchPointWP::instance()->host();
-			// Translators: %s is the system name.  "TouchPoint" by default.
+			// Translators: %s is the system name, "TouchPoint" by default.
 			$title  = wp_sprintf(__("Involvement in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
 			$logo = TouchPointWP::TouchPointIcon();
 			$ret['inv_tp']  = "<a href=\"$tpHost/Org/$this->invId\" title=\"$title\" class=\"tp-TouchPoint-logo $classesOnly\">$logo</a>";
