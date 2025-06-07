@@ -6,9 +6,12 @@
 
 namespace tp\TouchPointWP;
 
+use ArrayAccess;
 use tp\TouchPointWP\Interfaces\actionButtons;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Interfaces\storedAsPost;
+use tp\TouchPointWP\Utilities\NotableAttributes;
+use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Post;
 
 require_once 'Interfaces/actionButtons.php';
@@ -78,31 +81,31 @@ abstract class PostTypeCapable implements module, storedAsPost, actionButtons
 	/**
 	 * Get notable attributes.
 	 *
-	 * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
+	 * @param array|StringableArray $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
 	 *
-	 * @return string[]
+	 * @return NotableAttributes
 	 */
-	public abstract function notableAttributes(array $exclude = []): array;
+	public abstract function notableAttributes(array|StringableArray $exclude = []): NotableAttributes;
 
 	/**
 	 * Handle exclusions for the notableAttributes $exclusion variable.
 	 *
 	 * Removes all array items that have a value or key contained in the $exclude array's values.
 	 *
-	 * @param array $subject
-	 * @param array $exclude
+	 * @param StringableArray $subject
+	 * @param array           $exclude
 	 *
-	 * @return array
+	 * @return NotableAttributes
 	 */
-	protected function processAttributeExclusions(array $subject, array $exclude): array
+	protected function processAttributeExclusions(StringableArray $subject, array $exclude): NotableAttributes
 	{
-		$subject = array_diff($subject, $exclude);
+		$subject = array_diff($subject->getArrayCopy(), $exclude);
 		foreach ($exclude as $e) {
 			if (isset($subject[$e])) {
 				unset($subject[$e]);
 			}
 		}
-		return $subject;
+		return new NotableAttributes($subject);
 	}
 
 	/**

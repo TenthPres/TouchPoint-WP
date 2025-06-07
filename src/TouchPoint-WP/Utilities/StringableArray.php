@@ -6,6 +6,7 @@
 namespace tp\TouchPointWP\Utilities;
 
 use ArrayObject;
+use tp\TouchPointWP\TouchPointWP;
 use tp\TouchPointWP\Utilities;
 
 /**
@@ -13,19 +14,22 @@ use tp\TouchPointWP\Utilities;
  */
 class StringableArray extends ArrayObject
 {
-	protected string $separator;
+	protected string $separator = "\n";
+	protected string $itemPrefix = "";
+	protected string $itemSuffix = "";
 
 	/**
 	 * StringableArray constructor.
 	 *
-	 * @param string $separator
 	 * @param object|array $array
 	 * @param int $flags
 	 * @param string $iteratorClass
+	 *
+	 * @since 0.0.90 Added
+	 * @since 0.0.96 Changed signature to reflect actual usage.
 	 */
-	public function __construct(string $separator = "\n ", object|array $array = [], int $flags = 0, string $iteratorClass = "ArrayIterator")
+	public function __construct(object|array $array = [], int $flags = 0, string $iteratorClass = "ArrayIterator")
 	{
-		$this->separator = $separator;
 		parent::__construct($array, $flags, $iteratorClass);
 	}
 
@@ -57,6 +61,16 @@ class StringableArray extends ArrayObject
 	}
 
 	/**
+	 * Get the stringable array, as an array.
+	 *
+	 * @return array
+	 */
+	public function toArray(): array
+	{
+		return $this->getArrayCopy();
+	}
+
+	/**
 	 * Determine if the stringable array (haystack) contains the given needle
 	 *
 	 * @param $needle
@@ -66,6 +80,16 @@ class StringableArray extends ArrayObject
 	public function contains($needle): bool
 	{
 		return in_array($needle, $this->getArrayCopy());
+	}
+
+	/**
+	 * Get the keys of the array.
+	 *
+	 * @return array
+	 */
+	public function keys(): array
+	{
+		return array_keys($this->getArrayCopy());
 	}
 
 	/**
@@ -82,17 +106,30 @@ class StringableArray extends ArrayObject
 	 * Link the items together with a given separator, which may be different from the separator used in the constructor.
 	 *
 	 * @param string|null $separator
+	 * @param string|null $prefix
+	 * @param string|null $postfix
 	 *
 	 * @return string
 	 *
 	 * @since 0.0.90 Added
+	 * @since 0.0.96 Added $prefix and $postfix parameters to allow for more flexible joining (and particularly, HTML).
 	 */
-	public function join(?string $separator = null): string
+	public function join(?string $separator = null, ?string $prefix = null, ?string $postfix = null): string
 	{
+		if ($this->count() === 0) {
+			return "";
+		}
 		if (is_null($separator)) {
 			$separator = $this->separator;
 		}
-		return implode($separator, $this->getArrayCopy());
+		if (is_null($prefix)) {
+			$prefix = $this->itemPrefix;
+		}
+		if (is_null($postfix)) {
+			$postfix = $this->itemSuffix;
+		}
+		$joiner = $postfix . $separator . $prefix;
+		return $prefix . implode($joiner, $this->getArrayCopy()) . $postfix;
 	}
 
 	/**
