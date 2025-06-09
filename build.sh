@@ -9,6 +9,10 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 nvm install node
 
+# update version in various json files
+node ./buildPipeline/versionUpdate.js
+
+# update NPM packages
 npm update
 
 rm -r build
@@ -26,11 +30,10 @@ cp -r assets build
 cd ./build || exit
 cd ..
 
-
-# compile translations
-if [ ! -f wp-cli.phar ]; then
-    wget -O wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-fi
+# build blocks
+npm install -g @wordpress/scripts
+wp-scripts build --webpack-src-dir=blocks --output-path=build/blocks
+wp-scripts build-blocks-manifest --input=blocks --output=build/blocks/blocks-manifest.php
 
 cp -r ./i18n ./build/i18n
 
