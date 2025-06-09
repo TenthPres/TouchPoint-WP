@@ -48,9 +48,6 @@ wp.blocks.registerBlockType( metadata.name, {
 
 		props.onReplace(() => updateListContent())
 
-		let lastPath = '',
-			lastFetch = null;
-
 		wp.element.useEffect(() => {
 			(async () => {
 				try {
@@ -67,6 +64,7 @@ wp.blocks.registerBlockType( metadata.name, {
 					if (postType === '' && formattedOptions.length > 0) {
 						setAttributes({ postType: formattedOptions[0].value });
 					}
+					updateListContent(postType, division, blockProps, placeholderId);
 				} catch (error) {
 					console.error('Error fetching post types:', error);
 				}
@@ -89,37 +87,16 @@ wp.blocks.registerBlockType( metadata.name, {
 						groupedOptions.push(<optgroup key={groupLabel} label={groupLabel}>{options}</optgroup>);
 					});
 					setDivisionChildren(groupedOptions);
+					updateListContent(postType, division, blockProps, placeholderId);
 				} catch (error) {
 					console.error('Error fetching divisions:', error);
 				}
 			})();
 		}, []);
 
-		function updateListContent() {
-			const newPath = `/touchpoint-api/inv/list?type=${postType}&div=${division}&class=${blockProps.className || ''}`;
-			if (lastPath === newPath) {
-				return
-			}
-			if (lastFetch) {
-				if (lastFetch.abort) { // TODO never true
-					lastFetch.abort();
-				}
-			}
-			lastPath = newPath;
-			lastFetch = fetch(newPath)
-				.then(response => response.text())
-				.then(data => {
-					const placeholder = document.getElementById(placeholderId);
-					if (placeholder) {
-						placeholder.innerHTML = data;
-					}
-				})
-				.catch(error => {
-					console.error('Error fetching involvement list:', error);
-				});
-		}
-
-		updateListContent();
+		wp.element.useEffect(() => {
+			updateListContent(postType, division, blockProps, placeholderId);
+		}, [postType, division, blockProps.className, placeholderId]);
 
 		return (
 			<div {...blockProps} >
@@ -167,3 +144,30 @@ wp.blocks.registerBlockType( metadata.name, {
 	},
 
 } );
+
+let lastPath = null;
+let controller = null;
+
+function updateListContent(postType, division, blockProps, placeholderId) {
+    const newPath = `/touchpoint-api/inv/list?type=${postType}&div=${division}&class=${blockProps.className || ''}`;
+    if (lastPath === newPath) {
+        return;
+    }
+
+    if (controller) {
+        controller.abort();
+    }
+
+    controller = new AbortController();
+    lastPath = newPath;
+
+    fetch(newPath, { signal: controller.signal })
+        .then(response => response.text())
+        .then(data => {
+            const placeholder = document.getElementById(placeholderId);
+            if (placeholder) {
+                placeholder.innerHTML = data;
+            }
+        })
+        .catch(() => {}); // suppress error from abortion.
+}
