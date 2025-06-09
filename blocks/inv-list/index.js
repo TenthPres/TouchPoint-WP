@@ -5,13 +5,16 @@
  *
  * @see https://www.npmjs.com/package/@wordpress/scripts#using-css
  */
-// import './style.css';
+import "../../assets/template/partials-template-style.css";
+import "../../assets/template/actions-style.css";
+import "../../assets/template/block-preview-style.css"
 
 /**
  * Internal dependencies
  */
 import metadata from './block.json';
 import {__} from "@wordpress/i18n";
+import {uniqueId} from "@wordpress/block-editor/src/components/link-control/test/fixtures";
 
 /**
  * Every block starts by registering a new block type definition.
@@ -38,21 +41,29 @@ wp.blocks.registerBlockType( metadata.name, {
 		const { attributes, setAttributes } = props;
 		const { postType, division } = attributes;
 		const blockProps = wp.blockEditor.useBlockProps();
-		const additionalClasses = blockProps.className || '';
+		const placeholderId = `tp-inv-list-${uniqueId()}`;
 
 		const [postTypeOptions, setPostTypeOptions] = wp.element.useState([]);
 		const [divisionChildren, setDivisionChildren] = wp.element.useState(null);
+
+		props.onReplace(() => updateListContent())
+
+		let lastPath = '',
+			lastFetch = null;
 
 		wp.element.useEffect(() => {
 			(async () => {
 				try {
 					const response = await fetch('/touchpoint-api/inv/posttypes');
 					const data = await response.json();
-					const formattedOptions = data.map((item) => ({
-						label: item.namePlural,
-						value: item.postType,
-					}));
-					setPostTypeOptions(formattedOptions);setPostTypeOptions(formattedOptions);
+					const formattedOptions = data
+						.filter((item) => item.postType !== 'meeting')
+						.map((item) => ({
+							label: item.namePlural,
+							value: item.postType,
+						}));
+
+					setPostTypeOptions(formattedOptions);
 					if (postType === '' && formattedOptions.length > 0) {
 						setAttributes({ postType: formattedOptions[0].value });
 					}
@@ -84,27 +95,63 @@ wp.blocks.registerBlockType( metadata.name, {
 			})();
 		}, []);
 
+		function updateListContent() {
+			const newPath = `/touchpoint-api/inv/list?type=${postType}&div=${division}&class=${blockProps.className || ''}`;
+			if (lastPath === newPath) {
+				return
+			}
+			if (lastFetch) {
+				if (lastFetch.abort) { // TODO never true
+					lastFetch.abort();
+				}
+			}
+			lastPath = newPath;
+			lastFetch = fetch(newPath)
+				.then(response => response.text())
+				.then(data => {
+					const placeholder = document.getElementById(placeholderId);
+					if (placeholder) {
+						placeholder.innerHTML = data;
+					}
+				})
+				.catch(error => {
+					console.error('Error fetching involvement list:', error);
+				});
+		}
+
+		updateListContent();
+
 		return (
-			<div {...blockProps}>
+			<div {...blockProps} >
 				<wp.blockEditor.InspectorControls>
 					<wp.components.PanelBody title={__("Settings", "TouchPoint-WP")}>
-						<wp.components.SelectControl
-							label={__("Post Type", "TouchPoint-WP")}
-							value={postType}
-							options={postTypeOptions}
-							onChange={(value) => setAttributes({ postType: value })}
-						/>
-						<wp.components.SelectControl
-							label={__("Division", "TouchPoint-WP")}
-							value={division}
-							children={divisionChildren}
-							onChange={(value) => setAttributes({ division: Number(value) })}
-							__next40pxDefaultSize={true}
-							__nextHasNoMarginBottom={true}
-						/>
+						{postTypeOptions.length === 0 ? (
+							<div style={{ padding: '1em', color: 'red' }}>
+								{__("To use this block, import Involvements in the TouchPoint-WP settings.", "TouchPoint-WP")}
+							</div>
+						) : (
+							<>
+								<wp.components.SelectControl
+									label={__("Post Type", "TouchPoint-WP")}
+									value={postType}
+									options={postTypeOptions}
+									onChange={(value) => setAttributes({ postType: value })}
+									__next40pxDefaultSize={true}
+									__nextHasNoMarginBottom={true}
+								/>
+								<wp.components.SelectControl
+									label={__("Division", "TouchPoint-WP")}
+									value={division}
+									children={divisionChildren}
+									onChange={(value) => setAttributes({ division: Number(value) })}
+									__next40pxDefaultSize={true}
+									__nextHasNoMarginBottom={true}
+								/>
+							</>
+						)}
 					</wp.components.PanelBody>
 				</wp.blockEditor.InspectorControls>
-				<p>{`[TP-Inv-List class="${additionalClasses}" type="${postType}"${division !== 0 ? ` div="${division}"` : ""}]`}</p>
+				<div id={placeholderId} className="tp-preview-block" data-preview-message={__('Preview Only', 'TouchPoint-WP')}></div>
 			</div>
 		);
 	},

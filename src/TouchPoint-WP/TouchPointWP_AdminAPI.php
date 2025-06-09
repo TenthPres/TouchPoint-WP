@@ -52,7 +52,7 @@ class TouchPointWP_AdminAPI implements api
 
 			case "divisions":
 				header('Content-Type: application/json');
-				$divs = TouchPointWP::instance()->getDivisions();
+				$divs = TouchPointWP::instance()->getImportedDivisions();
 				echo json_encode($divs);
 				exit;
 
