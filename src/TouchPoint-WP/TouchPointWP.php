@@ -7,6 +7,7 @@ namespace tp\TouchPointWP;
 
 use JsonException;
 use stdClass;
+use tp\TouchPointWP\Blocks\BlocksController;
 use tp\TouchPointWP\Utilities\Cleanup;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\Session;
@@ -232,6 +233,9 @@ class TouchPointWP
 
 		// Register frontend JS & CSS.
 		add_action('init', [$this, 'registerScriptsAndStyles'], 0);
+
+		// Register blocks
+		add_action('init', [BlocksController::class, 'init']);
 
 		add_action('wp_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
 		add_action('admin_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);

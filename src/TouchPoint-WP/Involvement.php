@@ -69,7 +69,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	protected const MEETING_STRATEGY_MULTIPLE = 2;
 
 	public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
-	public const CRON_OFFSET = 86400 + 3600;
+	public const CRON_OFFSET = 86400 - 3600;
 
 	protected static bool $_hasUsedMap = false;
 	protected static bool $_hasArchiveMap = false;
@@ -374,7 +374,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$startTime = microtime(true);
 
 		// Prevent other threads from attempting for an hour.
-		TouchPointWP::instance()->settings->set('inv_cron_last_run', time() - self::CRON_OFFSET + 3600);
+		TouchPointWP::instance()->settings->set('inv_cron_last_run', time() + 3600);
 
 		$verbose &= TouchPointWP::currentUserIsAdmin();
 
@@ -1267,6 +1267,26 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		return $r;
 	}
 
+
+	/**
+	 * Get an array of Involvement Post Types, with some basic info
+	 *
+	 * @return array[]
+	 */
+	public static function getPostTypesSummary(): array
+	{
+		$r = [];
+		foreach (self::allTypeSettings() as $pt) {
+			$r[] = [
+				/** @var Involvement_PostTypeSettings $pt */
+				'postType' => $pt->postTypeWithoutPrefix(),
+				'nameSingular' => $pt->nameSingular,
+				'namePlural' => $pt->namePlural
+			];
+		}
+		return $r;
+	}
+
 	/**
 	 * Display action buttons for an involvement.  Takes an id parameter for the Involvement ID.  If not provided,
 	 * the current post will be used.
@@ -2052,6 +2072,13 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				self::ajaxNearby();
 				exit;
 
+			/** @noinspection SpellCheckingInspection */
+			case "posttypes":
+				// Return the post types that are available for involvements.
+				header('Content-Type: application/json');
+				echo json_encode(Involvement::getPostTypesSummary());
+				exit;
+
 			case "force-sync":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
 				echo self::updateFromTouchPoint(true);
@@ -2294,9 +2321,6 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		/// Syncing ///
 		///////////////
 
-		// Do an update if needed.
-		add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'checkUpdates']);
-
 		// Setup cron for updating Involvements daily.
 		add_action(self::CRON_HOOK, [self::class, 'updateCron']);
 		if ( ! wp_next_scheduled(self::CRON_HOOK)) {
@@ -2307,6 +2331,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				self::CRON_HOOK
 			);
 		}
+
+		// Do an update if needed.
+		add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'checkUpdates']);
 
 		return true;
 	}

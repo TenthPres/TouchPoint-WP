@@ -65,6 +65,8 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once __DIR__ . "/src/TouchPoint-WP/Taxonomies.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/hasGeo.php";
 
+	require_once __DIR__ . "/src/TouchPoint-WP/Blocks/BlocksController.php";
+
 	require_once __DIR__ . "/src/TouchPoint-WP/Person.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Meeting.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/CalendarGrid.php";

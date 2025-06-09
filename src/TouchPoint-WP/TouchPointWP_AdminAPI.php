@@ -50,6 +50,12 @@ class TouchPointWP_AdminAPI implements api
 				echo json_encode($mt);
 				exit;
 
+			case "divisions":
+				header('Content-Type: application/json');
+				$divs = TouchPointWP::instance()->getDivisions();
+				echo json_encode($divs);
+				exit;
+
 			case self::API_ENDPOINT_SCRIPTZIP:
 				if ( ! TouchPointWP::currentUserIsAdmin()) {
 					return false;
