@@ -1672,6 +1672,27 @@ class TouchPointWP
 	}
 
 	/**
+	 * Returns an array of objects that correspond to divisions that are actively being imported as a taxonomy.  Each
+	 * Division has a name and an id.  The name is both the Program and Division.
+	 *
+	 * @return object[]
+	 */
+	public function getImportedDivisions(): array
+	{
+		$enabledDivisions = $this->settings->dv_divisions;
+		$enabled = [];
+		foreach ($this->getDivisions() as $d) {
+			if (!$d->pName || !$d->dName) {
+				continue;
+			}
+			if (in_array('div' . $d->id, $enabledDivisions)) {
+				$enabled[] = $d;
+			}
+		}
+		return $enabled;
+	}
+
+	/**
 	 * Returns an array of objects that correspond to divisions.  Each Division has a name and an id.  The name is both
 	 * the Program and Division.
 	 *

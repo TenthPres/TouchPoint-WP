@@ -1512,7 +1512,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			}
 		}
 
-		$containerClass = $params['class'] ?? self::$containerClass;
+		$containerClass = $params['class'] ?? [];
+		if (!str_contains(" " . $containerClass . " ", " " . self::$containerClass . " ")) {
+			$containerClass .= " " . self::$containerClass;
+		}
 
 		// Groupings
 		foreach ($terms as $termId => $name) {
@@ -1602,11 +1605,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * Print a list of involvements that match the given criteria.
 	 *
 	 * @param array|string $params
-	 * @param string       $content
+	 * @param string       $content  A string that is shown if no content is available.
 	 *
 	 * @return string
 	 *
-	 * @noinspection PhpUnusedParameterInspection
 	 * @noinspection PhpMissingParamTypeInspection
 	 */
 	public static function listShortcode($params = [], string $content = ""): string
@@ -1653,10 +1655,29 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$render = ob_get_clean();
 
 		if (trim($render) == "") {
+			if ($content !== "") {
+				return apply_shortcodes($content);
+			}
 			return "<!-- Nothing to show -->";
 		}
 
 		return apply_shortcodes($render);
+	}
+
+
+	/**
+	 * Get the list of involvements through API endpoint.  This is used by the Involvement List Shortcode.
+	 * 
+	 * @return void
+	 */
+	public static function ajaxListShortcode(): void
+	{
+		// This is an AJAX call, so we need to set the headers.
+		if ( ! headers_sent()) {
+			TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
+		}
+
+		echo self::listShortcode($_GET, __('None right now.', 'TouchPoint-WP'));
 	}
 
 	/**
@@ -1666,7 +1687,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * @return string
 	 * @noinspection PhpUnusedParameterInspection
 	 */
-	public static function nearbyShortcode($params = [], string $content = ""): string
+	public static function nearbyShortcode(array|string $params = [], string $content = ""): string
 	{
 		TouchPointWP::requireScript("knockout-defer");
 		TouchPointWP::requireScript("base-defer");
@@ -2010,6 +2031,14 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$iid = intval($post->{TouchPointWP::INVOLVEMENT_META_KEY});
 
 		if ($iid === 0) {
+			$iid = intval(get_post_meta($post->ID, TouchPointWP::INVOLVEMENT_META_KEY, true));
+		}
+
+		if (Meeting::postIsType($post) && !Involvement::postIsType($post)) {
+			throw new TouchPointWP_Exception("The post is a Meeting, not an Involvement.", 171004);
+		}
+
+		if ($iid === 0) {
 			throw new TouchPointWP_Exception("Invalid Involvement ID provided.", 171002);
 		}
 
@@ -2070,6 +2099,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			case "nearby":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
 				self::ajaxNearby();
+				exit;
+
+			case "list":
+				self::ajaxListShortcode();
 				exit;
 
 			/** @noinspection SpellCheckingInspection */
@@ -2435,21 +2468,46 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Put Post objects that represent Small Groups in order of increasing distance.
 	 *
-	 * @param WP_Post $a
-	 * @param WP_Post $b
+	 * @param WP_Post|Involvement $a
+	 * @param WP_Post|Involvement $b
 	 *
 	 * @return int
 	 */
-	public static function sortPosts(WP_Post $a, WP_Post $b): int
+	public static function sortPosts(WP_Post|Involvement $a, WP_Post|Involvement $b): int
 	{
-		try {
-			$a = self::fromPost($a);
-			$b = self::fromPost($b);
-
-			return self::sort($a, $b);
-		} catch (TouchPointWP_Exception) {
-			return $a <=> $b;
+		$comparable = true;
+		if ($a instanceof WP_Post) {
+			try {
+				if (Meeting::postIsType($a)) {
+					$a = Meeting::fromPost($a)->involvement();
+				} elseif (Involvement::postIsType($a)) {
+					$a = Involvement::fromPost($a);
+				} else {
+					$comparable = false;
+				}
+			} catch (TouchPointWP_Exception) {
+				$comparable = false;
+			}
 		}
+		if ($b instanceof WP_Post) {
+			try {
+				if (Meeting::postIsType($b)) {
+					$b = Meeting::fromPost($b)->involvement();
+				} elseif (Involvement::postIsType($b)) {
+					$b = Involvement::fromPost($b);
+				} else {
+					$comparable = false;
+				}
+			} catch (TouchPointWP_Exception) {
+				$comparable = false;
+			}
+		}
+
+		if ($comparable) {
+			return self::sort($a, $b);
+		}
+
+		return $a <=> $b;
 	}
 
 
@@ -2508,10 +2566,14 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				$post = get_post();
 				if ($post) {
 					$inv = null;
-					if (Meeting::postIsType($post)) {
-						$inv = Meeting::fromPost($post)?->involvement();
-					} elseif (Involvement::postIsType($post)) {
-						$inv = Involvement::fromPost($post);
+					try {
+						if (Meeting::postIsType($post)) {
+							$inv = Meeting::fromPost($post)?->involvement();
+						} elseif (Involvement::postIsType($post)) {
+							$inv = Involvement::fromPost($post);
+						}
+					} catch (TouchPointWP_Exception) {
+						// If the post is not an involvement, do nothing.
 					}
 					$inv?->enqueueForJsInstantiation();
 				}
