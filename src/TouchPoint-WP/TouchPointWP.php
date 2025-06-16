@@ -556,7 +556,7 @@ class TouchPointWP
 
 
 	/**
-	 * Determine if the current user can edit anything and therefore may need access to wp-admin.
+	 * Determine if the current user can edit *anything* and therefore may need access to wp-admin.
 	 *
 	 * @param int|null $userId
 	 *
@@ -573,6 +573,25 @@ class TouchPointWP
 		}
 
 		$user = get_user($userId);
+		
+		foreach ($user->caps as $cap => $enabled) {
+			if (!$enabled) {
+				continue;
+			}
+
+			// if cap starts with any of several terms "edit", "Manage", etc, return true.
+			if (str_starts_with($cap, 'edit_') ||
+			    str_starts_with($cap, 'manage_') ||
+			    str_starts_with($cap, 'publish_') ||
+			    str_starts_with($cap, 'delete_') ||
+			    str_starts_with($cap, 'create_') ||
+			    str_starts_with($cap, 'switch_') ||
+			    str_contains($cap, 'admin') || // various admin-like stuff.
+			    str_contains($cap, "translat") // various WPML capabilities
+			) {
+				return true;
+			}
+		}
 
 		foreach ($user->roles as $role) {
 			$role = get_role($role);
@@ -2628,12 +2647,41 @@ class TouchPointWP
 
 		$priorUser = wp_get_current_user();
 
-		$tpUser = get_user_by('login', 'touchpoint-wp');
+		$tpUser = self::getTpUser();
 		if ($tpUser && $tpUser !== $priorUser) {
 			$this->priorUser = $priorUser;
 			wp_set_current_user($tpUser->ID, $tpUser->user_login);
 		}
 	}
+
+
+
+	/**
+	 * If the current user is somehow making requests as the TouchPoint service, log out (or switch back to the proper user)
+	 *
+	 * @return void
+	 */
+	public function logoutServiceMaybe(): void
+	{
+		$currentUser = wp_get_current_user();
+		$tpUser = self::getTpUser();
+
+		if ($tpUser && $currentUser && $currentUser->ID === $tpUser->ID) {
+			$this->unsetTpWpUserAsCurrent();
+		}
+	}
+
+
+	/**
+	 * Returns the TouchPoint-WP Service user, or false if it doesn't exist.
+	 *
+	 * @return false|WP_User
+	 */
+	protected static function getTpUser(): false|WP_User
+	{
+		return get_user_by('login', 'touchpoint-wp');
+	}
+
 
 	/**
 	 * Restore the actual user to the user position.
@@ -2642,7 +2690,9 @@ class TouchPointWP
 	 */
 	public function unsetTpWpUserAsCurrent(): void
 	{
-		if ($this->priorUser) {
+		$tpUser = self::getTpUser();
+
+		if ($this->priorUser && (!$tpUser || $this->priorUser->ID !== $tpUser->ID)) {
 			wp_set_current_user($this->priorUser->ID, $this->priorUser->user_login);
 			$this->priorUser = null;
 		} else {

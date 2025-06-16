@@ -194,6 +194,7 @@ abstract class Auth implements api, module
 		}
 
 		$redirect = TouchPointWP::instance()->settings->auth_change_profile_urls === 'on';
+		$redirect &= !TouchPointWP::userHasEditingPermissions();
 
 		/**
 		 * Controls whether to redirect to the TouchPoint login automatically.
