@@ -262,8 +262,6 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		// Register function to return nulls instead of authors
 		add_filter('the_author', [self::class, 'filterAuthor'], 10, 3);
 		add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 3);
-
-		self::checkUpdates();
 	}
 
 	public static function checkUpdates(): void
