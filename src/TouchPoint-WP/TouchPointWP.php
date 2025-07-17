@@ -574,6 +574,10 @@ class TouchPointWP
 
 		$user = get_user($userId);
 		
+		if (!$user) {
+			return false;
+		}
+		
 		foreach ($user->caps as $cap => $enabled) {
 			if (!$enabled) {
 				continue;
