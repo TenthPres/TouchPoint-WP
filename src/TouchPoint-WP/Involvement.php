@@ -2895,10 +2895,13 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$parent = 0;
 			if ($inv->parentInvId > 0) {
 				$parent = self::getWpPostByInvolvementId($typeSets->postType, $inv->parentInvId);
-				$parent = $parent->ID;
-
-				if ($verbose) {
-					echo "<p>Parent Post: $parent</p>";
+				if ($parent !== null) {
+					$parent = $parent->ID;
+					if ($verbose) {
+						echo "<p>Parent Post: $parent</p>";
+					}
+				} elseif ($verbose) {
+					echo "<p>Parent Post could not be bound.</p>";
 				}
 			}
 
