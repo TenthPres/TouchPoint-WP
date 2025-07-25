@@ -47,6 +47,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         <tr>
             <th><?php _e("Divisions to Import", "TouchPoint-WP"); ?></th>
             <td colspan="2" class="column-wrap">
+                <p><?php _e("Only involvements from the selected divisions will be included.", "TouchPoint-WP"); ?></p>
                 <!-- ko foreach: $root.divisions -->
                 <p>
                     <input id="it-div" type="checkbox" data-bind="value: 'div' + id, checked: $parent.importDivs, attr: {id: 'it-' + $parent.slug() + '-div-' + id}" />
@@ -59,6 +60,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         <tr>
             <th><?php _e("Import Campuses", "TouchPoint-WP"); ?></th>
             <td colspan="2">
+                <p><?php _e("Only involvements from the selected campuses will be included.", "TouchPoint-WP"); ?></p>
                 <!-- ko if: $root.campuses.length < 1 -->
                 <p><?php _e("Loading...", "TouchPoint-WP"); ?></p>
                 <!-- /ko -->
