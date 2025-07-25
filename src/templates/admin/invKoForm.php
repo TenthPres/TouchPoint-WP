@@ -58,7 +58,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         </tr>
 
         <tr>
-            <th><?php _e("Import Campuses", "TouchPoint-WP"); ?></th>
+            <th><?php _e("Campuses to Import", "TouchPoint-WP"); ?></th>
             <td colspan="2">
                 <p><?php _e("Only involvements from the selected campuses will be included.", "TouchPoint-WP"); ?></p>
                 <!-- ko if: $root.campuses.length < 1 -->
