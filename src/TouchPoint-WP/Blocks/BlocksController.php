@@ -33,10 +33,10 @@ abstract class BlocksController
 		 *
 		 * @see https://make.wordpress.org/core/2025/03/13/more-efficient-block-type-registration-in-6-8/
 		 */
-		if (function_exists('wp_register_block_types_from_metadata_collection')) {
-			wp_register_block_types_from_metadata_collection($blocksRoot, $blocksRoot . 'blocks-manifest.php');
-			return;
-		}
+//		if (function_exists('wp_register_block_types_from_metadata_collection')) {  TODO re-enable when it doesn't cause warnings in the logs. 
+//			wp_register_block_types_from_metadata_collection($blocksRoot, $blocksRoot . 'blocks-manifest.php');
+//			return;
+//		}
 
 		/**
 		 * Registers the block(s) metadata from the `blocks-manifest.php` file.
