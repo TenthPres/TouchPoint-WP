@@ -793,7 +793,7 @@ if "inv_join" in Data.a and model.HttpMethod == "post":
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
-    SELECT TOP 1 MainLeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
+    SELECT TOP 1 MainLeaderId as contactId FROM Organizations WHERE OrganizationId = {0} AND MainLeaderId IS NOT NULL
     UNION
     SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
     '''.format(oid, sgContactEvName, memTypes)
@@ -843,7 +843,7 @@ if "inv_contact" in Data.a and model.HttpMethod == "post":
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
-    SELECT TOP 1 MainLeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
+    SELECT TOP 1 MainLeaderId as contactId FROM Organizations WHERE OrganizationId = {0} AND MainLeaderId IS NOT NULL
     UNION
     SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
     '''.format(oid, sgContactEvName, memTypes)
