@@ -20,7 +20,7 @@ Author URI:         https://github.com/jkrrv
 License:            AGPLv3+
 Text Domain:        TouchPoint-WP
 Requires at least:  6.0
-Tested up to:       6.8
+Tested up to:       6.8.2
 Requires PHP:       8.0
 Release Asset:      true
 */
