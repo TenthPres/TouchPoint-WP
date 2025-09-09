@@ -1,12 +1,12 @@
 {
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
-  "name": "touchpoint-wp/inv-list",
+  "name": "touchpoint-wp/people-list",
   "version": "0.0.96",
-  "title": "Involvement List",
+  "title": "People List",
   "category": "widgets",
-  "icon": "grid-view",
-  "description": "A list of Involvements from TouchPoint",
+  "icon": "groups",
+  "description": "A collection of People from TouchPoint",
   "supports": {
     "html": false,
     "ariaLabel": true,
