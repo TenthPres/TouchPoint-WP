@@ -635,7 +635,7 @@ class TouchPointWP
 
 		echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
 		if ($this->debug) {
-			echo "\ttpvm.DEBUG = true;\n";
+			echo "\tif (tpvm) tpvm.DEBUG = true;\n";
 		}
 
 		// TODO this should possibly be moved to ajax for better caching -- especially if only used for RSVP.
