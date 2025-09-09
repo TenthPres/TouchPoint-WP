@@ -56,6 +56,14 @@ class TouchPointWP_AdminAPI implements api
 				echo json_encode($divs);
 				exit;
 
+			case "involvementsearch":
+				header('Content-Type: application/json');
+				$result = TouchPointWP::instance()->api->uGet('v1/Involvements', [
+					'terms' => $_GET['s']
+				]);
+				echo $result['body'];
+				exit;
+
 			case self::API_ENDPOINT_SCRIPTZIP:
 				if ( ! TouchPointWP::currentUserIsAdmin()) {
 					return false;
