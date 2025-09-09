@@ -13,6 +13,8 @@ composer.lock
 /.idea/dataSources.xml
 /.idea/webServers.xml
 /.idea/runConfigurations/Local.xml
+/.idea/copilotDiffState.xml
+/.idea/data_source_mapping.xml
 
 *.min.js
 node_modules
