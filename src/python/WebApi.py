@@ -344,7 +344,7 @@ if "Invs" in Data.a:
                         FORMAT(om.MeetingEnd, 'yyyy-MM-ddTHH:mm:ss') as mtgEndDt,
                         om.Location as location,
                         om.Description as name,
-                        1 - om.DidNotMeet as status,
+                        1 - (om.DidNotMeet or om.Canceled or om.ApprovalStatus = 2) as status, -- ApprovalStatus 2 = Rejected
                         om.Capacity as capacity,
                         CAST(me.Data as INT) as parentMtgId
                     FROM dbo.Meetings om

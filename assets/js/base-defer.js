@@ -621,7 +621,6 @@
             }
 
             map.fitBounds(bounds);
-            let originalZoom = map.getZoom();
 
             map.addListener('bounds_changed', this.handleZoom);
 
@@ -652,6 +651,7 @@
         static updateFilterWarnings() {
             let elts = document.getElementsByClassName("TouchPointWP-map-warning-visibleOnly"),
                 includesBoth = TP_Mappable.mapIncludesVisibleItemsWhichAreBothInAndOutOfBounds;
+            elts[ei].style = undefined;
             for (const ei in elts) {
                 if (!elts.hasOwnProperty(ei))
                     continue;
