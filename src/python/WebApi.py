@@ -372,6 +372,27 @@ if "Invs" in Data.a:
             FOR JSON PATH, INCLUDE_NULL_VALUES
             ) as OrgSchedule
             FROM cteTargetOrgs cto),
+        -- pull aggregate MeetingSeries for all target organizations
+        cteMeetingSeries AS
+        (
+            SELECT cto.OrganizationId,
+                (
+                    SELECT DISTINCT ms.MeetingSeriesId as mtgSeriesId,
+                        FORMAT(ms.MeetingStart, 'yyyy-MM-ddTHH:mm:ss') as mtgStartDt,
+                        FORMAT(ms.MeetingEnd, 'yyyy-MM-ddTHH:mm:ss') as mtgEndDt,
+                        ms.RRuleString as RRuleString,
+                        ms.Description as name,
+                        1 - (ms.Canceled or ms.ApprovalStatus = 2) as status, -- ApprovalStatus 2 = Rejected
+                        ms.Capacity as capacity
+                    FROM dbo.MeetingSeries ms
+                        INNER JOIN cteTargetOrgs o
+                            ON ms.OrganizationId = o.OrganizationId
+                    WHERE ms.OrganizationId = cto.OrganizationId AND
+                        ms.SeriesCompleted = 0
+                    FOR JSON PATH, INCLUDE_NULL_VALUES
+                ) as OrgMeetingSeries
+            FROM cteTargetOrgs cto
+        ),
         -- pull aggregate divisions for all target organizations
         cteDivision AS 
         (SELECT OrganizationId, STRING_AGG(divId, ',') WITHIN GROUP (ORDER BY divId ASC) AS OrgDivision
@@ -448,6 +469,7 @@ if "Invs" in Data.a:
             , aa.PeopleAge                   AS [age_groups]
             , s.OrgSchedule                  AS [schedules]
             , m.OrgMeetings                  AS [meetings]
+            , e.OrgMeetingSeries             AS [meetingSeries]
             , d.OrgDivision                  AS [divs]
             , ol.lat                         AS [lat]
             , ol.lng                         AS [lng]
@@ -460,6 +482,8 @@ if "Invs" in Data.a:
                 ON o.OrganizationId = aa.OrganizationId
             LEFT JOIN cteSchedule s
                 ON o.OrganizationId = s.OrganizationId
+            LEFT JOIN cteMeetingSeries e
+                ON o.OrganizationId = e.OrganizationId
             LEFT JOIN cteMeeting m
                 ON o.OrganizationId = m.OrganizationId
             LEFT JOIN cteDivision d
