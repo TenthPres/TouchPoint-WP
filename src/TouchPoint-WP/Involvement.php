@@ -1434,7 +1434,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$q->set('orderby', 'title'); // will mostly be overwritten by geographic sort, if available.
 		$q->set('order', 'ASC');
 
-		if ($q->is_post_type_archive()) {
+		if ( ! isset($q->query['post_parent'])) {
 			$q->set('post_parent', 0);
 		}
 
@@ -1670,7 +1670,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * 
 	 * @return void
 	 */
-	public static function ajaxListShortcode(): void
+	protected static function ajaxListShortcode(): void
 	{
 		// This is an AJAX call, so we need to set the headers.
 		if ( ! headers_sent()) {
