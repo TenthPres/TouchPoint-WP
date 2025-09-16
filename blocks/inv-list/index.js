@@ -14,7 +14,7 @@ import "../../assets/template/block-preview-style.css"
  */
 import metadata from './block.json';
 import {__} from "@wordpress/i18n";
-import {uniqueId} from "@wordpress/block-editor/src/components/link-control/test/fixtures";
+import { generateUniqueId } from '../common';
 
 /**
  * Every block starts by registering a new block type definition.
@@ -41,7 +41,7 @@ wp.blocks.registerBlockType( metadata.name, {
 		const { attributes, setAttributes } = props;
 		const { postType, division } = attributes;
 		const blockProps = wp.blockEditor.useBlockProps();
-		const placeholderId = `tp-inv-list-${uniqueId()}`;
+		const placeholderId = `tp-inv-list-${generateUniqueId()}`;
 
 		const [postTypeOptions, setPostTypeOptions] = wp.element.useState([]);
 		const [divisionChildren, setDivisionChildren] = wp.element.useState(null);
@@ -71,6 +71,7 @@ wp.blocks.registerBlockType( metadata.name, {
 			})();
 		}, []);
 
+		// Get options for divisions
 		wp.element.useEffect(() => {
 			(async () => {
 				try {
@@ -94,6 +95,7 @@ wp.blocks.registerBlockType( metadata.name, {
 			})();
 		}, []);
 
+		// preview
 		wp.element.useEffect(() => {
 			updateListContent(postType, division, blockProps, placeholderId);
 		}, [postType, division, blockProps.className, placeholderId]);
@@ -110,6 +112,7 @@ wp.blocks.registerBlockType( metadata.name, {
 							<>
 								<wp.components.SelectControl
 									label={__("Post Type", "TouchPoint-WP")}
+									help={__("These options are based on the Involvement post types you or your administrator have chosen to import in the TouchPoint-WP settings.", "TouchPoint-WP")}
 									value={postType}
 									options={postTypeOptions}
 									onChange={(value) => setAttributes({ postType: value })}
@@ -118,6 +121,7 @@ wp.blocks.registerBlockType( metadata.name, {
 								/>
 								<wp.components.SelectControl
 									label={__("Division", "TouchPoint-WP")}
+									help={__("This option allows you to filter the involvements that are shown on this list, such as limiting to a particular ministry. These options are those that you or your administrator configured as Divisions to import as taxonomies in the TouchPoint-WP settings.", "TouchPoint-WP")}
 									value={division}
 									children={divisionChildren}
 									onChange={(value) => setAttributes({ division: Number(value) })}
