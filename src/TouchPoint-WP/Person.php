@@ -1818,6 +1818,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 				self::ajaxContact();
 				exit;
 
+			case "list":
+				self::ajaxPeopleListShortcode();
+				exit;
+
 			case "force-sync":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
 				try {
@@ -1912,6 +1916,21 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		echo json_encode(['success' => $data->success]);
 		exit;
+	}
+
+	/**
+	 * Handles the AJAX call to return a list of people.
+	 *
+	 * @return void
+	 */
+	protected static function ajaxPeopleListShortcode(): void
+	{
+		// This is an AJAX call, so we need to set the headers.
+		if ( ! headers_sent()) {
+			TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
+		}
+
+		echo self::peopleListShortcode($_GET, __('None right now.', 'TouchPoint-WP'));
 	}
 
 	/**
