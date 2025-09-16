@@ -29,7 +29,12 @@
     "@wordpress/env": "^10.22.0",
     "@wordpress/i18n": "^5.22.0",
     "@wordpress/scripts": "^30.18.0",
+    "glob": "^11.0.2",
     "style-loader": "^4.0.0",
     "uglify-js": "^3.17.4"
+  },
+  "dependencies": {
+    "@wordpress/components": "^30.0.0",
+    "@wordpress/element": "^6.27.0"
   }
 }
