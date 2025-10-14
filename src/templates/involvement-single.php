@@ -51,7 +51,7 @@ TouchPointWP::enqueuePartialsStyle();
                 __($meetingsCalled) // deliberately no domain
             );
             echo "</div>";
-        } elseif ($obj->tense() === Taxonomies::TAX_TENSE_PAST) {
+        } elseif ($obj->isPast()) {
             echo "<div class='section-inner tpwp-alert-block tpwp-alert-info'>";
 
             $meetingsCalled = $tps->mc_name_singular;

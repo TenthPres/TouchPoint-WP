@@ -463,7 +463,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 			$attrs['status'] = $status;
 		} else {
 			// Add an "in the past" label if the thing is already past. (end may be null)
-			if (($this->endDt ?? $this->startDt) < Utilities::dateTimeNow()) {
+			if ($this->isPast()) {
 				$attrs['past'] = __("In the Past", "TouchPoint-WP");
 			}
 		}
@@ -898,6 +898,16 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 			return Taxonomies::TAX_TENSE_FUTURE;
 		}
 		return Taxonomies::TAX_TENSE_PRESENT;
+	}
+
+	/**
+	 * Indicates if the meeting is in the past.
+	 *
+	 * @return bool
+	 */
+	public function isPast(): bool
+	{
+		return ($this->endDt ?? $this->startDt) < Utilities::dateTimeNow();
 	}
 
 	/**
