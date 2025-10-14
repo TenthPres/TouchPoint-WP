@@ -3,6 +3,7 @@
 use tp\TouchPointWP\Involvement;
 use tp\TouchPointWP\Meeting;
 use tp\TouchPointWP\PostTypeCapable;
+use tp\TouchPointWP\Taxonomies;
 use tp\TouchPointWP\TouchPointWP;
 
 $postType = get_post_type();
@@ -48,6 +49,17 @@ TouchPointWP::enqueuePartialsStyle();
                 // Translators: %s is the singular name of the of a Meeting, such as "Event".
                 __('This %s has been Cancelled.', 'TouchPoint-WP'),
                 __($meetingsCalled) // deliberately no domain
+            );
+            echo "</div>";
+        } elseif ($obj->tense() === Taxonomies::TAX_TENSE_PAST) {
+            echo "<div class='section-inner tpwp-alert-block tpwp-alert-info'>";
+
+            $meetingsCalled = $tps->mc_name_singular;
+
+            echo wp_sprintf(
+            // Translators: %s is the singular name of the of a Meeting, such as "Event".
+                    __('This %s has already happened.', 'TouchPoint-WP'),
+                    __($meetingsCalled) // deliberately no domain
             );
             echo "</div>";
         }
