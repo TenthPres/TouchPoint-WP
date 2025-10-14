@@ -344,7 +344,7 @@ if "Invs" in Data.a:
                         FORMAT(om.MeetingEnd, 'yyyy-MM-ddTHH:mm:ss') as mtgEndDt,
                         om.Location as location,
                         om.Description as name,
-                        1 - (om.DidNotMeet or om.Canceled or om.ApprovalStatus = 2) as status, -- ApprovalStatus 2 = Rejected
+                        IIF(om.DidNotMeet = 1 OR om.Canceled = 1 OR om.ApprovalStatus = 2, 0, 1) as status,  -- ApprovalStatus 2 = Rejected
                         om.Capacity as capacity,
                         CAST(me.Data as INT) as parentMtgId
                     FROM dbo.Meetings om
@@ -382,7 +382,7 @@ if "Invs" in Data.a:
                         FORMAT(ms.MeetingEnd, 'yyyy-MM-ddTHH:mm:ss') as mtgEndDt,
                         ms.RRuleString as RRuleString,
                         ms.Description as name,
-                        1 - (ms.Canceled or ms.ApprovalStatus = 2) as status, -- ApprovalStatus 2 = Rejected
+                        IIF(ms.Canceled = 1 or ms.ApprovalStatus = 2, 0, 1) as status, -- ApprovalStatus 2 = Rejected
                         ms.Capacity as capacity
                     FROM dbo.MeetingSeries ms
                         INNER JOIN cteTargetOrgs o
