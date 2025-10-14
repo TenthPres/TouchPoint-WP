@@ -248,3 +248,8 @@ header .tpwp-alert-block {
     background: #f003;
     padding: 1em;
 }
+header .tpwp-warn-block {
+    margin: 2em 20%;
+    background: #ff03;
+    padding: 1em;
+}
