@@ -13,6 +13,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "jsInstantiation.php";
 	require_once "jsonLd.php";
 	require_once "Interfaces/hierarchical.php";
+	require_once "Interfaces/involvementMeetingCommon.php";
 	require_once "Interfaces/scheduled.php";
 	require_once "Interfaces/updatesViaCron.php";
 	require_once "Utilities.php";
@@ -27,10 +28,8 @@ use Exception;
 use JsonSerializable;
 use stdClass;
 use tp\TouchPointWP\Interfaces\api;
-use tp\TouchPointWP\Interfaces\hasGeo;
-use tp\TouchPointWP\Interfaces\hierarchical;
+use tp\TouchPointWP\Interfaces\involvementMeetingCommon;
 use tp\TouchPointWP\Interfaces\module;
-use tp\TouchPointWP\Interfaces\scheduled;
 use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\DateFormats;
 use tp\TouchPointWP\Utilities\DateTimeExtended;
@@ -49,7 +48,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo, module, hierarchical, JsonSerializable, scheduled
+class Involvement extends PostTypeCapable implements api, updatesViaCron, module, JsonSerializable, involvementMeetingCommon
 {
 	use jsInstantiation;
 	use jsonLd;
@@ -2613,7 +2612,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			return false;
 		}
 
-		return $this->geo !== null && $this->geo->lat !== null && $this->geo->lng !== null;
+		return $this->geo !== null && $this->geo->lat !== null && $this->geo->lng !== null && 
+		       is_numeric($this->geo->lat) && is_numeric($this->geo->lng);
 	}
 
 	public function asGeoIFace(string $type = "unknown"): ?Geo
@@ -3823,7 +3823,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$exclude = $exclude->getArrayCopy();
 		}
 
-		$asMeeting = $this->AsAMeeting();
+		$asMeeting = $this->asAMeeting();
 		if ($asMeeting !== null) {
 			$attrs = $asMeeting->notableAttributes(['involvement']);
 		} else {
@@ -4072,7 +4072,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				return "<a href=\"$link\" $btnClass>$text</a>  ";
 
 			case RegistrationType::RSVP:
-				$asAMeeting = $this->AsAMeeting();
+				$asAMeeting = $this->asAMeeting();
 				if ($asAMeeting !== null) {
 					if ($absoluteLinks) {
 						return $asAMeeting->getRsvpLink($btnClass);
@@ -4088,7 +4088,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 *
 	 * @return ?Meeting
 	 */
-	protected function AsAMeeting(): ?Meeting
+	protected function asAMeeting(): ?Meeting
 	{
 		if (!$this->post) {
 			$this->post = get_post($this->post_id);
@@ -4101,6 +4101,20 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Indicates if the meeting is in the past.
+	 *
+	 * @return bool
+	 */
+	public function isPast(): bool
+	{
+		$m = $this->asAMeeting();
+		if ($m) {
+			return $m->isPast();
+		}
+		return false;
 	}
 
 	/**

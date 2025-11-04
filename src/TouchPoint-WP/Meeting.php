@@ -12,6 +12,7 @@ if ( ! defined('ABSPATH')) {
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Interfaces/api.php";
 	require_once "Interfaces/hierarchical.php";
+	require_once "Interfaces/involvementMeetingCommon.php";
 	require_once "Interfaces/scheduled.php";
 }
 
@@ -19,10 +20,8 @@ use DateTime;
 use DateTimeImmutable;
 use Exception;
 use tp\TouchPointWP\Interfaces\api;
-use tp\TouchPointWP\Interfaces\hasGeo;
-use tp\TouchPointWP\Interfaces\hierarchical;
+use tp\TouchPointWP\Interfaces\involvementMeetingCommon;
 use tp\TouchPointWP\Interfaces\module;
-use tp\TouchPointWP\Interfaces\scheduled;
 use tp\TouchPointWP\Utilities\DateFormats;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\NotableAttributes;
@@ -34,7 +33,7 @@ use WP_Term;
 /**
  * Handle meeting content, particularly RSVPs.
  */
-class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchical, scheduled
+class Meeting extends PostTypeCapable implements api, module, involvementMeetingCommon
 {
 	use jsInstantiation;
 //	use jsonLd; TODO
