@@ -15,6 +15,7 @@ composer.lock
 /.idea/runConfigurations/Local.xml
 /.idea/copilotDiffState.xml
 /.idea/data_source_mapping.xml
+/.idea/copilot*
 
 *.min.js
 node_modules
