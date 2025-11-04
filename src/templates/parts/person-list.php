@@ -1,13 +1,15 @@
 <?php
 
 /** @var $people Person[] */
+/** @var $listClass string */
 
 
+use tp\TouchPointWP\Person;
 use tp\TouchPointWP\TouchPointWP;
 
 if (! empty($people)) { ?>
 
-<div <?php post_class("person-list"); ?>>
+<div class="<?php echo $listClass; ?>" >
 <?php
     foreach ($people as $person) {
         /** @noinspection PhpIncludeInspection */

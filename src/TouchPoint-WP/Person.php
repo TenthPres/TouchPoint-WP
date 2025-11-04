@@ -394,9 +394,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		/** @noinspection SpellCheckingInspection */
 		$params = shortcode_atts(
 			[
-				'class'         => 'TouchPoint-person people-list',
+				'class'         => 'people-list',
 				'invid'         => null,
-				'id'            => wp_unique_id('tp-actions-'),
 				'withsubgroups' => false,
 				'btnclass'      => 'btn button'
 			],
@@ -475,6 +474,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		$people   = $q->get_results();
 		$btnClass = $params['btnclass'];
+		$listClass = $params['class'];
+
+		var_dump($q->request);
+
+		var_dump($people);
 
 		$loadedPart = get_template_part('person-list', 'person-list');
 		if ($loadedPart === false) {
@@ -485,6 +489,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		}
 		// TODO DIR make sure this actually works with external partials.
 		// TODO DIR provide an alternate if there are no people available.
+		
+		if ($out === "") {
+			return $content;
+		}
 
 
 		return $out;
