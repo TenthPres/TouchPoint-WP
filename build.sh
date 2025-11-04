@@ -14,7 +14,7 @@ if ! command -v node &> /dev/null; then
   nvm install node
 fi
 
-echo "Update version in various json files..."
+echo "Update version in various json and js files..."
 node ./buildPipeline/versionUpdate.js
 
 echo "Update NPM packages..."
@@ -30,7 +30,7 @@ mkdir build/assets
 mkdir build/assets/js
 
 echo "Install uglify and uglify the JS files..."
-#echo $(npm install -g uglify-js)
+npm install -g uglify-js
 uglifyjs assets/js/base-defer.js -o build/assets/js/base-defer.min.js --source-map
 uglifyjs assets/js/meeting-defer.js -o build/assets/js/meeting-defer.min.js --source-map
 uglifyjs assets/js/partner-defer.js -o build/assets/js/partner-defer.min.js --source-map
@@ -39,7 +39,7 @@ cd ./build || exit
 cd ..
 
 echo "Build blocks..."
-#npm install -g @wordpress/scripts
+npm install -g @wordpress/scripts
 npx wp-scripts build --webpack-src-dir=blocks --output-path=build/blocks
 npx wp-scripts build-blocks-manifest --input=blocks --output=build/blocks/blocks-manifest.php
 
