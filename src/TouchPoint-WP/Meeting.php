@@ -11,9 +11,7 @@ if ( ! defined('ABSPATH')) {
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Interfaces/api.php";
-	require_once "Interfaces/hierarchical.php";
 	require_once "Interfaces/involvementMeetingCommon.php";
-	require_once "Interfaces/scheduled.php";
 }
 
 use DateTime;

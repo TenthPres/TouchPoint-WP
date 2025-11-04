@@ -12,9 +12,7 @@ if ( ! defined('ABSPATH')) {
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "jsInstantiation.php";
 	require_once "jsonLd.php";
-	require_once "Interfaces/hierarchical.php";
 	require_once "Interfaces/involvementMeetingCommon.php";
-	require_once "Interfaces/scheduled.php";
 	require_once "Interfaces/updatesViaCron.php";
 	require_once "Utilities.php";
 	require_once "Involvement_PostTypeSettings.php";
