@@ -678,6 +678,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			// Make sure items are unique.  #204
 			$m = array_unique($m, SORT_REGULAR);
 
+			usort($m, function ($a, $b) {
+				return $a->mtgStartDt <=> $b->mtgStartDt;
+			});
+
 			$this->_meetings = $m;
 		}
 
@@ -797,8 +801,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			foreach ($this->meetings() as $m) {
 				$mdt = $m->mtgStartDt;
 				if ($mdt > $now) {
+					// meetings are sorted, so first one past now is the next meeting
 					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
 						$this->_nextMeeting = $mdt;
+						break;
 					}
 				}
 			}
