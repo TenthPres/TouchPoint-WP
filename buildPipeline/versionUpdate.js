@@ -20,4 +20,11 @@ blockFiles.forEach((blockFile) => {
         blockJson.version = version;
         fs.writeFileSync(blockPath, JSON.stringify(blockJson, null, 2));
     }
+
+    const blockAssetPath = `./blocks/${blockFile}/block.asset.php`;
+    if (fs.existsSync(blockAssetPath)) {
+        let blockAssetContent = fs.readFileSync(blockAssetPath, 'utf8');
+        blockAssetContent.replaceAll("\"VERSION\"", `"${version}"`);
+        fs.writeFileSync(blockAssetPath, blockAssetContent);
+    }
 });
