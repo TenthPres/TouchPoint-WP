@@ -24,7 +24,5 @@ node_modules
 /i18n/*.mo
 /i18n/*.l10n.php
 
-package-lock.json
-
 /build/
 /touchpoint-wp.zip
