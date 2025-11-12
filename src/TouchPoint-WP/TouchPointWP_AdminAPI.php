@@ -58,6 +58,11 @@ class TouchPointWP_AdminAPI implements api
 
 			case "involvementsearch":
 				header('Content-Type: application/json');
+				if ( ! isset($_GET['s']) || trim($_GET['s']) === '') {
+					echo json_encode([]);
+					exit;
+				}
+
 				$result = TouchPointWP::instance()->api->uGet('v1/Involvements', [
 					'terms' => $_GET['s']
 				]);

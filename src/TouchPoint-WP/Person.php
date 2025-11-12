@@ -138,7 +138,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @return Person|TouchPointWP_Exception If a WP User ID is not provided, this exception is returned.
 	 */
-	public static function fromQueryResult($queryResult): Person
+	public static function fromQueryResult($queryResult): Person|TouchPointWP_Exception
 	{
 		if (is_numeric($queryResult)) {
 			return new Person($queryResult);
@@ -397,7 +397,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 				'class'         => 'people-list',
 				'invid'         => null,
 				'withsubgroups' => false,
-				'btnclass'      => 'btn button'
+				'btnclass'      => 'btn button',
+				'context'       => ''
 			],
 			$params,
 			self::SHORTCODE_PEOPLE_LIST
@@ -476,9 +477,9 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$btnClass = $params['btnclass'];
 		$listClass = $params['class'];
 
-		var_dump($q->request);
-
-		var_dump($people);
+		if ($content === "") {
+			$content = "<!-- " . __("No people to show.  This may be because the list hasn't synced yet, or because it is not configured correctly.") . " -->";
+		}
 
 		$loadedPart = get_template_part('person-list', 'person-list');
 		if ($loadedPart === false) {
@@ -488,12 +489,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			$out .= ob_get_clean();
 		}
 		// TODO DIR make sure this actually works with external partials.
-		// TODO DIR provide an alternate if there are no people available.
 		
-		if ($out === "") {
+		if (trim($out) === "") {
 			return $content;
 		}
-
 
 		return $out;
 	}
