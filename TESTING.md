@@ -2,6 +2,14 @@
 
 This document describes how to run and write tests for the TouchPoint-WP plugin.
 
+## Test Infrastructure
+
+This project uses:
+- **PHPUnit 9.6** for testing framework
+- **Brain Monkey** for WordPress function and filter mocking
+- **Mockery** for general mocking capabilities
+- **Yoast PHPUnit Polyfills** for PHP 8.0+ compatibility
+
 ## Running Tests
 
 ### Prerequisites
@@ -19,7 +27,7 @@ composer install
 
 ### Running the Test Suite
 
-To run all tests:
+To run all tests (unit and integration):
 
 ```bash
 composer test
@@ -32,6 +40,18 @@ Or directly with PHPUnit:
 ```
 
 ### Running Specific Tests
+
+To run only unit tests:
+
+```bash
+./vendor/bin/phpunit tests/Unit
+```
+
+To run only integration tests:
+
+```bash
+./vendor/bin/phpunit tests/Integration
+```
 
 To run tests in a specific file:
 
@@ -62,24 +82,25 @@ This will create an HTML coverage report in the `coverage/` directory. Open `cov
 Tests are organized in the `tests/` directory:
 
 - `tests/Unit/` - Unit tests for individual classes and methods
-- `tests/Integration/` - Integration tests (if needed)
-- `tests/TestCase.php` - Base test case class that all tests should extend
+- `tests/Integration/` - Integration tests that test multiple components working together
+- `tests/TestCase.php` - Base test case class with Brain Monkey integration
 - `tests/bootstrap.php` - Bootstrap file that sets up the test environment
+- `tests/mocks/` - Mock implementations of WordPress classes
 
-### Creating a New Test
+### Test Types
 
-1. Create a new test file in the appropriate directory (e.g., `tests/Unit/MyClassTest.php`)
-2. Extend the `tp\TouchPointWP\Tests\TestCase` class
-3. Add the `@covers` annotation to specify which class you're testing
-4. Write test methods (must start with `test_` or use the `@test` annotation)
+#### Unit Tests
 
-Example:
+Unit tests focus on testing individual methods and classes in isolation. They use Brain Monkey to mock WordPress functions.
+
+Example unit test:
 
 ```php
 <?php
 
 namespace tp\TouchPointWP\Tests\Unit;
 
+use Brain\Monkey;
 use tp\TouchPointWP\MyClass;
 use tp\TouchPointWP\Tests\TestCase;
 
@@ -90,6 +111,9 @@ class MyClassTest extends TestCase
 {
     public function test_my_method(): void
     {
+        // Mock WordPress function if needed
+        Monkey\Functions\when('get_option')->justReturn('test_value');
+        
         $instance = new MyClass();
         $result = $instance->myMethod();
         
@@ -97,6 +121,73 @@ class MyClassTest extends TestCase
     }
 }
 ```
+
+#### Integration Tests
+
+Integration tests verify that multiple components work together correctly.
+
+Example integration test:
+
+```php
+<?php
+
+namespace tp\TouchPointWP\Tests\Integration;
+
+use tp\TouchPointWP\ClassA;
+use tp\TouchPointWP\ClassB;
+use tp\TouchPointWP\Tests\TestCase;
+
+/**
+ * @covers \tp\TouchPointWP\ClassA
+ * @covers \tp\TouchPointWP\ClassB
+ */
+class ClassABIntegrationTest extends TestCase
+{
+    public function test_classes_work_together(): void
+    {
+        $classA = new ClassA();
+        $classB = new ClassB();
+        
+        $result = $classA->processWithB($classB);
+        
+        $this->assertTrue($result);
+    }
+}
+```
+
+### Mocking WordPress Functions with Brain Monkey
+
+Brain Monkey provides elegant WordPress function mocking:
+
+```php
+use Brain\Monkey;
+
+// Simple return value
+Monkey\Functions\when('get_option')->justReturn('value');
+
+// Return argument unchanged (useful for escaping functions)
+Monkey\Functions\when('esc_html')->returnArg();
+
+// Custom callback
+Monkey\Functions\when('apply_filters')->alias(function($tag, $value) {
+    return $value;
+});
+
+// Expect a function to be called
+Monkey\Functions\expect('wp_enqueue_script')
+    ->once()
+    ->with('my-script', 'path/to/script.js');
+```
+
+### Creating a New Test
+
+1. Create a new test file in the appropriate directory:
+   - `tests/Unit/` for unit tests
+   - `tests/Integration/` for integration tests
+2. Extend the `tp\TouchPointWP\Tests\TestCase` class
+3. Add the `@covers` annotation to specify which class(es) you're testing
+4. Write test methods (must start with `test_` or use the `@test` annotation)
+5. Use Brain Monkey to mock WordPress functions as needed
 
 ### Test Naming Conventions
 

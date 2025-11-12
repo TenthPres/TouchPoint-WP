@@ -44,7 +44,8 @@
     "skayo/phpdoc-md": "^0.2.0",
     "phpunit/phpunit": "^9.5",
     "mockery/mockery": "^1.5",
-    "yoast/phpunit-polyfills": "^1.0"
+    "yoast/phpunit-polyfills": "^1.0",
+    "brain/monkey": "^2.6"
   },
   "config": {
     "allow-plugins": {
