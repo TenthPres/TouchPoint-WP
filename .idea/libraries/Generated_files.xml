@@ -8,9 +8,16 @@
         <item url="file://$PROJECT_DIR$/build/blocks/common.js" />
         <item url="file://$PROJECT_DIR$/build/blocks/inv-list/index.js" />
         <item url="file://$PROJECT_DIR$/build/blocks/people-list/index.js" />
+        <item url="file://$PROJECT_DIR$/build/buildPipeline/versionUpdate.js" />
         <item url="file://$PROJECT_DIR$/build/src/js-partials/involvement-map-inline.js" />
         <item url="file://$PROJECT_DIR$/build/src/js-partials/involvement-nearby-inline.js" />
         <item url="file://$PROJECT_DIR$/build/src/js-partials/partner-map-inline.js" />
+        <item url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/bootstrap.min.js" />
+        <item url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/d3.min.js" />
+        <item url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/file.js" />
+        <item url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/jquery.min.js" />
+        <item url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/nv.d3.min.js" />
+        <item url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/popper.min.js" />
       </sourceFilesUrls>
     </properties>
     <CLASSES>
@@ -20,9 +27,16 @@
       <root url="file://$PROJECT_DIR$/build/blocks/common.js" />
       <root url="file://$PROJECT_DIR$/build/blocks/inv-list/index.js" />
       <root url="file://$PROJECT_DIR$/build/blocks/people-list/index.js" />
+      <root url="file://$PROJECT_DIR$/build/buildPipeline/versionUpdate.js" />
       <root url="file://$PROJECT_DIR$/build/src/js-partials/involvement-map-inline.js" />
       <root url="file://$PROJECT_DIR$/build/src/js-partials/involvement-nearby-inline.js" />
       <root url="file://$PROJECT_DIR$/build/src/js-partials/partner-map-inline.js" />
+      <root url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/bootstrap.min.js" />
+      <root url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/d3.min.js" />
+      <root url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/file.js" />
+      <root url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/jquery.min.js" />
+      <root url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/nv.d3.min.js" />
+      <root url="file://$PROJECT_DIR$/build/vendor/phpunit/php-code-coverage/src/Report/Html/Renderer/Template/js/popper.min.js" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

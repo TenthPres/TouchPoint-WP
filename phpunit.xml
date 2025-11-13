@@ -3,20 +3,16 @@
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
          bootstrap="tests/bootstrap.php"
          colors="true"
-         verbose="true"
-         stopOnFailure="false">
+         verbose="true">
     <testsuites>
         <testsuite name="TouchPoint-WP Test Suite">
             <directory>tests</directory>
         </testsuite>
     </testsuites>
-    <coverage processUncoveredFiles="true">
+    <coverage pathCoverage="true" disableCodeCoverageIgnore="true">
         <include>
             <directory suffix=".php">src</directory>
         </include>
-        <exclude>
-            <directory suffix=".php">src/TouchPoint-WP/Interfaces</directory>
-        </exclude>
     </coverage>
     <php>
         <const name="WP_TESTS_PHPUNIT_POLYFILLS_PATH" value="vendor/yoast/phpunit-polyfills"/>

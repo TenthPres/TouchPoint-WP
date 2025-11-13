@@ -6,7 +6,6 @@
 namespace tp\TouchPointWP\Utilities;
 
 use ArrayObject;
-use tp\TouchPointWP\TouchPointWP;
 use tp\TouchPointWP\Utilities;
 
 /**

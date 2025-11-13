@@ -9,6 +9,8 @@
 define('TOUCHPOINT_RUNNING_TESTS', true);
 define('TOUCHPOINT_COMPOSER_ENABLED', true);
 
+ini_set('memory_limit', '512M');
+
 // Load Composer autoloader
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
