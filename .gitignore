@@ -1,6 +1,5 @@
 /vendor/
 /vendorX/
-composer.lock
 /assets/images/people
 /TouchPointWP_ErrorLog.txt
 /.phpdoc/
