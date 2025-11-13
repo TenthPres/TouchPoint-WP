@@ -214,7 +214,6 @@ See the [PHPUnit documentation](https://phpunit.readthedocs.io/) for more assert
 Tests are automatically run on every push and pull request via GitHub Actions. The test workflow:
 
 - Runs on PHP versions 8.0, 8.1, 8.2, and 8.3
-- Validates composer.json
 - Installs dependencies
 - Runs the complete test suite
 - Generates code coverage report (PHP 8.3 only)
