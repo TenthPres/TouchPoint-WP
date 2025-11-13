@@ -44,7 +44,8 @@ jobs:
             ${{ runner.os }}-php-${{ matrix.php-version }}-
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+        run: composer update --prefer-dist --no-progress  # use update to allow for different php versions in matrix.
+
 
       - name: Run test suite
         run: composer test
