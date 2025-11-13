@@ -73,7 +73,7 @@ class StringableArrayTest extends TestCase
         $array->prepend('first');
         
         $this->assertSame(2, $array->count());
-        $this->assertSame('first, second', $array->join());
+        $this->assertSame('first, second', $array->join(', '));
     }
 
     /**
@@ -85,7 +85,7 @@ class StringableArrayTest extends TestCase
         $array->prepend('first', 'a');
         
         $this->assertSame(2, $array->count());
-        $this->assertSame('first, second', $array->join());
+        $this->assertSame('first, second', $array->join(', '));
     }
 
     /**
