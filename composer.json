@@ -50,6 +50,9 @@
   "config": {
     "allow-plugins": {
       "composer/installers": true
+    },
+    "audit": {
+      "ignore-severity": ["low"]
     }
   },
   "scripts": {
