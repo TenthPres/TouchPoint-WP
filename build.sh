@@ -44,8 +44,7 @@ cd ..
 
 echo "Build blocks..."
 #npm install -g @wordpress/scripts
-npx wp-scripts build --webpack-src-dir=blocks --output-path=build/blocks
-npx wp-scripts build-blocks-manifest --input=blocks --output=build/blocks/blocks-manifest.php
+npm run build-blocks
 
 echo "Internationalization..."
 cp -r ./i18n ./build/i18n
