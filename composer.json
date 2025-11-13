@@ -52,7 +52,7 @@
       "composer/installers": true
     },
     "audit": {
-      "ignore-severity": ["low"]
+      "block-insecure": false
     }
   },
   "scripts": {
