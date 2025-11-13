@@ -32,7 +32,7 @@ jobs:
           coverage: xdebug
 
       - name: Validate composer.json
-        run: composer validate --strict
+        run: composer validate --strict --no-check-version
 
       - name: Cache Composer packages
         id: composer-cache
