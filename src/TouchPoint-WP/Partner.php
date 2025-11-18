@@ -200,7 +200,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		// Color!
 		if (count($this->category) > 0) {
 			$c           = $this->category[0];
-			$this->color = Utilities::getColorFor($c->slug, $c->taxonomy);
+			$this->color = Utilities\Colors::getColorFor($c->slug, $c->taxonomy);
 		}
 
 		$this->registerConstruction();

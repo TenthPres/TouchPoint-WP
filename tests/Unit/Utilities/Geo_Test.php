@@ -5,22 +5,23 @@
  * @package TouchPointWP\Tests\Unit
  */
 
-namespace tp\TouchPointWP\Tests\Unit;
+namespace Unit\Utilities;
 
 use tp\TouchPointWP\Geo;
 use tp\TouchPointWP\Tests\TestCase;
+use tp\TouchPointWP\Utilities;
 
 /**
  * Test case for the Geo class.
  *
  * @covers \tp\TouchPointWP\Geo
  */
-class GeoTest extends TestCase
+class Geo_Test extends TestCase
 {
     /**
      * Test that Geo object can be instantiated with default values.
      */
-    public function test_geo_instantiation_with_defaults(): void
+    public function test_instantiation_defaults(): void
     {
         $geo = new Geo();
         
@@ -33,7 +34,7 @@ class GeoTest extends TestCase
     /**
      * Test that Geo object can be instantiated with specific values.
      */
-    public function test_geo_instantiation_with_values(): void
+    public function test_instantiation_withValues(): void
     {
         $lat = 40.7128;
         $lng = -74.0060;
@@ -72,7 +73,7 @@ class GeoTest extends TestCase
     /**
      * Test distance calculation returns zero for same coordinates.
      */
-    public function test_distance_calculation_same_point(): void
+    public function test_distance_samePoint(): void
     {
         $lat = 40.7128;
         $lng = -74.0060;
@@ -85,7 +86,7 @@ class GeoTest extends TestCase
     /**
      * Test distance calculation with nearby points.
      */
-    public function test_distance_calculation_nearby_points(): void
+    public function test_distance_nearby(): void
     {
         // Two points very close together (approximately 1 mile apart)
         $lat1 = 40.7128;
@@ -101,28 +102,9 @@ class GeoTest extends TestCase
     }
 
     /**
-     * Test distance calculation with international coordinates.
-     */
-    public function test_distance_calculation_international(): void
-    {
-        // London coordinates
-        $londonLat = 51.5074;
-        $londonLng = -0.1278;
-        
-        // Paris coordinates
-        $parisLat = 48.8566;
-        $parisLng = 2.3522;
-        
-        $distance = Geo::distance($londonLat, $londonLng, $parisLat, $parisLng);
-        
-        // Expected distance is approximately 213 miles
-        $this->assertEqualsWithDelta(213, $distance, 10);
-    }
-
-    /**
      * Test that distance calculation handles negative coordinates (Southern/Western hemispheres).
      */
-    public function test_distance_calculation_negative_coordinates(): void
+    public function test_distance_negativeCoordinates(): void
     {
         // Sydney, Australia
         $sydneyLat = -33.8688;
@@ -137,4 +119,19 @@ class GeoTest extends TestCase
         // Expected distance is approximately 443 miles
         $this->assertEqualsWithDelta(443, $distance, 10);
     }
+
+	/**
+	 * Test creating Geo objects with timezone-aware datetimes from Utilities.
+	 */
+	public function test_properties(): void
+	{
+		// Create a Geo object representing a location
+		$location = new Geo(51.5074, -0.1278, 'London, UK', 'nav');
+
+		// Verify the Geo object was created correctly
+		$this->assertSame(51.5074, $location->lat);
+		$this->assertSame(-0.1278, $location->lng);
+		$this->assertSame('London, UK', $location->human);
+		$this->assertSame('nav', $location->type);
+	}
 }

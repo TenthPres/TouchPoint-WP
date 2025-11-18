@@ -694,7 +694,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		// Find People Lists in post content and add their involvements to the query.
 		if (TouchPointWP::instance()->settings->enable_people_lists) {
-			$posts = Utilities::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_LIST);
+			$posts = Utilities\Database::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_LIST);
 
 			global $post;
 			$originalPost = $post;

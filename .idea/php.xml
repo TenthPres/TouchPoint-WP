@@ -30,6 +30,9 @@
     </phpcs_settings>
   </component>
   <component name="PhpIncludePathManager">
+    <exclude_path>
+      <path value="$PROJECT_DIR$/../TenthDev/app/public/wp-content/plugins/touchpoint-wp" />
+    </exclude_path>
     <include_path>
       <path value="$PROJECT_DIR$/../TenthDev/app/public" />
       <path value="$PROJECT_DIR$/vendor/antecedent/patchwork" />
@@ -91,7 +94,6 @@
       <path value="$PROJECT_DIR$/vendor/twig/twig" />
       <path value="$PROJECT_DIR$/vendor/webmozart/assert" />
       <path value="$PROJECT_DIR$/vendor/yoast/phpunit-polyfills" />
-      <path value="$PROJECT_DIR$/../WordPressDemo" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.0">

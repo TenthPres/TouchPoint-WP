@@ -139,8 +139,9 @@ class ExceptionUtilitiesIntegrationTest extends TestCase
     {
         $exception = new TouchPointWP_Exception('Resource not found', 404);
         $wpError = $exception->toWpError();
-        
-        $this->assertInstanceOf(\WP_Error::class, $wpError);
+
+	    /** @noinspection PhpConditionAlreadyCheckedInspection */
+	    $this->assertInstanceOf(\WP_Error::class, $wpError);
         $this->assertSame(404, $wpError->get_error_code());
         $this->assertSame('Resource not found', $wpError->get_error_message());
         
