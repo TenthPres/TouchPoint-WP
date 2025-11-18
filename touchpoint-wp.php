@@ -54,7 +54,10 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once __DIR__ . "/src/TouchPoint-WP/Geo.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Cleanup.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Colors.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Database.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Translation.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/ImageConversions.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/PersonArray.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/StringableArray.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/NotableAttributes.php";
