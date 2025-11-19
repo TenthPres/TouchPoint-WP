@@ -102,6 +102,100 @@ if (!function_exists('remove_all_filters')) {
     }
 }
 
+// Mock other WordPress functions used in tests
+if (!function_exists('is_admin')) {
+    function is_admin() {
+        return false;
+    }
+}
+
+if (!function_exists('current_datetime')) {
+    function current_datetime() {
+        return new \DateTimeImmutable('2025-11-12 21:00:00', new \DateTimeZone('UTC'));
+    }
+}
+
+if (!function_exists('wp_date')) {
+    function wp_date($format, $timestamp = null) {
+        if ($timestamp === null) {
+            $timestamp = time();
+        }
+        return date($format, $timestamp);
+    }
+}
+
+if (!function_exists('date_i18n')) {
+    function date_i18n($format, $timestamp = null) {
+        if ($timestamp === null) {
+            $timestamp = time();
+        }
+        return date($format, $timestamp);
+    }
+}
+
+if (!function_exists('get_option')) {
+    function get_option($option, $default = false) {
+        return $default;
+    }
+}
+
+if (!function_exists('__')) {
+    function __($text, $domain = 'default') {
+        return $text;
+    }
+}
+
+if (!function_exists('_x')) {
+    function _x($text, $context, $domain = 'default') {
+        return $text;
+    }
+}
+
+if (!function_exists('wp_sprintf')) {
+    function wp_sprintf($pattern, ...$args) {
+        return sprintf($pattern, ...$args);
+    }
+}
+
+if (!function_exists('esc_html')) {
+    function esc_html($text) {
+        return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+if (!function_exists('esc_attr')) {
+    function esc_attr($text) {
+        return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+if (!function_exists('esc_url')) {
+    function esc_url($url) {
+        return $url;
+    }
+}
+
+if (!function_exists('sanitize_text_field')) {
+    function sanitize_text_field($str) {
+        return trim(strip_tags($str));
+    }
+}
+
+if (!function_exists('wp_kses_post')) {
+    function wp_kses_post($data) {
+        return $data;
+    }
+}
+
+if (!function_exists('current_user_can')) {
+    function current_user_can($capability) {
+        return false;
+    }
+}
+
+// Load WordPress class mocks
+require_once __DIR__ . '/mocks/WP_Error.php';
+
 // Autoload Yoast PHPUnit Polyfills
 require_once dirname(__DIR__) . '/vendor/yoast/phpunit-polyfills/phpunitpolyfills-autoload.php';
 
