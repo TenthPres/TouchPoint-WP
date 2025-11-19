@@ -6,9 +6,10 @@ This document describes how to run and write tests for the TouchPoint-WP plugin.
 
 This project uses:
 - **PHPUnit 9.6** for testing framework
-- **Brain Monkey** for WordPress function and filter mocking
-- **Mockery** for general mocking capabilities
 - **Yoast PHPUnit Polyfills** for PHP 8.0+ compatibility
+- **WordPress filter/action system** implemented directly for integration testing
+
+The testing approach implements WordPress's filter and action system directly in the bootstrap file, allowing tests to verify real WordPress filter behavior without requiring a full WordPress installation.
 
 ## Running Tests
 
@@ -82,16 +83,15 @@ This will create an HTML coverage report in the `coverage/` directory. Open `cov
 Tests are organized in the `tests/` directory:
 
 - `tests/Unit/` - Unit tests for individual classes and methods
-- `tests/Integration/` - Integration tests that test multiple components working together
-- `tests/TestCase.php` - Base test case class with Brain Monkey integration
-- `tests/bootstrap.php` - Bootstrap file that sets up the test environment
-- `tests/mocks/` - Mock implementations of WordPress classes
+- `tests/Integration/` - Integration tests that test WordPress filter/action integration
+- `tests/TestCase.php` - Base test case class
+- `tests/bootstrap.php` - Bootstrap file with WordPress filter/action implementations
 
 ### Test Types
 
 #### Unit Tests
 
-Unit tests focus on testing individual methods and classes in isolation. They use Brain Monkey to mock WordPress functions.
+Unit tests focus on testing individual methods and classes in isolation.
 
 Example unit test:
 
@@ -100,7 +100,6 @@ Example unit test:
 
 namespace tp\TouchPointWP\Tests\Unit;
 
-use Brain\Monkey;
 use tp\TouchPointWP\MyClass;
 use tp\TouchPointWP\Tests\TestCase;
 
@@ -111,9 +110,6 @@ class MyClassTest extends TestCase
 {
     public function test_my_method(): void
     {
-        // Mock WordPress function if needed
-        Monkey\Functions\when('get_option')->justReturn('test_value');
-        
         $instance = new MyClass();
         $result = $instance->myMethod();
         
@@ -124,7 +120,7 @@ class MyClassTest extends TestCase
 
 #### Integration Tests
 
-Integration tests verify that multiple components work together correctly.
+Integration tests verify WordPress filter and action integration. The test environment provides real implementations of `add_filter`, `apply_filters`, and `remove_all_filters`.
 
 Example integration test:
 
@@ -133,50 +129,47 @@ Example integration test:
 
 namespace tp\TouchPointWP\Tests\Integration;
 
-use tp\TouchPointWP\ClassA;
-use tp\TouchPointWP\ClassB;
+use tp\TouchPointWP\Utilities\Colors;
 use tp\TouchPointWP\Tests\TestCase;
 
 /**
- * @covers \tp\TouchPointWP\ClassA
- * @covers \tp\TouchPointWP\ClassB
+ * @covers \tp\TouchPointWP\Utilities\Colors
  */
-class ClassABIntegrationTest extends TestCase
+class ColorsFiltersTest extends TestCase
 {
-    public function test_classes_work_together(): void
+    public function test_custom_color_filter(): void
     {
-        $classA = new ClassA();
-        $classB = new ClassB();
+        // Add a filter
+        add_filter('tp_custom_color_function', function($current, $itemName, $setName) {
+            if ($itemName === 'PA') {
+                return '#FF0000'; // Red for Pennsylvania
+            }
+            return $current;
+        }, 10, 3);
+
+        $color = Colors::getColorFor('PA', 'States');
         
-        $result = $classA->processWithB($classB);
+        $this->assertSame('#FF0000', $color);
         
-        $this->assertTrue($result);
+        // Clean up
+        remove_all_filters('tp_custom_color_function');
     }
 }
 ```
 
-### Mocking WordPress Functions with Brain Monkey
+### Testing WordPress Filters
 
-Brain Monkey provides elegant WordPress function mocking:
+The bootstrap file implements WordPress's filter system:
 
-```php
-use Brain\Monkey;
+- `add_filter($hook, $callback, $priority, $accepted_args)` - Add a filter
+- `apply_filters($hook, $value, ...$args)` - Apply filters to a value
+- `remove_all_filters($hook, $priority)` - Remove all filters from a hook
 
-// Simple return value
-Monkey\Functions\when('get_option')->justReturn('value');
-
-// Return argument unchanged (useful for escaping functions)
-Monkey\Functions\when('esc_html')->returnArg();
-
-// Custom callback
-Monkey\Functions\when('apply_filters')->alias(function($tag, $value) {
-    return $value;
-});
-
-// Expect a function to be called
-Monkey\Functions\expect('wp_enqueue_script')
-    ->once()
-    ->with('my-script', 'path/to/script.js');
+These functions work like WordPress's actual filter system, including:
+- Priority-based ordering
+- Multiple filters on the same hook
+- Passing multiple arguments to filters
+- Filter chaining (each filter receives the output of the previous)
 ```
 
 ### Creating a New Test
