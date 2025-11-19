@@ -5,10 +5,6 @@
 
 namespace tp\TouchPointWP\Utilities;
 
-if ( ! defined('ABSPATH')) {
-	exit(1);
-}
-
 /**
  * Used to manage colors
  */
@@ -60,6 +56,7 @@ abstract class Colors
 		}
 
 		$array = [];
+
 		/**
 		 * Allows for a custom color set to be used for color assignment to match branding. This filter should return an
 		 * array of colors in hex format, starting with '#'.  The colors will be assigned in order, but it is not

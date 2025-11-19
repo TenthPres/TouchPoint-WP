@@ -15,7 +15,7 @@ use tp\TouchPointWP\Tests\TestCase;
  *
  * @covers \tp\TouchPointWP\Utilities\StringableArray
  */
-class StringableArrayTest extends TestCase
+class StringableArray_Test extends TestCase
 {
     /**
      * Test that StringableArray can be instantiated with default separator.

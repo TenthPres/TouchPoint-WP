@@ -16,7 +16,7 @@ use tp\TouchPointWP\Tests\TestCase;
  *
  * @covers \tp\TouchPointWP\Utilities\DateTimeExtended
  */
-class DateTimeExtendedTest extends TestCase
+class DateTimeExtended_Test extends TestCase
 {
     /**
      * Test that DateTimeExtended can be instantiated.

@@ -17,7 +17,7 @@ use tp\TouchPointWP\Tests\TestCase;
  *
  * @covers \tp\TouchPointWP\Utilities\DateFormats
  */
-class DateFormatsTest extends TestCase
+class DateFormats_Test extends TestCase
 {
     /**
      * Test timestampWithoutOffset returns 0 for null.
