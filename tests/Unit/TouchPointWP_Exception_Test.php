@@ -15,7 +15,7 @@ use tp\TouchPointWP\Tests\TestCase;
  *
  * @covers \tp\TouchPointWP\TouchPointWP_Exception
  */
-class TouchPointWP_ExceptionTest extends TestCase
+class TouchPointWP_Exception_Test extends TestCase
 {
     /**
      * Test that exception can be instantiated with message.

@@ -184,8 +184,8 @@ These functions work like WordPress's actual filter system, including:
 
 ### Test Naming Conventions
 
-- Test files should be named `{ClassName}Test.php`
-- Test methods should be named `test_{method_name}_{scenario}` (e.g., `test_distance_calculation_same_point`)
+- Test files should be named `{ClassName}_Test.php`
+- Test methods should be named `test_{methodName}_{scenario}` (e.g., `test_distance_calculationSamePoint`)
 - Use descriptive names that explain what is being tested
 
 ### Assertions
