@@ -26,3 +26,8 @@ node_modules
 
 /build/
 /touchpoint-wp.zip
+
+# Test artifacts
+/.phpunit.cache/
+/coverage/
+.phpunit.result.cache

@@ -20,18 +20,6 @@ use WP_Error;
 use WP_Post;
 use WP_Query;
 
-if ( ! defined('ABSPATH')) {
-	exit(1);
-}
-
-if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once "Interfaces/api.php";
-	require_once "Interfaces/updatesViaCron.php";
-	require_once "Interfaces/storedAsPost.php";
-	require_once "Utilities/ImageConversions.php";
-	require_once "Utilities/Http.php";
-	require_once "Utilities/Database.php";
-}
 
 /**
  * The Report class gets and processes a SQL or Python report from TouchPoint and presents it in the UX.
@@ -579,7 +567,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 		TouchPointWP::instance()->setTpWpUserAsCurrent();
 
 		// Find Report Shortcodes in post content and add their involvements to the query.
-		$referencingPosts   = Utilities::getPostContentWithShortcode(self::SHORTCODE_REPORT);
+		$referencingPosts   = Database::getPostContentWithShortcode(self::SHORTCODE_REPORT);
 		$postIdsToNotDelete = [];
 
 

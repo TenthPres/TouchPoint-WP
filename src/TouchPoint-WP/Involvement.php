@@ -251,7 +251,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			}
 
 			// Color!
-			$this->color = Utilities::getColorFor("default", "involvement");
+			$this->color = Utilities\Colors::getColorFor("default", "involvement");
 		}
 
 		$this->registerConstruction();

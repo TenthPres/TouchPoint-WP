@@ -42,4 +42,23 @@ abstract class Database
 		}
 		return $success;
 	}
+
+	/**
+	 * Gets the post content for all posts that contain a particular shortcode.
+	 *
+	 * @param $shortcode
+	 *
+	 * TODO MULTI: does not update for all sites in the network.
+	 *
+	 * @return object[]
+	 */
+	public static function getPostContentWithShortcode($shortcode): array
+	{
+		global $wpdb;
+
+		/** @noinspection SqlResolve */
+		return $wpdb->get_results(
+			"SELECT post_content FROM $wpdb->posts WHERE post_content LIKE '%$shortcode%' AND post_status <> 'inherit'"
+		);
+	}
 }
