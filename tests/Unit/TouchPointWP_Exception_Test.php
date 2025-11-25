@@ -51,10 +51,12 @@ class TouchPointWP_Exception_Test extends TestCase
         
         try {
             throw new TouchPointWP_Exception($message);
-            $this->fail('Exception should have been thrown');
         } catch (TouchPointWP_Exception $e) {
             $this->assertSame($message, $e->getMessage());
+			return;
         }
+	    /** @noinspection PhpUnreachableStatementInspection */
+	    $this->fail('Exception should have been thrown');
     }
 
     /**

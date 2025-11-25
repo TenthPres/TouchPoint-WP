@@ -87,10 +87,9 @@ class ColorsFiltersTest extends TestCase
      */
     public function test_custom_color_set_filter_provides_palette(): void
     {
-        $customColors = ['#FF0000', '#00FF00', '#0000FF'];
-        
-        add_filter('tp_custom_color_set', function($array, $setName) use ($customColors) {
-            if ($setName === 'TestSet') {
+	    add_filter('tp_custom_color_set', function($array, $setName) {
+		    $customColors = ['#FF0000', '#00FF00', '#0000FF'];
+		    if ($setName === 'TestSet') {
                 return $customColors;
             }
             return $array;
