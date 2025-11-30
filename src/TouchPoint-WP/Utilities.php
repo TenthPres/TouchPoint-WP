@@ -540,11 +540,12 @@ abstract class Utilities
 	 * @param string|null $newUrl
 	 * @param string      $title
 	 * @param bool        $verbose
+	 * @param bool        $applyChanges
 	 *
 	 * @return int The attachmentId for the image.  Can be reused for other posts.
 	 * @since 0.0.24 Added
 	 */
-	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title, bool $verbose = false): int
+	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title, bool $verbose = false, bool $applyChanges = true): int
 	{
 		// Required for image handling
 		require_once(ABSPATH . 'wp-admin/includes/media.php');
@@ -575,6 +576,14 @@ abstract class Utilities
 
 		// get existing post image, if any
 		$oldAttId = get_post_thumbnail_id($postId);
+
+		if ($verbose && $oldAttId !== $newAttId) {
+			echo "<p>Image being updated...</p>";
+		}
+
+		if (!$applyChanges) {
+			return $newAttId;
+		}
 
 		// determine if a change is needed
 		if ($newAttId !== $oldAttId || ($newUrl !== "" && $oldAttId === 0)) {
