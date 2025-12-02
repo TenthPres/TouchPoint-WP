@@ -378,7 +378,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			TouchPointWP::instance()->settings->set('inv_cron_last_run', time() - self::CRON_OFFSET + 3600);
 		}
 
-		$verbose &= TouchPointWP::currentUserIsAdmin();
+		// Any user can preview changes, only admins can apply them.
+		$verbose &= TouchPointWP::currentUserIsAdmin() | (TouchPointWP::currentUserPerson() !== null && !$applyChanges);
 
 		ini_set('max_execution_time', 300);
 		ini_set('memory_limit', '512M');
