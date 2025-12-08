@@ -8,6 +8,11 @@ use RRule\RRule;
 class ScheduleSet extends RSet
 {
 	/**
+	 * Minimum number of Nth values required to simplify monthly rules to weekly.
+	 */
+	private const MIN_NTH_VALUES_FOR_WEEKLY_SIMPLIFICATION = 5;
+
+	/**
 	 * Constructor that extends RSet to support arrays of Schedule objects.
 	 *
 	 * @param string|array|null $input RFC string or array of Schedule/RRule objects
@@ -67,8 +72,11 @@ class ScheduleSet extends RSet
 			}
 		}
 
-		// Replace the rules in this set
-		$this->rrules = $newRules;
+		// Replace the rules in this set by clearing and re-adding
+		$this->rrules = [];
+		foreach ($newRules as $rule) {
+			$this->addRRule($rule);
+		}
 		$this->clearCache();
 	}
 
@@ -99,10 +107,10 @@ class ScheduleSet extends RSet
 			];
 			
 			// Handle COUNT vs UNTIL separately
-			if ($ruleData['COUNT'] !== null && $ruleData['COUNT'] !== '') {
+			if (!empty($ruleData['COUNT'])) {
 				$signature['count'] = $ruleData['COUNT'];
 				$signature['until'] = null;
-			} elseif ($ruleData['UNTIL'] !== null && $ruleData['UNTIL'] !== '') {
+			} elseif (!empty($ruleData['UNTIL'])) {
 				$signature['count'] = null;
 				$signature['until'] = $this->getWeekOfDate($ruleData['UNTIL']);
 			} else {
@@ -400,7 +408,7 @@ class ScheduleSet extends RSet
 			}
 			
 			// Check if we have all Nth occurrences (1-5 and -1 to -5) for the same weekday
-			if ($canSimplify && $weekdayPattern !== null && count($groupRules) >= 5) {
+			if ($canSimplify && $weekdayPattern !== null && count($groupRules) >= self::MIN_NTH_VALUES_FOR_WEEKLY_SIMPLIFICATION) {
 				// Count unique Nth values
 				$nthValues = [];
 				foreach ($allByDays as $day) {
@@ -411,7 +419,7 @@ class ScheduleSet extends RSet
 				$nthValues = array_unique($nthValues);
 				
 				// If we have enough different Nth values, it's effectively "every weekday"
-				if (count($nthValues) >= 5) {
+				if (count($nthValues) >= self::MIN_NTH_VALUES_FOR_WEEKLY_SIMPLIFICATION) {
 					// Convert to weekly rule
 					$allHours = array_unique($group['byhours']);
 					sort($allHours);
