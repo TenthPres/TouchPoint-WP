@@ -84,7 +84,10 @@ class ScheduleSet extends RSet
 			$currentCount = count($rules);
 			
 			// Continue if we made progress and haven't hit max iterations
-		} while ($currentCount < $previousCount && $iteration < $maxIterations && $currentCount = $previousCount = $currentCount);
+			$madeProgress = $currentCount < $previousCount;
+			$previousCount = $currentCount;
+			
+		} while ($madeProgress && $iteration < $maxIterations);
 
 		// Replace the rules in this set by clearing and re-adding
 		$this->rrules = [];
