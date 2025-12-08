@@ -32,7 +32,8 @@ if ( ! defined('WPINC')) {
 	die;
 }
 
-define("TOUCHPOINT_COMPOSER_ENABLED", file_exists(__DIR__ . '/vendor/autoload.php'));
+//define("TOUCHPOINT_COMPOSER_ENABLED", file_exists(__DIR__ . '/vendor/autoload.php'));
+define("TOUCHPOINT_COMPOSER_ENABLED", true); // TODO remove and remove all references.
 
 /*** Load everything **/
 if (TOUCHPOINT_COMPOSER_ENABLED) {
