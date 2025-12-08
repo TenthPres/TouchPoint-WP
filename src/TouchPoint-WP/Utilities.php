@@ -543,6 +543,7 @@ abstract class Utilities
 	 * @param bool        $applyChanges
 	 *
 	 * @return int The attachmentId for the image.  Can be reused for other posts.
+	 * @throws TouchPointWP_Exception  When a reasonable postId is not provided.
 	 * @since 0.0.24 Added
 	 */
 	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title, bool $verbose = false, bool $applyChanges = true): int
@@ -558,6 +559,11 @@ abstract class Utilities
 		$title = sprintf('%1$s Image', $title);
 
 		$newAttId = 0;
+
+		// Validate $postId
+		if ($postId === 0 && $applyChanges) {
+			throw new TouchPointWP_Exception(__('Invalid post ID.', 'TouchPoint-WP'));
+		}
 
 		// check if target image already exists in media library
 		if ($newUrl !== "") {
@@ -578,7 +584,11 @@ abstract class Utilities
 		$oldAttId = get_post_thumbnail_id($postId);
 
 		if ($verbose && $oldAttId !== $newAttId) {
-			echo "<p>Image being updated...</p>";
+			if ($applyChanges) {
+				echo "<p>Image being updated...</p>";
+			} else {
+				echo "<p>Image would be updated...</p>";
+			}
 		}
 
 		if (!$applyChanges) {

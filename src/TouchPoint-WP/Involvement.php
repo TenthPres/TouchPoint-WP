@@ -827,15 +827,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	}
 
 	/**
-	 * @param $apiMeeting
+	 * @param \DateTimeInterface $apiMeeting
 	 *
 	 * @return bool
 	 *
 	 * TODO update with #184
 	 */
-	protected static function apiMeetingIsAllDay($apiMeeting): bool
+	protected static function apiMeetingIsAllDay($dateTime): bool
 	{
-		return $apiMeeting->mtgStartDt->format("His") === "000000";
+		return $dateTime->format("His") === "000000";
 	}
 
 
@@ -2721,19 +2721,23 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$inv->titleToUse = $inv->regTitle ?? $inv->name;
 			$inv->titleToUse = trim($inv->titleToUse);
 
-			if ($post === null && $applyChanges) {
-				$post = wp_insert_post(
-					[ // create new
-						'post_type'  => $typeSets->postType,
-						'post_title' => $inv->titleToUse,
-						'post_name'  => $inv->titleToUse,
-						'post_status' => 'publish',
-						'meta_input' => [
-							TouchPointWP::INVOLVEMENT_META_KEY => $inv->involvementId
+			if ($post === null) {
+				if ($applyChanges) {
+					$post = wp_insert_post(
+						[ // create new
+							'post_type'   => $typeSets->postType,
+							'post_title'  => $inv->titleToUse,
+							'post_name'   => $inv->titleToUse,
+							'post_status' => 'publish',
+							'meta_input'  => [
+								TouchPointWP::INVOLVEMENT_META_KEY => $inv->involvementId
+							]
 						]
-					]
-				);
-				$post = get_post($post);
+					);
+					$post = get_post($post);
+				} elseif ($verbose) {
+					echo "<p>Would create new Post for Involvement {$inv->involvementId} ({$inv->titleToUse}).</p>";
+				}
 			}
 
 			$postsToKeep =  [...$postsToKeep, ...Involvement::doPostUpdate($post, $inv, $typeSets, $verbose, $applyChanges)];
@@ -2876,7 +2880,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			}
 		}
 
-		$imageId = Utilities::updatePostImageFromUrl($post->ID, $imageUrl, $post->post_title, $verbose, $applyChanges);
+		$imageId = Utilities::updatePostImageFromUrl($post->ID ?? 0, $imageUrl, $post->post_title, $verbose, $applyChanges);
 
 		////////////////////
 		//// SCHEDULING ////
@@ -2931,15 +2935,6 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			}
 		}
 
-		// Determine if there are meetings beyond the end date, and if so, nullify the end date
-		if ($inv->lastMeeting !== null) {
-			foreach ($inv->meetings as $m) {
-				if ($m->mtgStartDt > $inv->lastMeeting) {
-					$inv->lastMeeting = null;
-					break;
-				}
-			}
-		}
 		if ($inv->lastMeeting !== null && $inv->lastMeeting > Utilities::dateTimeNowPlus1Y()) { // Last mtg is > 1yr away
 			$inv->lastMeeting = null; // For all practical purposes: it's not ending.
 		}
@@ -3410,6 +3405,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				                       ]);
 				$mtgP = get_post($mtgP);
 			} else {
+				if ($verbose) {
+					echo "<p>Would create new Post for Meeting {$mtgO->mtgId} ({$mtgO->titleToUse}).</p>";
+				}
 				$mtgP = new WP_Post((object)[]); // Create an empty placeholder to dry-run the logic.
 			}
 		}
@@ -3516,6 +3514,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			Utilities::var_dump_expandable($inv);
 		}
 
+		// TODO convert firstMeeting, lastMeeting and schedules to RRules
+
+
 		// Start and end dates
 		if ($inv->firstMeeting !== null) {
 			try {
@@ -3548,6 +3549,39 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				unset($inv->schedules[$i]);
 			}
 		}
+
+		// TODO: extract end of meeting series from RRule and set involvement last meeting appropriately.
+		// TODO: extract start of meeting series from series (not rrule necessarily) and set involvement first meeting appropriately.
+		// TODO: figure out how to make meetings and series related, perhaps?
+		// TODO: calculate recurrence better.
+
+//		$rset = new RSet();
+//		foreach ($inv->meetingSeries as $i => $ms) {
+//			try {
+//				if ($ms->seriesStartDt === $ms->seriesEndDt || $ms->seriesEndDt == null) {
+//					$ms->seriesEndDt = null;
+//				} else {
+//					$ms->seriesEndDt = new DateTimeExtended($ms->seriesEndDt, $siteTz);
+//				}
+//				$ms->seriesStartDt = new DateTimeExtended($ms->seriesStartDt, $siteTz);
+//				$ms->seriesStartDt->isAllDay = self::apiMeetingIsAllDay($ms->seriesStartDt);
+//
+//				$ms->rro = RRule::createFromRfcString($ms->rRuleString ?? "");
+//				$rset->addRRule($ms->rro);
+//
+//				var_dump($ms->rro);
+//				var_dump($ms->rro->humanReadable());
+//				echo "<hr/>";
+//
+//			} catch (Exception) {
+//				unset($inv->meetingSeries[$i]);
+//			}
+//
+//			if ($ms->name == null || trim($ms->name) === "") {
+//				$ms->name = null;
+//			}
+//		}
+
 		foreach ($inv->meetings as $i => $m) {
 			try {
 				if ($m->mtgStartDt === $m->mtgEndDt || $m->mtgEndDt == null) {
@@ -3556,7 +3590,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					$m->mtgEndDt = new DateTimeExtended($m->mtgEndDt, $siteTz);
 				}
 				$m->mtgStartDt = new DateTimeExtended($m->mtgStartDt, $siteTz);
-				$m->mtgStartDt->isAllDay = self::apiMeetingIsAllDay($m);
+				$m->mtgStartDt->isAllDay = self::apiMeetingIsAllDay($m->mtgStartDt);
+
+				// if meetings exist beyond lastMeeting, nullify lastMeeting
+				if ($inv->lastMeeting !== null && $m->mtgStartDt > $inv->lastMeeting) {
+					$inv->lastMeeting = null;
+				}
 			} catch (Exception) {
 				unset($inv->meetings[$i]);
 			}

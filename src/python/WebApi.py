@@ -387,8 +387,7 @@ if "Invs" in Data.a:
                     FROM dbo.MeetingSeries ms
                         INNER JOIN cteTargetOrgs o
                             ON ms.OrganizationId = o.OrganizationId
-                    WHERE ms.OrganizationId = cto.OrganizationId AND
-                        ms.SeriesCompleted = 0
+                    WHERE ms.OrganizationId = cto.OrganizationId
                     FOR JSON PATH, INCLUDE_NULL_VALUES
                 ) as OrgMeetingSeries
             FROM cteTargetOrgs cto
@@ -515,6 +514,12 @@ if "Invs" in Data.a:
             g.schedules = json.loads(g.schedules)
         else:
             g.schedules = []
+
+        if g.meetingSeries is not None:
+            # noinspection PyTypeChecker
+            g.meetingSeries = json.loads(g.meetingSeries)
+        else:
+            g.meetingSeries = []
 
     Data.invs = groups
 

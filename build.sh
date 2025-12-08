@@ -47,5 +47,12 @@ find . -maxdepth 1 -iname "*.md" -exec cp {} build/ \;
 find . -maxdepth 1 -iname "*.json" -exec cp {} build/ \;
 
 cd ./build || exit
+
+rm vendor -rf
+rm tests -rf
+rm buildPipeline -rf
+
+composer install --no-dev --optimize-autoloader
+
 find . -exec zip ../touchpoint-wp.zip {} \;
 cd ..
