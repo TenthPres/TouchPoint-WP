@@ -17,15 +17,14 @@ class ScheduleSet_Test extends TestCase
 	 */
 	public function test_init_with_multiple_schedules(): void
 	{
-		$schedule1 = new Schedule("FREQ=DAILY;COUNT=5");
-		$schedule2 = new Schedule("FREQ=WEEKLY;COUNT=3;BYDAY=MO,WE,FR");
+		$set = new ScheduleSet();
+		$set->addRRule("FREQ=DAILY;COUNT=10");
+		$set->addRRule("FREQ=WEEKLY;BYDAY=MO,WE,FR;COUNT=5");
 
-		$scheduleSet = new ScheduleSet([$schedule1, $schedule2]);
+		$set->mergeIfPossible();
 
-		$this->assertInstanceOf(ScheduleSet::class, $scheduleSet);
-		$this->assertCount(2, $scheduleSet->getSchedules());
-		$this->assertSame($schedule1, $scheduleSet->getSchedules()[0]);
-		$this->assertSame($schedule2, $scheduleSet->getSchedules()[1]);
+		$this->assertInstanceOf(ScheduleSet::class, $set);
+		$this->assertCount(2, $set->getRRules());
 	}
 
 	/**
@@ -33,18 +32,14 @@ class ScheduleSet_Test extends TestCase
 	 */
 	public function test_merge_weeklyOpenEnded(): void
 	{
-		$schedule1 = new Schedule("FREQ=WEEKLY;BYDAY=MO,WE");
-		$schedule2 = new Schedule("FREQ=WEEKLY;BYDAY=FR");
+		$set = new ScheduleSet("FREQ=WEEKLY;BYDAY=MO,WE;COUNT=10");
+		$set->addRRule("FREQ=WEEKLY;BYDAY=FR;COUNT=10");
 
-		$scheduleSet1 = new ScheduleSet([$schedule1]);
-		$scheduleSet2 = new ScheduleSet([$schedule2]);
+		$set->mergeIfPossible();
 
-		$mergedSet = $scheduleSet1->merge($scheduleSet2);
-
-		$this->assertCount(1, $mergedSet->getSchedules());
-		$mergedSchedule = $mergedSet->getSchedules()[0];
-		$this->assertEquals("WEEKLY", $mergedSchedule->getFreq());
-		$this->assertEquals(['MO', 'WE', 'FR'], $mergedSchedule->getByDay());
+		$this->assertCount(1, $set->getRRules());
+		$this->assertEquals(20, $set->getRRules()[0]->getCount());
+		$this->assertEquals(['MO', 'WE', 'FR'], $set->getRRules()[0]->getByDay());
 	}
 
 	/**
@@ -52,35 +47,42 @@ class ScheduleSet_Test extends TestCase
 	 */
 	public function test_merge_differentFrequencies(): void
 	{
-		$schedule1 = new Schedule("FREQ=DAILY;COUNT=5");
-		$schedule2 = new Schedule("FREQ=WEEKLY;BYDAY=MO,WE,FR");
+		$set = new ScheduleSet("FREQ=DAILY;COUNT=10");
+		$set->addRRule("FREQ=WEEKLY;BYDAY=MO,WE;COUNT=5");
+		$set->mergeIfPossible();
 
-		$scheduleSet1 = new ScheduleSet([$schedule1]);
-		$scheduleSet2 = new ScheduleSet([$schedule2]);
-
-		$mergedSet = $scheduleSet1->merge($scheduleSet2);
-
-		$this->assertCount(2, $mergedSet->getSchedules());
-		$this->assertSame($schedule1, $mergedSet->getSchedules()[0]);
-		$this->assertSame($schedule2, $mergedSet->getSchedules()[1]);
+		$this->assertCount(2, $set->getRRules());
 	}
 
 	/**
-	 * Test merging two ScheduleSet objects where one has a defined end date
+	 * Test merging two rules where one has a defined end date
 	 */
 	public function test_merge_withEndDate(): void
 	{
-		$schedule1 = new Schedule("FREQ=WEEKLY;BYDAY=MO,WE");
-		$schedule2 = new Schedule("FREQ=WEEKLY;BYDAY=FR;UNTIL=20231231T000000Z");
+		$set = new ScheduleSet("FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20231231T000000Z");
+		$set->addRRule("FREQ=WEEKLY;BYDAY=FR;COUNT=10");
+		$set->mergeIfPossible();
 
-		$scheduleSet1 = new ScheduleSet([$schedule1]);
-		$scheduleSet2 = new ScheduleSet([$schedule2]);
+		$this->assertCount(2, $set->getRRules());
+	}
 
-		$mergedSet = $scheduleSet1->merge($scheduleSet2);
+	/**
+	 * Test merging two weekly rules, where both have end dates, such that they end the same week and are mergeable.
+	 */
+	public function test_merge_weeklyWithEndDates(): void
+	{
+		$schedule1 = new Schedule("FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20251225T000000Z");
+		$schedule2 = new Schedule("FREQ=WEEKLY;BYDAY=FR;UNTIL=20251227T000000Z");
 
-		$this->assertCount(2, $mergedSet->getSchedules());
-		$this->assertSame($schedule1, $mergedSet->getSchedules()[0]);
-		$this->assertSame($schedule2, $mergedSet->getSchedules()[1]);
+		$set = new ScheduleSet([$schedule1, $schedule2]);
+
+		$set->mergeIfPossible();
+
+		$this->assertCount(1, $set->getRRules());
+		$mergedSchedule = $set->getRRules()[0];
+		$this->assertEquals("WEEKLY", $mergedSchedule->getFreq());
+		$this->assertEquals(['MO', 'WE', 'FR'], $mergedSchedule->getByDay());
+		$this->assertEquals('20251227T000000Z', $mergedSchedule->getUntil());
 	}
 
 	/**
@@ -88,25 +90,20 @@ class ScheduleSet_Test extends TestCase
 	 */
 	public function test_merge_annualSecondSaturdayMultipleMonths(): void
 	{
-		$schedule1 = new Schedule("FREQ=YEARLY;BYDAY=2SA;BYMONTH=1");
-		$schedule2 = new Schedule("FREQ=YEARLY;BYDAY=2SA;BYMONTH=1");
-		$schedule3 = new Schedule("FREQ=YEARLY;BYDAY=2SA;BYMONTH=9");
-		$schedule4 = new Schedule("FREQ=YEARLY;BYDAY=2SA;BYMONTH=11");
+		$set = new ScheduleSet();
 
-		$scheduleSet1 = new ScheduleSet([$schedule1]);
-		$scheduleSet2 = new ScheduleSet([$schedule2]);
-		$scheduleSet3 = new ScheduleSet([$schedule3]);
-		$scheduleSet4 = new ScheduleSet([$schedule4]);
+		foreach ([1, 3, 9, 11] as $month) {
+			$set->addRRule("FREQ=YEARLY;BYMONTH={$month};BYDAY=2SA;BYHOUR=10;BYMINUTE=0;BYSECOND=0");
+		}
 
-		$mergedSet = $scheduleSet1->merge($scheduleSet2);
-		$mergedSet = $mergedSet->merge($scheduleSet3);
-		$mergedSet = $mergedSet->merge($scheduleSet4);
+		$set->mergeIfPossible();
 
-		$this->assertCount(1, $mergedSet->getSchedules());
-		$mergedSchedule = $mergedSet->getSchedules()[0];
+		$this->assertCount(1, $set->getRRules());
+		$mergedSchedule = $set->getRRules()[0];
 		$this->assertEquals("YEARLY", $mergedSchedule->getFreq());
-		$this->assertEquals(['2SA'], $mergedSchedule->getByDay());
 		$this->assertEquals([1, 3, 9, 11], $mergedSchedule->getByMonth());
+		$this->assertEquals(['2SA'], $mergedSchedule->getByDay());
+		$this->assertEquals([10], $mergedSchedule->getByHour());
 	}
 
 	/**
@@ -114,18 +111,16 @@ class ScheduleSet_Test extends TestCase
 	 */
 	public function test_merge_monthlyNthSundayMultipleTimes(): void
 	{
-		$scheds = [];
+		$set = new ScheduleSet();
 		for ($n = 1; $n <= 5; $n++) {
-			$scheds[] = new Schedule("FREQ=MONTHLY;BYDAY={$n}SU;BYHOUR=9");
-			$scheds[] = new Schedule("FREQ=MONTHLY;BYDAY={$n}SU;BYHOUR=11");
+			$set->addRRule("FREQ=MONTHLY;BYDAY={$n}SU;BYHOUR=9;BYMINUTE=0;BYSECOND=0");
+			$set->addRRule("FREQ=MONTHLY;BYDAY=-{$n}SU;BYHOUR=11;BYMINUTE=0;BYSECOND=0");
 		}
 
-		$merged = new ScheduleSet([]);
-		foreach ($scheds as $sched) {
-			$merged = $merged->merge(new ScheduleSet([$sched]));
-		}
-		$this->assertCount(1, $merged->getSchedules());
-		$mergedSchedule = $merged->getSchedules()[0];
+		$set->mergeIfPossible();
+
+		$this->assertCount(1, $set->getRRules());
+		$mergedSchedule = $set->getRRules()[0];
 		$this->assertEquals("WEEKLY", $mergedSchedule->getFreq());
 		$this->assertEquals(['SU'], $mergedSchedule->getByDay());
 		$this->assertEquals([9, 11], $mergedSchedule->getByHour());

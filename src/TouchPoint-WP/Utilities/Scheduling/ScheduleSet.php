@@ -6,13 +6,6 @@ use RRule\RSet;
 
 class ScheduleSet extends RSet
 {
-	/** @var Schedule[] $schedules */
-	protected array $schedules = [];
-
-	public function getSchedules(): array {
-		return $this->schedules;
-	}
-
 	public function mergeIfPossible() {
 		// Group schedules by DTSTART/DTEND time-of-day (HHMMSS) so schedules that occur at the same
 		// clock time can be merged. We keep one merged Schedule per time-group.
@@ -123,6 +116,4 @@ class ScheduleSet extends RSet
 		// Replace schedules with merged results
 		$this->schedules = $merged;
 	}
-
-
 }
