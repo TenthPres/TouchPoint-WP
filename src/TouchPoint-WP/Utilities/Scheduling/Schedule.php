@@ -29,11 +29,19 @@ class Schedule extends RRule
 	/**
 	 * Get the UNTIL date.
 	 *
-	 * @return string|null The UNTIL date in RFC format
+	 * @return string|\DateTime|null The UNTIL date (can be DateTime object or string)
 	 */
-	public function getUntil(): ?string
+	public function getUntil()
 	{
-		return $this->rule['UNTIL'];
+		$until = $this->rule['UNTIL'];
+		
+		// If it's a DateTime, format it as RFC string for compatibility
+		if ($until instanceof \DateTime) {
+			// Format as RFC 5545 format (YmdTHisZ)
+			return $until->format('Ymd\THis\Z');
+		}
+		
+		return $until;
 	}
 
 	/**

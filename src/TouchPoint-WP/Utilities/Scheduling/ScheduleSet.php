@@ -8,6 +8,25 @@ use RRule\RRule;
 class ScheduleSet extends RSet
 {
 	/**
+	 * Constructor that extends RSet to support arrays of Schedule objects.
+	 *
+	 * @param string|array|null $input RFC string or array of Schedule/RRule objects
+	 * @param \DateTime|null $default_dtstart Default start date
+	 */
+	public function __construct($input = null, $default_dtstart = null)
+	{
+		// If input is an array, handle it specially
+		if (is_array($input)) {
+			parent::__construct(null, $default_dtstart);
+			foreach ($input as $rule) {
+				$this->addRRule($rule);
+			}
+		} else {
+			parent::__construct($input, $default_dtstart);
+		}
+	}
+
+	/**
 	 * Merge compatible RRules when possible.
 	 * This method attempts to combine multiple RRules into fewer rules when they share compatible properties.
 	 */
@@ -134,7 +153,8 @@ class ScheduleSet extends RSet
 							break;
 						}
 						// Keep the latest UNTIL date
-						if ($until > $latestUntil) {
+						$untilCompare = $this->compareDates($until, $latestUntil);
+						if ($untilCompare > 0) {
 							$latestUntil = $until;
 						}
 					}
@@ -429,24 +449,72 @@ class ScheduleSet extends RSet
 	}
 
 	/**
-	 * Get the week identifier for a date string (year-week format).
+	 * Get the week identifier for a date (year-week format).
 	 *
-	 * @param string $dateStr Date string in RFC format
+	 * @param string|\DateTime $date Date string in RFC format or DateTime object
 	 * @return string Week identifier (e.g., "2025-52")
 	 */
-	private function getWeekOfDate(string $dateStr): string
+	private function getWeekOfDate($date): string
 	{
+		if ($date instanceof \DateTime) {
+			return $date->format('o-W'); // ISO-8601 year and week number
+		}
+		
 		// Parse the date string (e.g., "20251227T000000Z")
-		if (preg_match('/^(\d{4})(\d{2})(\d{2})/', $dateStr, $matches)) {
+		if (is_string($date) && preg_match('/^(\d{4})(\d{2})(\d{2})/', $date, $matches)) {
 			$year = $matches[1];
 			$month = $matches[2];
 			$day = $matches[3];
 			
-			$date = new \DateTime("{$year}-{$month}-{$day}");
-			return $date->format('o-W'); // ISO-8601 year and week number
+			$dateObj = new \DateTime("{$year}-{$month}-{$day}");
+			return $dateObj->format('o-W'); // ISO-8601 year and week number
 		}
 		
-		return $dateStr; // Fallback
+		return (string)$date; // Fallback
+	}
+
+	/**
+	 * Compare two dates (can be DateTime objects or strings).
+	 *
+	 * @param string|\DateTime $date1 First date
+	 * @param string|\DateTime $date2 Second date
+	 * @return int -1 if date1 < date2, 0 if equal, 1 if date1 > date2
+	 */
+	private function compareDates($date1, $date2): int
+	{
+		$dt1 = $date1 instanceof \DateTime ? $date1 : $this->parseDateString($date1);
+		$dt2 = $date2 instanceof \DateTime ? $date2 : $this->parseDateString($date2);
+		
+		if ($dt1 < $dt2) {
+			return -1;
+		} elseif ($dt1 > $dt2) {
+			return 1;
+		}
+		return 0;
+	}
+
+	/**
+	 * Parse a date string to DateTime.
+	 *
+	 * @param string $dateStr Date string
+	 * @return \DateTime
+	 */
+	private function parseDateString(string $dateStr): \DateTime
+	{
+		// Try to parse RFC format (e.g., "20251227T000000Z")
+		if (preg_match('/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/', $dateStr, $matches)) {
+			$year = $matches[1];
+			$month = $matches[2];
+			$day = $matches[3];
+			$hour = $matches[4];
+			$minute = $matches[5];
+			$second = $matches[6];
+			
+			return new \DateTime("{$year}-{$month}-{$day} {$hour}:{$minute}:{$second}");
+		}
+		
+		// Fallback to standard parsing
+		return new \DateTime($dateStr);
 	}
 
 	/**
@@ -496,28 +564,28 @@ class ScheduleSet extends RSet
 	}
 
 	/**
-	 * Create a new weekly RRule.
+	 * Create a new weekly Schedule (extends RRule).
 	 *
 	 * @param array $byday Array of weekday values
 	 * @param int $interval Interval
 	 * @param int|null $count Count
-	 * @param string|null $until Until date
+	 * @param string|\DateTime|null $until Until date
 	 * @param string|null $byhour Hour constraint
 	 * @param string|null $byminute Minute constraint
 	 * @param string|null $bysecond Second constraint
 	 * @param string $wkst Week start
-	 * @return RRule
+	 * @return Schedule
 	 */
 	private function createWeeklyRule(
 		array $byday,
 		int $interval,
 		?int $count,
-		?string $until,
+		$until,
 		?string $byhour,
 		?string $byminute,
 		?string $bysecond,
 		string $wkst
-	): RRule {
+	): Schedule {
 		$parts = [
 			'FREQ' => 'WEEKLY',
 			'BYDAY' => implode(',', $byday),
@@ -541,32 +609,32 @@ class ScheduleSet extends RSet
 			$parts['BYSECOND'] = $bysecond;
 		}
 		
-		return new RRule($parts);
+		return new Schedule($parts);
 	}
 
 	/**
-	 * Create a new yearly RRule.
+	 * Create a new yearly Schedule (extends RRule).
 	 *
 	 * @param array $bymonth Array of month values
 	 * @param string|null $byday Day constraint
 	 * @param int $interval Interval
 	 * @param int|null $count Count
-	 * @param string|null $until Until date
+	 * @param string|\DateTime|null $until Until date
 	 * @param string|null $byhour Hour constraint
 	 * @param string|null $byminute Minute constraint
 	 * @param string|null $bysecond Second constraint
-	 * @return RRule
+	 * @return Schedule
 	 */
 	private function createYearlyRule(
 		array $bymonth,
 		?string $byday,
 		int $interval,
 		?int $count,
-		?string $until,
+		$until,
 		?string $byhour,
 		?string $byminute,
 		?string $bysecond
-	): RRule {
+	): Schedule {
 		$parts = [
 			'FREQ' => 'YEARLY',
 			'BYMONTH' => implode(',', $bymonth),
@@ -592,6 +660,6 @@ class ScheduleSet extends RSet
 			$parts['BYSECOND'] = $bysecond;
 		}
 		
-		return new RRule($parts);
+		return new Schedule($parts);
 	}
 }
