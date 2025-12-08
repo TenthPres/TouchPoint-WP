@@ -7,10 +7,6 @@ namespace tp\TouchPointWP;
 
 use stdClass;
 
-if ( ! defined('ABSPATH')) {
-	exit(1);
-}
-
 
 /**
  * A standardized set of fields for geographical information.

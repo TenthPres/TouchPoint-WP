@@ -13,6 +13,9 @@ composer.lock
 /.idea/dataSources.xml
 /.idea/webServers.xml
 /.idea/runConfigurations/Local.xml
+/.idea/copilotDiffState.xml
+/.idea/data_source_mapping.xml
+/.idea/copilot*
 
 *.min.js
 node_modules
@@ -21,7 +24,10 @@ node_modules
 /i18n/*.mo
 /i18n/*.l10n.php
 
-package-lock.json
-
 /build/
 /touchpoint-wp.zip
+
+# Test artifacts
+/.phpunit.cache/
+/coverage/
+.phpunit.result.cache

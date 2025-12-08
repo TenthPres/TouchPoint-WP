@@ -175,7 +175,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	 *
 	 * @return void
 	 */
-	public static function checkUpdates()
+	public static function checkUpdates(): void
 	{
 		// This method does nothing because the overhead is relatively great, and should not be hooked to every page load.
 	}

@@ -316,14 +316,7 @@ abstract class Taxonomies
 		$types = self::getPostTypesForTaxonomy($instance, self::TAX_DIV);
 		if (count($types) > 0) {
 			$existingIds = [];
-			$enabledDivisions = $instance->settings->dv_divisions;
-			foreach ($instance->getDivisions() as $d) {
-				if (!in_array('div' . $d->id, $enabledDivisions)) {
-					continue;
-				}
-				if (!$d->pName || !$d->dName) {
-					continue;
-				}
+			foreach ($instance->getImportedDivisions() as $d) {
 
 				// Program
 				$idUpdate = self::$forceTermLookupIdUpdate;

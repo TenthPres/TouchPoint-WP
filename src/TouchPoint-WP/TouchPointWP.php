@@ -7,6 +7,7 @@ namespace tp\TouchPointWP;
 
 use JsonException;
 use stdClass;
+use tp\TouchPointWP\Blocks\BlocksController;
 use tp\TouchPointWP\Utilities\Cleanup;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\Session;
@@ -69,7 +70,7 @@ class TouchPointWP
 	 */
 	public const HOOK_PREFIX = "tp_";
 
-	public const INIT_ACTION_HOOK = "tp_init"; // Note that this is also hard-coded where the action is declared.
+	public const INIT_ACTION_HOOK = "tp_init";  // Note that this is also hard-coded where the action is called.
 
 	/**
 	 * Prefix to use for all settings.
@@ -232,6 +233,9 @@ class TouchPointWP
 
 		// Register frontend JS & CSS.
 		add_action('init', [$this, 'registerScriptsAndStyles'], 0);
+
+		// Register blocks
+		add_action('init', [BlocksController::class, 'init']);
 
 		add_action('wp_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
 		add_action('admin_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
@@ -552,7 +556,7 @@ class TouchPointWP
 
 
 	/**
-	 * Determine if the current user can edit anything and therefore may need access to wp-admin.
+	 * Determine if the current user can edit *anything* and therefore may need access to wp-admin.
 	 *
 	 * @param int|null $userId
 	 *
@@ -569,6 +573,29 @@ class TouchPointWP
 		}
 
 		$user = get_user($userId);
+		
+		if (!$user) {
+			return false;
+		}
+		
+		foreach ($user->caps as $cap => $enabled) {
+			if (!$enabled) {
+				continue;
+			}
+
+			// if cap starts with any of several terms "edit", "Manage", etc, return true.
+			if (str_starts_with($cap, 'edit_') ||
+			    str_starts_with($cap, 'manage_') ||
+			    str_starts_with($cap, 'publish_') ||
+			    str_starts_with($cap, 'delete_') ||
+			    str_starts_with($cap, 'create_') ||
+			    str_starts_with($cap, 'switch_') ||
+			    str_contains($cap, 'admin') || // various admin-like stuff.
+			    str_contains($cap, "translat") // various WPML capabilities
+			) {
+				return true;
+			}
+		}
 
 		foreach ($user->roles as $role) {
 			$role = get_role($role);
@@ -608,7 +635,7 @@ class TouchPointWP
 
 		echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
 		if ($this->debug) {
-			echo "\ttpvm.DEBUG = true;\n";
+			echo "\tif (tpvm) tpvm.DEBUG = true;\n";
 		}
 
 		// TODO this should possibly be moved to ajax for better caching -- especially if only used for RSVP.
@@ -901,7 +928,7 @@ class TouchPointWP
 		/**
 		 * Fires after the plugin has been initialized.
 		 */
-		do_action(self::INIT_ACTION_HOOK);
+		do_action("tp_init"); // needs to be hard-coded for documenter
 	}
 
 	/**
@@ -935,7 +962,8 @@ class TouchPointWP
 		);
 		wp_set_script_translations(
 			self::SHORTCODE_PREFIX . 'base-defer',
-			'TouchPoint-WP', $this->getJsLocalizationDir()
+			'TouchPoint-WP',
+			$this->getJsLocalizationDir()
 		);
 
 		wp_register_script(
@@ -973,7 +1001,7 @@ class TouchPointWP
 		wp_register_script(
 			TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
 			sprintf(
-				"https://maps.googleapis.com/maps/api/js?key=%s&v=3&libraries=geometry&language=$lang",
+				"https://maps.googleapis.com/maps/api/js?key=%s&v=3&loading=async&libraries=geometry,marker&language=$lang",
 				TouchPointWP::instance()->settings->google_maps_api_key
 			),
 			[TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
@@ -1085,7 +1113,7 @@ class TouchPointWP
 	public function filterByTag(?string $tag, ?string $handle): string
 	{
 		if (!str_contains($tag, ' async') &&
-		    strpos($handle, '-async') > 0
+		    strpos($handle, '-async')
 		) {
 			$tag = str_replace(' src=', ' async="async" src=', $tag);
 		}
@@ -1664,6 +1692,27 @@ class TouchPointWP
 	public function getDivisionsAsKVArray(): array
 	{
 		return self::flattenArrayToKV($this->getDivisions(), 'id', 'name', 'div');
+	}
+
+	/**
+	 * Returns an array of objects that correspond to divisions that are actively being imported as a taxonomy.  Each
+	 * Division has a name and an id.  The name is both the Program and Division.
+	 *
+	 * @return object[]
+	 */
+	public function getImportedDivisions(): array
+	{
+		$enabledDivisions = $this->settings->dv_divisions;
+		$enabled = [];
+		foreach ($this->getDivisions() as $d) {
+			if (!$d->pName || !$d->dName) {
+				continue;
+			}
+			if (in_array('div' . $d->id, $enabledDivisions)) {
+				$enabled[] = $d;
+			}
+		}
+		return $enabled;
 	}
 
 	/**
@@ -2602,12 +2651,41 @@ class TouchPointWP
 
 		$priorUser = wp_get_current_user();
 
-		$tpUser = get_user_by('login', 'touchpoint-wp');
+		$tpUser = self::getTpUser();
 		if ($tpUser && $tpUser !== $priorUser) {
 			$this->priorUser = $priorUser;
 			wp_set_current_user($tpUser->ID, $tpUser->user_login);
 		}
 	}
+
+
+
+	/**
+	 * If the current user is somehow making requests as the TouchPoint service, log out (or switch back to the proper user)
+	 *
+	 * @return void
+	 */
+	public function logoutServiceMaybe(): void
+	{
+		$currentUser = wp_get_current_user();
+		$tpUser = self::getTpUser();
+
+		if ($tpUser && $currentUser && $currentUser->ID === $tpUser->ID) {
+			$this->unsetTpWpUserAsCurrent();
+		}
+	}
+
+
+	/**
+	 * Returns the TouchPoint-WP Service user, or false if it doesn't exist.
+	 *
+	 * @return false|WP_User
+	 */
+	protected static function getTpUser(): false|WP_User
+	{
+		return get_user_by('login', 'touchpoint-wp');
+	}
+
 
 	/**
 	 * Restore the actual user to the user position.
@@ -2616,7 +2694,9 @@ class TouchPointWP
 	 */
 	public function unsetTpWpUserAsCurrent(): void
 	{
-		if ($this->priorUser) {
+		$tpUser = self::getTpUser();
+
+		if ($this->priorUser && (!$tpUser || $this->priorUser->ID !== $tpUser->ID)) {
 			wp_set_current_user($this->priorUser->ID, $this->priorUser->user_login);
 			$this->priorUser = null;
 		} else {

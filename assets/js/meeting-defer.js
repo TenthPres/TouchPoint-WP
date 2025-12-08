@@ -22,7 +22,7 @@ class TP_Meeting {
         this.location = obj.location;
         this.capacity = obj.capacity;
 
-        this.inv = TP_Involvement.fromObjArray([{name: obj.invName, invId: obj.invId}])[0];
+        this.inv = tpvm.TP_Involvement.fromObjArray([{name: obj.invName, invId: obj.invId}])[0];
 
         for (const ei in this.connectedElements) {
             if (!this.connectedElements.hasOwnProperty(ei)) continue;

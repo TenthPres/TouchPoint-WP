@@ -11,20 +11,18 @@ if ( ! defined('ABSPATH')) {
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Interfaces/api.php";
-	require_once "Interfaces/hierarchical.php";
-	require_once "Interfaces/scheduled.php";
+	require_once "Interfaces/involvementMeetingCommon.php";
 }
 
 use DateTime;
 use DateTimeImmutable;
 use Exception;
 use tp\TouchPointWP\Interfaces\api;
-use tp\TouchPointWP\Interfaces\hasGeo;
-use tp\TouchPointWP\Interfaces\hierarchical;
+use tp\TouchPointWP\Interfaces\involvementMeetingCommon;
 use tp\TouchPointWP\Interfaces\module;
-use tp\TouchPointWP\Interfaces\scheduled;
 use tp\TouchPointWP\Utilities\DateFormats;
 use tp\TouchPointWP\Utilities\Http;
+use tp\TouchPointWP\Utilities\NotableAttributes;
 use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Post;
 use WP_Query;
@@ -33,7 +31,7 @@ use WP_Term;
 /**
  * Handle meeting content, particularly RSVPs.
  */
-class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchical, scheduled
+class Meeting extends PostTypeCapable implements api, module, involvementMeetingCommon
 {
 	use jsInstantiation;
 //	use jsonLd; TODO
@@ -425,32 +423,44 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 	/**
 	 * Get notable attributes, such as gender restrictions, as strings.
 	 *
-	 * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
+	 * @param array|StringableArray $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not
+	 * needed here.)
 	 *
-	 * @return string[]
+	 * @return NotableAttributes
 	 */
-	public function notableAttributes(array $exclude = []): array
+	public function notableAttributes(array|StringableArray $exclude = []): NotableAttributes
 	{
+		if (!is_array($exclude)) {
+			$exclude = $exclude->getArrayCopy();
+		}
+
 		if (in_array('involvement', $exclude)) {
-			$attrs = [];
+			$attrs = null;
 		} else {
 			try {
 				$attrs = $this->involvement()->notableAttributes(['date', 'datetime', 'time', 'firstLast']);
 			} catch (TouchPointWP_Exception) {
-				$attrs = [];
+				$attrs = null;
 			}
 		}
 
 		$d = $this->scheduleStringArray();
-
-		$attrs = [...$d, ...$attrs];
+		if ($attrs !== null) {
+			foreach ($attrs as $k => $v) {
+				if (is_string($v) && $v !== "") {
+					$d[$k] = $v;
+				}
+			}
+		}
+		$attrs = $d;
+		unset($d);
 
 		$status = $this->status_i18n(true);
 		if ($status) {
 			$attrs['status'] = $status;
 		} else {
 			// Add an "in the past" label if the thing is already past. (end may be null)
-			if (($this->endDt ?? $this->startDt) < Utilities::dateTimeNow()) {
+			if ($this->isPast()) {
 				$attrs['past'] = __("In the Past", "TouchPoint-WP");
 			}
 		}
@@ -460,8 +470,8 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 			$attrs['location'] = $loc;
 		}
 
-
 		$attrs = $this->processAttributeExclusions($attrs, $exclude);
+		$mtg = $this;
 
 		/**
 		 * Allows for manipulation of the notable attributes strings for a Meeting.  An array of strings.
@@ -472,11 +482,12 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		 * @see PostTypeCapable::notableAttributes()
 		 *
 		 * @since 0.0.90 Added
+		 * @since 0.0.96 Changed to use NotableAttributes instead of array.
 		 *
-		 * @param string[] $attrs The list of notable attributes.
-		 * @param Meeting $this The Meeting object.
+		 * @param NotableAttributes $attrs The list of notable attributes.
+		 * @param Meeting $mtg The Meeting object.
 		 */
-		return apply_filters("tp_meeting_attributes", $attrs, $this);
+		return apply_filters("tp_meeting_attributes", $attrs, $mtg);
 	}
 
 	/**
@@ -523,7 +534,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 
 		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin() && !$this->isMeetingGroup()) {
 			$tpHost = TouchPointWP::instance()->host();
-			// Translators: %s is the system name.  "TouchPoint" by default.
+			// Translators: %s is the system name, "TouchPoint" by default.
 			$title  = wp_sprintf(__("Meeting in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
 			$logo = TouchPointWP::TouchPointIcon();
 			$ret['mtg_tp']  = "<a href=\"$tpHost/Meeting/$this->mtgId\" title=\"$title\" class=\"tp-TouchPoint-logo $btnClass\">$logo</a>";
@@ -677,7 +688,7 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 		return "";  // TODO someday, probably.
 
 //		return "\ttpvm.addEventListener('Involvement_class_loaded', function() {
-//		TP_Involvement.fromObjArray($listStr);\n\t});\n";
+//		tpvm.TP_Involvement.fromObjArray($listStr);\n\t});\n";
 	}
 
 	/**
@@ -884,6 +895,16 @@ class Meeting extends PostTypeCapable implements api, module, hasGeo, hierarchic
 			return Taxonomies::TAX_TENSE_FUTURE;
 		}
 		return Taxonomies::TAX_TENSE_PRESENT;
+	}
+
+	/**
+	 * Indicates if the meeting is in the past.
+	 *
+	 * @return bool
+	 */
+	public function isPast(): bool
+	{
+		return ($this->endDt ?? $this->startDt) < Utilities::dateTimeNow();
 	}
 
 	/**

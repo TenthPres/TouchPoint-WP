@@ -29,15 +29,8 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
         <div class="post-meta-single post-meta-single-top">
             <span class="post-meta">
                 <?php
-
-                $metaStrings = [];
                 $notableAttributes = $mtg->notableAttributes();
-                foreach ($notableAttributes as $a)
-                {
-                    $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-                }
-                echo implode(tp\TouchPointWP\TouchPointWP::$joiner, $metaStrings);
-
+                echo $notableAttributes
                 ?>
             </span><!-- .post-meta -->
         </div>
@@ -79,16 +72,7 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
             echo "<h3 class='inline'><a href=\"$link\" class='small'>$child->post_title</a></h3>";
 
 	        $childInv = Involvement::fromPost($child);
-
-	        $metaStrings = [];
-	        foreach ($childInv->notableAttributes($notableAttributes) as $a)
-	        {
-		        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-	        }
-	        $m = implode(tp\TouchPointWP\TouchPointWP::$joiner, $metaStrings);
-            if ($m !== "") {
-                echo "<span class=\"post-meta\">$m</span>";
-            }
+            echo $childInv->notableAttributes($notableAttributes);
 
             echo "</div>";
         }
@@ -128,16 +112,7 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
 			echo "<h3 class='inline'><a href=\"$link\" class='small'>$child->post_title</a></h3>";
 
 			$childInv = Meeting::fromPost($child);
-
-			$metaStrings = [];
-			foreach ($childInv->notableAttributes($notableAttributes) as $a)
-			{
-				$metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-			}
-			$m = implode(tp\TouchPointWP\TouchPointWP::$joiner, $metaStrings);
-			if ($m !== "") {
-				echo "<span class=\"post-meta\">$m</span>";
-			}
+            echo $childInv->notableAttributes($notableAttributes);
 
 			echo "</div>";
 		}

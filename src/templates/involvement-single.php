@@ -3,6 +3,7 @@
 use tp\TouchPointWP\Involvement;
 use tp\TouchPointWP\Meeting;
 use tp\TouchPointWP\PostTypeCapable;
+use tp\TouchPointWP\Taxonomies;
 use tp\TouchPointWP\TouchPointWP;
 
 $postType = get_post_type();
@@ -50,6 +51,17 @@ TouchPointWP::enqueuePartialsStyle();
                 __($meetingsCalled) // deliberately no domain
             );
             echo "</div>";
+        } elseif ($obj->isPast()) {
+            echo "<div class='section-inner tpwp-alert-block tpwp-alert-info'>";
+
+            $meetingsCalled = $tps->mc_name_singular;
+
+            echo wp_sprintf(
+            // Translators: %s is the singular name of the of a Meeting, such as "Event".
+                    __('This %s has already happened.', 'TouchPoint-WP'),
+                    __($meetingsCalled) // deliberately no domain
+            );
+            echo "</div>";
         }
     }
 
@@ -70,12 +82,8 @@ TouchPointWP::enqueuePartialsStyle();
         <div class="TouchPointWP-detail-cell">
             <div class="TouchPointWP-detail-cell-section involvement-logistics">
                 <?php
-                $metaStrings = [];
-                foreach ($obj->notableAttributes() as $a)
-                {
-                    $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-                }
-                echo implode("<br />", $metaStrings);
+                $notableAttributes = $obj->notableAttributes();
+                echo $notableAttributes->join("<br />");
                 ?>
             </div>
             <div class="TouchPointWP-detail-cell-section involvement-actions">

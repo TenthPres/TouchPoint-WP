@@ -20,7 +20,7 @@ Author URI:         https://github.com/jkrrv
 License:            AGPLv3+
 Text Domain:        TouchPoint-WP
 Requires at least:  6.0
-Tested up to:       6.8
+Tested up to:       6.8.2
 Requires PHP:       8.0
 Release Asset:      true
 */
@@ -54,15 +54,21 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once __DIR__ . "/src/TouchPoint-WP/Geo.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Cleanup.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Colors.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Database.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Translation.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/ImageConversions.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/PersonArray.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/StringableArray.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/NotableAttributes.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Session.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/DateFormats.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/DateTimeExtended.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Http.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Taxonomies.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/hasGeo.php";
+
+	require_once __DIR__ . "/src/TouchPoint-WP/Blocks/BlocksController.php";
 
 	require_once __DIR__ . "/src/TouchPoint-WP/Person.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Meeting.php";

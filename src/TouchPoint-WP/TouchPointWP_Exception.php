@@ -34,7 +34,7 @@ class TouchPointWP_Exception extends Exception
 			$message = $this->getMessage();
 			if (current_user_can('manage_options') && self::debugMode()) {
 				$message .= "<br />" . $this->getFile() . " @ " . $this->getLine() . "<br />";
-				$message .= str_replace("\n", "<br />", $this->getTraceAsString());
+				$message .= str_replace("\n", "<br />", esc_html($this->getTraceAsString()));
 			}
 			self::showAdminError($message);
 		}

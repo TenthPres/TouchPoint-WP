@@ -23,6 +23,7 @@ use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\Interfaces\hasGeo;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Interfaces\updatesViaCron;
+use tp\TouchPointWP\Utilities\NotableAttributes;
 use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Error;
 use WP_Post;
@@ -199,7 +200,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		// Color!
 		if (count($this->category) > 0) {
 			$c           = $this->category[0];
-			$this->color = Utilities::getColorFor($c->slug, $c->taxonomy);
+			$this->color = Utilities\Colors::getColorFor($c->slug, $c->taxonomy);
 		}
 
 		$this->registerConstruction();
@@ -222,7 +223,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 				'hierarchical'      => false,
 				'show_ui'           => false,
 				'show_in_nav_menus' => true,
-				'show_in_rest'      => false, // For the benefit of secure partners
+				'show_in_rest'      => true, // For the benefit of secure partners
 				'supports'          => [
 					'title',
 					'custom-fields',
@@ -261,8 +262,6 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		// Register function to return nulls instead of authors
 		add_filter('the_author', [self::class, 'filterAuthor'], 10, 3);
 		add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 3);
-
-		self::checkUpdates();
 	}
 
 	public static function checkUpdates(): void
@@ -795,7 +794,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 				// language=javascript
 				"
                 tpvm.addEventListener('Partner_fromObjArray', function() {
-                    TP_Partner.initFilters();
+                    tpvm.TP_Partner.initFilters();
                 });"
 			);
 			self::$filterJsAdded = true;
@@ -1198,8 +1197,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 			if ($format == '') {
 				try {
 					$gp      = self::fromPost($post);
-					$theDate = $gp->notableAttributes();
-					$theDate = implode(TouchPointWP::$joiner, $theDate);
+					$theDate = $gp->notableAttributes()->join();
 				} catch (TouchPointWP_Exception $e) {
 				}
 			} else {
@@ -1261,33 +1259,40 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 	/**
 	 * Get notable attributes as strings.
 	 *
-	 * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
+	 * @param array|StringableArray $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
 	 *
-	 * @return string[]
+	 * @return NotableAttributes
+	 * @since 0.0.6 Added
+	 * @since 0.0.96 Changed to use NotableAttributes instead of array.
+	 *
 	 */
-	public function notableAttributes(array $exclude = []): array
+	public function notableAttributes(array|StringableArray $exclude = []): NotableAttributes
 	{
-		$r = [];
+		$attrs = new NotableAttributes();
+		if (!is_array($exclude)) {
+			$exclude = $exclude->getArrayCopy();
+		}
 
 		$l = $this->locationName();
 		if ($this->decoupleLocation) {
-			$r['secure'] = $l;
+			$attrs['secure'] = $l;
 		} elseif ($l) {
-			$r['location'] = $l;
+			$attrs['location'] = $l;
 		}
 		unset($l);
 
 		foreach ($this->category as $c) {
-			$r['category'] = $c->name;
+			$attrs['category'] = $c->name;
 		}
 
 		// Not shown on map (only if there is a map, and the partner isn't on it because they lack geo.)
 		if (self::$_hasArchiveMap && $this->geo === null && ! $this->decoupleLocation) {
-			$r['hidden'] = __("Not Shown on Map", "TouchPoint-WP");
+			$attrs['hidden'] = __("Not Shown on Map", "TouchPoint-WP");
 			TouchPointWP::requireScript("fontAwesome");  // For map icons
 		}
 
-		$r = $this->processAttributeExclusions($r, $exclude);
+		$attrs = $this->processAttributeExclusions($attrs, $exclude);
+		$partner = $this;
 
 		/**
 		 * Allows for manipulation of the notable attributes strings for an Partner.  An array of strings.
@@ -1298,11 +1303,12 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		 * @see PostTypeCapable::notableAttributes()
 		 *
 		 * @since 0.0.6 Added
+		 * @since 0.0.96 Changed to use NotableAttributes instead of array.
 		 *
-		 * @param string[] $attrs The list of notable attributes.
-		 * @param Partner $this The Partner object.
+		 * @param NotableAttributes $attrs The list of notable attributes.
+		 * @param Partner $partner The Partner object.
 		 */
-		return apply_filters("tp_partner_attributes", $r, $this);
+		return apply_filters("tp_partner_attributes", $attrs, $partner);
 	}
 
 	/**
@@ -1326,7 +1332,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 	 *
 	 * @param string|null $context A string that gives filters some context for where the request is coming from
 	 * @param string      $btnClass HTML class names to put into the buttons/links
-	 * @param bool        $withTouchPointLink Whether to include a link to the item within TouchPoint.
+	 * @param bool        $withTouchPointLink Whether to include a link to the item within TouchPoint. (not used)
 	 * @param bool        $absoluteLinks  Set true to make the links absolute, so they work from apps or emails.
 	 *
 	 * @return StringableArray
@@ -1380,7 +1386,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		$listStr = json_encode($queue);
 
 		return "\ttpvm.addEventListener('Partner_class_loaded', function() {
-        TP_Partner.fromObjArray($listStr);\n\t});\n";
+        tpvm.TP_Partner.fromObjArray($listStr);\n\t});\n";
 	}
 
 	/**
