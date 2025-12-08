@@ -34,6 +34,7 @@ class ScheduleSet extends RSet
 	/**
 	 * Merge compatible RRules when possible.
 	 * This method attempts to combine multiple RRules into fewer rules when they share compatible properties.
+	 * It applies iteratively to reduce rules as far as possible (e.g., Yearly -> Monthly -> Weekly).
 	 */
 	public function mergeIfPossible(): void
 	{
@@ -43,38 +44,51 @@ class ScheduleSet extends RSet
 			return; // Nothing to merge
 		}
 
-		// Group rules by frequency
-		$groupedByFreq = [];
-		foreach ($rules as $rule) {
-			$ruleData = $rule->getRule();
-			$freq = $ruleData['FREQ'];
-			if (!isset($groupedByFreq[$freq])) {
-				$groupedByFreq[$freq] = [];
+		$maxIterations = 10; // Prevent infinite loops
+		$iteration = 0;
+		$previousCount = count($rules);
+		
+		do {
+			$iteration++;
+			
+			// Group rules by frequency
+			$groupedByFreq = [];
+			foreach ($rules as $rule) {
+				$ruleData = $rule->getRule();
+				$freq = $ruleData['FREQ'];
+				if (!isset($groupedByFreq[$freq])) {
+					$groupedByFreq[$freq] = [];
+				}
+				$groupedByFreq[$freq][] = $rule;
 			}
-			$groupedByFreq[$freq][] = $rule;
-		}
 
-		// Process each frequency group
-		$newRules = [];
-		foreach ($groupedByFreq as $freq => $freqRules) {
-			if ($freq === 'WEEKLY') {
-				$merged = $this->mergeWeeklyRules($freqRules);
-				$newRules = array_merge($newRules, $merged);
-			} elseif ($freq === 'YEARLY') {
-				$merged = $this->mergeYearlyRules($freqRules);
-				$newRules = array_merge($newRules, $merged);
-			} elseif ($freq === 'MONTHLY') {
-				$merged = $this->mergeMonthlyRules($freqRules);
-				$newRules = array_merge($newRules, $merged);
-			} else {
-				// Keep rules we can't merge
-				$newRules = array_merge($newRules, $freqRules);
+			// Process each frequency group
+			$newRules = [];
+			foreach ($groupedByFreq as $freq => $freqRules) {
+				if ($freq === 'WEEKLY') {
+					$merged = $this->mergeWeeklyRules($freqRules);
+					$newRules = array_merge($newRules, $merged);
+				} elseif ($freq === 'YEARLY') {
+					$merged = $this->mergeYearlyRules($freqRules);
+					$newRules = array_merge($newRules, $merged);
+				} elseif ($freq === 'MONTHLY') {
+					$merged = $this->mergeMonthlyRules($freqRules);
+					$newRules = array_merge($newRules, $merged);
+				} else {
+					// Keep rules we can't merge
+					$newRules = array_merge($newRules, $freqRules);
+				}
 			}
-		}
+
+			$rules = $newRules;
+			$currentCount = count($rules);
+			
+			// Continue if we made progress and haven't hit max iterations
+		} while ($currentCount < $previousCount && $iteration < $maxIterations && $currentCount = $previousCount = $currentCount);
 
 		// Replace the rules in this set by clearing and re-adding
 		$this->rrules = [];
-		foreach ($newRules as $rule) {
+		foreach ($rules as $rule) {
 			$this->addRRule($rule);
 		}
 		$this->clearCache();
@@ -140,27 +154,20 @@ class ScheduleSet extends RSet
 
 			$signature = $group['signature'];
 			
-			// For UNTIL-based rules, check if they end in the same week
+			// For UNTIL-based rules, check if they can share an end date
 			if ($signature['until'] !== null) {
-				// Merge only if all UNTIL dates are in the same week
-				$allSameWeek = true;
-				$weekRef = null;
+				// Check if all rules can be merged with a shared end date
+				$canMerge = true;
 				$latestUntil = null;
 				
+				// Find the latest UNTIL date
 				foreach ($groupRules as $rule) {
 					$ruleData = $rule->getRule();
 					$until = $ruleData['UNTIL'];
-					$week = $this->getWeekOfDate($until);
 					
-					if ($weekRef === null) {
-						$weekRef = $week;
+					if ($latestUntil === null) {
 						$latestUntil = $until;
 					} else {
-						if ($week !== $weekRef) {
-							$allSameWeek = false;
-							break;
-						}
-						// Keep the latest UNTIL date
 						$untilCompare = $this->compareDates($until, $latestUntil);
 						if ($untilCompare > 0) {
 							$latestUntil = $until;
@@ -168,7 +175,34 @@ class ScheduleSet extends RSet
 					}
 				}
 				
-				if (!$allSameWeek) {
+				// Check if each rule's pattern is compatible with using the latest end date
+				// A rule is compatible if it doesn't have occurrences between its own end and the latest end
+				// that would conflict with another rule's pattern
+				foreach ($groupRules as $rule) {
+					$ruleData = $rule->getRule();
+					$ruleUntil = $ruleData['UNTIL'];
+					
+					// If this rule ends before the latest, check if its pattern would have
+					// any occurrences between its end and the latest end
+					if ($this->compareDates($ruleUntil, $latestUntil) < 0) {
+						// For weekly rules, check if this rule's days would occur
+						// between its end and the latest end
+						$ruleByday = $ruleData['BYDAY'];
+						if (!empty($ruleByday)) {
+							$ruleDays = is_string($ruleByday) ? explode(',', $ruleByday) : $ruleByday;
+							
+							// Check if any occurrence would fall between ruleUntil and latestUntil
+							$hasConflict = $this->hasOccurrencesBetween($rule, $ruleUntil, $latestUntil);
+							
+							if ($hasConflict) {
+								$canMerge = false;
+								break;
+							}
+						}
+					}
+				}
+				
+				if (!$canMerge) {
 					// Can't merge, keep them separate
 					$mergedRules = array_merge($mergedRules, $groupRules);
 					continue;
@@ -523,6 +557,33 @@ class ScheduleSet extends RSet
 		
 		// Fallback to standard parsing
 		return new \DateTime($dateStr);
+	}
+
+	/**
+	 * Check if a rule would have any occurrences between two dates.
+	 * 
+	 * @param \RRule\RRule $rule The rule to check
+	 * @param string|\DateTime $startDate Start of the range (exclusive)
+	 * @param string|\DateTime $endDate End of the range (inclusive)
+	 * @return bool True if the rule has occurrences in the range
+	 */
+	private function hasOccurrencesBetween($rule, $startDate, $endDate): bool
+	{
+		try {
+			$start = $startDate instanceof \DateTime ? clone $startDate : $this->parseDateString($startDate);
+			$end = $endDate instanceof \DateTime ? clone $endDate : $this->parseDateString($endDate);
+			
+			// Add one day to start to make it exclusive
+			$start->modify('+1 day');
+			
+			// Get occurrences between the dates
+			$occurrences = $rule->getOccurrencesBetween($start, $end, 1);
+			
+			return count($occurrences) > 0;
+		} catch (\Exception $e) {
+			// If we can't determine, assume there might be occurrences (safer)
+			return true;
+		}
 	}
 
 	/**
