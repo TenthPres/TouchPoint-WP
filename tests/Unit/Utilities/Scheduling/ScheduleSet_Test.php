@@ -32,7 +32,7 @@ class ScheduleSet_Test extends TestCase
 	 */
 	public function test_merge_weeklyOpenEnded(): void
 	{
-		$set = new ScheduleSet("FREQ=WEEKLY;BYDAY=MO,WE;COUNT=10");
+		$set = new ScheduleSet("RRULE:FREQ=WEEKLY;BYDAY=MO,WE;COUNT=10");
 		$set->addRRule("FREQ=WEEKLY;BYDAY=FR;COUNT=10");
 
 		$set->mergeIfPossible();
@@ -47,7 +47,7 @@ class ScheduleSet_Test extends TestCase
 	 */
 	public function test_merge_differentFrequencies(): void
 	{
-		$set = new ScheduleSet("FREQ=DAILY;COUNT=10");
+		$set = new ScheduleSet("RRULE:FREQ=DAILY;COUNT=10");
 		$set->addRRule("FREQ=WEEKLY;BYDAY=MO,WE;COUNT=5");
 		$set->mergeIfPossible();
 
@@ -59,7 +59,7 @@ class ScheduleSet_Test extends TestCase
 	 */
 	public function test_merge_withEndDate(): void
 	{
-		$set = new ScheduleSet("FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20231231T000000Z");
+		$set = new ScheduleSet("RRULE:FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20231231T000000Z");
 		$set->addRRule("FREQ=WEEKLY;BYDAY=FR;COUNT=10");
 		$set->mergeIfPossible();
 
