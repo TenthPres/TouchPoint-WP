@@ -12,3 +12,4 @@ Remove-Item "i18n/*.mo"
 
 php .\wp-cli.phar i18n make-json i18n --no-purge
 php .\wp-cli.phar i18n make-mo i18n
+php .\wp-cli.phar i18n make-php i18n

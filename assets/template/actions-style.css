@@ -28,3 +28,8 @@ div.swal2-content table.tp-radio-list {
 button[data-tp-action]:not([disabled]) {
     cursor: pointer;
 }
+
+.tp-TouchPoint-logo svg {
+    height: 1.2em;
+    margin-bottom: -0.2em;
+}

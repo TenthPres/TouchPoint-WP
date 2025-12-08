@@ -6,13 +6,13 @@
 namespace tp\TouchPointWP\Utilities;
 
 use Exception;
-use tp\TouchPointWP\api;
 use tp\TouchPointWP\ExtraValueHandler;
+use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\Partner;
 use tp\TouchPointWP\Person;
 use tp\TouchPointWP\TouchPointWP;
 use tp\TouchPointWP\TouchPointWP_Exception;
-use tp\TouchPointWP\TouchPointWP_Settings;
+use tp\TouchPointWP\Settings;
 
 if ( ! defined('ABSPATH')) {
 	exit(1);
@@ -84,7 +84,7 @@ abstract class Cleanup implements api
 	 */
 	protected static function cleanMemberTypes(): ?bool
 	{
-		$mtObj       = TouchPointWP_Settings::instance()->get('meta_memberTypes');
+		$mtObj       = Settings::instance()->get('meta_memberTypes');
 		$needsUpdate = false;
 
 		if ($mtObj === false) {
@@ -102,7 +102,7 @@ abstract class Cleanup implements api
 		}
 
 		if ($needsUpdate) {
-			return TouchPointWP_Settings::instance()->set('meta_memberTypes', json_encode($mtObj));
+			return Settings::instance()->set('meta_memberTypes', json_encode($mtObj));
 		}
 
 		return null;

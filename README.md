@@ -22,6 +22,11 @@ If you're a developer looking to leverage this for a church, you're welcome to b
 [Small Groups Example.](https://www.tenth.org/smallgroups)
 [Classes Example.](https://www.tenth.org/abs)
 
+### Event Calendar
+Automatically sync meetings from TouchPoint to your WordPress site, with details and images imported from their
+involvements. 
+[Example.](https://www.tenth.org/events)
+
 ### Crazy-Simple RSVP interface
 Let folks RSVP for an event for each member in their family in just a few clicks.
 No login required, just an email address and zip code.
@@ -30,17 +35,22 @@ No login required, just an email address and zip code.
 Show your Staff members, Elders, or other collections of people, automatically kept in sync with TouchPoint.
 [Example.](https://www.tenth.org/about/staff)  (This example and others like is are 100% updated from TouchPoint, including the titles and social links.)
 
+### Embedded Reports
+Any SQL or Python report generated in TouchPoint can be embedded into your website and automatically updated.  For example,
+we have a financial update chart that is automatically updated to reflect giving. 
+[Example (the bar graph on this page).](https://www.tenth.org/give)
+
 ### Outreach Partners
 Automatically import partner bios and info from TouchPoint for display on your public website, with 
 appropriate care for their security.
 [Example.](https://www.tenth.org/outreach/partners)
 
-### Events
-Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by
-ModernTribe](https://theeventscalendar.com/).  This is compatible with both the free and "Pro" versions.
-
 ### Authentication (Beta)
 Authenticate TouchPoint users to WordPress, so you can know your website users. 
+
+### Old App Calendar (Deprecated)
+Improve display of events in the TouchPoint Custom Mobile App by providing content from [The Events Calendar Plugin by
+Modern Tribe](https://theeventscalendar.com/).  This is compatible with both the free and "Pro" versions.
 
 ## Costs & Considerations
 
@@ -61,12 +71,16 @@ If you're not sure whether WordPress is the right tool for you, feel free to get
 relationships with several firms who could help with the setup and technical maintenance if you're interested.  But,
 it's probably not the right tool for every church.
 
+We do collect some basic usage data when you use this plugin, including the admin email address configured in WordPress,
+the site address, and the name of the site. We use this data to understand how the plugin is being used and to improve 
+it.  You can choose in the plugin settings whether to allow us to list your site publicly as a reference, including some
+basic anonymous statistics such as the number of involvements you have synced or the number of people who have RSVPed to
+meetings through the plugin. 
+
 ## Future Features
 - Authenticate
     - Track viewership of webpages and web resources non-anonymously.  (Know who attended your virtual worship service.)
     - Sync WordPress Permissions with TouchPoint involvements or roles.
-- Events
-    - Sync TouchPoint Meetings with events on your public web calendar.
 - Small Groups
     - Suggest demographically-targeted small groups.
 - Integrated Directory
@@ -79,21 +93,20 @@ it's probably not the right tool for every church.
 Making this work requires notable configuration of your TouchPoint database.  We've scripted what we can, and the
 remainder is in [the Installation Instructions](https://github.com/TenthPres/TouchPoint-WP/wiki/Installation).
 
-Some features require other plugins, which may have fees attached.
-
 You will need a TouchPoint user account with API-level access. New TouchPoint databases do not have one by default. 
 If your church doesn't have one, open a support ticket with TouchPoint to create one, referencing this plugin.
 
 If you're using the Authentication component, your WordPress site **MUST** use HTTPS with a valid certificate.
 
 We don't promise support for old versions of WordPress or PHP.  You will need to keep both up to date.
+[See currently-supported PHP versions here.](https://www.php.net/supported-versions.php)
 
 ## Multisite Support
 
 At the moment, this plugin won't perform very well in a multisite environment.  We're working on that, though, as we 
-plan on moving our own infrastructure toward multisite soon.  As currently planned, ALL sites in a multisite network 
-will share ONE TouchPoint connection, and many (though not all) of the settings would be shared across the network.  If 
-you're interested in using this plugin in a multisite environment, [please get in touch](mailto:jkurtz@tenth.org). 
+plan on moving our own infrastructure toward multisite eventually.  As currently planned, ALL sites in a multisite 
+network will share ONE TouchPoint connection, and many (though not all) of the settings would be shared across the 
+network.  If you're interested in using this plugin in a multisite environment, [please get in touch](mailto:jkurtz@tenth.org). 
 
 ## Credit & Hat-Tips
 

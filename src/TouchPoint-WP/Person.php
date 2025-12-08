@@ -10,23 +10,27 @@ if ( ! defined('ABSPATH')) {
 }
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once "api.php";
+	require_once "Interfaces/api.php";
 	require_once "extraValues.php";
 	require_once "jsInstantiation.php";
-	require_once "updatesViaCron.php";
+	require_once "Interfaces/actionButtons.php";
+	require_once "Interfaces/updatesViaCron.php";
 	require_once "InvolvementMembership.php";
 	require_once "Utilities.php";
 	require_once "Utilities/PersonQuery.php";
-	require_once "Utilities/Session.php";
 }
 
 use Exception;
 use JsonSerializable;
 use stdClass;
+use tp\TouchPointWP\Interfaces\actionButtons;
+use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\module;
+use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
-use tp\TouchPointWP\Utilities\Session;
+use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Term;
 use WP_User;
 
@@ -40,11 +44,8 @@ use WP_User;
  * @property ?int          campus_term_id    The Campus term ID
  * @property-read ?WP_Term resCode  The ResCode taxonomy, if present
  * @property ?int          rescode_term_id   The ResCode term ID
- * @property ?string       $loginSessionToken  A token that is saved on the Session variable and used to ensure links
- *     aren't used between sessions.
- * @property ?string       $loginToken    A token used to validate the user.
  */
-class Person extends WP_User implements api, JsonSerializable, module, updatesViaCron
+class Person extends WP_User implements api, JsonSerializable, module, updatesViaCron, actionButtons
 {
 	use jsInstantiation;
 	use extraValues;
@@ -105,15 +106,13 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		'user_activation_key',
 		'spam',
 		'show_admin_bar_front',
-//        'role', // Excluding prevents this from being set through __set
+//		'role', // Excluding prevents this from being set through __set
 		'locale'
 	];
 
 	private const FIELDS_FOR_META = [
 		'picture',
 		'familyId',
-		'loginToken',
-		'loginSessionToken',
 		'campus_term_id',
 		'rescode_term_id'
 	];
@@ -139,7 +138,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @return Person|TouchPointWP_Exception If a WP User ID is not provided, this exception is returned.
 	 */
-	public static function fromQueryResult($queryResult): Person
+	public static function fromQueryResult($queryResult): Person|TouchPointWP_Exception
 	{
 		if (is_numeric($queryResult)) {
 			return new Person($queryResult);
@@ -395,11 +394,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		/** @noinspection SpellCheckingInspection */
 		$params = shortcode_atts(
 			[
-				'class'         => 'TouchPoint-person people-list',
+				'class'         => 'people-list',
 				'invid'         => null,
-				'id'            => wp_unique_id('tp-actions-'),
 				'withsubgroups' => false,
-				'btnclass'      => 'btn button'
+				'btnclass'      => 'btn button',
+				'context'       => ''
 			],
 			$params,
 			self::SHORTCODE_PEOPLE_LIST
@@ -435,7 +434,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 				self::$_indexingQueries['inv'][$iid] = [
 					'invId'          => $iid,
 					'memTypes'       => null,
-//                    'subGroups' => null,
+//					'subGroups' => null,
 					'with_subGroups' => false // populated below
 				];
 			}
@@ -476,6 +475,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		$people   = $q->get_results();
 		$btnClass = $params['btnclass'];
+		$listClass = $params['class'];
+
+		if ($content === "") {
+			$content = "<!-- " . __("No people to show.  This may be because the list hasn't synced yet, or because it is not configured correctly.") . " -->";
+		}
 
 		$loadedPart = get_template_part('person-list', 'person-list');
 		if ($loadedPart === false) {
@@ -485,8 +489,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			$out .= ob_get_clean();
 		}
 		// TODO DIR make sure this actually works with external partials.
-		// TODO DIR provide an alternate if there are no people available.
-
+		
+		if (trim($out) === "") {
+			return $content;
+		}
 
 		return $out;
 	}
@@ -654,7 +660,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	{
 		try {
 			self::updateFromTouchPoint();
-		} catch (Exception $ex) {
+		} catch (Exception) {
 		}
 	}
 
@@ -663,10 +669,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @param bool $verbose Whether to print debugging info.
 	 *
-	 * @return false|int False on failure, or the number of partner posts that were updated or deleted.
+	 * @return false|int False on failure, or the number of people that were updated or deleted.
 	 * @throws TouchPointWP_Exception
 	 */
-	protected static function updateFromTouchPoint(bool $verbose = false)
+	protected static function updateFromTouchPoint(bool $verbose = false): bool|int
 	{
 		global $wpdb;
 
@@ -688,16 +694,27 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		// Find People Lists in post content and add their involvements to the query.
 		if (TouchPointWP::instance()->settings->enable_people_lists) {
-			$posts = Utilities::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_LIST);
+			$posts = Utilities\Database::getPostContentWithShortcode(self::SHORTCODE_PEOPLE_LIST);
+
+			global $post;
+			$originalPost = $post;
 
 			self::$_indexingMode = true;
 			foreach ($posts as $postI) {
-				global $post;
+				if (!is_object($postI)) {
+					continue;
+				}
+				if (!property_exists($postI, 'post_content')) {
+					continue;
+				}
+
 				$post = $postI;
 				set_time_limit(10);
 				apply_shortcodes($postI->post_content);
 			}
 			self::$_indexingMode = false;
+
+			$post = $originalPost;
 		}
 
 		// Add Involvement Leaders to the query.
@@ -707,7 +724,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 				// Get the InvIds for the Involvement Type's Posts
 				$postType = $type->postTypeWithPrefix();
-				$key      = Involvement::INVOLVEMENT_META_KEY;
+				$key      = TouchPointWP::INVOLVEMENT_META_KEY;
 				global $wpdb;
 				/** @noinspection SqlResolve */
 				$sql = "SELECT pm.meta_value AS iid
@@ -723,11 +740,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 						self::$_indexingQueries['inv'][$iid] = [
 							'invId'          => $iid,
 							'memTypes'       => $type->leaderTypeInts(),
-//                           'subGroups' => null,
+//						   'subGroups' => null,
 							'with_subGroups' => false
 						];
 					} elseif (is_array(self::$_indexingQueries['inv'][$iid]['memTypes'])) {
-						$r                                               = array_merge(
+						$r = array_merge(
 							self::$_indexingQueries['inv'][$iid]['memTypes'],
 							$type->leaderTypeInts()
 						);
@@ -765,8 +782,12 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		self::$_indexingQueries['meta']['pev'] = TouchPointWP::instance()->getPersonEvFields($pevFieldIds);
 		self::$_indexingQueries['context']     = 'peopleLists';
 
+		$timeout = max((count(self::$_indexingQueries['pid']) / 2) + (count(self::$_indexingQueries['inv']) * 10) + 10, 50);
+
 		// Submit to API
-		$people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, 50);
+		$people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, $timeout);
+
+		TouchPointWP::instance()->setTpWpUserAsCurrent();
 
 		set_time_limit(count($people->people) * 5 + 10); // a very generous time limit.
 
@@ -780,6 +801,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 				echo "Success";
 			}
 		}
+
+		TouchPointWP::instance()->unsetTpWpUserAsCurrent();
 
 		return $count;
 	}
@@ -948,11 +971,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$person->picture = $pData->Picture;
 
 		// resCodes and Campuses
-		$person->rescode_term_id = TouchPointWP::getTaxTermId(TouchPointWP::TAX_RESCODE, $pData->ResCode);
+		$person->rescode_term_id = Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, $pData->ResCode);
 		if (TouchPointWP::instance()->settings->enable_campuses !== "on") {
 			$person->campus_term_id = null;
 		} else {
-			$person->campus_term_id = TouchPointWP::getTaxTermId(TouchPointWP::TAX_CAMPUS, $pData->CampusId);
+			$person->campus_term_id = Taxonomies::getTaxTermId(Taxonomies::TAX_CAMPUS, $pData->CampusId);
 		}
 
 		// Deliberately do not update usernames or passwords, as those could be set by any number of places for any number of reasons.
@@ -1087,21 +1110,6 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
-	 * Used for setting or clearing a user's login tokens
-	 *
-	 * @param string|null $session
-	 * @param string|null $login
-	 *
-	 * @return void
-	 */
-	public function setLoginTokens(?string $session, ?string $login): void
-	{
-		$this->loginToken        = $login;
-		$this->loginSessionToken = $session;
-		$this->submitUpdate();
-	}
-
-	/**
 	 * Send WordPress User IDs to WordPress for storage in an extra value
 	 *
 	 * @return void
@@ -1112,12 +1120,12 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			return;
 		}
 		try {
-			TouchPointWP::instance()->apiPost('person_wpIds', [
+			TouchPointWP::instance()->api->pyPost('person_wpIds', [
 				'people' => self::$_peopleWhoNeedWpIdUpdatedInTouchPoint,
 				'evName' => TouchPointWP::instance()->settings->people_ev_wpId
 			]);
 			self::$_peopleWhoNeedWpIdUpdatedInTouchPoint = [];
-		} catch (Exception $ex) { // If it fails this time, it'll probably get fixed next time
+		} catch (Exception) { // If it fails this time, it'll probably get fixed next time
 		}
 	}
 
@@ -1135,7 +1143,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			if ($this->campus_term_id === null) {
 				$this->_campus = null;
 			} else {
-				$this->_campus = WP_Term::get_instance($this->campus_term_id, TouchPointWP::TAX_CAMPUS);
+				$this->_campus = WP_Term::get_instance($this->campus_term_id, Taxonomies::TAX_CAMPUS);
 			}
 			$this->_campusLoaded = true;
 		}
@@ -1154,7 +1162,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			if ($this->rescode_term_id === null) {
 				$this->_resCode = null;
 			} else {
-				$this->_resCode = WP_Term::get_instance($this->rescode_term_id, TouchPointWP::TAX_RESCODE);
+				$this->_resCode = WP_Term::get_instance($this->rescode_term_id, Taxonomies::TAX_RESCODE);
 			}
 			$this->_resCodeLoaded = true;
 		}
@@ -1164,33 +1172,77 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 	/**
 	 * Returns the html with buttons for actions the user can perform.  This must be called *within* an element with
-	 * the `data-tp-person` attribute with the invId as the value.
+	 *  the `data-tp-person` attribute with the peopleId as the value.
 	 *
 	 * @param ?string $context A reference to where the action buttons are meant to be used.
 	 * @param string  $btnClass A string for classes to add to the buttons.  Note that buttons can be a or button
 	 *     elements.
+	 * @param bool    $withTouchPointLink
+	 * @param bool    $absoluteLinks
 	 *
-	 * @return string
+	 * @return StringableArray
 	 */
-	public function getActionButtons(string $context = null, string $btnClass = ""): string
+	public function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray
 	{
-		TouchPointWP::requireScript('swal2-defer');
-		TouchPointWP::requireScript('base-defer');
-		$this->enqueueForJsInstantiation();
+		if (!$absoluteLinks) {
+			TouchPointWP::requireScript('swal2-defer');
+			TouchPointWP::requireScript('base-defer');
+			$this->enqueueForJsInstantiation();
+			Person::enqueueUsersForJsInstantiation();
+		}
 
+		$classesOnly = $btnClass;
 		if ($btnClass !== "") {
 			$btnClass = " class=\"$btnClass\"";
 		}
+		global $wp;
+		$baseLink = add_query_arg($wp->query_vars, home_url($wp->request));
 
-		$ret = "";
+		$ret = new StringableArray();
 		if (self::allowContact()) {
 			$text = __("Contact", "TouchPoint-WP");
-			TouchPointWP::enqueueActionsStyle('person-contact');
-			self::enqueueUsersForJsInstantiation();
-			$ret = "<button type=\"button\" data-tp-action=\"contact\" $btnClass>$text</button>  ";
+			$pid = $this->peopleId;
+			if (!$absoluteLinks) {
+				$ret['contact'] = "<button type=\"button\" data-tp-person=\"$pid\" data-tp-action=\"contact\" $btnClass>$text</button> ";
+				TouchPointWP::enqueueActionsStyle('person-contact');
+				self::enqueueUsersForJsInstantiation();
+			} else {
+				$ret['contact'] = "<a href=\"$baseLink#tp-contact-p$pid\"$btnClass>$text</a> ";
+			}
 		}
 
-		return apply_filters(TouchPointWP::HOOK_PREFIX . "person_actions", $ret, $this, $context, $btnClass);
+		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
+			// Translators: %s is the system name, "TouchPoint" by default.
+			$title  = wp_sprintf(__("Person in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
+			$logo = TouchPointWP::TouchPointIcon();
+			$ret['inv_tp']  = "<a href=\"{$this->getProfileUrl()}\" title=\"$title\" class=\"tp-TouchPoint-logo $classesOnly\">$logo</a>";
+		}
+
+		/**
+		 * Allows for manipulation of the action buttons for a Person.  This is the list of buttons that appear
+		 * on the Person to allow the user to interact with them.
+		 *
+		 * @since 0.0.90 Added
+		 * @since 0.0.96 Adjusted parameters and return value to have type StringableArray rather than string.  If the
+		 *      return value is not a StringableArray, it will be forced into one.
+		 *
+		 * @see Person::getActionButtons()
+		 *
+		 * @param StringableArray $ret The list of action buttons.
+		 * @param Person $this The Person object.
+		 * @param ?string $context A reference to where the action buttons are meant to be used.
+		 * @param string $btnClass A string for classes to add to the buttons.  Note that buttons can be 'a' or 'button'
+		 *     elements.
+		 */
+		$ret = apply_filters("tp_person_actions", $ret, $this, $context, $btnClass);
+
+		if ($ret instanceof StringableArray) {
+			return $ret;
+		}
+
+		$r = new StringableArray();
+		$r->append($ret);
+		return $r;
 	}
 
 	/**
@@ -1203,11 +1255,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	public static function enqueueForJS_byPeopleId(int $pid): ?bool
 	{
 		$p = self::fromPeopleId($pid);
-		if ($p === null) {
-			return null;
-		}
 
-		return $p->enqueueForJsInstantiation();
+		return $p?->enqueueForJsInstantiation();
 	}
 
 	/**
@@ -1220,6 +1269,29 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	{
 		self::$_enqueueUsersForJsInstantiation = true;
 	}
+
+
+	/**
+	 * TODO there has to be a better way to do this.
+	 *
+	 * @return Person[]
+	 */
+	protected static function getPeopleFromTransient(): array
+	{
+		$loggedInUser = TouchPointWP::currentUserPerson();
+
+		if ($loggedInUser === null) {
+			return [];
+		}
+
+		$peopleTransient = get_transient("tp_person_ident_" . $loggedInUser->peopleId);
+		if (!$peopleTransient || !isset($peopleTransient->people)) {
+			return [];
+		}
+
+		return $peopleTransient->people;
+	}
+
 
 	/**
 	 * Return the instances to be used for instantiation.
@@ -1235,8 +1307,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		}
 
 		if (self::$_enqueueUsersForJsInstantiation) {
-			$s    = Session::instance();
-			$list = array_merge($list, $s->people ?? []);
+			$list = array_merge($list, self::getPeopleFromTransient());
 		}
 
 		// Remove duplicates.  (array_unique won't handle objects cleanly)
@@ -1278,14 +1349,15 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$listStr = json_encode($queue);
 
 		$out = "\ttpvm.addOrTriggerEventListener('Person_class_loaded', function() {\n";
-		$out .= "\t\tTP_Person.fromObjArray($listStr);\n";
+		$out .= "\t\ttpvm.TP_Person.fromObjArray($listStr);\n";
 
-		if (self::$_enqueueUsersForJsInstantiation) {
-			$s     = Session::instance();
-			$pFids = json_encode($s->primaryFam ?? []);
-			$sFids = json_encode($s->secondaryFam ?? []);
-			$out   .= "\t\tTP_Person.identByFamily($pFids, $sFids);\n";
-		}
+// TODO restore, better.
+//		if (self::$_enqueueUsersForJsInstantiation) {
+//			$s     = Session::instance();
+//			$pFids = json_encode($s->primaryFam ?? []);
+//			$sFids = json_encode($s->secondaryFam ?? []);
+//			$out   .= "\t\tTP_Person.identByFamily($pFids, $sFids);\n";
+//		}
 
 		$out .= "\t});\n";
 
@@ -1330,6 +1402,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	{
 		// Best.  Matches TouchPoint username.  However, it is possible users won't have usernames.
 		foreach ($pData->Usernames as $u) {
+			if (stripos($u, 'admin') !== false) {
+				continue;
+			}
+
 			if ( ! username_exists($u)) {
 				return $u;
 			}
@@ -1352,14 +1428,25 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		return self::BACKUP_USER_PREFIX . $pData->PeopleId;
 	}
 
-	public function hasProfilePage(): bool
+	/**
+	 * Returns true if the person has posts and therefore has a user page.
+	 *
+	 * @return bool
+	 */
+	public function hasUserPage(): bool
 	{
 		return count_user_posts($this->ID) > 0;
 	}
 
-	public function getProfileUrl(): ?string
+
+	/**
+	 * Get the link to the person's author post page.
+	 *
+	 * @return ?string
+	 */
+	public function getUserUrl(): ?string
 	{
-		if ( ! ! apply_filters(TouchPointWP::HOOK_PREFIX . 'use_person_link', $this->hasProfilePage(), $this)) {
+		if ($this->hasUserPage()) {
 			return get_author_posts_url($this->ID);
 		} else {
 			return null;
@@ -1367,13 +1454,26 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
+	 * Returns the person's TouchPoint profile URL.
+	 *
+	 * @return ?string
+	 */
+	public function getProfileUrl(): ?string
+	{
+		$tpHost = TouchPointWP::instance()->host();
+		return "$tpHost/Person/$this->peopleId";
+	}
+
+	/**
 	 * Take an array of Person-ish objects and return a nicely human-readable list of names.
 	 *
 	 * @param Person[]|PersonArray $people TODO make api compliant with Person object--remove coalesces.  (#120)
 	 *
+	 * TODO merge with Utilities::stringArrayToListString()
+	 *
 	 * @return ?string  Returns a human-readable list of names, nicely formatted with commas and such.
 	 */
-	public static function arrangeNamesForPeople($people, int $familyLimit = 3): ?string
+	public static function arrangeNamesForPeople($people, bool $asLink = false, int $familyLimit = 3): ?string
 	{
 		$people = self::groupByFamily($people);
 		if (count($people) === 0) {
@@ -1389,17 +1489,17 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$and         = ' & ';
 		$useOxford   = false;
 		foreach ($people as $family) {
-			$fn = self::formatNamesForFamily($family);
-			if (strpos($fn, ', ') !== false) {
+			$fn = self::formatNamesForFamily($family, $asLink);
+			if (str_contains($fn, ', ')) {
 				$comma     = '; ';
-				$useOxford = true;
 			}
-			if (strpos($fn, ' & ') !== false) {
+			if (str_contains($fn, ' & ')) {
 				$and       = ' ' . __('and', 'TouchPoint-WP') . ' ';
 				$useOxford = true;
 			}
 			$familyNames[] = $fn;
 		}
+
 		if ($andOthers) {
 			$last = _x("others", "list of people, and *others*", "TouchPoint-WP");
 		} else {
@@ -1427,7 +1527,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @return ?string Returns a human-readable list of names, nicely formatted with commas and such.
 	 */
-	protected static function formatNamesForFamily(array $family): ?string  // Standardize API  (#120)
+	protected static function formatNamesForFamily(array $family, bool $asLink = false): ?string  // Standardize API  (#120)
 	{
 		if (count($family) < 1) {
 			return null;
@@ -1440,23 +1540,40 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		usort($family, fn($a, $b) => ($a->GenderId ?? 0) <=> ($b->GenderId ?? 0));
 
 		$isFirst = true;
+		$hasLink = false;
 		foreach ($family as $p) {
 			$last = $p->LastName ?? $p->last_name;
 			if ($standingLastName != $last) {
 				$string .= " " . $standingLastName;
 
+				if ($hasLink) {
+					$string .= "</a>";
+				}
+
 				$standingLastName = $last;
 			}
 
-			if ( ! $isFirst && count($family) > 1) {
+			if (!$isFirst && count($family) > 1) {
 				$string .= " & ";
 			}
 
+			$hasLink = false;
+			if ($asLink) {
+				$link = $p->getUserUrl();
+				if ($link !== null) {
+					$string .= "<a href=\"$link\">";
+					$hasLink = true;
+				}
+			}
 			$string .= $p->GoesBy ?? $p->first_name;
 
 			$isFirst = false;
 		}
 		$string .= " " . $standingLastName;
+
+		if ($hasLink) {
+			$string .= "</a>";
+		}
 
 		$lastAmpPos = strrpos($string, " & ");
 
@@ -1516,21 +1633,6 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			unset($inputData->pid);
 		}
 
-		$r = self::ident($inputData);
-
-		echo json_encode($r);
-		exit;
-	}
-
-	/**
-	 * Make the API call to get family members, store the results to the Session, and return them.
-	 *
-	 * @param $inputData
-	 *
-	 * @return array
-	 */
-	public static function ident($inputData): array
-	{
 		// user validation.
 		$comment = "";
 		$valid = Utilities::validateRegistrantEmailAddress("", $inputData->email, $comment);
@@ -1544,9 +1646,26 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		}
 		unset($valid, $comment);
 
+		$r = self::ident($inputData);
+
+		echo json_encode($r);
+		exit;
+	}
+
+	/**
+	 * Make the API call to get family members and return them.
+	 *
+	 * This is used for both formal and informal auth.  Email addresses should be checked for spam likelihood before this point.
+	 *
+	 * @param $inputData
+	 *
+	 * @return array
+	 */
+	public static function ident($inputData): array
+	{
 		try {
 			$inputData->context = "ident";
-			$data               = TouchPointWP::instance()->apiPost('ident', $inputData, 30);
+			$data               = TouchPointWP::instance()->api->pyPost('ident', $inputData, 30);
 		} catch (Exception $ex) {
 			http_response_code(Http::SERVER_ERROR);
 			echo json_encode(['error' => $ex->getMessage()]);
@@ -1557,7 +1676,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		$data->primaryFam = $data->primaryFam ?? [];
 
-		$s = Session::instance();
+		try {
+			$stats = Stats::instance();
+			$stats->softAuths += count($people);
+			$stats->updateDb();
+		} catch (Exception) {}
 
 		$ret          = [];
 		$primaryFam   = $s->primaryFam ?? [];
@@ -1581,10 +1704,17 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$sPeople   = array_merge($s->people ?? [], $ret);
 		$ids       = array_map(fn($p) => $p->peopleId, $sPeople);
 		$uniqIds   = array_unique($ids);
-		$s->people = array_values(array_intersect_key($sPeople, $uniqIds));
 
-		$s->primaryFam   = $primaryFam;
-		$s->secondaryFam = $secondaryFam;
+		// TODO determine if this is ever actually used or, more importantly, useful.  There has to be a better way to do this.
+		$primaryPerson = $sPeople[0] ?? null;
+		if ($primaryPerson) {
+			$personTransient = (object)[
+				'people'       => array_values(array_intersect_key($sPeople, $uniqIds)),
+				'primaryFam'   => $primaryFam,
+				'secondaryFam' => $secondaryFam
+			];
+			set_transient("tp_person_ident_" . $primaryPerson->peopleId, $personTransient, 60 * 60 * 12);
+		}
 
 		return [
 			'people'     => $ret,
@@ -1594,6 +1724,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 	/**
 	 * Return JSON for a people search, validating that the person has access to those people.
+	 * 
+	 * @deprecated Needs to be rewritten with proper API.
 	 *
 	 * @return void
 	 */
@@ -1605,9 +1737,9 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		if ($onBehalfOf === null) {
 			http_response_code(Http::UNAUTHORIZED);
 			echo json_encode([
-				                 "error"      => "Not Authorized.",
-				                 "error_i18n" => __("You may need to sign in.", 'TouchPoint-WP')
-			                 ]);
+								 "error"      => "Not Authorized.",
+								 "error_i18n" => __("You may need to sign in.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 
@@ -1617,7 +1749,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		if ($q['q'] !== '') {
 			try {
-				$data = TouchPointWP::instance()->apiGet('src', $q, 30);
+				$data = TouchPointWP::instance()->api->pyGet('src', $q, 30);
 				$data = $data->people ?? [];
 			} catch (Exception $ex) {
 				http_response_code(Http::SERVER_ERROR);
@@ -1636,10 +1768,25 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			];
 
 			$out['results'] = [];
+
+			$hasDupNames = false;
+			$names = [];
 			foreach ($data as $p) {
+				$name = "$p->goesBy $p->lastName";
+				if (in_array($name, $names)) {
+					$hasDupNames = true;
+					break;
+				} else {
+					$names[] = $name;
+				}
+			}
+
+			foreach ($data as $p) {
+				$showPid = $hasDupNames || str_contains($q['q'], $p->peopleId);
+
 				$out['results'][] = [
 					'id'   => $p->peopleId,
-					'text' => $p->goesBy . " " . $p->lastName
+					'text' => trim("$p->goesBy $p->lastName" . ($showPid ? " ($p->peopleId)" : ""))
 				];
 			}
 		} else {
@@ -1678,6 +1825,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 				self::ajaxContact();
 				exit;
 
+			case "list":
+				self::ajaxPeopleListShortcode();
+				exit;
+
 			case "force-sync":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
 				try {
@@ -1699,8 +1850,27 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 */
 	protected static function allowContact(): bool
 	{
-		$allowed = !!apply_filters(TouchPointWP::HOOK_PREFIX . 'allow_contact', true);
-		return !!apply_filters(TouchPointWP::HOOK_PREFIX . 'person_allow_contact', $allowed);
+		/**
+		 * Determines whether contact of any kind is allowed.  This is meant to prevent abuse in contact forms by
+		 * removing the ability to contact people and thereby hiding the forms.
+		 *
+		 * @since 0.0.35 Added
+		 *
+		 * @param bool $allowed True if contact is allowed.
+		 */
+		$allowed = !!apply_filters('tp_allow_contact', true);
+
+		/**
+		 * Determines whether contact is allowed for any People.  This is called *after* tp_allow_contact, and
+		 * that will set the default.
+		 *
+		 * @since 0.0.35 Added
+		 *
+		 * @see tp_allow_contact
+		 *
+		 * @param bool $allowed Previous response from tp_allow_contact.  True if contact is allowed.
+		 */
+		return !!apply_filters('tp_person_allow_contact', $allowed);
 	}
 
 	/**
@@ -1733,9 +1903,9 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		if (!$validate) {
 			http_response_code(Http::BAD_REQUEST);
 			echo json_encode([
-				                 'error'      => $result,
-				                 'error_i18n' => __("Contact Blocked for Spam.", 'TouchPoint-WP')
-			                 ]);
+								 'error'      => $result,
+								 'error_i18n' => __("Contact Blocked for Spam.", 'TouchPoint-WP')
+							 ]);
 			exit;
 		}
 
@@ -1744,7 +1914,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		// Submit the contact
 		try {
-			$data = TouchPointWP::instance()->apiPost('person_contact', $inputData);
+			$data = TouchPointWP::instance()->api->pyPost('person_contact', $inputData);
 		} catch (Exception $ex) {
 			http_response_code(Http::SERVER_ERROR);
 			echo json_encode(['error' => $ex->getMessage()]);
@@ -1753,6 +1923,21 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		echo json_encode(['success' => $data->success]);
 		exit;
+	}
+
+	/**
+	 * Handles the AJAX call to return a list of people.
+	 *
+	 * @return void
+	 */
+	protected static function ajaxPeopleListShortcode(): void
+	{
+		// This is an AJAX call, so we need to set the headers.
+		if ( ! headers_sent()) {
+			TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
+		}
+
+		echo self::peopleListShortcode($_GET, __('None right now.', 'TouchPoint-WP'));
 	}
 
 	/**
@@ -1804,7 +1989,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		if (TouchPointWP::instance()->settings->person_cron_last_run * 1 < time() - 86400 - 3600) {
 			try {
 				self::updateFromTouchPoint();
-			} catch (Exception $ex) {
+			} catch (Exception) {
 			}
 		}
 	}

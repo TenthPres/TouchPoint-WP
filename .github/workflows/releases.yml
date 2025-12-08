@@ -1,23 +1,26 @@
+name: Create Release
+
 on:
   push:
     tags:
-      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
-
-name: Create Release
+      - 'v*' # Push events matching v*, i.e. v1.0, v20.15.10
 
 jobs:
-  build:
+  release:
     name: Create Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Permissions
         run: chmod +x build.sh
         shell: bash
+
       - name: Build
         run: ./build.sh
         shell: bash
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -28,6 +31,7 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: true
           prerelease: false
+
       - name: Publish Built zip
         uses: actions/upload-release-asset@v1
         env:
@@ -37,3 +41,14 @@ jobs:
           asset_path: ./touchpoint-wp.zip
           asset_name: touchpoint-wp.zip
           asset_content_type: application/zip
+
+  docs:
+    name: Update Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Generate Docs
+        run: php ./generateDocs.php
+        shell: bash

@@ -22,7 +22,7 @@ class TP_Meeting {
         this.location = obj.location;
         this.capacity = obj.capacity;
 
-        this.inv = TP_Involvement.fromObjArray([{name: obj.invName, invId: obj.invId}])[0];
+        this.inv = tpvm.TP_Involvement.fromObjArray([{name: obj.invName, invId: obj.invId}])[0];
 
         for (const ei in this.connectedElements) {
             if (!this.connectedElements.hasOwnProperty(ei)) continue;
@@ -54,7 +54,6 @@ class TP_Meeting {
                             e.stopPropagation();
                             mtg[action + "Action"]();
                         });
-                        tpvm._utils.handleHash(action);
                     }
                 }
 
@@ -133,6 +132,35 @@ class TP_Meeting {
                 console.error(res.error);
             } else {
                 this.fromObjArray(res.success)
+                this.disableMeetingsThatDidntLoad(meetingsOnPage)
+            }
+        }
+    }
+
+    static disableMeetingsThatDidntLoad(meetingIds) {
+        for (const mi in meetingIds) {
+            if (!meetingIds.hasOwnProperty(mi)) continue;
+            const meetingId = meetingIds[mi];
+            const mtg = tpvm.meetings[meetingId];
+            if (typeof mtg === "undefined") {
+                let ce = document.querySelector('[data-tp-mtg="' + meetingId + '"]'); // may be button, or may be a parent of the button.
+
+                // within and including ce search for data-tp-action='rsvp'
+                let actionBtns = Array.from(ce.querySelectorAll('[data-tp-action]'));
+                if (ce.hasAttribute('data-tp-action')) {
+                    // if there's a sole button, it should be added to the list so it works, too.
+                    actionBtns.push(ce);
+                }
+                for (const ai in actionBtns) {
+                    if (!actionBtns.hasOwnProperty(ai)) continue;
+                    const action = actionBtns[ai].getAttribute('data-tp-action');
+
+                    if (action === "rsvp") {
+                        // hide button
+                        actionBtns[ai].style.display = "none";
+                        console.log(`RSVP button removed for meeting ${meetingId} because it appears to not exist in TouchPoint.`);
+                    }
+                }
             }
         }
     }
