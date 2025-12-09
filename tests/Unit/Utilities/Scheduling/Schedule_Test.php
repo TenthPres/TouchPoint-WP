@@ -105,6 +105,18 @@ class Schedule_Test extends TestCase
 		$schedule = new Schedule("FREQ=DAILY;COUNT=10");
 		$this->assertNull($schedule->getByDay());
 	}
+
+	/**
+	 * Test getByDay() method with array
+	 */
+	public function test_getByDay_withArray(): void
+	{
+		$schedule = new Schedule([
+			'FREQ' => 'WEEKLY',
+			'BYDAY' => ['TU', 'TH']
+		]);
+		$this->assertEquals(['TU', 'TH'], $schedule->getByDay());
+	}
 	
 	/**
 	 * Test getByMonth() method with string
@@ -131,6 +143,30 @@ class Schedule_Test extends TestCase
 	{
 		$schedule = new Schedule("FREQ=WEEKLY;BYDAY=MO");
 		$this->assertNull($schedule->getByMonth());
+	}
+
+	/**
+	 * Test getByMonth() method with array
+	 */
+	public function test_getByMonth_withArray(): void
+	{
+		$schedule = new Schedule([
+			'FREQ' => 'YEARLY',
+			'BYMONTH' => [2, 4, 6]
+		]);
+		$this->assertEquals([2, 4, 6], $schedule->getByMonth());
+	}
+
+	/**
+	 * Test getByMonth() method with integer
+	 */
+	public function test_getByMonth_withInteger(): void
+	{
+		$schedule = new Schedule([
+			'FREQ' => 'YEARLY',
+			'BYMONTH' => 5
+		]);
+		$this->assertEquals([5], $schedule->getByMonth());
 	}
 	
 	/**
@@ -159,6 +195,32 @@ class Schedule_Test extends TestCase
 		$schedule = new Schedule("FREQ=WEEKLY;BYDAY=MO");
 		$this->assertNull($schedule->getByHour());
 	}
+
+	/**
+	 * Test getByHour() method with array
+	 */
+	public function test_getByHour_withArray(): void
+	{
+		$schedule = new Schedule([
+			'FREQ' => 'WEEKLY',
+			'BYDAY' => 'MO',
+			'BYHOUR' => [8, 12, 16]
+		]);
+		$this->assertEquals([8, 12, 16], $schedule->getByHour());
+	}
+
+	/**
+	 * Test getByHour() method with integer
+	 */
+	public function test_getByHour_withInteger(): void
+	{
+		$schedule = new Schedule([
+			'FREQ' => 'WEEKLY',
+			'BYDAY' => 'MO',
+			'BYHOUR' => 14
+		]);
+		$this->assertEquals([14], $schedule->getByHour());
+	}
 	
 	/**
 	 * Test getByMinute() method with string
@@ -177,6 +239,32 @@ class Schedule_Test extends TestCase
 		$schedule = new Schedule("FREQ=WEEKLY;BYDAY=MO");
 		$this->assertNull($schedule->getByMinute());
 	}
+
+	/**
+	 * Test getByMinute() method with array
+	 */
+	public function test_getByMinute_withArray(): void
+	{
+		$schedule = new Schedule([
+			'FREQ' => 'WEEKLY',
+			'BYDAY' => 'MO',
+			'BYMINUTE' => [15, 45]
+		]);
+		$this->assertEquals([15, 45], $schedule->getByMinute());
+	}
+
+	/**
+	 * Test getByMinute() method with integer
+	 */
+	public function test_getByMinute_withInteger(): void
+	{
+		$schedule = new Schedule([
+			'FREQ' => 'WEEKLY',
+			'BYDAY' => 'MO',
+			'BYMINUTE' => 20
+		]);
+		$this->assertEquals([20], $schedule->getByMinute());
+	}
 	
 	/**
 	 * Test getBySecond() method with string
@@ -194,6 +282,26 @@ class Schedule_Test extends TestCase
 	{
 		$schedule = new Schedule("FREQ=WEEKLY;BYDAY=MO");
 		$this->assertNull($schedule->getBySecond());
+	}
+
+	public function test_getBySecond_withArray(): void
+	{
+		$schedule = new Schedule([
+			'FREQ' => 'WEEKLY',
+			'BYDAY' => 'MO',
+			'BYSECOND' => [10, 50]
+		]);
+		$this->assertEquals([10, 50], $schedule->getBySecond());
+	}
+
+	public function test_getBySecond_withInteger(): void
+	{
+		$schedule = new Schedule([
+			'FREQ' => 'WEEKLY',
+			'BYDAY' => 'MO',
+			'BYSECOND' => 15
+		]);
+		$this->assertEquals([15], $schedule->getBySecond());
 	}
 }
 
