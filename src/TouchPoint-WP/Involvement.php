@@ -259,10 +259,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 
 	/**
 	 * Get the settings array of objects for Involvement Post Types
+     *
+     * Was previously protected, but that doesn't make sense since the underlying function isn't.
 	 *
 	 * @return Involvement_PostTypeSettings[]
 	 */
-	final protected static function &allTypeSettings(): array
+	final public static function &allTypeSettings(): array
 	{
 		return Involvement_PostTypeSettings::instance();
 	}
@@ -363,7 +365,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	 *
 	 * @return int False on failure, or the number of groups that were updated or deleted.
 	 */
-	public final static function updateFromTouchPoint(bool $verbose = false, bool $applyChanges = true): int
+	public final static function updateFromTouchPoint(?string $typeSlug = null, bool $verbose = false, bool $applyChanges = true): int
 	{
 		$count   = 0;
 		$success = true;
@@ -386,6 +388,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 
 
 		foreach (self::allTypeSettings() as $type) {
+            // Skip those that aren't pertinent.
+            if ($typeSlug !== null && $type->slug !== $typeSlug) {
+                continue;
+            }
 
 			if ($verbose) {
 				echo "<h2>$type->namePlural</h2>";
@@ -2122,12 +2128,14 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 
 			case "force-sync":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
-				echo self::updateFromTouchPoint(true);
+				$type = $_GET['type'] ?? null;
+				echo self::updateFromTouchPoint($type, true);
 				exit;
 
 			case "preview-sync":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
-				echo self::updateFromTouchPoint(true, false);
+				$type = $_GET['type'] ?? null;
+				echo self::updateFromTouchPoint($type, true, false);
 				exit;
 		}
 

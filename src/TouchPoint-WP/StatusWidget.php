@@ -33,7 +33,7 @@ abstract class StatusWidget
 	}
 
 	/**
-	 * Setup the dashboard widget.
+	 * Set up the dashboard widget.
 	 */
 	public static function dashboardSetup(): void
 	{
@@ -98,26 +98,46 @@ abstract class StatusWidget
 		echo "<th>" . __("Imported", "TouchPoint-WP") . "</th>";
 		echo "<th>" . __("Last Updated", "TouchPoint-WP") . "</th></tr>";
 
-		echo '<tr><th style="text-align:left;">People</th><td style="text-align:center;">' . $stats->people . '</td><td style="text-align:center;">' . self::timestampToFormated($settings->person_cron_last_run) . "</td></tr>";
+		$label = __("People", "TouchPoint-WP");
+		$ts = self::timestampToFormated($settings->person_cron_last_run);
+		echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->people</td><td style=\"text-align:center;\">$ts</td></tr>";
 
 		if ($settings->enable_involvements === "on") {
-			echo '<tr><th style="text-align:left;">Involvements</th><td style="text-align:center;">' . $stats->involvementPosts . '</td><td style="text-align:center;">' . self::timestampToFormated($settings->inv_cron_last_run) . "</td></tr>";
+			$label = __('Involvements', 'TouchPoint-WP');
+			$ts = self::timestampToFormated($settings->inv_cron_last_run);
+			echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->involvementPosts</td><td style=\"text-align:center;\">$ts</td></tr>";
+
+			foreach (Involvement::allTypeSettings() as $type) {
+				$count = $stats->involvementCounts[$type->postTypeWithPrefix()] ?? 0;
+				$ts = self::timestampToFormated($settings->inv_cron_last_run); // TODO
+				echo "<tr><th style=\"text-align:left; padding-left:1em;\">$type->namePlural</th><td style=\"text-align:center;\">$count</td><td style=\"text-align:center;\">$ts</td></tr>";
+			}
 		}
 
 		if ($settings->enable_meeting_cal === "on") {
-			echo '<tr><th style="text-align:left;">Meetings</th><td style="text-align:center;">' . $stats->meetings . '</td><td style="text-align:center;">' . self::timestampToFormated($settings->inv_cron_last_run) . "</td></tr>";
+			$label = __('Meetings', 'TouchPoint-WP');
+			// TODO replace timestamp with event-type timestamp
+			$ts = self::timestampToFormated($settings->inv_cron_last_run);
+			echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->meetings</td><td style=\"text-align:center;\">$ts</td></tr>";
 		}
 
 		if ($settings->enable_global === "on") {
-			echo '<tr><th style="text-align:left;">Partners</th><td style="text-align:center;">' . $stats->partnerPosts . '</td><td style="text-align:center;">' . self::timestampToFormated($settings->global_cron_last_run) . "</td></tr>";
+			$label = __('Partners', 'TouchPoint-WP');
+			$ts = self::timestampToFormated($settings->global_cron_last_run);
+			echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->partnerPosts</td><td style=\"text-align:center;\">$ts</td></tr>";
 		}
 
-		echo '<tr><th style="text-align:left;">Reports</th><td style="text-align:center;">' . $reportData->cnt . '</td><td style="text-align:center;">' . self::timestampToFormated($reportData->ts) . "</td></tr>";
+		$label = __('Reports', 'TouchPoint-WP');
+		$ts = self::timestampToFormated($reportData->ts);
+		echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$reportData->cnt</td><td style=\"text-align:center;\">$ts</td></tr>";
 
 		echo "</table>";
 
-		echo '<div style="text-align: right;">Version ' . TouchPointWP::VERSION . "</div>";
+		// Translators: %s is the current version number.
+		$label = __("Version: %s", "TouchPoint-WP");
+		$label = wp_sprintf($label, TouchPointWP::VERSION);
+		echo "<div style=\"text-align: right;\">$label</div>";
 
-		echo '</div>';
+		echo "</div>";
 	}
 }

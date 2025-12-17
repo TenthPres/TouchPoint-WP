@@ -50,6 +50,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	protected int $rsvps = 0;
 	protected int $people = 0; // updated by query
 	protected int $partnerPosts = 0; // updated by query
+	protected array $involvementCounts = []; // updated by query
 	protected int $userAuths = 0;
 	protected int $softAuths = 0;
 
@@ -384,10 +385,17 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		global $wpdb;
 
 		$this->involvementPosts = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->postmeta WHERE meta_key = 'tp_invId'") ?? -1;
-		$this->reportPosts      = $wpdb->get_var("SELECT COUNT(*) as c FROM $wpdb->posts WHERE post_type = 'tp_report'") ?? -1;
+		$this->reportPosts      = $wpdb->get_var("SELECT COUNT(DISTINCT ID) as c FROM $wpdb->posts WHERE post_type = 'tp_report'") ?? -1;
 		$this->meetings         = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->postmeta WHERE meta_key = 'tp_mtgId'") ?? -1;
 		$this->people           = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->usermeta WHERE meta_key = 'tp_peopleId';") ?? -1;
-		$this->partnerPosts     = $wpdb->get_var("SELECT COUNT(*) as c FROM $wpdb->posts WHERE post_type = 'tp_partner'") ?? -1;
+		$this->partnerPosts     = $wpdb->get_var("SELECT COUNT(DISTINCT ID) as c FROM $wpdb->posts WHERE post_type = 'tp_partner'") ?? -1;
+
+		$invCounts = [];
+		$invQuery = "SELECT COUNT(DISTINCT pm.meta_value) as c FROM $wpdb->postmeta pm JOIN $wpdb->posts p ON pm.post_id = p.ID WHERE pm.meta_key = 'tp_invId' AND p.post_type = %s";
+		foreach (Involvement::getPostTypes() as $type) {
+			$invCounts[$type] = intval($wpdb->get_var($wpdb->prepare($invQuery, $type))) ?? 0;
+		}
+		$this->involvementCounts = $invCounts;
 
 		$this->_dirty = true;
 
