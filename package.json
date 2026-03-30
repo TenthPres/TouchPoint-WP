@@ -24,12 +24,11 @@
   },
   "homepage": "https://github.com/TenthPres/TouchPoint-WP#readme",
   "devDependencies": {
-    "@wordpress/block-editor": "^14.17.0",
-    "@wordpress/blocks": "^14.11.0",
-    "@wordpress/env": "^10.22.0",
-    "@wordpress/i18n": "^5.22.0",
+    "@wordpress/block-editor": "^14",
+    "@wordpress/blocks": "^14",
+    "@wordpress/env": "^10",
+    "@wordpress/i18n": "^5",
     "@wordpress/scripts": "^30.18.0",
-    "glob": "^11.0.2",
     "style-loader": "^4.0.0",
     "uglify-js": "^3.17.4"
   },
