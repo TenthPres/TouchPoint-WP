@@ -45,9 +45,19 @@ class TouchPointWP_AdminAPI implements api
 		switch (strtolower($uri['path'][2])) {
 			case "memtypes":
 				header('Content-Type: application/json');
-				$divs = explode(",", $_GET['divs']);
-				$mt   = TouchPointWP::instance()->getMemberTypesForDivisions($divs);
-				echo json_encode($mt);
+				if (isset($_GET['divs']) && trim($_GET['divs']) !== '') {
+					$divs = explode(",", $_GET['divs']);
+					$mt   = TouchPointWP::instance()->getMemberTypesForDivisions($divs);
+					echo json_encode($mt);
+					exit;
+				}
+				if (isset($_GET['inv']) && trim($_GET['inv']) !== '') {
+					$inv = explode(",", $_GET['inv']);
+					$mt  = TouchPointWP::instance()->getMemberTypesForInvolvements($inv);
+					echo json_encode($mt);
+					exit;
+				}
+				echo json_encode([]);
 				exit;
 
 			case "divisions":

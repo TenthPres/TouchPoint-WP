@@ -22,11 +22,6 @@ if ( ! defined('ABSPATH')) {
 	exit;
 }
 
-if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once "Utilities.php";
-	require_once "Stats.php";
-}
-
 
 /**
  * Main plugin class.
@@ -55,6 +50,7 @@ class TouchPointWP
 	public const API_ENDPOINT_ADMIN = "admin";
 	public const API_ENDPOINT_STATS = "stats";
 	public const API_ENDPOINT_AUTH = "auth";
+	public const API_ENDPOINT_LOOKUP = "lookup";
 	public const API_ENDPOINT_REPORT = "report";
 	public const API_ENDPOINT_ADMIN_SCRIPTZIP = "admin/scriptzip";
 	public const API_ENDPOINT_CLEANUP = "cleanup";
@@ -502,6 +498,13 @@ class TouchPointWP
 				}
 			}
 
+			// Lookup endpoints
+			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_LOOKUP) {
+				if ( ! Lookup::api($reqUri)) {
+					return $continue;
+				}
+			}
+
 			// Admin endpoints
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_ADMIN) {
 				self::admin(); // initialize the instance.
@@ -629,7 +632,7 @@ class TouchPointWP
 	 */
 	public function printDynamicFooterScripts(): void
 	{
-		if (self::isApi()) {
+		if (self::isApi() || !self::$hasRenderedBaseInlineScript) {
 			return;
 		}
 
@@ -940,7 +943,9 @@ class TouchPointWP
 	public static function renderBaseInlineScript(): void
 	{
 		include_once self::instance()->assets_dir . '/js/base-inline.php';
+		self::$hasRenderedBaseInlineScript = true;
 	}
+	protected static $hasRenderedBaseInlineScript = false;
 
 	public function registerScriptsAndStyles(): void
 	{
@@ -1644,6 +1649,34 @@ class TouchPointWP
 	}
 
 	/**
+	 * Get the member types currently in use for the given involvements.
+	 *
+	 * @param string[] $involvements
+	 *
+	 * @return array
+	 */
+	public function getMemberTypesForInvolvements(array $involvements = []): array
+	{
+		// sort involvements
+		sort($involvements);
+
+		$cacheKey = "tp_memTypesForInv_" . implode(",", $involvements);
+
+		// check transients for cache.
+		$cached = get_transient($cacheKey);
+		if ($cached !== false) {
+			return $cached;
+		}
+
+		// if not in cache, get from API and cache.  If API fails, return empty array (probably better than nothing).
+		$mts = $this->getMemberTypesForInvolvements_fromApi($involvements);
+
+		// Cache for 1 hour.
+		set_transient($cacheKey, $mts, HOUR_IN_SECONDS);
+		return $mts;
+	}
+
+	/**
 	 * Get the member types currently in use for the named divisions.
 	 *
 	 * @param string[] $divisions
@@ -1786,6 +1819,24 @@ class TouchPointWP
 			'_updated' => date('c'),
 			'memTypes' => $return->memTypes
 		];
+	}
+
+	/**
+	 * Get new MemberTypes for a list of Involvements.  Does not cache them.
+	 *
+	 * @param array $involvements
+	 *
+	 * @return stdClass[] An array of member types.  Empty array on failure.
+	 */
+	private function getMemberTypesForInvolvements_fromApi(array $involvements): array
+	{
+		try {
+			$return = $this->api->pyGet('MemTypes', ['invs' => implode(",", $involvements)]);
+		} catch (TouchPointWP_Exception) {
+			return [];
+		}
+
+		return $return->memTypes ?? [];
 	}
 
 

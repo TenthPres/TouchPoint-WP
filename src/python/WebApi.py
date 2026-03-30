@@ -529,17 +529,27 @@ if "MemTypes" in Data.a:
     apiCalled = True
 
     divs = Data.divs or ""
+    invs = Data.invs or ""
 
     regex = re.compile('[^0-9,]')
     divs = regex.sub('', divs)
+    invs = regex.sub('', invs)
 
     # noinspection SqlResolve
     memTypeSql = '''SELECT DISTINCT om.[MemberTypeId] as id, mt.[Code] as code, mt.[Description] as description
                     FROM OrganizationMembers om
                     JOIN DivOrg do ON om.OrganizationId = do.OrgId
                     JOIN lookup.MemberType mt ON om.[MemberTypeId] = mt.[Id]'''
+    where = " WHERE 1=0"
+    order = ""
+
     if divs != "":
-        memTypeSql += " WHERE do.DivId IN ({})".format(divs)
+        where += " OR do.DivId IN ({})".format(divs)
+
+    if invs != "":
+        where += " OR om.OrganizationId IN ({})".format(invs)
+
+    memTypeSql += where
     memTypeSql += " ORDER BY description ASC"
 
     Data.memTypes = model.SqlListDynamicData(memTypeSql)

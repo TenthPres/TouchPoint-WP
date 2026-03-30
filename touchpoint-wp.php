@@ -46,6 +46,7 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Settings.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Api.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Lookup.php";
 
 	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/api.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/module.php";
@@ -62,6 +63,7 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/DateFormats.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/DateTimeExtended.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Http.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Stats.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Taxonomies.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/hasGeo.php";
 
