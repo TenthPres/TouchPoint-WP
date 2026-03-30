@@ -323,10 +323,10 @@ class Api
 	 * @param int    $timeout Amount of time in sec to wait before timing out.
 	 * @param float  $timeTaken The time taken to complete the request.
 	 *
-	 * @return array|WP_Error The response from the Http request call.
+	 * @return array The response from the Http request call.
 	 * @throws TouchPointWP_Exception  If anything went wrong.
 	 */
-	public function get(string $command, array $parameters = [], array $headers = [], ?int $onBehalfPid = null, int $timeout = 5, float &$timeTaken = 0): array|WP_Error
+	public function get(string $command, array $parameters = [], array $headers = [], ?int $onBehalfPid = null, int $timeout = 5, float &$timeTaken = 0): array
 	{
 		$tik = microtime(true);
 		for ($attempt = 0; $attempt < 2; $attempt++) {
@@ -347,7 +347,7 @@ class Api
 			);
 
 			if ($r instanceof WP_Error) {
-				return $r;
+				throw new TouchPointWP_WPError($r);
 			}
 
 			if ($r['response']['code'] === Http::UNAUTHORIZED) {
