@@ -8,6 +8,7 @@
         <item url="file://$PROJECT_DIR$/build/blocks/common.js" />
         <item url="file://$PROJECT_DIR$/build/blocks/inv-list/index.js" />
         <item url="file://$PROJECT_DIR$/build/blocks/people-list/index.js" />
+        <item url="file://$PROJECT_DIR$/build/buildPipeline/versionUpdate.js" />
         <item url="file://$PROJECT_DIR$/build/src/js-partials/involvement-map-inline.js" />
         <item url="file://$PROJECT_DIR$/build/src/js-partials/involvement-nearby-inline.js" />
         <item url="file://$PROJECT_DIR$/build/src/js-partials/partner-map-inline.js" />
@@ -20,6 +21,7 @@
       <root url="file://$PROJECT_DIR$/build/blocks/common.js" />
       <root url="file://$PROJECT_DIR$/build/blocks/inv-list/index.js" />
       <root url="file://$PROJECT_DIR$/build/blocks/people-list/index.js" />
+      <root url="file://$PROJECT_DIR$/build/buildPipeline/versionUpdate.js" />
       <root url="file://$PROJECT_DIR$/build/src/js-partials/involvement-map-inline.js" />
       <root url="file://$PROJECT_DIR$/build/src/js-partials/involvement-nearby-inline.js" />
       <root url="file://$PROJECT_DIR$/build/src/js-partials/partner-map-inline.js" />
