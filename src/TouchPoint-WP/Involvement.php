@@ -1736,6 +1736,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		ob_start();
 		$loadedPart = get_template_part('list-item', 'involvement-nearby-list');
 		if ($loadedPart === false) {
+			TouchPointWP::requireScript("wp-i18n");
 			require TouchPointWP::$dir . "/src/templates/parts/involvement-nearby-list.php";
 		}
 		$content = ob_get_clean();
