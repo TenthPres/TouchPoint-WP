@@ -51,7 +51,7 @@ abstract class Lookup implements api
 	 */
 	public static function getLookup(string $path, bool $noCache = false): mixed
 	{
-		$cacheKey = TouchPointWP::SETTINGS_PREFIX . "lookup_$path";
+		$cacheKey = TouchPointWP::SETTINGS_PREFIX . strtolower("lookup_$path");
 
 		if (!$noCache) {
 			// check transients

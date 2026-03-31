@@ -1544,6 +1544,9 @@ class Settings
 			}
 		}
 
+		// 0.0.97 -- Remove the old Genders meta
+		delete_option(TouchPointWP::SETTINGS_PREFIX . 'meta_genders');
+
 		// 0.0.95 -- Make sure the TpWp user exists
 		try {
 			TouchPointWP::instance()->validateThatTpWpUserExists();
