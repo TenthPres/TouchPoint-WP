@@ -2586,8 +2586,24 @@ class TouchPointWP
 	 * This function enqueues the stylesheet for the default templates, to avoid registering the style on sites where
 	 * custom templates exist.
 	 */
-	public static function enqueuePartialsStyle(): void
+	public static function enqueuePartialsStyle(?string $context = null): void
 	{
+		$usePartials = true;
+
+		/** @noinspection PhpConditionAlreadyCheckedInspection */
+		/**
+		 * Allows theme and plugin developers to prevent CSS partials from being enqueued.
+		 *
+		 * @since 0.0.96 Added
+		 *
+		 * @param ?string $context A string provided to indicate where the request is coming from.
+		 * @param bool $usePartials Whether to enqueue the partials CSS.  Default true = enqueue.
+		 */
+		$usePartials = apply_filters("tp_use_partials_template_style", $context, $usePartials);
+		if (!$usePartials) {
+			return;
+		}
+
 		wp_enqueue_style(
 			TouchPointWP::SHORTCODE_PREFIX . 'partials-template-style',
 			self::instance()->assets_url . 'template/partials-template-style.css',
