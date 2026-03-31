@@ -2588,19 +2588,19 @@ class TouchPointWP
 	 */
 	public static function enqueuePartialsStyle(?string $context = null): void
 	{
-		$usePartials = true;
+		$includePartialsStyle = true;
 
-		/** @noinspection PhpConditionAlreadyCheckedInspection */
 		/**
-		 * Allows theme and plugin developers to prevent CSS partials from being enqueued.
+		 * Filter to determine if the stylesheet that provides default styling for overrideable theme elements should
+		 * be included.
 		 *
-		 * @since 0.0.96 Added
+		 * @params bool $includePartialsStyle Whether to include the styles.  Default true = include.
+		 * @params ?string $context a string that may be provided to clarify where the style is being called from.
 		 *
-		 * @param ?string $context A string provided to indicate where the request is coming from.
-		 * @param bool $usePartials Whether to enqueue the partials CSS.  Default true = enqueue.
+		 * @noinspection PhpConditionAlreadyCheckedInspection
 		 */
-		$usePartials = apply_filters("tp_use_partials_template_style", $context, $usePartials);
-		if (!$usePartials) {
+		$includePartialsStyle = !!apply_filters("tp_include_actions_style", $includePartialsStyle, $context);
+		if (!$includePartialsStyle) {
 			return;
 		}
 

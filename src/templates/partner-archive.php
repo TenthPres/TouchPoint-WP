@@ -30,7 +30,7 @@ if (have_posts()) {
     $wp_the_query->get_posts();
     $wp_the_query->rewind_posts();
 
-    TouchPointWP::enqueuePartialsStyle();
+    TouchPointWP::enqueuePartialsStyle("partner-archive");
     ?>
     <header class="archive-header has-text-align-center header-footer-group">
         <div class="archive-header-inner section-inner medium">

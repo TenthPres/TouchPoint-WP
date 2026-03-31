@@ -1,15 +1,4 @@
 /**
- * Lets webpack process CSS, SASS or SCSS files referenced in JavaScript files.
- * All files containing `style` keyword are bundled together. The code used
- * gets applied both to the front of your site and to the editor.
- *
- * @see https://www.npmjs.com/package/@wordpress/scripts#using-css
- */
-import "../../assets/template/partials-template-style.css";
-import "../../assets/template/actions-style.css";
-import "../../assets/template/block-preview-style.css";
-
-/**
  * Internal dependencies
  */
 import metadata from './block.json';
@@ -42,8 +31,8 @@ wp.blocks.registerBlockType(metadata.name, {
             default: [],
         },
         genders: {
-            type: 'array',
-            default: [],
+            type: 'integer',
+            default: 0,
         }
     },
     edit: function (props) {
@@ -63,7 +52,7 @@ wp.blocks.registerBlockType(metadata.name, {
         const [genderOptions, setGenderOptions] = wp.element.useState([]);
         const [isLoading, setIsLoading] = wp.element.useState(true);
         // State to hold preview HTML so React renders it (avoids mutating DOM nodes React may replace).
-        const [previewHtml, setPreviewHtml] = wp.element.useState('');
+        const [previewHtml, setPreviewHtml] = wp.element.useState(__("Loading Preview...", "TouchPoint-WP"));
 
         const getInvOptionsFromApi = async (searchQ) => {
             if (invOptionsController) {
@@ -178,6 +167,10 @@ wp.blocks.registerBlockType(metadata.name, {
 
         return (
             <div {...blockProps}>
+                {/* Ensure preview styles are available inside the editor canvas/preview. */}
+                <link rel="stylesheet" href="/wp-content/plugins/touchpoint-wp/assets/template/block-preview-style.css?ver=0.0.96" />
+                <link rel="stylesheet" href="/wp-content/plugins/touchpoint-wp/assets/template/actions-style.css?ver=0.0.96" />
+                <link rel="stylesheet" href="/wp-content/plugins/touchpoint-wp/assets/template/partials-template-style.css?ver=0.0.96" />
                 <wp.blockEditor.InspectorControls>
                     <wp.components.PanelBody title={__('Settings', 'TouchPoint-WP')}>
                         <wp.components.ComboboxControl
@@ -201,6 +194,7 @@ wp.blocks.registerBlockType(metadata.name, {
                     <wp.components.SelectControl
                         multiple
                         label={__("Filter by Member Types", "TouchPoint-WP")}
+                        help={__("This option allows you to filter the people that are shown based on their member type in the selected involvement. By default, all members (not prospect or pending) are shown.", "TouchPoint-WP")}
                         value={attributes.memTypes}
                         options={memTypeOptions}
                         onChange={(selected) => {
@@ -210,52 +204,58 @@ wp.blocks.registerBlockType(metadata.name, {
                             // if "All Leaders" is selected, set memTypes to [-1]
                             if (arr.includes(-1)) {
                                 setAttributes({memTypes: [-1]});
-                                return;
                             }
-
-                            // if "All Members" is selected, set memTypes to []
-                            if (arr.includes(0)) {
-                                setAttributes({memTypes: []});
-                                return;
+                            // if "All Members" is selected, set memTypes to [0]
+                            else if (arr.includes(0)) {
+                                setAttributes({memTypes: [0]});
                             }
-
-                            setAttributes({memTypes: arr});
+                            else {
+                                setAttributes({memTypes: arr});
+                            }
                         }}
                         __next40pxDefaultSize={true}
                         __nextHasNoMarginBottom={true}
                     />
                     <wp.components.SelectControl
-                        label={__("Filter by Genders", "TouchPoint-WP")}
+                        label={__("Filter by Gender", "TouchPoint-WP")}
+                        help={__("This option allows you to filter the people that are shown based on gender. By default, gender filters are not applied.", "TouchPoint-WP")}
                         value={attributes.genders}
+                        multiple={false}
                         options={genderOptions}
                         onChange={(selected) => {
                             // normalize to an array of numbers
                             const arr = Array.isArray(selected) ? selected.map(s => Number(s)) : [Number(selected)];
                             // if "Any" (value 0) selected, store empty array to mean no filter
                             if (arr.includes(0)) {
-                                setAttributes({genders: [0]});
-                                return;
+                                setAttributes({genders: 0});
+                            } else {
+                                setAttributes({genders: arr});
                             }
-                            setAttributes({genders: arr});
                         }}
                         __next40pxDefaultSize={true}
                         __nextHasNoMarginBottom={true}
                     />
                 </wp.blockEditor.InspectorAdvancedControls>
-                <div id={placeholderId} ref={placeholderRef} className="tp-preview-block person-list" data-preview-message={__('Preview Only', 'TouchPoint-WP')} data-preview-length={previewHtml ? previewHtml.length : 0} dangerouslySetInnerHTML={{__html: previewHtml}}></div>
+                <div id={placeholderId} ref={placeholderRef} className="tp-preview-block person-list" data-preview-message={__('Preview Only', 'TouchPoint-WP')} data-preview-length={previewHtml ? previewHtml.length : 0}>
+                    <wp.element.RawHTML>{previewHtml}</wp.element.RawHTML>
+                </div>
             </div>
          );
     },
     save: function (props) {
         const {attributes} = props;
-        const {invId} = attributes;
+        const {invId, genders, memTypes} = attributes;
+
         const blockProps = wp.blockEditor.useBlockProps.save();
         let additionalClasses = blockProps.className || '';
 
         // remove is-selected from additionalClasses if present.  Replace any double-spaces with singles.
         additionalClasses = additionalClasses.replace('is-selected', '').replace(/\s+/g, ' ').trim();
 
-        return `[TP-People class="${additionalClasses}" invId="${invId}"]`;
+        const genderClause = genders === 0 ? "" : ` genders=${genders}`
+        const memTypesClause = memTypes !== [0] && memTypes.length > 0 ? ` memTypes=${memTypes.join(',')}` : "";
+
+        return `[TP-People class="${additionalClasses}" invId="${invId}"${genderClause}${memTypesClause}]`;
     },
 });
 

@@ -461,10 +461,41 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			return "<!-- Error: Can't create Involvement Actions because there is no clear involvement.  Define the InvId and make sure it's imported. -->";
 		}
 
-		$WP_User_queryParams['meta_query'][] = [
-			'key'     => self::META_INV_MEMBER_PREFIX . $iid,
-			'compare' => "EXISTS"
-		];
+		// Member Type filtering
+
+		/** @noinspection SpellCheckingInspection */
+		$memTypes = $params['memtype'] ?? [];
+		if (trim($memTypes) === "") {
+			$memTypes = [];
+		}
+		if (!is_array($memTypes)) {
+			$memTypes = explode(',', trim($memTypes));
+		}
+		if (count($memTypes) === 0 || in_array("0", $memTypes)) {
+			// Leaders, Volunteers, Members: at10, at20, or at30.
+			$WP_User_queryParams['meta_query'][] = [
+				'key' => self::META_INV_ATTEND_PREFIX . $iid,
+				'value' => ['at10', 'at20', 'at30'],
+			];
+		} else if (in_array("-1", $memTypes)) {
+			// Leaders: at10
+			$WP_User_queryParams['meta_query'][] = [
+				'key' => self::META_INV_ATTEND_PREFIX . $iid,
+				'value' => 'at10'
+			];
+		} else {
+			// format types to append mt to front of each value
+			$types = [];
+			foreach ($memTypes as $type) {
+				$types[] = "mt$type";
+			}
+			$WP_User_queryParams['meta_query'][] = [
+				'key' => self::META_INV_MEMBER_PREFIX . $iid,
+				'value' => $types
+			];
+		}
+
+		// Gender Filtering
 
 		// TODO DIR filter by involvement member type
 
@@ -483,7 +514,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		$loadedPart = get_template_part('person-list', 'person-list');
 		if ($loadedPart === false) {
-			TouchPointWP::enqueuePartialsStyle();
+			TouchPointWP::enqueuePartialsStyle("person-list attribute");
 			ob_start();
 			require TouchPointWP::$dir . "/src/templates/parts/person-list.php";
 			$out .= ob_get_clean();

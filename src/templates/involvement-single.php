@@ -16,7 +16,7 @@ $p   = get_post();
 $tps = TouchPointWP::instance()->settings;
 $obj = PostTypeCapable::fromPost($p);
 
-TouchPointWP::enqueuePartialsStyle();
+TouchPointWP::enqueuePartialsStyle("involvement-single");
 
 ?>
 
@@ -115,7 +115,7 @@ TouchPointWP::enqueuePartialsStyle();
 		/** @var WP_Post $post */
 		$loadedPart = get_template_part('list-item', 'involvement-list-item');
 		if ($loadedPart === false) {
-			TouchPointWP::enqueuePartialsStyle();
+			TouchPointWP::enqueuePartialsStyle("involvement-single child-item");
 			require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
 		}
 	}
@@ -148,7 +148,7 @@ if ($settings->importMeetings && $tps->enable_meeting_cal === "on") {
 		/** @var WP_Post $post */
 		$loadedPart = get_template_part('list-item', 'event-list-item');
 		if ($loadedPart === false) {
-			TouchPointWP::enqueuePartialsStyle();
+			TouchPointWP::enqueuePartialsStyle("involvement-single event-item");
 			require TouchPointWP::$dir . "/src/templates/parts/meeting-list-item.php";
 		}
 	}

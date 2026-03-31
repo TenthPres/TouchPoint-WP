@@ -747,7 +747,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		$params['includecss'] = $params['includecss'] === true || $params['includecss'] === 'true';
 
 		if ($params['includecss']) {
-			TouchPointWP::enqueuePartialsStyle();
+			TouchPointWP::enqueuePartialsStyle("partner-list attribute");
 		}
 
 		ob_start();

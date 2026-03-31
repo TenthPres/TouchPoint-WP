@@ -663,6 +663,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -692,6 +696,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -725,6 +733,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => true
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -751,6 +763,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -781,6 +797,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -811,6 +831,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -840,6 +864,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -872,6 +900,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -905,6 +937,10 @@ abstract class Taxonomies
 							'with_front'   => false,
 							'hierarchical' => false
 						],
+						'capabilities' => [
+							'manage_terms' => 'do_not_allow',
+							'edit_terms' => 'do_not_allow',
+						]
 					]
 				);
 				// Terms are inserted on sync.

@@ -1539,7 +1539,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			if ($q->post_count > 0) {
 				/** @noinspection SpellCheckingInspection */
 				if ($params['includecss']) {
-					TouchPointWP::enqueuePartialsStyle();
+					TouchPointWP::enqueuePartialsStyle("inv-list attribute");
 				}
 
 				echo "<div class=\"$containerClass\">";

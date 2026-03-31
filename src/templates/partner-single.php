@@ -11,7 +11,7 @@ the_post();
 $pst   = get_post();
 $prtnr = Partner::fromPost($pst);
 
-TouchPointWP::enqueuePartialsStyle();
+TouchPointWP::enqueuePartialsStyle("partner-single");
 
 ?>
 
