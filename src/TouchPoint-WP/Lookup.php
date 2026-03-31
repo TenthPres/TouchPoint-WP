@@ -18,8 +18,10 @@ if ( ! defined('ABSPATH')) {
 /**
  * Admin API class.
  */
-class Lookup implements api
+abstract class Lookup implements api
 {
+
+	const TTL = HOUR_IN_SECONDS;
 
 	/**
 	 * Handle API requests
@@ -31,12 +33,42 @@ class Lookup implements api
 	public static function api(array $uri): bool
 	{
 		try {
-			$d = TouchPointWP::instance()->api->get('/api/v1/Lookup/' . $uri['path'][2]);
 			header('Content-Type: application/json');
-			echo $d['body']; // already JSON-encoded by the API
+			echo json_encode(self::getLookup($uri['path'][2]));
 			exit;
 		} catch (TouchPointWP_Exception) {
 			return false;
 		}
+	}
+
+	/**
+	 * @param string $path
+	 * @param bool   $noCache
+	 *
+	 * @return mixed
+	 * @throws TouchPointWP_Exception
+	 */
+	public static function getLookup(string $path, bool $noCache = false): mixed
+	{
+		$cacheKey = TouchPointWP::SETTINGS_PREFIX . "lookup_$path";
+
+		if (!$noCache) {
+			// check transients
+			$v = get_transient($cacheKey);
+			if ($v !== false) {
+				return json_decode($v);
+			}
+		}
+
+		$v = TouchPointWP::instance()->api->get("/api/v1/Lookup/$path");
+
+		if (isset($v['body'])) {
+			// assume body is already json
+			set_transient($cacheKey, $v['body'], self::TTL);
+
+			return json_decode($v['body']);
+		}
+
+		throw new TouchPointWP_Exception("Unexpected response from API: " . json_encode($v));
 	}
 }
