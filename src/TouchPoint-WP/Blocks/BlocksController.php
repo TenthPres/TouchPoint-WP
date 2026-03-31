@@ -24,7 +24,6 @@ abstract class BlocksController
 
 		// Hook the enqueue function
 		add_action('enqueue_block_editor_assets', [BlocksController::class, 'enqueueBlockAssets']);
-		add_action('wp_enqueue_scripts', [BlocksController::class, 'enqueueBlockAssets']);
 
 		/**
 		 * Registers the block(s) metadata from the `blocks-manifest.php` and registers the block type(s)
