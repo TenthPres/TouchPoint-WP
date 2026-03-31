@@ -317,7 +317,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.excludeIf = ko.observable(data.excludeIf ?? []);
         this.hierarchical = ko.observable(data.hierarchical ?? false);
         this.importMeetings = ko.observable(data.importMeetings ?? false);
-        this.meetingGroupingMethod = ko.observable(data.meetingGroupingMethod ?? <?php echo Meeting::GROUP_NONE ?>);
+        this.meetingGroupingMethod = ko.observable(data.meetingGroupingMethod ?? "<?php echo Meeting::GROUP_NONE ?>");
         this.groupBy = ko.observable(data.groupBy ?? "");
         this.leaderTypes = ko.observableArray(data.leaderTypes ?? []);
         this.hostTypes = ko.observableArray(data.hostTypes ?? []);
