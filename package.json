@@ -29,6 +29,7 @@
     "@wordpress/env": "^10",
     "@wordpress/i18n": "^5",
     "@wordpress/scripts": "^30.18.0",
+    "baseline-browser-mapping": "^2.10.12",
     "style-loader": "^4.0.0",
     "uglify-js": "^3.17.4"
   },
