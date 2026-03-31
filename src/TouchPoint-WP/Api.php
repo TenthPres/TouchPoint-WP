@@ -316,7 +316,7 @@ class Api
 	/**
 	 * Do a GET to the standard API using a PAT.
 	 *
-	 * @param string $command The API endpoint to call
+	 * @param string $command The API endpoint to call (after /api/)
 	 * @param array  $parameters URL parameters to be added.
 	 * @param array  $headers Headers to send with the request.
 	 * @param ?int   $onBehalfPid The PID of the user to act on behalf of.
@@ -330,7 +330,7 @@ class Api
 	{
 		$tik = microtime(true);
 		for ($attempt = 0; $attempt < 2; $attempt++) {
-			$url = $this->prepareRequest($command, $headers, $onBehalfPid);
+			$url = $this->prepareRequest("/api/" . $command, $headers, $onBehalfPid);
 
 			// build query string
 			if (!empty($parameters)) {
@@ -370,7 +370,7 @@ class Api
 	/**
 	 * Do a POST to the standard API using a PAT.
 	 *
-	 * @param string $command The API endpoint to call
+	 * @param string $command The API endpoint to call (after /api/)
 	 * @param ?mixed $data Data to post
 	 * @param array  $headers Headers to send with the request.
 	 * @param ?int   $onBehalfPid The PID of the user to act on behalf of.
@@ -385,7 +385,7 @@ class Api
 		$tik = microtime(true);
 
 		for ($attempt = 0; $attempt < 2; $attempt++) {
-			$url = $this->prepareRequest($command, $headers, $onBehalfPid);
+			$url = $this->prepareRequest("/api/" . $command, $headers, $onBehalfPid);
 			$r   = $this->getHttpClient()->request(
 				$url,
 				[
