@@ -44,6 +44,7 @@ use WP_User;
  * @property ?int          campus_term_id    The Campus term ID
  * @property-read ?WP_Term resCode  The ResCode taxonomy, if present
  * @property ?int          rescode_term_id   The ResCode term ID
+ * @property ?int          genderId   The Gender ID (from TouchPoint)
  */
 class Person extends WP_User implements api, JsonSerializable, module, updatesViaCron, actionButtons
 {
@@ -56,6 +57,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 	public const META_PEOPLEID = TouchPointWP::SETTINGS_PREFIX . 'peopleId';
 	public const META_FAMILYID = TouchPointWP::SETTINGS_PREFIX . 'familyId';
+	public const META_GENDERID = TouchPointWP::SETTINGS_PREFIX . 'genderId';
 	public const META_CUSTOM_PREFIX = 'c_'; // setters and getters also insert standard setting prefix
 	public const META_INV_MEMBER_PREFIX = TouchPointWP::SETTINGS_PREFIX . "inv_mem_";
 	public const META_INV_ATTEND_PREFIX = TouchPointWP::SETTINGS_PREFIX . "inv_att_";
@@ -114,7 +116,8 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		'picture',
 		'familyId',
 		'campus_term_id',
-		'rescode_term_id'
+		'rescode_term_id',
+		'genderId'
 	];
 
 
@@ -398,14 +401,16 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 				'invid'         => null,
 				'withsubgroups' => false,
 				'btnclass'      => 'btn button',
-				'context'       => ''
+				'context'       => '',
+				'memtype'       => '',
+				'gender'        => ''
 			],
 			$params,
 			self::SHORTCODE_PEOPLE_LIST
 		);
 
 		/** @noinspection SpellCheckingInspection */
-		$params['withsubgroups'] = ! ! $params['withsubgroups'];
+		$params['withsubgroups'] = !!$params['withsubgroups'];
 
 		/** @noinspection SpellCheckingInspection */
 		$iid = intval($params['invid']);
@@ -465,11 +470,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		/** @noinspection SpellCheckingInspection */
 		$memTypes = $params['memtype'] ?? [];
-		if (trim($memTypes) === "") {
-			$memTypes = [];
-		}
 		if (!is_array($memTypes)) {
 			$memTypes = explode(',', trim($memTypes));
+		}
+		if (in_array("", $memTypes)) { // remove "" if exists
+			$memTypes = array_diff($memTypes, [""]);
 		}
 		if (count($memTypes) === 0 || in_array("0", $memTypes)) {
 			// Leaders, Volunteers, Members: at10, at20, or at30.
@@ -497,7 +502,16 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		// Gender Filtering
 
-		// TODO DIR filter by involvement member type
+		$gender = $params['gender'] ?? null;
+		if ($gender === '' || $gender === 0) {
+			$gender = null;
+		}
+		if ($gender !== null) {
+			$WP_User_queryParams['meta_query'][] = [
+				'key' => self::META_GENDERID,
+				'value' => intval($gender)
+			];
+		}
 
 		// TODO DIR make sure involvement members have synced recently
 
@@ -994,6 +1008,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$person->first_name   = $pData->GoesBy;
 		$person->last_name    = $pData->LastName;
 		$person->display_name = $pData->DisplayName;
+		$person->genderId     = $pData->GenderId;
 		if (count($pData->Emails) > 0) {
 			$person->user_email = $pData->Emails[0];
 		} else {

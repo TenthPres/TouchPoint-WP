@@ -5,11 +5,6 @@ import metadata from './block.json';
 import {__} from '@wordpress/i18n';
 import {generateUniqueId} from '../common.js';
 
-// Module-level controllers used as fallbacks when per-instance refs are not provided
-let invOptionsController = null;
-let lastPath = null;
-let previewController = null;
-
 /**
  * Every block starts by registering a new block type definition.
  *
@@ -30,14 +25,14 @@ wp.blocks.registerBlockType(metadata.name, {
             type: 'array',
             default: [],
         },
-        genders: {
+        gender: {
             type: 'integer',
             default: 0,
         }
     },
     edit: function (props) {
         const {attributes, setAttributes} = props;
-        const {invId} = attributes;
+        const {invId, gender, memTypes} = attributes;
         const blockProps = wp.blockEditor.useBlockProps();
         // Use a ref so we generate the id once and it remains stable across renders.
         const placeholderIdRef = wp.element.useRef(generateUniqueId());
@@ -50,17 +45,19 @@ wp.blocks.registerBlockType(metadata.name, {
         const [filteredInvOptions, setFilteredInvOptions] = wp.element.useState([]);
         const [memTypeOptions, setMemTypeOptions] = wp.element.useState([]);
         const [genderOptions, setGenderOptions] = wp.element.useState([]);
-        const [isLoading, setIsLoading] = wp.element.useState(true);
+        const [invOptionsAreLoading, setInvOptionsAreLoading] = wp.element.useState(true);
         // State to hold preview HTML so React renders it (avoids mutating DOM nodes React may replace).
         const [previewHtml, setPreviewHtml] = wp.element.useState(__("Loading Preview...", "TouchPoint-WP"));
+
+        let invOptionsController = null;
 
         const getInvOptionsFromApi = async (searchQ) => {
             if (invOptionsController) {
                 invOptionsController.abort(); // Abort previous API call
             }
 
-            invOptionsController = new AbortController(); // Create a new AbortController
-            setIsLoading(true);
+            invOptionsController = new AbortController();
+            setInvOptionsAreLoading(true);
             try {
                 const response = await fetch(`/touchpoint-api/admin/involvementsearch?s=${searchQ}`, {signal: invOptionsController.signal});
                 const data = await response.json();
@@ -72,11 +69,11 @@ wp.blocks.registerBlockType(metadata.name, {
                     }));
 
                 setFilteredInvOptions(formattedOptions);
-                setIsLoading(false);
+                setInvOptionsAreLoading(false);
             } catch (error) {
                 if (error.name !== 'AbortError') {
                     console.error('Error fetching post types:', error);
-                    setIsLoading(false);
+                    setInvOptionsAreLoading(false);
                 }
             }
         }
@@ -115,11 +112,16 @@ wp.blocks.registerBlockType(metadata.name, {
                 const data = await response.json();
 
                 // format options for SelectControl, with an "Any" option at the beginning
-                const formattedOptions = data
-                    .map((gender) => ({
-                        label: gender.description,
-                        value: gender.id,
+                const formattedOptions = data.map((g) => ({
+                        label: g.description,
+                        value: g.id,
                     }));
+
+                // remove "unknown" gender because it shares id with "any"
+                const unknownIndex = formattedOptions.findIndex(opt => opt.value === 0);
+                if (unknownIndex !== -1) {
+                    formattedOptions.splice(unknownIndex, 1);
+                }
 
                 formattedOptions.unshift({
                     label: __('Any', 'TouchPoint-WP'),
@@ -182,7 +184,7 @@ wp.blocks.registerBlockType(metadata.name, {
                                 // pass the newly selected value to the search so suggestions update immediately
                                 getInvOptionsFromApi(v);
                             }}
-                            isLoading={isLoading}
+                            isLoading={invOptionsAreLoading}
                             options={filteredInvOptions}
                             onFilterValueChange={getInvOptionsFromApi}
                             __next40pxDefaultSize={true}
@@ -194,8 +196,8 @@ wp.blocks.registerBlockType(metadata.name, {
                     <wp.components.SelectControl
                         multiple
                         label={__("Filter by Member Types", "TouchPoint-WP")}
-                        help={__("This option allows you to filter the people that are shown based on their member type in the selected involvement. By default, all members (not prospect or pending) are shown.", "TouchPoint-WP")}
-                        value={attributes.memTypes}
+                        help={__("This option allows you to filter the people that are shown based on their member type in the selected involvement. The default value, \"All Members\", includes all leaders, volunteers, and members. Other types like Inactive, Prospect, and Pending are not shown unless explicitly selected.", "TouchPoint-WP")}
+                        value={memTypes}
                         options={memTypeOptions}
                         onChange={(selected) => {
                             // selected may be an array of strings (from the UI) or numbers.
@@ -219,18 +221,11 @@ wp.blocks.registerBlockType(metadata.name, {
                     <wp.components.SelectControl
                         label={__("Filter by Gender", "TouchPoint-WP")}
                         help={__("This option allows you to filter the people that are shown based on gender. By default, gender filters are not applied.", "TouchPoint-WP")}
-                        value={attributes.genders}
+                        value={gender}
                         multiple={false}
                         options={genderOptions}
                         onChange={(selected) => {
-                            // normalize to an array of numbers
-                            const arr = Array.isArray(selected) ? selected.map(s => Number(s)) : [Number(selected)];
-                            // if "Any" (value 0) selected, store empty array to mean no filter
-                            if (arr.includes(0)) {
-                                setAttributes({genders: 0});
-                            } else {
-                                setAttributes({genders: arr});
-                            }
+                            setAttributes({gender: parseInt(selected)});
                         }}
                         __next40pxDefaultSize={true}
                         __nextHasNoMarginBottom={true}
@@ -244,7 +239,7 @@ wp.blocks.registerBlockType(metadata.name, {
     },
     save: function (props) {
         const {attributes} = props;
-        const {invId, genders, memTypes} = attributes;
+        const {invId, gender, memTypes} = attributes;
 
         const blockProps = wp.blockEditor.useBlockProps.save();
         let additionalClasses = blockProps.className || '';
@@ -252,8 +247,8 @@ wp.blocks.registerBlockType(metadata.name, {
         // remove is-selected from additionalClasses if present.  Replace any double-spaces with singles.
         additionalClasses = additionalClasses.replace('is-selected', '').replace(/\s+/g, ' ').trim();
 
-        const genderClause = genders === 0 ? "" : ` genders=${genders}`
-        const memTypesClause = memTypes !== [0] && memTypes.length > 0 ? ` memTypes=${memTypes.join(',')}` : "";
+        const genderClause = gender === 0 ? "" : ` gender="${gender}"`
+        const memTypesClause = memTypes !== [0] && memTypes.length > 0 ? ` memTypes="${memTypes.join(',')}"` : "";
 
         return `[TP-People class="${additionalClasses}" invId="${invId}"${genderClause}${memTypesClause}]`;
     },
@@ -274,31 +269,28 @@ function updateListContent(invId, attributes, blockProps, placeholderId, placeho
      }
 
     const memTypesParam = attributes.memTypes ? attributes.memTypes.join(',') : '';
-    const gendersParam = attributes.genders ? attributes.genders.join(',') : '';
+    const gendersParam = attributes.gender !== 0 ? attributes.gender : '' // only 1 is supported.
+
+    // remove is-selected from additionalClasses if present.  Replace any double-spaces with singles.
+    let cls = blockProps.className || '';
+    cls = cls.replace('is-selected', '').replace(/\s+/g, ' ').trim();
+    
     // encode className to avoid invalid URL characters
-    const cls = encodeURIComponent(blockProps.className || '');
+    cls = encodeURIComponent(cls);
     const newPath = `/touchpoint-api/person/list?invId=${encodeURIComponent(invId)}&memType=${encodeURIComponent(memTypesParam)}&gender=${encodeURIComponent(gendersParam)}&class=${cls}&context=block-preview`;
 
-     // Use per-instance refs when provided, otherwise fall back to module-level vars.
-     const lastPathHolder = lastPathRef && typeof lastPathRef === 'object' ? lastPathRef : {current: lastPath};
-     const previewControllerHolder = previewControllerRef && typeof previewControllerRef === 'object' ? previewControllerRef : {current: previewController};
-
-    if (lastPathHolder.current === newPath) {
+    if (lastPathRef.current === newPath) {
         return;
     }
 
-    if (previewControllerHolder.current) {
-        try { previewControllerHolder.current.abort(); } catch (e) { /* ignore */ }
+    if (previewControllerRef.current) {
+        try { previewControllerRef.current.abort(); } catch (e) { /* ignore */ }
     }
 
-    previewControllerHolder.current = new AbortController();
-    lastPathHolder.current = newPath;
+    previewControllerRef.current = new AbortController();
+    lastPathRef.current = newPath;
 
-    // If using module-level fallback, keep module vars in sync
-    if (!previewControllerRef) previewController = previewControllerHolder.current;
-    if (!lastPathRef) lastPath = lastPathHolder.current;
-
-    fetch(newPath, {signal: previewControllerHolder.current.signal})
+    fetch(newPath, {signal: previewControllerRef.current.signal})
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.text();
