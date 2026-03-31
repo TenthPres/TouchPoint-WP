@@ -117,13 +117,6 @@ if "Campuses" in Data.a:
     Data.Title = "All Campuses"
     Data.campuses = q.QuerySql(rcSql, {})
 
-if "Genders" in Data.a:
-    apiCalled = True
-    # noinspection SqlResolve
-    rcSql = '''SELECT Id, Code, Description as Name FROM lookup.Gender'''
-    Data.Title = "All Genders"
-    Data.genders = q.QuerySql(rcSql, {})
-
 if "Keywords" in Data.a:
     apiCalled = True
     # noinspection SqlResolve

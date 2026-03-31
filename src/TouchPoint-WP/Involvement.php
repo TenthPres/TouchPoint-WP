@@ -1854,7 +1854,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 					continue;
 				}
 
-				$name    = $g->name;
+				$name    = $g->description;
 				$id      = $g->id;
 				$content .= "<option value=\"$id\">$name</option>";
 			}

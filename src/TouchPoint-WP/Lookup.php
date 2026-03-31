@@ -56,14 +56,14 @@ abstract class Lookup implements api
 		if (!$noCache) {
 			// check transients
 			$v = get_transient($cacheKey);
-			if ($v !== false) {
+			if ($v !== false && $v !== "") {
 				return json_decode($v);
 			}
 		}
 
 		$v = TouchPointWP::instance()->api->get("v1/Lookup/$path");
 
-		if (isset($v['body'])) {
+		if (isset($v['body']) && $v['body'] !== '') {
 			// assume body is already json
 			set_transient($cacheKey, $v['body'], self::TTL);
 

@@ -1573,6 +1573,9 @@ class TouchPointWP
 	 */
 	public static function useTribeCalendar(): bool
 	{
+		if ( ! function_exists('is_plugin_active')) {
+			require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+		}
 		return self::useTribeCalendarPro() || is_plugin_active('the-events-calendar/the-events-calendar.php');
 	}
 
@@ -1964,6 +1967,9 @@ class TouchPointWP
 
 	/**
 	 * Returns an array of objects that correspond to the genders.  Each Gender has a name and an id.
+	 *
+	 * @since 0.0.0 Added
+	 * @since 0.0.96 'Description' is now the human-readable version of the gender name.
 	 *
 	 * @returns object[]
 	 */
