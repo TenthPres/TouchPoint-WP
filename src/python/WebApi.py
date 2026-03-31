@@ -6,7 +6,7 @@ import linecache
 import sys
 import urllib
 
-VERSION = "0.0.96"
+VERSION = "0.0.97"
 
 sgContactEvName = "Contact"
 
@@ -979,6 +979,9 @@ if ("people_get" in Data.a or "people_count" in Data.a) and model.HttpMethod == 
 
     Data.Title = 'People Query'
 
+    # noinspection SqlResolve
+    leaderMemberTypes = q.QuerySqlInts("SELECT Id FROM Lookup.MemberType WHERE AttendanceTypeId = 10")
+
     rules = []
     invsMembershipsToImport = []
     invsMemSubGroupsToImport = {}
@@ -1002,9 +1005,23 @@ if ("people_get" in Data.a or "people_count" in Data.a) and model.HttpMethod == 
     # Involvements
     if inData.has_key('inv'):
         for iid in inData['inv']:
-            if inData['inv'][iid]['memTypes'] is None:
+            # All members.  Includes leaders.
+            if inData['inv'][iid]['memTypes'] is None or 0 in inData['inv'][iid]['memTypes']:
                 rules.append("IsMemberOf( Org={} ) = 1".format(iid))
-            else:
+                inData['inv'][iid]['memTypes'].remove(0)
+                for lmt in leaderMemberTypes:  # leaders are implied
+                    if lmt in inData['inv'][iid]['memTypes']:
+                        inData['inv'][iid]['memTypes'].remove(lmt)
+
+            # All leaders, but other types may be needed.
+            elif -1 in inData['inv'][iid]['memTypes']:
+                #  remove -1 and add leaderMemberTypes values
+                inData['inv'][iid]['memTypes'].remove(-1)
+                for lmt in leaderMemberTypes:
+                    inData['inv'][iid]['memTypes'].append(lmt)
+            
+            # leaders and anyone else
+            if len(inData['inv'][iid]['memTypes']) > 0:
                 rules.append("MemberTypeCodes( Org={} ) IN ( {} )"
                              .format(iid, ', '.join(map(str, inData['inv'][iid]['memTypes'])))
                              )

@@ -5,9 +5,10 @@
  */
 namespace tp\TouchPointWP\Blocks;
 
+use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\TouchPointWP;
 
-abstract class BlocksController
+abstract class BlocksController implements api
 {
 
 	/**
@@ -112,6 +113,44 @@ abstract class BlocksController
 				);
 			}
 		}
+	}
+
+
+	/**
+	 * Handle API requests
+	 *
+	 * @param array $uri The request URI already parsed by parse_url()
+	 *
+	 * @return bool False if endpoint is not found.  Should print the result.
+	 *
+	 * @since 0.0.97 Added
+	 */
+	public static function api(array $uri): bool
+	{
+		if (count($uri['path']) < 3) {
+			return false;
+		}
+
+		switch (strtolower($uri['path'][2])) {
+			case "block-editor-style":
+				header('Content-Type: text/css');
+				header('Cache-Control: max-age=3600, public');
+
+				$dir = TouchPointWP::instance()->assets_dir;
+
+				// open files and print
+				echo file_get_contents($dir . '/template/block-preview-style.css') . "\n\n";
+				if (TouchPointWP::includeActionsStyle("block-preview")) {
+					echo file_get_contents($dir . '/template/actions-style.css') . "\n\n";
+				}
+				if (TouchPointWP::includePartialsStyle("block-preview")) {
+					echo file_get_contents($dir . '/template/partials-template-style.css') . "\n\n";
+				}
+
+				exit;
+		}
+
+		return false;
 	}
 }
 

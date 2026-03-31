@@ -107,10 +107,8 @@ wp.blocks.registerBlockType( metadata.name, {
 		}, [postType, division, blockProps.className, placeholderId]);
 
         return (
-                <div {...blockProps} >
-                    <link rel="stylesheet" href="/wp-content/plugins/touchpoint-wp/assets/template/block-preview-style.css?ver=0.0.96" />
-                    <link rel="stylesheet" href="/wp-content/plugins/touchpoint-wp/assets/template/actions-style.css?ver=0.0.96" />
-                    <link rel="stylesheet" href="/wp-content/plugins/touchpoint-wp/assets/template/partials-template-style.css?ver=0.0.96" />
+            <div {...blockProps} >
+                <link rel={"stylesheet"} href={"/touchpoint-api/blocks/block-editor-style"} />
                 <wp.blockEditor.InspectorControls>
                     <wp.components.PanelBody title={__("Settings", "TouchPoint-WP")}>
                         {postTypeOptions.length === 0 ? (

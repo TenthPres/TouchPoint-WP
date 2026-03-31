@@ -169,10 +169,7 @@ wp.blocks.registerBlockType(metadata.name, {
 
         return (
             <div {...blockProps}>
-                {/* Ensure preview styles are available inside the editor canvas/preview. */}
-                <link rel="stylesheet" href="/wp-content/plugins/touchpoint-wp/assets/template/block-preview-style.css?ver=0.0.96" />
-                <link rel="stylesheet" href="/wp-content/plugins/touchpoint-wp/assets/template/actions-style.css?ver=0.0.96" />
-                <link rel="stylesheet" href="/wp-content/plugins/touchpoint-wp/assets/template/partials-template-style.css?ver=0.0.96" />
+                <link rel={"stylesheet"} href={"/touchpoint-api/blocks/block-editor-style"} />
                 <wp.blockEditor.InspectorControls>
                     <wp.components.PanelBody title={__('Settings', 'TouchPoint-WP')}>
                         <wp.components.ComboboxControl
@@ -196,7 +193,7 @@ wp.blocks.registerBlockType(metadata.name, {
                     <wp.components.SelectControl
                         multiple
                         label={__("Filter by Member Types", "TouchPoint-WP")}
-                        help={__("This option allows you to filter the people that are shown based on their member type in the selected involvement. The default value, \"All Members\", includes all leaders, volunteers, and members. Other types like Inactive, Prospect, and Pending are not shown unless explicitly selected.", "TouchPoint-WP")}
+                        help={__("This option allows you to filter the people that are shown based on their Member Type in the selected involvement. The default value, \"All Members\", includes all leaders, volunteers, and members. Other types like Inactive, Prospect, and Pending are not shown unless explicitly selected.", "TouchPoint-WP")}
                         value={memTypes}
                         options={memTypeOptions}
                         onChange={(selected) => {
@@ -277,7 +274,7 @@ function updateListContent(invId, attributes, blockProps, placeholderId, placeho
     
     // encode className to avoid invalid URL characters
     cls = encodeURIComponent(cls);
-    const newPath = `/touchpoint-api/person/list?invId=${encodeURIComponent(invId)}&memType=${encodeURIComponent(memTypesParam)}&gender=${encodeURIComponent(gendersParam)}&class=${cls}&context=block-preview`;
+    const newPath = `/touchpoint-api/person/list?invId=${encodeURIComponent(invId)}&memTypes=${encodeURIComponent(memTypesParam)}&gender=${encodeURIComponent(gendersParam)}&class=${cls}&context=block-preview`;
 
     if (lastPathRef.current === newPath) {
         return;

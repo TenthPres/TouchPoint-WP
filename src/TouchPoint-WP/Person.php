@@ -402,7 +402,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 				'withsubgroups' => false,
 				'btnclass'      => 'btn button',
 				'context'       => '',
-				'memtype'       => '',
+				'memtypes'      => '',
 				'gender'        => ''
 			],
 			$params,
@@ -414,6 +414,19 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		/** @noinspection SpellCheckingInspection */
 		$iid = intval($params['invid']);
+
+		/** @noinspection SpellCheckingInspection */
+		$memTypes = $params['memtypes'] ?? [];
+		if (!is_array($memTypes)) {
+			$memTypes = explode(',', trim($memTypes));
+		}
+		foreach ($memTypes as $i => $type) {
+			$memTypes[$i] = intval(trim($type));
+		}
+		if (in_array("", $memTypes)) { // remove "" if exists
+			$memTypes = array_diff($memTypes, [0]);
+		}
+		/** @var int[] $memTypes */
 
 		// If there's no invId, try to get one from the Post
 		if ($iid === 0) {
@@ -438,13 +451,23 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 				/** @noinspection SpellCheckingInspection */
 				self::$_indexingQueries['inv'][$iid] = [
 					'invId'          => $iid,
-					'memTypes'       => null,
+					'memTypes'       => [],
 //					'subGroups' => null,
 					'with_subGroups' => false // populated below
 				];
 			}
 
-			// Populating here so all info is imported if an involvement is embedded multiple times with different parameters.
+			// Handle memTypes, merging from any previously established.
+			if (count($memTypes) > 0) {
+				foreach ($memTypes as $type) {
+					self::$_indexingQueries['inv'][$iid]['memTypes'][] = intval($type);
+				}
+			} else { // not provided, which means we need the default behavior, which is a 0.
+				self::$_indexingQueries['inv'][$iid]['memTypes'][] = 0;
+			}
+			self::$_indexingQueries['inv'][$iid]['memTypes'] = array_unique(self::$_indexingQueries['inv'][$iid]['memTypes']);
+
+			// handle subgroups, merging from previously established.
 			/** @noinspection SpellCheckingInspection */
 			self::$_indexingQueries['inv'][$iid]['with_subGroups'] =
 				self::$_indexingQueries['inv'][$iid]['with_subGroups'] || $params['withsubgroups'];
@@ -468,15 +491,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 		// Member Type filtering
 
-		/** @noinspection SpellCheckingInspection */
-		$memTypes = $params['memtype'] ?? [];
-		if (!is_array($memTypes)) {
-			$memTypes = explode(',', trim($memTypes));
-		}
-		if (in_array("", $memTypes)) { // remove "" if exists
-			$memTypes = array_diff($memTypes, [""]);
-		}
-		if (count($memTypes) === 0 || in_array("0", $memTypes)) {
+		if (count($memTypes) === 0 || in_array(0, $memTypes)) {
 			// Leaders, Volunteers, Members: at10, at20, or at30.
 			$WP_User_queryParams['meta_query'][] = [
 				'key' => self::META_INV_ATTEND_PREFIX . $iid,

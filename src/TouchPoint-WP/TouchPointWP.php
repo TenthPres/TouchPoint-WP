@@ -6,6 +6,7 @@
 namespace tp\TouchPointWP;
 
 use JsonException;
+use PhpParser\Node\Stmt\Block;
 use stdClass;
 use tp\TouchPointWP\Blocks\BlocksController;
 use tp\TouchPointWP\Utilities\Cleanup;
@@ -31,7 +32,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.96";
+	public const VERSION = "0.0.97";
 
 	/**
 	 * The Token
@@ -54,6 +55,7 @@ class TouchPointWP
 	public const API_ENDPOINT_REPORT = "report";
 	public const API_ENDPOINT_ADMIN_SCRIPTZIP = "admin/scriptzip";
 	public const API_ENDPOINT_CLEANUP = "cleanup";
+	public const API_ENDPOINT_BLOCKS = "blocks";
 	public const API_ENDPOINT_GEOLOCATE = "geolocate";
 
 	/**
@@ -532,6 +534,13 @@ class TouchPointWP
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_GEOLOCATE &&
 				count($reqUri['path']) === 2) {
 				$this->ajaxGeolocate();
+			}
+
+			// Blocks
+			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_BLOCKS) {
+			    if ( ! BlocksController::api($reqUri)) {
+				    return $continue;
+			    }
 			}
 		}
 
@@ -2547,6 +2556,27 @@ class TouchPointWP
 	 */
 	public static function enqueuePartialsStyle(?string $context = null): void
 	{
+		if (self::includePartialsStyle($context)) {
+			wp_enqueue_style(
+				TouchPointWP::SHORTCODE_PREFIX . 'partials-template-style',
+				self::instance()->assets_url . 'template/partials-template-style.css',
+				[],
+				TouchPointWP::VERSION
+			);
+		}
+	}
+
+	/**
+	 * Determines if the partials style should be rendered.
+	 * 
+	 * @param string|null $context
+	 *
+	 * @return bool
+	 *
+	 * @since 0.0.97 Added
+	 */
+	public static function includePartialsStyle(?string $context = null): bool
+	{
 		$includePartialsStyle = true;
 
 		/**
@@ -2557,18 +2587,10 @@ class TouchPointWP
 		 * @params ?string $context a string that may be provided to clarify where the style is being called from.
 		 *
 		 * @noinspection PhpConditionAlreadyCheckedInspection
+		 * @noinspection PhpUnnecessaryLocalVariableInspection
 		 */
-		$includePartialsStyle = !!apply_filters("tp_include_actions_style", $includePartialsStyle, $context);
-		if (!$includePartialsStyle) {
-			return;
-		}
-
-		wp_enqueue_style(
-			TouchPointWP::SHORTCODE_PREFIX . 'partials-template-style',
-			self::instance()->assets_url . 'template/partials-template-style.css',
-			[],
-			TouchPointWP::VERSION
-		);
+		$includePartialsStyle = !!apply_filters("tp_include_partials_style", $includePartialsStyle, $context);
+		return $includePartialsStyle;
 	}
 
 	/**
@@ -2579,6 +2601,27 @@ class TouchPointWP
 	 */
 	public static function enqueueActionsStyle(string $action): void
 	{
+		if (self::includeActionsStyle($action)) {
+			wp_enqueue_style(
+				TouchPointWP::SHORTCODE_PREFIX . 'actions-style',
+				self::instance()->assets_url . 'template/actions-style.css',
+				[],
+				TouchPointWP::VERSION
+			);
+		}
+	}
+
+	/**
+	 * Determines if the actions style should be rendered.
+	 *
+	 * @param string $action
+	 *
+	 * @return bool
+	 *
+	 * @since 0.0.97 Added
+	 */
+	public static function includeActionsStyle(string $action): bool
+	{
 		$includeActionsStyle = true;
 
 		/**
@@ -2588,16 +2631,10 @@ class TouchPointWP
 		 * @params string $action The action that is being performed.
 		 *
 		 * @noinspection PhpConditionAlreadyCheckedInspection
+		 * @noinspection PhpUnnecessaryLocalVariableInspection
 		 */
 		$includeActionsStyle = !!apply_filters("tp_include_actions_style", $includeActionsStyle, $action);
-		if ($includeActionsStyle) {
-			wp_enqueue_style(
-				TouchPointWP::SHORTCODE_PREFIX . 'actions-style',
-				self::instance()->assets_url . 'template/actions-style.css',
-				[],
-				TouchPointWP::VERSION
-			);
-		}
+		return $includeActionsStyle;
 	}
 
 	/**
