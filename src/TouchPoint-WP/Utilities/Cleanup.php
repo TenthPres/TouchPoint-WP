@@ -24,7 +24,7 @@ if ( ! defined('ABSPATH')) {
 abstract class Cleanup implements api
 {
 	public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "cleanup_cron_hook";
-	private const CACHE_TTL = 24 * 7; // How long things should live before they're cleaned up.  Hours.
+	private const CACHE_TTL = 3600 * 24 * 7; // How long things should live before they're cleaned up.  Seconds.
 
 	/**
 	 * Called by the cron task. (and also by ::api() )
@@ -93,7 +93,7 @@ abstract class Cleanup implements api
 		} else {
 			$mtObj = (array)json_decode($mtObj);
 			foreach ($mtObj as $key => $val) {
-				if (strtotime($val->_updated) < time() - 3600 * self::CACHE_TTL) {
+				if (strtotime($val->_updated) < time() - self::CACHE_TTL) {
 					$needsUpdate = true;
 					unset($mtObj[$key]);
 				}

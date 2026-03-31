@@ -81,9 +81,10 @@ class TouchPointWP
 	public const TABLE_STATS = self::TABLE_PREFIX . "stats";
 
 	/**
-	 * Typical amount of time in hours for metadata to last (e.g. genders and resCodes).
+	 * Typical amount of time in seconds for metadata to last (e.g. genders and resCodes).
 	 */
-	public const CACHE_TTL = 8;
+	public const CACHE_TTL = 8 * 3600;
+	public const CACHE_TTL_SHORT = 120;
 
 	public const TTL_IP_GEO = 5;  // years until deleted
 	public const TTU_IP_GEO = 180; // days until updated
@@ -1671,8 +1672,8 @@ class TouchPointWP
 		// if not in cache, get from API and cache.  If API fails, return empty array (probably better than nothing).
 		$mts = $this->getMemberTypesForInvolvements_fromApi($involvements);
 
-		// Cache for 1 hour.
-		set_transient($cacheKey, $mts, HOUR_IN_SECONDS);
+		// Cache for a very short period.
+		set_transient($cacheKey, $mts, self::CACHE_TTL_SHORT);
 		return $mts;
 	}
 
@@ -1699,7 +1700,7 @@ class TouchPointWP
 			$mtObj = json_decode($mtObj);
 			if ( ! isset($mtObj->$divKey)) {
 				$needsUpdate = true;
-			} else if (strtotime($mtObj->$divKey->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($mtObj->$divKey->memTypes)) {
+			} else if (strtotime($mtObj->$divKey->_updated) < time() - self::CACHE_TTL || ! is_array($mtObj->$divKey->memTypes)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1763,7 +1764,7 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$divsObj = json_decode($divsObj);
-			if (strtotime($divsObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($divsObj->divs)) {
+			if (strtotime($divsObj->_updated) < time() - self::CACHE_TTL || ! is_array($divsObj->divs)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1854,7 +1855,7 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$rcObj = json_decode($rcObj);
-			if (strtotime($rcObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($rcObj->resCodes)) {
+			if (strtotime($rcObj->_updated) < time() - self::CACHE_TTL || ! is_array($rcObj->resCodes)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1889,7 +1890,7 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$cObj = json_decode($cObj);
-			if (strtotime($cObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($cObj->campuses)) {
+			if (strtotime($cObj->_updated) < time() - self::CACHE_TTL || ! is_array($cObj->campuses)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1976,7 +1977,7 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$gObj = json_decode($gObj);
-			if (strtotime($gObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($gObj->genders)) {
+			if (strtotime($gObj->_updated) < time() - self::CACHE_TTL || ! is_array($gObj->genders)) {
 				$needsUpdate = true;
 			}
 		}
@@ -2036,7 +2037,7 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$kObj = json_decode($kObj);
-			if (strtotime($kObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($kObj->keywords)) {
+			if (strtotime($kObj->_updated) < time() - self::CACHE_TTL || ! is_array($kObj->keywords)) {
 				$needsUpdate = true;
 			}
 		}
@@ -2084,7 +2085,7 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$pevObj = json_decode($pevObj);
-			if (strtotime($pevObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($pevObj->personEvFields)) {
+			if (strtotime($pevObj->_updated) < time() - self::CACHE_TTL || ! is_array($pevObj->personEvFields)) {
 				$needsUpdate = true;
 			}
 		}
@@ -2145,7 +2146,7 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$fevObj = json_decode($fevObj);
-			if (strtotime($fevObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($fevObj->familyEvFields)) {
+			if (strtotime($fevObj->_updated) < time() - self::CACHE_TTL || ! is_array($fevObj->familyEvFields)) {
 				$needsUpdate = true;
 			}
 		}
