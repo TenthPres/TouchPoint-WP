@@ -1612,8 +1612,7 @@ class TouchPointWP
 		// Remove parents that have no children
 		if ($noChildlessParents) {
 			foreach ($lineage[0] as $i => $term) {
-				if ( ! isset($lineage[$term->term_id])) {
-					/** @noinspection PhpIllegalArrayKeyTypeInspection -- there isn't an error here. */
+				if (!isset($lineage[$term->term_id])) {
 					unset($lineage[0][$i]);
 				}
 			}
@@ -1970,57 +1969,11 @@ class TouchPointWP
 	 */
 	public function getGenders(): array
 	{
-		$gObj = $this->settings->get('meta_genders');
-
-		$needsUpdate = false;
-		if ($gObj === false || $gObj === null) {
-			$needsUpdate = true;
-		} else {
-			$gObj = json_decode($gObj);
-			if (strtotime($gObj->_updated) < time() - self::CACHE_TTL || ! is_array($gObj->genders)) {
-				$needsUpdate = true;
-			}
-		}
-
-		// Get update if needed.
-		if ($needsUpdate) {
-			$update = $this->updateGenders();
-			if ($update !== false) {
-				$gObj = $update;
-			}
-		}
-
-		if ($gObj === false) {
+		try {
+			return Lookup::getLookup('Genders');
+		} catch (TouchPointWP_Exception) {
 			return [];
 		}
-
-		return $gObj->genders;
-	}
-
-
-	/**
-	 * @return false|object Update the genders if they're stale.
-	 */
-	private function updateGenders()
-	{
-		try {
-			$data = $this->api->pyGet('Genders');
-		} catch (TouchPointWP_Exception) {
-			return false;
-		}
-
-		if ( ! is_array($data->genders)) {
-			return false;
-		}
-
-		$obj = (object)[
-			'_updated' => date('c'),
-			'genders'  => $data->genders
-		];
-
-		$this->settings->set("meta_genders", json_encode($obj));
-
-		return $obj;
 	}
 
 	/**
@@ -2446,7 +2399,7 @@ class TouchPointWP
 			$parameters = (array)$parameters;
 		}
 
-		$r = $this->getHttpClient()->request(
+		$r = $this->getExtHttpClient()->request(
 			$url . "?" . http_build_query($parameters),
 			[
 				'method' => 'GET'
@@ -2515,11 +2468,11 @@ class TouchPointWP
 	}
 
 	/**
-	 * @deprecated 0.0.95 Use Api version instead.
+	 * Gets a WP_HTTP object intended for external/third-party API access.
 	 *
-	 * @return WP_Http|null
+	 * @return WP_Http
 	 */
-	private function getHttpClient(): ?WP_Http
+	private function getExtHttpClient(): WP_Http
 	{
 		if ($this->httpClient === null) {
 			$this->httpClient = new WP_Http();
