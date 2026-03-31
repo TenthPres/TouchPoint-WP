@@ -72,6 +72,7 @@ article.inv-list-item h2 a {
     right: 0;
     margin: 1.5em 1em;
     opacity: 0;
+    text-align: center;
 }
 
 .person-list-item.has-actions:hover .person-actions {
