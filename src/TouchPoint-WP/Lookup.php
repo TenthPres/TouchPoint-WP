@@ -34,6 +34,7 @@ abstract class Lookup implements api
 	{
 		try {
 			header('Content-Type: application/json');
+			header('Cache-Control: public, max-age=60'); // 1 minute, to allow duplicates to be cached easily.
 			echo json_encode(self::getLookup($uri['path'][2]));
 			exit;
 		} catch (TouchPointWP_Exception) {
@@ -60,7 +61,7 @@ abstract class Lookup implements api
 			}
 		}
 
-		$v = TouchPointWP::instance()->api->get("/api/v1/Lookup/$path");
+		$v = TouchPointWP::instance()->api->get("v1/Lookup/$path");
 
 		if (isset($v['body'])) {
 			// assume body is already json

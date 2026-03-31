@@ -69,13 +69,14 @@ class TouchPointWP_AdminAPI implements api
 			case "involvementsearch":
 				header('Content-Type: application/json');
 				if ( ! isset($_GET['s']) || trim($_GET['s']) === '') {
+					header('Cache-Control: public, max-age=' . YEAR_IN_SECONDS); // practically perpetual
 					echo json_encode([]);
 					exit;
 				}
-
 				$result = TouchPointWP::instance()->api->uGet('v1/Involvements', [
 					'terms' => $_GET['s']
 				]);
+				header('Cache-Control: public, max-age=60'); // 1 minute, to allow duplicates to be cached easily.
 				echo $result['body'];
 				exit;
 

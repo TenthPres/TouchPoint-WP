@@ -390,7 +390,7 @@ abstract class Auth implements api, module
 			$api = TouchPointWP::instance()->api;
 
 			try {
-				$r = $api->post("/api/v1/Account/ValidateOneTimeLogin", data: $_GET[self::LOGIN_PARAMETER]);
+				$r = $api->post("v1/Account/ValidateOneTimeLogin", data: $_GET[self::LOGIN_PARAMETER]);
 			} catch (TouchPointWP_Exception $e) {
 				return $e->toWpError();
 			}
