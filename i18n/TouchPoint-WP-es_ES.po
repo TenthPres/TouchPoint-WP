@@ -790,15 +790,15 @@ msgstr "TouchPoint-WP"
 msgid "Settings"
 msgstr "Ajustes"
 
-#: src/TouchPoint-WP/Settings.php:1700
+#: src/TouchPoint-WP/Settings.php:1703
 msgid "Script Update Failed"
 msgstr "Actualización de secuencia de comandos fallida"
 
-#: src/TouchPoint-WP/Settings.php:1822
+#: src/TouchPoint-WP/Settings.php:1825
 msgid "TouchPoint-WP Settings"
 msgstr "Configuración de TouchPoint-WP"
 
-#: src/TouchPoint-WP/Settings.php:1873
+#: src/TouchPoint-WP/Settings.php:1876
 msgid "Save Settings"
 msgstr "Guardar ajustes"
 
