@@ -2744,7 +2744,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			if ($typeSets->postType === Meeting::POST_TYPE && !$inv->isParent) {
 				if (count($inv->meetings) < 1) {
 					if ($verbose) {
-						echo "<p>Stopping processing because no meetings were returned.  Involvement will be deleted from WordPress.</p>";
+						echo "<p>Stopping processing because no meetings were returned.  Involvement will be deleted from WordPress if it exists.</p>";
 					}
 					continue;
 				}
