@@ -5,12 +5,13 @@
 
 namespace tp\TouchPointWP;
 
+use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\Utilities\Http;
 use WP_Post;
 use ZipArchive;
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once 'api.php';
+	require_once "Interfaces/api.php";
 }
 
 if ( ! defined('ABSPATH')) {
@@ -29,7 +30,7 @@ class TouchPointWP_AdminAPI implements api
 	 */
 	public function __construct()
 	{
-//        add_action( 'save_post', array( $this, 'save_meta_boxes' ), 10, 1 );
+//		add_action( 'save_post', array( $this, 'save_meta_boxes' ), 10, 1 );
 	}
 
 	/**
@@ -44,9 +45,39 @@ class TouchPointWP_AdminAPI implements api
 		switch (strtolower($uri['path'][2])) {
 			case "memtypes":
 				header('Content-Type: application/json');
-				$divs = explode(",", $_GET['divs']);
-				$mt   = TouchPointWP::instance()->getMemberTypesForDivisions($divs, true);
-				echo json_encode($mt);
+				if (isset($_GET['divs']) && trim($_GET['divs']) !== '') {
+					$divs = explode(",", $_GET['divs']);
+					$mt   = TouchPointWP::instance()->getMemberTypesForDivisions($divs, true);
+					echo json_encode($mt);
+					exit;
+				}
+				if (isset($_GET['inv']) && trim($_GET['inv']) !== '') {
+					$inv = explode(",", $_GET['inv']);
+					$mt  = TouchPointWP::instance()->getMemberTypesForInvolvements($inv);
+					echo json_encode($mt);
+					exit;
+				}
+				echo json_encode([]);
+				exit;
+
+			case "divisions":
+				header('Content-Type: application/json');
+				$divs = TouchPointWP::instance()->getImportedDivisions();
+				echo json_encode($divs);
+				exit;
+
+			case "involvementsearch":
+				header('Content-Type: application/json');
+				if ( ! isset($_GET['s']) || trim($_GET['s']) === '') {
+					header('Cache-Control: public, max-age=' . YEAR_IN_SECONDS); // practically perpetual
+					echo json_encode([]);
+					exit;
+				}
+				$result = TouchPointWP::instance()->api->uGet('v1/Involvements', [
+					'terms' => $_GET['s']
+				]);
+				header('Cache-Control: public, max-age=60'); // 1 minute, to allow duplicates to be cached easily.
+				echo $result['body'];
 				exit;
 
 			case self::API_ENDPOINT_SCRIPTZIP:
@@ -92,7 +123,14 @@ class TouchPointWP_AdminAPI implements api
 				if ( ! TouchPointWP::currentUserIsAdmin()) {
 					return false;
 				}
-				TouchPointWP::instance()->settings->migrate();
+				TouchPointWP::instance()->migrate(true);
+				exit;
+
+			case "phpinfo":
+				if (!TouchPointWP::currentUserIsAdmin()) {
+					return false;
+				}
+				phpinfo();
 				exit;
 		}
 
@@ -125,7 +163,7 @@ class TouchPointWP_AdminAPI implements api
 	{
 		try {
 			$fileName = $this->generatePython(true);
-		} catch (TouchPointWP_Exception $e) {
+		} catch (TouchPointWP_Exception) {
 			return false;
 		}
 
@@ -377,7 +415,7 @@ class TouchPointWP_AdminAPI implements api
 	 *     array of filename => content.
 	 * @throws TouchPointWP_Exception
 	 */
-	public function generatePython(bool $toZip, array $filenames = ['*'])
+	public function generatePython(bool $toZip, array $filenames = ['*']): array|string
 	{
 		if ($toZip && ! class_exists('\ZipArchive')) {
 			throw new TouchPointWP_Exception("ZipArchive extension is not enabled.");
@@ -466,6 +504,7 @@ class TouchPointWP_AdminAPI implements api
 	private static function getTpFilenameForRepoFilename(string $fn): string
 	{
 		$newFn = '';
+		/** @noinspection PhpSwitchStatementWitSingleBranchInspection */
 		switch ($fn) {
 			case 'WebApi':
 				$newFn = TouchPointWP::instance()->settings->api_script_name;
@@ -488,7 +527,7 @@ class TouchPointWP_AdminAPI implements api
 	 * @param string $message
 	 * @param ?mixed $devDetail
 	 */
-	public static function showError(string $message, $devDetail = null)
+	public static function showError(string $message, $devDetail = null): void
 	{
 		add_action('admin_notices',
 			function () use ($message, $devDetail) {

@@ -1,6 +1,9 @@
 <?php
 
 use tp\TouchPointWP\Involvement;
+use tp\TouchPointWP\Meeting;
+use tp\TouchPointWP\PostTypeCapable;
+use tp\TouchPointWP\Taxonomies;
 use tp\TouchPointWP\TouchPointWP;
 
 $postType = get_post_type();
@@ -10,72 +13,148 @@ get_header($postType);
 
 the_post();
 $p   = get_post();
-$inv = Involvement::fromPost($p);
+$tps = TouchPointWP::instance()->settings;
+$obj = PostTypeCapable::fromPost($p);
 
-TouchPointWP::enqueuePartialsStyle();
+TouchPointWP::enqueuePartialsStyle("involvement-single");
 
 ?>
 
 <header class="archive-header has-text-align-center header-footer-group">
+    <?php
+    $image = get_the_post_thumbnail_url($p, 'full');
+    $image = $image ? esc_url($image) : false;
+    $imageAlt = esc_html(get_post(get_post_thumbnail_id($p))->post_title);
+    if ($image) {
+        echo "<div class=\"header-image-container\">";
+        echo "<div class=\"header-image involvement-header-image\" style=\"background-image: url('$image');\">";
+        echo "<img src='$image' alt='$imageAlt' class='tpwp-accessibility-header-image'>";
+        echo "</div>";
+        echo "</div>";
+    }
+    ?>
+
     <div class="archive-header-inner section-inner medium">
         <h1 class="archive-title page-title"><?php echo the_title() ?></h1>
     </div>
+    <?php
+
+    if ($obj instanceof Meeting) {
+        if ($obj->status() === Meeting::STATUS_CANCELLED) {
+            echo "<div class='section-inner tpwp-alert-block'>";
+
+            $meetingsCalled = $tps->mc_name_singular;
+
+            echo wp_sprintf(
+                // Translators: %s is the singular name of the of a Meeting, such as "Event".
+                __('This %s has been Cancelled.', 'TouchPoint-WP'),
+                __($meetingsCalled) // deliberately no domain
+            );
+            echo "</div>";
+        } elseif ($obj->isPast()) {
+            echo "<div class='section-inner tpwp-alert-block tpwp-alert-info'>";
+
+            $meetingsCalled = $tps->mc_name_singular;
+
+            echo wp_sprintf(
+            // Translators: %s is the singular name of the of a Meeting, such as "Event".
+                    __('This %s has already happened.', 'TouchPoint-WP'),
+                    __($meetingsCalled) // deliberately no domain
+            );
+            echo "</div>";
+        }
+    }
+
+    ?>
+
 </header>
 
-<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-involvement="<?php echo $inv->post_id ?>">
+<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-involvement="<?php echo $p->ID ?>">
     <div class="post-inner involvement-inner">
         <div class="entry-content">
             <?php
-                the_content();
+            the_content();
             ?>
         </div><!-- .entry-content -->
     </div><!-- .post-inner -->
 
     <div class="section-inner TouchPointWP-detail">
         <div class="TouchPointWP-detail-cell">
-            <div class="TouchPointWP-detail-cell-section involvement-logistics" >
+            <div class="TouchPointWP-detail-cell-section involvement-logistics">
                 <?php
-                $metaStrings = [];
-                foreach ($inv->notableAttributes() as $a)
-                {
-                    $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-                }
-                echo implode("<br />", $metaStrings);
+                $notableAttributes = $obj->notableAttributes();
+                echo $notableAttributes->join("<br />");
                 ?>
             </div>
             <div class="TouchPointWP-detail-cell-section involvement-actions">
-                <?php echo $inv->getActionButtons('single-template', "btn button") ?>
+                <?php echo $obj->getActionButtons('single-template', "btn button") ?>
             </div>
         </div>
-        <?php if ($settings->useGeo && $inv->geo !== null) { ?>
-        <div class="TouchPointWP-detail-cell TouchPointWP-map-container">
-            <?php echo Involvement::mapShortcode() ?>
-        </div>
+        <?php if ($settings->useGeo && $obj->hasGeo()) { ?>
+            <div class="TouchPointWP-detail-cell TouchPointWP-map-container">
+                <!-- TODO this doesn't work for meetings. -->
+                <?php echo Involvement::mapShortcode() ?>
+            </div>
         <?php } ?>
     </div>
 </article>
 
 <?php if ($settings->hierarchical) {
-    $single_children = get_children([
-                                 'post_parent' => $inv->post_id,
-                                 'orderby' => 'title',
-                                 'order' => 'ASC',
-                                 'post_type' => $postType
-                             ]);
-    if (count($single_children) > 0) {
-        echo "<div class='involvement-list child-involvements'>";
-    }
-    foreach ($single_children as $post) {
-        /** @var WP_Post $post */
-        $loadedPart = get_template_part('list-item', 'involvement-list-item');
-        if ($loadedPart === false) {
-            TouchPointWP::enqueuePartialsStyle();
-            require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
-        }
-    }
-    if (count($single_children) > 0) {
-        echo "</div>";
-    }
+	$single_children = get_children([
+		                         'post_parent' => $p->ID,
+		                         'orderby' => 'title',
+		                         'order' => 'ASC',
+		                         'meta_key'     => TouchPointWP::INVOLVEMENT_META_KEY,
+		                         'meta_value'   => 0,
+		                         'meta_compare' => '>'
+	                         ]);
+	if (count($single_children) > 0) {
+		echo "<div class='involvement-list child-involvements'>";
+	}
+	foreach ($single_children as $post) {
+		/** @var WP_Post $post */
+		$loadedPart = get_template_part('list-item', 'involvement-list-item');
+		if ($loadedPart === false) {
+			TouchPointWP::enqueuePartialsStyle("involvement-single child-item");
+			require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
+		}
+	}
+	if (count($single_children) > 0) {
+		echo "</div>";
+	}
+}
+
+if ($settings->importMeetings && $tps->enable_meeting_cal === "on") {
+	$meetings = get_children([
+		                         'post_parent'  => $p->ID,
+		                         'order'        => 'ASC',
+		                         'orderby'      => 'meta_value_num',
+		                         'meta_key'     => Meeting::MEETING_START_META_KEY,
+		                         'meta_value'   => time(),
+		                         'meta_compare' => '>'
+	                         ]);
+	$count = count($meetings);
+	if ($count > 0) {
+		echo "<div class='event-list'>";
+		$heading = sprintf(
+		// translators: %1$s is the singular name of the event type, %2$s is the plural name of the event type
+			_n('Upcoming %1$s', 'Upcoming %2$s', 'TouchPoint-WP'),
+			TouchPointWP::instance()->settings->mc_name_singular,
+			TouchPointWP::instance()->settings->mc_name_plural
+		);
+		echo "<h3>$heading</h3>";
+	}
+	foreach ($meetings as $post) {
+		/** @var WP_Post $post */
+		$loadedPart = get_template_part('list-item', 'event-list-item');
+		if ($loadedPart === false) {
+			TouchPointWP::enqueuePartialsStyle("involvement-single event-item");
+			require TouchPointWP::$dir . "/src/templates/parts/meeting-list-item.php";
+		}
+	}
+	if (count($meetings) > 0) {
+		echo "</div>";
+	}
 } ?>
 
 <?php get_footer();

@@ -31,16 +31,7 @@ $postItemClass = $params['itemclass'] ?? "partner-list-item";
         </div>
         <div class="post-meta-list-item">
             <span class="post-meta">
-                <?php
-                $metaStrings = [];
-
-                foreach ($gp->notableAttributes() as $a)
-                {
-                    $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-                }
-
-                echo implode(tp\TouchPointWP\TouchPointWP::$joiner, $metaStrings);
-                ?>
+                <?php echo $gp->notableAttributes(); ?>
             </span><!-- .post-meta -->
         </div>
     </header><!-- .entry-header -->

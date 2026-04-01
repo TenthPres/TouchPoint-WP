@@ -12,14 +12,17 @@ composer.lock
 /.idea/deployment.xml
 /.idea/dataSources.xml
 /.idea/webServers.xml
+/.idea/runConfigurations/Local.xml
+/.idea/copilotDiffState.xml
+/.idea/data_source_mapping.xml
+/.idea/copilot*
 
 *.min.js
 node_modules
 
 /i18n/*.json
 /i18n/*.mo
-
-package-lock.json
+/i18n/*.l10n.php
 
 /build/
 /touchpoint-wp.zip

@@ -30,7 +30,7 @@ if (have_posts()) {
     $wp_the_query->get_posts();
     $wp_the_query->rewind_posts();
 
-    TouchPointWP::enqueuePartialsStyle();
+    TouchPointWP::enqueuePartialsStyle("partner-archive");
     ?>
     <header class="archive-header has-text-align-center header-footer-group">
         <div class="archive-header-inner section-inner medium">
@@ -42,6 +42,8 @@ if (have_posts()) {
             <?php } ?>
         </div>
     </header>
+
+    <main class="TouchPointWP-main">
     <div class="partner-list">
     <?php
 
@@ -54,6 +56,7 @@ if (have_posts()) {
     }
     ?>
     </div>
+    </main>
     <?php
 } else {
     $loadedPart = get_template_part('list-none', 'involvement-list-none');

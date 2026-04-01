@@ -33,7 +33,7 @@ class PersonQuery extends WP_User_Query
 	 */
 	public function __construct($query = null, bool $forceResultToPerson = true)
 	{
-		$this->forceResultToPerson = ! ! $forceResultToPerson;
+		$this->forceResultToPerson = !!$forceResultToPerson;
 
 		if ($this->forceResultToPerson) {
 			$query['fields'] = 'ID'; // Everything else is eventually dealt with via the getter.
