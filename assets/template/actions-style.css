@@ -32,21 +32,34 @@ button[data-tp-action]:not([disabled]) {
 i.tenth-icons {
     margin: -2em 0;
 }
+
+/* Use the SVG as a mask so the icon can be colored via `currentColor`.
+   background-color determines the visible color of the masked SVG. */
 i.tenth-icons::before {
-    content: " ";
+    content: '';
     width: 1em;
     height: 1.2em;
     margin-top: -.25em;
     margin-bottom: -0.24em;
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
     display: inline-block;
-    fill: currentColor;
+    vertical-align: middle;
+    background-color: currentColor;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
 }
+
 i.tenth-icons.map-marker::before {
-    background-image: url("../icons/map-marker.svg")
+    -webkit-mask-image: url("../icons/map-marker.svg");
+    mask-image: url("../icons/map-marker.svg");
+    /*background-image: url("../icons/map-marker.svg");*/
 }
+
 i.tenth-icons.touchpoint-icon::before {
-    background-image: url("../icons/touchpoint.svg")
+    -webkit-mask-image: url("../icons/touchpoint.svg");
+    mask-image: url("../icons/touchpoint.svg");
+    /*background-image: url("../icons/touchpoint.svg");*/
 }
