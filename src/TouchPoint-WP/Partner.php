@@ -1112,6 +1112,13 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 			TouchPointWP::VERSION,
 			true
 		);
+		wp_localize_script(
+			TouchPointWP::SHORTCODE_PREFIX . 'partner-defer',
+			'tpData',
+			[
+				'assetsUrl' => $i->assets_url,
+			]
+		);
 	}
 
 	/**
@@ -1288,7 +1295,6 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		// Not shown on map (only if there is a map, and the partner isn't on it because they lack geo.)
 		if (self::$_hasArchiveMap && $this->geo === null && ! $this->decoupleLocation) {
 			$attrs['hidden'] = __("Not Shown on Map", "TouchPoint-WP");
-			TouchPointWP::requireScript("fontAwesome");  // For map icons
 		}
 
 		$attrs = $this->processAttributeExclusions($attrs, $exclude);

@@ -1275,8 +1275,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
 			// Translators: %s is the system name, "TouchPoint" by default.
 			$title  = wp_sprintf(__("Person in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
-			$logo = TouchPointWP::TouchPointIcon();
-			$ret['inv_tp']  = "<a href=\"{$this->getProfileUrl()}\" title=\"$title\" class=\"tp-TouchPoint-logo $classesOnly\">$logo</a>";
+			$ret['person_tp']  = "<button type=\"button\" data-tp-action=\"person-tp\" onclick=\"window.open('{$this->getProfileUrl()}', '_blank', 'noopener');\" title=\"$title\" class=\"$classesOnly\"><i class=\"tenth-icons touchpoint-icon\"></i></button>";
 		}
 
 		/**

@@ -345,16 +345,13 @@
             }
 
             if (!options.hasOwnProperty('content')) {
-                const label = document.createElement('div');
-                label.classList.add("map-marker-label");
-                const pin = new google.maps.marker.PinElement({
-                    glyph: label,
+                options.content = new google.maps.marker.PinElement({
+                    glyphText: "",
                     glyphColor: "#000",
                     background: this.color,
                     borderColor: "#000",
                     scale: .65,
                 });
-                options.content = pin.element;
             }
 
             this.gMkr = new google.maps.marker.AdvancedMarkerElement(options);
@@ -407,14 +404,14 @@
             // Update title
             this.gMkr.title = tpvm._utils.stringArrayToListString(this.visibleItems.map((i) => i.name));
 
-            this.gMkr.content.getElementsByTagName('div')[0].innerHTML = this.getLabelContent() || ""; // Set label content
+            [this.gMkr.content.glyphText, this.gMkr.content.glyphSrc] = this.getLabelContent() || ["", null]; // Set label content
         }
 
         getLabelContent() {
             if (this.visibleItems.length > 1) {
-                return this.visibleItems.length.toString();
+                return [this.visibleItems.length.toString(), null];
             } else if (this.useIcon !== false) { // icon for secure partners
-                return this.useIcon;
+                return [null, this.useIcon];
             }
             return null;
         }
@@ -651,7 +648,6 @@
         static updateFilterWarnings() {
             let elts = document.getElementsByClassName("TouchPointWP-map-warning-visibleOnly"),
                 includesBoth = TP_Mappable.mapIncludesVisibleItemsWhichAreBothInAndOutOfBounds;
-            elts[ei].style = undefined;
             for (const ei in elts) {
                 if (!elts.hasOwnProperty(ei))
                     continue;
@@ -1079,6 +1075,12 @@
         }
 
         static initMap(mapDivId) {
+            // if google.maps isn't defined yet, have this called again when it's ready.
+            if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+                setTimeout(() => this.initMap(mapDivId), 100);
+                return;
+            }
+
             let mapOptions = {
                 mapTypeId: google.maps.MapTypeId.ROADMAP,
                 mapId: "f0fb8ca5f6beff5288b80a8d",

@@ -6,7 +6,6 @@
 namespace tp\TouchPointWP;
 
 use JsonException;
-use PhpParser\Node\Stmt\Block;
 use stdClass;
 use tp\TouchPointWP\Blocks\BlocksController;
 use tp\TouchPointWP\Utilities\Cleanup;
@@ -387,20 +386,6 @@ class TouchPointWP
 		return $inputData;
 	}
 
-
-	/**
-	 * Get TouchPoint icon as an SVG that can printed inline.
-	 *
-	 * @return string
-	 */
-	public static function TouchPointIcon(): string
-	{
-		if (self::$_icon === null) {
-			self::$_icon = file_get_contents(TouchPointWP::$dir . "/assets/branding/icon-curcolor.svg");
-		}
-		return self::$_icon;
-	}
-	protected static ?string $_icon = null;
 
 	/**
 	 * @param bool         $continue Whether to parse the request
@@ -1022,14 +1007,6 @@ class TouchPointWP
 			[TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
 			null,
 			true
-		);
-
-		wp_register_script(
-			TouchPointWP::SHORTCODE_PREFIX . "fontAwesome",
-			"https://kit.fontawesome.com/2b5f44e07f.js",
-			[],
-			6, // When changing versions, some CSS references will need to be updated, too.
-			false
 		);
 
 		if ( ! ! $this->involvements) {

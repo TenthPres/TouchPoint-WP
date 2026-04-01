@@ -47,7 +47,7 @@
         // noinspection JSUnusedGlobalSymbols
         get useIcon() {
             if (this.post_id === 0) {
-                return "<i class=\"fa fa-solid fa-lock\" style=\"font-size:90%\"></i>";
+                return tpData.assetsUrl + "/icons/lock.svg";
             }
             return false;
         }
@@ -106,7 +106,7 @@
                     }
                     item.toggleVisibility(true)
                 }
-            TP_Mappable.updateFilterWarnings();
+            tpvm.TP_Mappable.updateFilterWarnings();
         }
 
         get visibility() {
@@ -118,6 +118,12 @@
         }
 
         static initMap(mapDivId) {
+            // if google.maps isn't defined yet, have this called again when it's ready.
+            if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+                setTimeout(() => this.initMap(mapDivId), 100);
+                return;
+            }
+
             let mapOptions = {
                 mapTypeId: google.maps.MapTypeId.HYBRID,
                 mapId: 'f0fb8ca5f6beff5237d51d79',

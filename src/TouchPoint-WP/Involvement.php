@@ -3936,11 +3936,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		if (self::allowContact($this->invType) && $this->leaders()->count() > 0) {
 			$text  = __("Contact Leaders", 'TouchPoint-WP');
 			if (!$absoluteLinks) {
-				$ret['contact_leader'] = "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"contact\" $btnClass>$text</button> ";
+				$ret['contact_leader'] = "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"contact\" $btnClass>$text</button>";
 				TouchPointWP::enqueueActionsStyle('inv-contact');
 			} else {
 				$iid = $this->invId;
-				$ret['contact_leader'] = "<a href=\"$baseLink#tp-contact-i$iid\"$btnClass>$text</a> ";
+				$ret['contact_leader'] = "<a href=\"$baseLink#tp-contact-i$iid\"$btnClass>$text</a>";
 			}
 		}
 
@@ -3953,8 +3953,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		if (self::$_hasArchiveMap && $this->geo !== null && !$absoluteLinks) {
 			$text = __("Show on Map", 'TouchPoint-WP');
 			if ($ret->count() > 1) {
-				TouchPointWP::requireScript("fontAwesome");
-				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\" $btnClass><i class=\"fa-solid fa-location-pin\"></i></button>", "map");
+				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\" $btnClass><i class=\"tenth-icons map-marker\"></i></button>", "map");
 			} else {
 				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>", "map");
 			}
@@ -3964,8 +3963,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			$tpHost = TouchPointWP::instance()->host();
 			// Translators: %s is the system name, "TouchPoint" by default.
 			$title  = wp_sprintf(__("Involvement in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
-			$logo = TouchPointWP::TouchPointIcon();
-			$ret['inv_tp']  = "<a href=\"$tpHost/Org/$this->invId\" title=\"$title\" class=\"tp-TouchPoint-logo $classesOnly\">$logo</a>";
+			$url = "$tpHost/Org/$this->invId";
+			$ret['inv_tp']  = "<button type=\"button\" data-tp-action=\"inv-tp\" onclick=\"window.open('$url', '_blank', 'noopener');\" title=\"$title\" class=\"$classesOnly\"><i class=\"tenth-icons touchpoint-icon\"></i></button>";
 		}
 
 		/**

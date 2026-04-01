@@ -536,8 +536,8 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 			$tpHost = TouchPointWP::instance()->host();
 			// Translators: %s is the system name, "TouchPoint" by default.
 			$title  = wp_sprintf(__("Meeting in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
-			$logo = TouchPointWP::TouchPointIcon();
-			$ret['mtg_tp']  = "<a href=\"$tpHost/Meeting/$this->mtgId\" title=\"$title\" class=\"tp-TouchPoint-logo $btnClass\">$logo</a>";
+			$url = "$tpHost/Meeting/$this->mtgId";
+			$ret['mtg_tp']  = "<button type=\"button\" data-tp-action=\"mtg-tp\" onclick=\"window.open('$url', '_blank', 'noopener');\" title=\"$title\" class=\"$btnClass\"><i class=\"tenth-icons touchpoint-icon\"></i></button>";
 		}
 
 		/**

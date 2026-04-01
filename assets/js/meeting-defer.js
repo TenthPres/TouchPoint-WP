@@ -190,6 +190,8 @@ class TP_Meeting {
         let meeting = this;
         showConfirm = !!showConfirm;
 
+        const {__, _n} = wp.i18n;
+
         tpvm._utils.ga('send', 'event', 'rsvp', 'rsvp complete', meeting.mtgId);
 
         let res = await tpvm.postData('mtg/rsvp', {mtgId: meeting.mtgId, responses: data});

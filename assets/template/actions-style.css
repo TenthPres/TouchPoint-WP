@@ -29,7 +29,24 @@ button[data-tp-action]:not([disabled]) {
     cursor: pointer;
 }
 
-.tp-TouchPoint-logo svg {
+i.tenth-icons {
+    margin: -2em 0;
+}
+i.tenth-icons::before {
+    content: " ";
+    width: 1em;
     height: 1.2em;
-    margin-bottom: -0.2em;
+    margin-top: -.25em;
+    margin-bottom: -0.24em;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: inline-block;
+    fill: currentColor;
+}
+i.tenth-icons.map-marker::before {
+    background-image: url("../icons/map-marker.svg")
+}
+i.tenth-icons.touchpoint-icon::before {
+    background-image: url("../icons/touchpoint.svg")
 }
