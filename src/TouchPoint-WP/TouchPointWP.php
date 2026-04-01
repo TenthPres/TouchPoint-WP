@@ -5,6 +5,7 @@
 
 namespace tp\TouchPointWP;
 
+use JsonException;
 use stdClass;
 use tp\TouchPointWP\Blocks\BlocksController;
 use tp\TouchPointWP\Utilities\Cleanup;
@@ -320,6 +321,7 @@ class TouchPointWP
 				'<a href="%s" target="_blank">%s</a>',
 				"https://www.tenth.org/tech/wp",
 				sprintf(
+					// translators: This placeholder is filled by a food emoji. The food varies.
 					__("Made with %s in Philly by Tenth", "TouchPoint-WP"),
 					sprintf(
 						'<span title="%s">%s</span>',
@@ -1758,10 +1760,10 @@ class TouchPointWP
 			$mtObj       = (object)[];
 		} else {
 			$mtObj = json_decode($mtObj);
-			$cacheTime = $shortCache ? self::CACHE_SHORT_TTL : self::CACHE_TTL;
+			$cacheTime = $shortCache ? self::CACHE_TTL_SHORT : self::CACHE_TTL;
 			if ( ! isset($mtObj->$divKey)) {
 				$needsUpdate = true;
-			} else if (strtotime($mtObj->$divKey->_updated) < time() - self::CACHE_TTL || ! is_array($mtObj->$divKey->memTypes)) {
+			} else if (strtotime($mtObj->$divKey->_updated) < time() - $cacheTime || ! is_array($mtObj->$divKey->memTypes)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1827,7 +1829,7 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$divsObj = json_decode($divsObj);
-			$cacheTime = $shortCache ? self::CACHE_SHORT_TTL : self::CACHE_TTL;
+			$cacheTime = $shortCache ? self::CACHE_TTL_SHORT : self::CACHE_TTL;
 			if (strtotime($divsObj->_updated) < time() - $cacheTime || ! is_array($divsObj->divs)) {
 				$needsUpdate = true;
 			}
@@ -1910,7 +1912,7 @@ class TouchPointWP
 	 *
 	 * @returns object[]
 	 */
-	public function getResCodes(): array
+	public function getResCodes(bool $shortCache = false): array
 	{
 		$rcObj = $this->settings->get('meta_resCodes');
 
@@ -1919,7 +1921,8 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$rcObj = json_decode($rcObj);
-			if (strtotime($rcObj->_updated) < time() - self::CACHE_TTL || ! is_array($rcObj->resCodes)) {
+			$cacheTime = $shortCache ? self::CACHE_TTL_SHORT : self::CACHE_TTL;
+			if (strtotime($rcObj->_updated) < time() - $cacheTime || ! is_array($rcObj->resCodes)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1943,9 +1946,11 @@ class TouchPointWP
 	/**
 	 * Returns an array of objects that correspond to campuses.  Each Campus has a name, a code, and an id.
 	 *
+	 * @param bool $shortCache Set to true to shorten the expiry on the campus cache.
+	 *
 	 * @returns object[]
 	 */
-	public function getCampuses(): array
+	public function getCampuses(bool $shortCache = false): array
 	{
 		$cObj = $this->settings->get('meta_campuses');
 
@@ -1954,7 +1959,8 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$cObj = json_decode($cObj);
-			if (strtotime($cObj->_updated) < time() - self::CACHE_TTL || ! is_array($cObj->campuses)) {
+			$cacheTime = $shortCache ? self::CACHE_TTL_SHORT : self::CACHE_TTL;
+			if (strtotime($cObj->_updated) < time() - $cacheTime || ! is_array($cObj->campuses)) {
 				$needsUpdate = true;
 			}
 		}
@@ -2060,7 +2066,7 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$kObj = json_decode($kObj);
-			$cacheTime = $shortCache ? self::CACHE_SHORT_TTL : self::CACHE_TTL;
+			$cacheTime = $shortCache ? self::CACHE_TTL_SHORT : self::CACHE_TTL;
 			if (strtotime($kObj->_updated) < time() - $cacheTime || ! is_array($kObj->keywords)) {
 				$needsUpdate = true;
 			}

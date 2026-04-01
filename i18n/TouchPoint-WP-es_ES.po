@@ -307,24 +307,24 @@ msgstr "Contacta"
 msgid "RSVP"
 msgstr "RSVP"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2245
+#: src/TouchPoint-WP/TouchPointWP.php:2251
 msgid "Unknown Type"
 msgstr "Tipo desconocido"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2302
+#: src/TouchPoint-WP/TouchPointWP.php:2308
 msgid "Your Searches"
 msgstr "Tus búsquedas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2305
+#: src/TouchPoint-WP/TouchPointWP.php:2311
 msgid "Public Searches"
 msgstr "Búsquedas públicas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2308
+#: src/TouchPoint-WP/TouchPointWP.php:2314
 msgid "Status Flags"
 msgstr "Indicadores de Estado"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2313
-#: src/TouchPoint-WP/TouchPointWP.php:2314
+#: src/TouchPoint-WP/TouchPointWP.php:2319
+#: src/TouchPoint-WP/TouchPointWP.php:2320
 msgid "Current Value"
 msgstr "Valor actual"
 
@@ -341,7 +341,7 @@ msgstr "Configuración de API no válida o incompleta."
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr "Parece que falta el host en la configuración de TouchPoint-WP."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2528
+#: src/TouchPoint-WP/TouchPointWP.php:2534
 msgid "People Query Failed"
 msgstr "Consulta de registros de personas fallida"
 
@@ -1301,17 +1301,17 @@ msgid "Could not locate."
 msgstr "No se pudo localizar."
 
 #: src/TouchPoint-WP/Meeting.php:726
-#: src/TouchPoint-WP/TouchPointWP.php:1201
+#: src/TouchPoint-WP/TouchPointWP.php:1203
 msgid "Only GET requests are allowed."
 msgstr "Solo se permiten solicitudes GET."
 
 #: src/TouchPoint-WP/Meeting.php:754
-#: src/TouchPoint-WP/TouchPointWP.php:443
+#: src/TouchPoint-WP/TouchPointWP.php:445
 msgid "Only POST requests are allowed."
 msgstr "Solo se permiten solicitudes POST."
 
 #: src/TouchPoint-WP/Meeting.php:764
-#: src/TouchPoint-WP/TouchPointWP.php:452
+#: src/TouchPoint-WP/TouchPointWP.php:454
 msgid "Invalid data provided."
 msgstr "Datos proporcionados no válidos."
 
@@ -1440,7 +1440,7 @@ msgstr "Informe de TouchPoint"
 msgid "Updated on %1$s at %2$s"
 msgstr "Actualizada %1$s %2$s"
 
-#: src/TouchPoint-WP/TouchPointWP.php:282
+#: src/TouchPoint-WP/TouchPointWP.php:283
 msgid "Every 15 minutes"
 msgstr "Cada 15 minutos"
 
@@ -1515,32 +1515,33 @@ msgstr "Contacto bloqueado por spam."
 msgid "Registration Blocked for Spam."
 msgstr "Registro bloqueado por spam."
 
-#: src/TouchPoint-WP/TouchPointWP.php:312
+#: src/TouchPoint-WP/TouchPointWP.php:313
 msgctxt "Explanation for the sandwich emoji in \"Made with (emoji) in Philly by Tenth\""
 msgid "Sandwiches (probably cheesesteaks)"
 msgstr "Sándwiches (probablemente cheesesteaks)"
 
-#: src/TouchPoint-WP/TouchPointWP.php:313
+#: src/TouchPoint-WP/TouchPointWP.php:314
 msgctxt "Explanation for the heart emoji in \"Made with (emoji) in Philly by Tenth\""
 msgid "love. obviously."
 msgstr "amar. obviamente."
 
-#: src/TouchPoint-WP/TouchPointWP.php:314
+#: src/TouchPoint-WP/TouchPointWP.php:315
 msgctxt "Explanation for the pretzel emoji in \"Made with (emoji) in Philly by Tenth\""
 msgid "Soft Pretzels"
 msgstr "pretzels suaves"
 
-#: src/TouchPoint-WP/TouchPointWP.php:315
+#: src/TouchPoint-WP/TouchPointWP.php:316
 msgctxt "Explanation for the Donut emoji in \"Made with (emoji) in Philly by Tenth\""
 msgid "Donuts (preferably Federal)"
 msgstr "Donuts (preferiblemente de Federal)"
 
-#: src/TouchPoint-WP/TouchPointWP.php:323
+#. translators: This placeholder is filled by a food emoji. The food varies.
+#: src/TouchPoint-WP/TouchPointWP.php:325
 #, php-format
 msgid "Made with %s in Philly by Tenth"
 msgstr "Hecho con %s en Filadelfia por Tenth"
 
-#: src/TouchPoint-WP/TouchPointWP.php:347
+#: src/TouchPoint-WP/TouchPointWP.php:349
 msgid "Documentation"
 msgstr "Documentación"
 
@@ -1941,7 +1942,7 @@ msgstr "Las reuniones se mantendrán en el calendario hasta que el evento tenga 
 msgid "Change Profile Links"
 msgstr "Cambiar enlaces de perfil"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2504
+#: src/TouchPoint-WP/TouchPointWP.php:2510
 msgid "People Count Failed"
 msgstr "El recuento de personas falló"
 
@@ -2097,4 +2098,4 @@ msgstr "Esta opción le permite filtrar las personas que se muestran en función
 
 #: src/TouchPoint-WP/Utilities.php:513
 msgid "Expand"
-msgstr ""
+msgstr "Expandir"

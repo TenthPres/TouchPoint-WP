@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-04-01T14:47:19+00:00\n"
+"POT-Creation-Date: 2026-04-01T16:54:41+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: TouchPoint-WP\n"
@@ -651,17 +651,17 @@ msgid "Unknown"
 msgstr ""
 
 #: src/TouchPoint-WP/Meeting.php:726
-#: src/TouchPoint-WP/TouchPointWP.php:1201
+#: src/TouchPoint-WP/TouchPointWP.php:1203
 msgid "Only GET requests are allowed."
 msgstr ""
 
 #: src/TouchPoint-WP/Meeting.php:754
-#: src/TouchPoint-WP/TouchPointWP.php:443
+#: src/TouchPoint-WP/TouchPointWP.php:445
 msgid "Only POST requests are allowed."
 msgstr ""
 
 #: src/TouchPoint-WP/Meeting.php:764
-#: src/TouchPoint-WP/TouchPointWP.php:452
+#: src/TouchPoint-WP/TouchPointWP.php:454
 msgid "Invalid data provided."
 msgstr ""
 
@@ -1477,65 +1477,66 @@ msgstr ""
 msgid "Classify Partners by category chosen in settings."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:282
+#: src/TouchPoint-WP/TouchPointWP.php:283
 msgid "Every 15 minutes"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:312
+#: src/TouchPoint-WP/TouchPointWP.php:313
 msgctxt "Explanation for the sandwich emoji in \"Made with (emoji) in Philly by Tenth\""
 msgid "Sandwiches (probably cheesesteaks)"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:313
+#: src/TouchPoint-WP/TouchPointWP.php:314
 msgctxt "Explanation for the heart emoji in \"Made with (emoji) in Philly by Tenth\""
 msgid "love. obviously."
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:314
+#: src/TouchPoint-WP/TouchPointWP.php:315
 msgctxt "Explanation for the pretzel emoji in \"Made with (emoji) in Philly by Tenth\""
 msgid "Soft Pretzels"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:315
+#: src/TouchPoint-WP/TouchPointWP.php:316
 msgctxt "Explanation for the Donut emoji in \"Made with (emoji) in Philly by Tenth\""
 msgid "Donuts (preferably Federal)"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:323
+#. translators: This placeholder is filled by a food emoji. The food varies.
+#: src/TouchPoint-WP/TouchPointWP.php:325
 #, php-format
 msgid "Made with %s in Philly by Tenth"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:347
+#: src/TouchPoint-WP/TouchPointWP.php:349
 msgid "Documentation"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2245
+#: src/TouchPoint-WP/TouchPointWP.php:2251
 msgid "Unknown Type"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2302
+#: src/TouchPoint-WP/TouchPointWP.php:2308
 msgid "Your Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2305
+#: src/TouchPoint-WP/TouchPointWP.php:2311
 msgid "Public Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2308
+#: src/TouchPoint-WP/TouchPointWP.php:2314
 msgid "Status Flags"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2313
-#: src/TouchPoint-WP/TouchPointWP.php:2314
+#: src/TouchPoint-WP/TouchPointWP.php:2319
+#: src/TouchPoint-WP/TouchPointWP.php:2320
 msgid "Current Value"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2504
+#: src/TouchPoint-WP/TouchPointWP.php:2510
 msgid "People Count Failed"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2528
+#: src/TouchPoint-WP/TouchPointWP.php:2534
 msgid "People Query Failed"
 msgstr ""
 
