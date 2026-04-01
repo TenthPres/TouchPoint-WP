@@ -578,7 +578,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 	{
 		TouchPointWP::instance()->setTpWpUserAsCurrent();
 
-		// Find Report Shortcodes in post content and add their involvements to the query.
+		// Find Report Shortcodes in post content and them to the list for updates.
 		$referencingPosts   = Utilities::getPostContentWithShortcode(self::SHORTCODE_REPORT);
 		$postIdsToNotDelete = [];
 

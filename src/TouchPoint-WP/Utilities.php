@@ -243,7 +243,7 @@ abstract class Utilities
 	 */
 	public static function getTimeOfDayTermForTime(DateTimeInterface $dt, bool $i18n = true): string
 	{
-		$timeInt = intval($dt->format('Hi'));
+		$timeInt = intval($dt->format('Gi'));
 
 		if ($timeInt < 300 || $timeInt >= 2200) {
 			return $i18n ? _x('Late Night', 'Time of Day', 'TouchPoint-WP') : "Late Night";

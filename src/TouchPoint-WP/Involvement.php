@@ -1068,8 +1068,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				$r['firstLast'] = wp_sprintf(
 				// translators: {start date} through {end date}  e.g. February 14 through August 12
 					__('%1$s through %2$s', 'TouchPoint-WP'),
-					$this->firstMeeting->format($dateFormat),
-					$this->lastMeeting->format($dateFormat)
+					$this->firstMeeting->format_i18n($dateFormat),
+					$this->lastMeeting->format_i18n($dateFormat)
 				);
 				if ($dayStr === null) {
 					$dayStr = $r['firstLast'];
@@ -1078,15 +1078,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 					// translators: {schedule}, {start date} through {end date}  e.g. Sundays at 11am, February 14 through August 12
 						__('%1$s, %2$s through %3$s', 'TouchPoint-WP'),
 						$dayStr,
-						$this->firstMeeting->format($dateFormat),
-						$this->lastMeeting->format($dateFormat)
+						$this->firstMeeting->format_i18n($dateFormat),
+						$this->lastMeeting->format_i18n($dateFormat)
 					);
 				}
 			} elseif ($this->firstMeeting !== null) {
 				$r['firstLast'] = wp_sprintf(
 				// translators: Starts {start date}  e.g. Starts September 15
 					__('Starts %1$s', 'TouchPoint-WP'),
-					$this->firstMeeting->format($dateFormat)
+					$this->firstMeeting->format_i18n($dateFormat)
 				);
 				if ($dayStr === null) {
 					$dayStr = $r['firstLast'];
@@ -1095,14 +1095,14 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 					// translators: {schedule}, starting {start date}  e.g. Sundays at 11am, starting February 14
 						__('%1$s, starting %2$s', 'TouchPoint-WP'),
 						$dayStr,
-						$this->firstMeeting->format($dateFormat)
+						$this->firstMeeting->format_i18n($dateFormat)
 					);
 				}
 			} elseif ($this->lastMeeting !== null) {
 				$r['firstLast'] = wp_sprintf(
 				// translators: Through {end date}  e.g. Through September 15
 					__('Through %1$s', 'TouchPoint-WP'),
-					$this->lastMeeting->format($dateFormat)
+					$this->lastMeeting->format_i18n($dateFormat)
 				);
 				if ($dayStr === null) {
 					$dayStr = $r['firstLast'];
@@ -1111,7 +1111,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 					// translators: {schedule}, through {end date}  e.g. Sundays at 11am, through February 14
 						__('%1$s, through %2$s', 'TouchPoint-WP'),
 						$dayStr,
-						$this->lastMeeting->format($dateFormat)
+						$this->lastMeeting->format_i18n($dateFormat)
 					);
 				}
 			}
