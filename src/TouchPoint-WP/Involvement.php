@@ -4060,6 +4060,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		if (!$absoluteLinks) {
 			TouchPointWP::requireScript('swal2-defer');
 			TouchPointWP::requireScript('base-defer');
+			TouchPointWP::enqueueActionsStyle($context);
 			$this->enqueueForJsInstantiation();
 			$this->enqueueForJsonLdInstantiation();
 			Person::enqueueUsersForJsInstantiation();

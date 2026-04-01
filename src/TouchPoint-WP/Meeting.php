@@ -503,6 +503,7 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 		if (!$absoluteLinks) {
 			TouchPointWP::requireScript('swal2-defer');
 			TouchPointWP::requireScript('base-defer');
+			TouchPointWP::enqueueActionsStyle($context);
 			$this->enqueueForJsInstantiation();
 //		    $this->enqueueForJsonLdInstantiation();
 			Person::enqueueUsersForJsInstantiation();
