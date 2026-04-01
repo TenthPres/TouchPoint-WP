@@ -503,7 +503,6 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 		if (!$absoluteLinks) {
 			TouchPointWP::requireScript('swal2-defer');
 			TouchPointWP::requireScript('base-defer');
-			TouchPointWP::enqueueActionsStyle($context);
 			$this->enqueueForJsInstantiation();
 //		    $this->enqueueForJsonLdInstantiation();
 			Person::enqueueUsersForJsInstantiation();
@@ -534,6 +533,7 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 		}
 
 		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin() && !$this->isMeetingGroup()) {
+			TouchPointWP::enqueueActionsStyle('mtg-tp');
 			$tpHost = TouchPointWP::instance()->host();
 			// Translators: %s is the system name, "TouchPoint" by default.
 			$title  = wp_sprintf(__("Meeting in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);

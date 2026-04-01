@@ -4060,7 +4060,6 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		if (!$absoluteLinks) {
 			TouchPointWP::requireScript('swal2-defer');
 			TouchPointWP::requireScript('base-defer');
-			TouchPointWP::enqueueActionsStyle($context);
 			$this->enqueueForJsInstantiation();
 			$this->enqueueForJsonLdInstantiation();
 			Person::enqueueUsersForJsInstantiation();
@@ -4093,6 +4092,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		// Show on map button.  (Only works if map is called before this is.)
 		if (self::$_hasArchiveMap && $this->geo !== null && !$absoluteLinks) {
 			$text = __("Show on Map", 'TouchPoint-WP');
+			TouchPointWP::enqueueActionsStyle("show-on-map");
 			if ($ret->count() > 1) {
 				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\" $btnClass><i class=\"tenth-icons map-marker\"></i></button>", "map");
 			} else {
@@ -4105,6 +4105,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			// Translators: %s is the system name, "TouchPoint" by default.
 			$title  = wp_sprintf(__("Involvement in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
 			$url = "$tpHost/Org/$this->invId";
+			TouchPointWP::enqueueActionsStyle("inv-tp");
 			$ret['inv_tp']  = "<button type=\"button\" data-tp-action=\"inv-tp\" onclick=\"window.open('$url', '_blank', 'noopener');\" title=\"$title\" class=\"$classesOnly\"><i class=\"tenth-icons touchpoint-icon\"></i></button>";
 		}
 
@@ -4208,7 +4209,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				$text = __('Register', 'TouchPoint-WP');
 				$link = $this->getRegistrationUrl();
 				if (!$absoluteLinks) {
-					TouchPointWP::enqueueActionsStyle('inv-register');
+					TouchPointWP::enqueueActionsStyle('inv-register-ext');
 					return "<button type=\"button\" data-tp-action=\"register-ext\" $btnClass onclick=\"window.open('$link', '_blank', 'noopener');\">$text</button>";
 				}
 				return "<a href=\"$link\" $btnClass>$text</a>  ";
