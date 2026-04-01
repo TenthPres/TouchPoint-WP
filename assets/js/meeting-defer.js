@@ -225,6 +225,8 @@ class TP_Meeting {
     rsvpAction(forceAsk = false) {
         let meeting = this;
 
+        const {__, sprintf} = wp.i18n;
+
         tpvm._utils.ga('send', 'event', 'rsvp', 'rsvp btn click', meeting.mtgId);
 
         tpvm._utils.applyHashForAction("rsvp", this);
