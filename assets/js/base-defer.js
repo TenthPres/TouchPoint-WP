@@ -1076,7 +1076,7 @@
 
         static initMap(mapDivId) {
             // if google.maps isn't defined yet, have this called again when it's ready.
-            if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+            if (typeof google === 'undefined' || typeof google.maps === 'undefined' || typeof google.maps.MapTypeId === "undefined") {
                 setTimeout(() => this.initMap(mapDivId), 100);
                 return;
             }

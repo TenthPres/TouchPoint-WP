@@ -4049,8 +4049,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				$link  = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
 				if (!$absoluteLinks) {
 					TouchPointWP::enqueueActionsStyle('inv-register');
+					return "<button type=\"button\" data-tp-action=\"register\" $btnClass onclick=\"window.location = '$link';\">$text</button>";
 				}
-				return "<a href=\"$link\" $btnClass>$text</a>  ";
+				return "<a href=\"$link\" $btnClass>$text</a>";
+
 
 			case RegistrationType::JOIN:
 				$text = __('Join', 'TouchPoint-WP');
@@ -4066,6 +4068,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				$link = $this->getRegistrationUrl();
 				if (!$absoluteLinks) {
 					TouchPointWP::enqueueActionsStyle('inv-register');
+					return "<button type=\"button\" data-tp-action=\"register-ext\" $btnClass onclick=\"window.open('$link', '_blank', 'noopener');\">$text</button>";
 				}
 				return "<a href=\"$link\" $btnClass>$text</a>  ";
 

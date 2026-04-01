@@ -1264,11 +1264,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			$text = __("Contact", "TouchPoint-WP");
 			$pid = $this->peopleId;
 			if (!$absoluteLinks) {
-				$ret['contact'] = "<button type=\"button\" data-tp-person=\"$pid\" data-tp-action=\"contact\" $btnClass>$text</button> ";
+				$ret['contact'] = "<button type=\"button\" data-tp-person=\"$pid\" data-tp-action=\"contact\" $btnClass>$text</button>";
 				TouchPointWP::enqueueActionsStyle('person-contact');
 				self::enqueueUsersForJsInstantiation();
 			} else {
-				$ret['contact'] = "<a href=\"$baseLink#tp-contact-p$pid\"$btnClass>$text</a> ";
+				$ret['contact'] = "<a href=\"$baseLink#tp-contact-p$pid\"$btnClass>$text</a>";
 			}
 		}
 

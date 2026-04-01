@@ -804,7 +804,7 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 			$btnClass = "class=\"$btnClass\"";
 		}
 
-		return "<a href=\"#\" onclick=\"return false;\" $btnClass disabled data-tp-action=\"rsvp\" data-tp-mtg=\"$this->mtgId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$link</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
+		return "<button type=\"button\" $btnClass disabled data-tp-action=\"rsvp\" data-tp-mtg=\"$this->mtgId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$link</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></button>";
 	}
 
 	/**

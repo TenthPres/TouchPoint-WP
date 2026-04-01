@@ -128,8 +128,12 @@ abstract class Auth implements api, module
 	{
 		$html = '<p class="touchpoint-wp-auth-form">';
 		$url = self::getLoginUrl();
+
+		TouchPointWP::enqueueActionsStyle('login-button');
+
 		/** @noinspection HtmlUnknownTarget */
 		$html .= "<a href=\"$url\" class=\"button button-secondary button-large\" style=\"width: 100%; text-align: center; margin-bottom: 1em;\">";
+		$html .= "<i class=\"tenth-icons touchpoint-icon\"></i>&nbsp;&nbsp;";
 		$html .= sprintf(
 			// translators: %s is "what you call TouchPoint at your church", which is a setting
 			__('Sign in with %s', 'TouchPoint-WP'),

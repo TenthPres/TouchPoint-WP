@@ -1355,7 +1355,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		// Show on map button.  (Only works if map is called before this is.)
 		if (self::$_hasArchiveMap && ! $this->decoupleLocation && $this->geo !== null && !$absoluteLinks) {
 			$text = __("Show on Map", "TouchPoint-WP");
-			$ret['map'] = "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>  ";
+			$ret['map'] = "<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>";
 		}
 
 		// TouchPoint link is excluded for privacy, and because we don't really have People IDs readily available.
