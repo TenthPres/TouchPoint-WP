@@ -33,8 +33,6 @@ i.tenth-icons {
     margin: -2em 0;
 }
 
-/* Use the SVG as a mask so the icon can be colored via `currentColor`.
-   background-color determines the visible color of the masked SVG. */
 i.tenth-icons::before {
     content: '';
     width: 1em;
