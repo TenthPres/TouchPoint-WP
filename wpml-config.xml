@@ -2,7 +2,7 @@
     <custom-types>
         <custom-type translate="0">tp_partner</custom-type>
         <custom-type translate="0">tp_report</custom-type>
-        <custom-type translate="1">tp_meeting</custom-type>
+        <custom-type translate="0">tp_meeting</custom-type>
     </custom-types>
     <taxonomies>
         <taxonomy translate="1" display-as-translated="1">tp_rescode</taxonomy>
