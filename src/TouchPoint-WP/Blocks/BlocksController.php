@@ -141,7 +141,9 @@ abstract class BlocksController implements api
 				// open files and print
 				echo file_get_contents($dir . '/template/block-preview-style.css') . "\n\n";
 				if (TouchPointWP::includeActionsStyle("block-preview")) {
-					echo file_get_contents($dir . '/template/actions-style.css') . "\n\n";
+					$s = file_get_contents($dir . '/template/actions-style.css') . "\n\n";
+					$au = TouchPointWP::instance()->assets_url;
+					echo str_replace(["'../", "\"../"], ["'$au", "\"$au"], $s);
 				}
 				if (TouchPointWP::includePartialsStyle("block-preview")) {
 					echo file_get_contents($dir . '/template/partials-template-style.css') . "\n\n";
