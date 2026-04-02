@@ -47,8 +47,8 @@ TouchPointWP::enqueuePartialsStyle("involvement-single");
 
             echo wp_sprintf(
                 // Translators: %s is the singular name of the of a Meeting, such as "Event".
-                __('This %s has been Cancelled.', 'TouchPoint-WP'),
-                __($meetingsCalled) // deliberately no domain
+                __('This %s has been cancelled.', 'TouchPoint-WP'),
+                strtolower(__($meetingsCalled)) // deliberately no domain
             );
             echo "</div>";
         } elseif ($obj->isPast()) {
@@ -59,7 +59,7 @@ TouchPointWP::enqueuePartialsStyle("involvement-single");
             echo wp_sprintf(
             // Translators: %s is the singular name of the of a Meeting, such as "Event".
                     __('This %s has already happened.', 'TouchPoint-WP'),
-                    __($meetingsCalled) // deliberately no domain
+                    strtolower(__($meetingsCalled)) // deliberately no domain
             );
             echo "</div>";
         }
