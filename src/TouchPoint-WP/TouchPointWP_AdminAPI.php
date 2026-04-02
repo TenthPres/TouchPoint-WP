@@ -126,6 +126,13 @@ class TouchPointWP_AdminAPI implements api
 				TouchPointWP::instance()->migrate(true);
 				exit;
 
+			case "flush-rewrite":
+				if ( ! TouchPointWP::currentUserIsAdmin()) {
+					return false;
+				}
+				TouchPointWP::instance()->flushRewriteRules(true);
+				exit;
+
 			case "phpinfo":
 				if (!TouchPointWP::currentUserIsAdmin()) {
 					return false;
