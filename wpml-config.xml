@@ -19,6 +19,9 @@
         <custom-field action="translate">tp_locationname</custom-field>
         <custom-field action="ignore">tp_membercount</custom-field>
         <custom-field action="ignore">tp_genderid</custom-field>
+        <custom-field action="ignore">tp_divid</custom-field>
+        <custom-field action="ignore">tp_lookup_id</custom-field>
+        <custom-field action="ignore">tp_programid</custom-field>
         <custom-field action="ignore">tp_groupfull</custom-field>
         <custom-field action="ignore">tp_groupclosed</custom-field>
         <custom-field action="ignore">tp_hasregquestions</custom-field>
