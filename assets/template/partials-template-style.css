@@ -45,6 +45,7 @@ article.inv-list-item h2 a {
 
 .person-list {
     text-align: center;
+    margin: 0 -1.6em;
 }
 
 .person-list-item {
@@ -54,7 +55,9 @@ article.inv-list-item h2 a {
     padding: 0.8em;
     display: inline-block;
     width: 12em;
+    max-width: 24vw;
     height: 17em;
+    max-height: 40vw;
     overflow: hidden;
     background-size: cover;
     background-position: center;

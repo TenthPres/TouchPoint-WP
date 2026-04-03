@@ -537,6 +537,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$btnClass = $params['btnclass'];
 		$listClass = $params['class'];
 
+		if (!str_contains(" $listClass ", ' person-list ')) {
+			$listClass .= ' person-list';
+		}
+
 		if ($content === "") {
 			$content = "<!-- " . __("No people to show.  This may be because the list hasn't synced yet, or because it is not configured correctly.") . " -->";
 		}

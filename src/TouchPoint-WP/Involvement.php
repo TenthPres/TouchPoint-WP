@@ -836,13 +836,13 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	}
 
 	/**
-	 * @param \DateTimeInterface $apiMeeting
+	 * @param \DateTimeInterface $dateTime
 	 *
 	 * @return bool
 	 *
 	 * TODO update with #184
 	 */
-	protected static function apiMeetingIsAllDay($dateTime): bool
+	protected static function apiMeetingIsAllDay(\DateTimeInterface $dateTime): bool
 	{
 		return $dateTime->format("His") === "000000";
 	}
