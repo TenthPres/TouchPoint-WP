@@ -3156,28 +3156,14 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				}
 			}
 
-			if (Translation::useCampusAsLanguage() && $inv->campusName !== null) {
-
-				// Set content's original language based on Campus.
-				$langCode = Translation::getWpmlLangCodeForString($inv->campusName);
-				if ($langCode !== null) {
-					$args = [
-						'element_id'           => $post->ID,
-						'element_type'         => apply_filters('wpml_element_type', $typeSets->postTypeWithPrefix()),
-						'language_code'        => $langCode,
-						'source_language_code' => $langCode,
-						'trid'                 => $post->ID
-					];
-					if ($applyChanges) {
-						do_action('wpml_set_element_language_details', $args);
-					}
-					if ($verbose) {
-						echo "<p>Language Set to: $langCode</p>";
-					}
-				}
-			}
+			Translation::setPostLanguageFromCampus(
+				$inv->campusName,
+				$post,
+				$typeSets->postTypeWithPrefix(),
+				$verbose,
+				$applyChanges
+			);
 		}
-
 
 		/////////////////////
 		//// Demographic ////
@@ -3540,6 +3526,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		$mtgP->post_parent = $parentPost->ID;
 
 		self::doMeetingMetaUpdates($mtgP, $mtgO, ! ! $inv->showInSites, $verbose, $applyChanges);
+		Translation::setPostLanguageFromCampus($inv->campusName, $mtgP, $typeSets->postTypeWithPrefix(), $verbose, $applyChanges);
 
 		if ($applyChanges) {
 			wp_update_post($mtgP);
