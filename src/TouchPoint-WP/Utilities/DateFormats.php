@@ -261,7 +261,7 @@ abstract class DateFormats
 	 *
 	 * @return ?string
 	 */
-	public static function DurationToString(?DateTimeExtended $start, ?DateTimeExtended $end, ?bool $multiDay = null, ): ?string
+	public static function DurationToString(?DateTimeExtended $start, ?DateTimeExtended $end, ?bool $multiDay = null): ?string
 	{
 		if ($start === null) {
 			return null;
