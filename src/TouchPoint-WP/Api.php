@@ -129,20 +129,14 @@ class Api
 			$url .= (!str_contains($url, '?') ? '?' : '&') . http_build_query($parameters);
 		}
 
-		for ($attempt = 0; $attempt < 2; $attempt++) {
-			$r   = $this->getHttpClient()->request(
-				$url,
-				[
-					'method'  => 'GET',
-					'headers' => $headers,
-					'timeout' => $timeout
-				]
-			);
-
-			if ($r instanceof WP_Error) {
-				return $r;
-			}
-		}
+		$r   = $this->getHttpClient()->request(
+			$url,
+			[
+				'method'  => 'GET',
+				'headers' => $headers,
+				'timeout' => $timeout
+			]
+		);
 
 		$timeTaken = microtime(true) - $tik;
 

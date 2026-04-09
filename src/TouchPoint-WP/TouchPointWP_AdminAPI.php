@@ -534,7 +534,7 @@ class TouchPointWP_AdminAPI implements api
 	 * @param string $message
 	 * @param ?mixed $devDetail
 	 */
-	public static function showError(string $message, $devDetail = null): void
+	public static function showError(string $message, mixed $devDetail = null): void
 	{
 		add_action('admin_notices',
 			function () use ($message, $devDetail) {

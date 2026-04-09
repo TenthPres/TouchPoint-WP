@@ -50,7 +50,7 @@ abstract class StatusWidget
 	 *
 	 * @return string The formatted string.
 	 */
-	protected static function timestampToFormated(mixed $timestamp): string
+	protected static function timestampToFormatted(mixed $timestamp): string
 	{
 		if (!is_numeric($timestamp)) {
 			try {
@@ -99,17 +99,17 @@ abstract class StatusWidget
 		echo "<th>" . __("Last Updated", "TouchPoint-WP") . "</th></tr>";
 
 		$label = __("People", "TouchPoint-WP");
-		$ts = self::timestampToFormated($settings->person_cron_last_run);
+		$ts = self::timestampToFormatted($settings->person_cron_last_run);
 		echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->people</td><td style=\"text-align:center;\">$ts</td></tr>";
 
 		if ($settings->enable_involvements === "on") {
 			$label = __('Involvements', 'TouchPoint-WP');
-			$ts = self::timestampToFormated($settings->inv_cron_last_run);
+			$ts = self::timestampToFormatted($settings->inv_cron_last_run);
 			echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->involvementPosts</td><td style=\"text-align:center;\">$ts</td></tr>";
 
 			foreach (Involvement::allTypeSettings() as $type) {
 				$count = $stats->involvementCounts[$type->postTypeWithPrefix()] ?? 0;
-				$ts = self::timestampToFormated($settings->inv_cron_last_run); // TODO
+				$ts = self::timestampToFormatted($settings->inv_cron_last_run); // TODO
 				echo "<tr><th style=\"text-align:left; padding-left:1em;\">$type->namePlural</th><td style=\"text-align:center;\">$count</td><td style=\"text-align:center;\">$ts</td></tr>";
 			}
 		}
@@ -117,18 +117,18 @@ abstract class StatusWidget
 		if ($settings->enable_meeting_cal === "on") {
 			$label = __('Meetings', 'TouchPoint-WP');
 			// TODO replace timestamp with event-type timestamp
-			$ts = self::timestampToFormated($settings->inv_cron_last_run);
+			$ts = self::timestampToFormatted($settings->inv_cron_last_run);
 			echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->meetings</td><td style=\"text-align:center;\">$ts</td></tr>";
 		}
 
 		if ($settings->enable_global === "on") {
 			$label = __('Partners', 'TouchPoint-WP');
-			$ts = self::timestampToFormated($settings->global_cron_last_run);
+			$ts = self::timestampToFormatted($settings->global_cron_last_run);
 			echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->partnerPosts</td><td style=\"text-align:center;\">$ts</td></tr>";
 		}
 
 		$label = __('Reports', 'TouchPoint-WP');
-		$ts = self::timestampToFormated($reportData->ts);
+		$ts = self::timestampToFormatted($reportData->ts);
 		echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$reportData->cnt</td><td style=\"text-align:center;\">$ts</td></tr>";
 
 		echo "</table>";
