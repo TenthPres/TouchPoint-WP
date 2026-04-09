@@ -56,24 +56,19 @@ abstract class StatusWidget
 			try {
 				$timestamp = new DateTime($timestamp, wp_timezone());
 			} catch (Exception) {
-				return 'Never';
+				return esc_html__('Never', "TouchPoint-WP");
 			}
 		} else {
 			try {
 				$timestamp = new DateTime('@' . $timestamp, Utilities::utcTimeZone());
 
 			} catch (Exception) {
-				return 'Never';
+				return esc_html__('Never', "TouchPoint-WP");
 			}
 		}
 		$timestamp->setTimezone(wp_timezone());
 
-		return wp_sprintf(
-			// translators: %1$s is the date(s), %2$s is the time(s).
-			__('%1$s at %2$s', 'TouchPoint-WP'),
-			DateFormats::DateStringFormattedShort($timestamp),
-			DateFormats::TimeStringFormatted($timestamp)
-		);
+		return esc_html(DateFormats::DateAndTimeStringFormatted($timestamp));
 	}
 
 	/**
@@ -95,15 +90,15 @@ abstract class StatusWidget
 
 		echo "<tr><td></td>";
 
-		echo "<th>" . __("Imported", "TouchPoint-WP") . "</th>";
-		echo "<th>" . __("Last Updated", "TouchPoint-WP") . "</th></tr>";
+		echo "<th>" . esc_html__("Imported", "TouchPoint-WP") . "</th>";
+		echo "<th>" . esc_html__("Last Updated", "TouchPoint-WP") . "</th></tr>";
 
-		$label = __("People", "TouchPoint-WP");
+		$label = esc_html__("People", "TouchPoint-WP");
 		$ts = self::timestampToFormatted($settings->person_cron_last_run);
 		echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->people</td><td style=\"text-align:center;\">$ts</td></tr>";
 
 		if ($settings->enable_involvements === "on") {
-			$label = __('Involvements', 'TouchPoint-WP');
+			$label = esc_html__('Involvements', 'TouchPoint-WP');
 			$ts = self::timestampToFormatted($settings->inv_cron_last_run);
 			echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->involvementPosts</td><td style=\"text-align:center;\">$ts</td></tr>";
 
@@ -115,26 +110,26 @@ abstract class StatusWidget
 		}
 
 		if ($settings->enable_meeting_cal === "on") {
-			$label = __('Meetings', 'TouchPoint-WP');
+			$label = esc_html__('Meetings', 'TouchPoint-WP');
 			// TODO replace timestamp with event-type timestamp
 			$ts = self::timestampToFormatted($settings->inv_cron_last_run);
 			echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->meetings</td><td style=\"text-align:center;\">$ts</td></tr>";
 		}
 
 		if ($settings->enable_global === "on") {
-			$label = __('Partners', 'TouchPoint-WP');
+			$label = esc_html__('Partners', 'TouchPoint-WP');
 			$ts = self::timestampToFormatted($settings->global_cron_last_run);
 			echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$stats->partnerPosts</td><td style=\"text-align:center;\">$ts</td></tr>";
 		}
 
-		$label = __('Reports', 'TouchPoint-WP');
+		$label = esc_html__('Reports', 'TouchPoint-WP');
 		$ts = self::timestampToFormatted($reportData->ts);
 		echo "<tr><th style=\"text-align:left;\">$label</th><td style=\"text-align:center;\">$reportData->cnt</td><td style=\"text-align:center;\">$ts</td></tr>";
 
 		echo "</table>";
 
 		// Translators: %s is the current version number.
-		$label = __("Version: %s", "TouchPoint-WP");
+		$label = esc_html__("Version: %s", "TouchPoint-WP");
 		$label = wp_sprintf($label, TouchPointWP::VERSION);
 		echo "<div style=\"text-align: right;\">$label</div>";
 

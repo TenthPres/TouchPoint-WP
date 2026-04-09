@@ -543,8 +543,8 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 			$count++;
 		}
 
-		// Delete terms that are no longer used
-		if (TouchPointWP::instance()->settings->global_primary_tax !== "") {
+		// Delete terms that are no longer used.
+		if (TouchPointWP::instance()->settings->global_primary_tax !== "" && !empty($termsToKeep)) {
 			$terms = get_terms(
 				['taxonomy' => Taxonomies::TAX_GP_CATEGORY, 'hide_empty' => false, 'exclude' => $termsToKeep]
 			);

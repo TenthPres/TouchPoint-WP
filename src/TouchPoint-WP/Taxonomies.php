@@ -45,8 +45,8 @@ abstract class Taxonomies
 	protected static function getLabels(string $singular, string $plural): array
 	{
 		return [
-			'name'          => $singular,
-			'singular_name' => $plural,
+			'name'          => $plural,
+			'singular_name' => $singular,
 			/* translators: %s: taxonomy name, plural */
 			'search_items'  => sprintf(__('Search %s', 'TouchPoint-WP'), $plural),
 			/* translators: %s: taxonomy name, plural */
@@ -226,27 +226,20 @@ abstract class Taxonomies
 		if (isset($args[TouchPointWP::HOOK_PREFIX . 'post_type']) && ! empty($args[TouchPointWP::HOOK_PREFIX . 'post_type']) && $args['fields'] !== 'count') {
 			global $wpdb;
 
-			$post_types = [];
-
-			if (is_array($args[TouchPointWP::HOOK_PREFIX . 'post_type'])) {
-				foreach ($args[TouchPointWP::HOOK_PREFIX . 'post_type'] as $cpt) {
-					$post_types[] = "'" . $cpt . "'";
-				}
-			} else {
-				$post_types[] = "'" . $args[TouchPointWP::HOOK_PREFIX . 'post_type'] . "'";
-			}
+			$post_types = is_array($args[TouchPointWP::HOOK_PREFIX . 'post_type'])
+				? array_values($args[TouchPointWP::HOOK_PREFIX . 'post_type'])
+				: [$args[TouchPointWP::HOOK_PREFIX . 'post_type']];
 
 			if ( ! empty($post_types)) {
+				$placeholders = implode(', ', array_fill(0, count($post_types), '%s'));
+				$post_types_in_clause = $wpdb->prepare($placeholders, $post_types);
 				$clauses['fields'] = 'DISTINCT ' . str_replace(
 						'tt.*',
 						'tt.term_taxonomy_id, tt.taxonomy, tt.description, tt.parent',
 						$clauses['fields']
 					) . ', COUNT(p.post_type) AS count';
 				$clauses['join'] .= ' LEFT JOIN ' . $wpdb->term_relationships . ' AS r ON r.term_taxonomy_id = tt.term_taxonomy_id LEFT JOIN ' . $wpdb->posts . ' AS p ON p.ID = r.object_id';
-				$clauses['where'] .= ' AND (p.post_type IN (' . implode(
-						',',
-						$post_types
-					) . ') OR (tt.parent = 0 AND tt.count = 0))';
+				$clauses['where'] .= ' AND (p.post_type IN (' . $post_types_in_clause . ') OR (tt.parent = 0 AND tt.count = 0))';
 				$clauses['orderby'] = 'GROUP BY t.term_id ' . $clauses['orderby'];
 			}
 		}
@@ -911,7 +904,7 @@ abstract class Taxonomies
 
 		// Global Partner Category
 		$types = self::getPostTypesForTaxonomy($instance, self::TAX_GP_CATEGORY);
-		if ($types > 0) {
+		if (count($types) > 0) {
 			$tax = $instance->settings->global_primary_tax;
 			if ($tax !== "" &&
 			    is_object($tax) &&

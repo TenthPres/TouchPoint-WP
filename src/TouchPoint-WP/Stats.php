@@ -290,7 +290,8 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	/**
 	 * Submit stats to Tenth.
 	 *
-	 * @param bool $blocking If true, will wait for the response from the server before returning and the method will print a status.
+	 * @param bool $blocking If true, will wait for the response from the server before returning and the method will
+	 * print a status.  If false, no status prints.
 	 *
 	 * @return void
 	 */
@@ -339,7 +340,6 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 					echo "ok";
 				}
 			}
-
 		}
 	}
 

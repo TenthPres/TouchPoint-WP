@@ -3,7 +3,7 @@
  */
 import metadata from './block.json';
 import {__} from "@wordpress/i18n";
-import { generateUniqueId } from '../common';
+import { generateUniqueId } from '../common.js';
 
 /**
  * Every block starts by registering a new block type definition.

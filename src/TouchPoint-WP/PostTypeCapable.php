@@ -75,7 +75,7 @@ abstract class PostTypeCapable implements module, storedAsPost, actionButtons
 	 */
 	public function permalink(): string
 	{
-		return get_permalink($this->post);
+		return get_permalink($this->post_id);
 	}
 
 	/**

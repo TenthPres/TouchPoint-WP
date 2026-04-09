@@ -567,7 +567,7 @@ class Settings
 						'id'          => 'people_ev_custom',
 						'label'       => $this->__('Extra Values to Import', 'TouchPoint-WP'),
 						'description' => $this->__(
-							'Import People Extra Value fields as User Meta data.',
+							'Import People Extra Value fields as User Metadata.',
 							'TouchPoint-WP'
 						),
 						'type'        => 'checkbox_multi',
@@ -805,7 +805,7 @@ class Settings
 						'id'          => 'global_fev_custom',
 						'label'       => $this->__('Extra Values to Import', 'TouchPoint-WP'),
 						'description' => $this->__(
-							'Import Family Extra Value fields as Meta data on the partner\'s post',
+							'Import Family Extra Value fields as Metadata on the partner\'s post',
 							'TouchPoint-WP'
 						),
 						'type'        => 'checkbox_multi',

@@ -497,7 +497,7 @@ msgid "Extra Values to Import"
 msgstr "Valor Adicional para importar"
 
 #: src/TouchPoint-WP/Settings.php:569
-msgid "Import People Extra Value fields as User Meta data."
+msgid "Import People Extra Value fields as User Metadata."
 msgstr "Importe campos de valor extra de personas como metadatos de usuario."
 
 #: src/TouchPoint-WP/Settings.php:585
@@ -650,7 +650,7 @@ msgid "Designate a text Family Extra Value that will contain the partner's locat
 msgstr "Designe un Valor Adicional Familiar de texto que contendrá la ubicación del socio, como desea que se enumere públicamente. Para los socios que tienen DecoupleLocation habilitado, este campo se asociará con el punto del mapa, no con la entrada de la lista."
 
 #: src/TouchPoint-WP/Settings.php:807
-msgid "Import Family Extra Value fields as Meta data on the partner's post"
+msgid "Import Family Extra Value fields as Metadata on the partner's post"
 msgstr "Importe campos de Valor Adicional Familiar como Metadatos en la publicación del socio"
 
 #: src/TouchPoint-WP/Settings.php:818
