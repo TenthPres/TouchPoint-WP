@@ -1,6 +1,5 @@
 /vendor/
 /vendorX/
-composer.lock
 /assets/images/people
 /TouchPointWP_ErrorLog.txt
 /.phpdoc/
@@ -16,9 +15,13 @@ composer.lock
 /.idea/copilotDiffState.xml
 /.idea/data_source_mapping.xml
 /.idea/copilot*
+/.idea/db-forest-config.xml
+/.idea/sshConfigs.xml
 
 *.min.js
 node_modules
+
+.phpunit.result.cache
 
 /i18n/*.json
 /i18n/*.mo
