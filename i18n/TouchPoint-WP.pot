@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-04-02T04:36:37+00:00\n"
+"POT-Creation-Date: 2026-04-09T02:32:47+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: TouchPoint-WP\n"
@@ -338,7 +338,7 @@ msgstr ""
 
 #. translators: number of miles
 #: src/templates/parts/involvement-nearby-list.php:10
-#: src/TouchPoint-WP/Involvement.php:4016
+#: src/TouchPoint-WP/Involvement.php:4003
 #, php-format
 msgctxt "miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'"
 msgid "%2.1fmi"
@@ -477,7 +477,7 @@ msgid "%1$s, through %2$s"
 msgstr ""
 
 #: src/TouchPoint-WP/Involvement.php:1694
-#: src/TouchPoint-WP/Person.php:2001
+#: src/TouchPoint-WP/Person.php:2005
 msgid "None right now."
 msgstr ""
 
@@ -546,75 +546,75 @@ msgstr ""
 msgid "Could not locate."
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:3995
+#: src/TouchPoint-WP/Involvement.php:3982
 msgid "Men Only"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:3998
+#: src/TouchPoint-WP/Involvement.php:3985
 msgid "Women Only"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4077
+#: src/TouchPoint-WP/Involvement.php:4064
 msgid "Contact Leaders"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4094
+#: src/TouchPoint-WP/Involvement.php:4081
 #: src/TouchPoint-WP/Partner.php:1357
 msgid "Show on Map"
 msgstr ""
 
 #. Translators: %s is the system name, "TouchPoint" by default.
-#: src/TouchPoint-WP/Involvement.php:4106
+#: src/TouchPoint-WP/Involvement.php:4093
 #, php-format
 msgid "Involvement in %s"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4148
-#: src/TouchPoint-WP/Involvement.php:4209
+#: src/TouchPoint-WP/Involvement.php:4135
+#: src/TouchPoint-WP/Involvement.php:4196
 msgid "Register"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4154
+#: src/TouchPoint-WP/Involvement.php:4141
 msgid "Create Account"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4158
+#: src/TouchPoint-WP/Involvement.php:4145
 msgid "Schedule"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4163
+#: src/TouchPoint-WP/Involvement.php:4150
 msgid "Give"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4166
+#: src/TouchPoint-WP/Involvement.php:4153
 msgid "Manage Subscriptions"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4169
+#: src/TouchPoint-WP/Involvement.php:4156
 msgid "Record Attendance"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4172
+#: src/TouchPoint-WP/Involvement.php:4159
 msgid "Get Tickets"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4200
+#: src/TouchPoint-WP/Involvement.php:4187
 #: assets/js/base-defer.js:1000
 msgid "Join"
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4332
-#: src/TouchPoint-WP/Involvement.php:4437
+#: src/TouchPoint-WP/Involvement.php:4319
+#: src/TouchPoint-WP/Involvement.php:4424
 msgid "Invalid Post Type."
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4414
-#: src/TouchPoint-WP/Person.php:1968
+#: src/TouchPoint-WP/Involvement.php:4401
+#: src/TouchPoint-WP/Person.php:1972
 msgid "Contact Blocked for Spam."
 msgstr ""
 
-#: src/TouchPoint-WP/Involvement.php:4424
-#: src/TouchPoint-WP/Person.php:1951
+#: src/TouchPoint-WP/Involvement.php:4411
+#: src/TouchPoint-WP/Person.php:1955
 msgid "Contact Prohibited."
 msgstr ""
 
@@ -685,36 +685,36 @@ msgstr ""
 msgid "No WordPress User ID provided for initializing a person object."
 msgstr ""
 
-#: src/TouchPoint-WP/Person.php:707
+#: src/TouchPoint-WP/Person.php:711
 msgid "TouchPoint People ID"
 msgstr ""
 
-#: src/TouchPoint-WP/Person.php:1264
+#: src/TouchPoint-WP/Person.php:1268
 msgid "Contact"
 msgstr ""
 
 #. Translators: %s is the system name, "TouchPoint" by default.
-#: src/TouchPoint-WP/Person.php:1278
+#: src/TouchPoint-WP/Person.php:1282
 #, php-format
 msgid "Profile in %s"
 msgstr ""
 
-#: src/TouchPoint-WP/Person.php:1558
+#: src/TouchPoint-WP/Person.php:1562
 #: src/TouchPoint-WP/Utilities.php:299
 #: assets/js/base-defer.js:20
 msgid "and"
 msgstr ""
 
-#: src/TouchPoint-WP/Person.php:1565
+#: src/TouchPoint-WP/Person.php:1569
 msgctxt "list of people, and *others*"
 msgid "others"
 msgstr ""
 
-#: src/TouchPoint-WP/Person.php:1704
+#: src/TouchPoint-WP/Person.php:1708
 msgid "Registration Blocked for Spam."
 msgstr ""
 
-#: src/TouchPoint-WP/Person.php:1802
+#: src/TouchPoint-WP/Person.php:1806
 msgid "You may need to sign in."
 msgstr ""
 
