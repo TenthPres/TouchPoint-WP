@@ -270,6 +270,7 @@ abstract class Auth implements api, module
 		$destination = apply_filters('tp_admin_area_redirect', $destination);
 
 		if ($destination) {
+			header("X-Redirected-By: TouchPoint-WP");
 			wp_redirect($destination, Http::SEE_OTHER_TEMP);
 			exit;
 		}
