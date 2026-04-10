@@ -125,13 +125,13 @@ msgstr "Género"
 
 #: src/templates/admin/invKoForm.php:252
 #: src/TouchPoint-WP/Involvement.php:1929
-#: src/TouchPoint-WP/Taxonomies.php:755
+#: src/TouchPoint-WP/Taxonomies.php:748
 msgid "Weekday"
 msgstr "Día laborable"
 
 #: src/templates/admin/invKoForm.php:256
 #: src/TouchPoint-WP/Involvement.php:1955
-#: src/TouchPoint-WP/Taxonomies.php:821
+#: src/TouchPoint-WP/Taxonomies.php:814
 msgid "Time of Day"
 msgstr "Hora del día"
 
@@ -140,7 +140,7 @@ msgid "Prevailing Marital Status"
 msgstr "Estado civil prevaleciente"
 
 #: src/templates/admin/invKoForm.php:264
-#: src/TouchPoint-WP/Taxonomies.php:854
+#: src/TouchPoint-WP/Taxonomies.php:847
 msgid "Age Group"
 msgstr "Grupo de edad"
 
@@ -185,8 +185,8 @@ msgstr "No se encontraron %s"
 msgid "%s will be imported overnight for the first time."
 msgstr "%s se importarán durante la noche por primera vez."
 
-#: src/TouchPoint-WP/Auth.php:403
-#: src/TouchPoint-WP/Auth.php:411
+#: src/TouchPoint-WP/Auth.php:404
+#: src/TouchPoint-WP/Auth.php:412
 msgid "Your login token is invalid."
 msgstr "Su token de inicio de sesión no es válido."
 
@@ -329,15 +329,15 @@ msgid "Current Value"
 msgstr "Valor actual"
 
 #: src/TouchPoint-WP/Api.php:107
-#: src/TouchPoint-WP/Api.php:188
-#: src/TouchPoint-WP/Api.php:450
-#: src/TouchPoint-WP/Api.php:584
+#: src/TouchPoint-WP/Api.php:182
+#: src/TouchPoint-WP/Api.php:444
+#: src/TouchPoint-WP/Api.php:578
 msgid "Invalid or incomplete API Settings."
 msgstr "Configuración de API no válida o incompleta."
 
-#: src/TouchPoint-WP/Api.php:204
-#: src/TouchPoint-WP/Api.php:251
-#: src/TouchPoint-WP/Api.php:526
+#: src/TouchPoint-WP/Api.php:198
+#: src/TouchPoint-WP/Api.php:245
+#: src/TouchPoint-WP/Api.php:520
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr "Parece que falta el host en la configuración de TouchPoint-WP."
 
@@ -459,7 +459,7 @@ msgid "Upload the package to {tpName} here"
 msgstr "Sube el paquete a {tpName} aquí"
 
 #: src/TouchPoint-WP/Settings.php:529
-#: src/TouchPoint-WP/StatusWidget.php:101
+#: src/TouchPoint-WP/StatusWidget.php:96
 msgid "People"
 msgstr "Gente"
 
@@ -541,7 +541,7 @@ msgid "By enabling this option, users who can't edit anything won't see the Admi
 msgstr "Al habilitar esta opción, los usuarios que no pueden editar nada no verán la barra de administración."
 
 #: src/TouchPoint-WP/Settings.php:642
-#: src/TouchPoint-WP/StatusWidget.php:106
+#: src/TouchPoint-WP/StatusWidget.php:101
 msgid "Involvements"
 msgstr "Involucramientos"
 
@@ -968,7 +968,7 @@ msgstr "Enviar"
 msgid "Nothing to submit."
 msgstr "Nada que enviar."
 
-#: src/TouchPoint-WP/Api.php:656
+#: src/TouchPoint-WP/Api.php:650
 msgid "The scripts on TouchPoint that interact with this plugin are out-of-date, and an automatic update failed."
 msgstr "Los scripts en TouchPoint que interactúan con este complemento están desactualizados y falló una actualización automática."
 
@@ -1029,7 +1029,7 @@ msgid "Next"
 msgstr "Siguiente"
 
 #: src/TouchPoint-WP/Involvement.php:1977
-#: src/TouchPoint-WP/Taxonomies.php:890
+#: src/TouchPoint-WP/Taxonomies.php:883
 msgid "Marital Status"
 msgstr "Estado civil"
 
@@ -1227,9 +1227,9 @@ msgstr "restablecer el mapa"
 #: src/TouchPoint-WP/Involvement.php:1061
 #: src/TouchPoint-WP/Involvement.php:1154
 #: src/TouchPoint-WP/Involvement.php:1178
-#: src/TouchPoint-WP/StatusWidget.php:73
-#: src/TouchPoint-WP/Utilities/DateFormats.php:288
-#: src/TouchPoint-WP/Utilities/DateFormats.php:352
+#: src/TouchPoint-WP/Utilities/DateFormats.php:27
+#: src/TouchPoint-WP/Utilities/DateFormats.php:305
+#: src/TouchPoint-WP/Utilities/DateFormats.php:369
 #, php-format
 msgid "%1$s at %2$s"
 msgstr "%1$s a las %2$s"
@@ -1326,65 +1326,65 @@ msgstr "Tipo de publicación no válida."
 msgid "Enable Campuses"
 msgstr "Habilitar Campus"
 
-#: src/TouchPoint-WP/Taxonomies.php:651
+#: src/TouchPoint-WP/Taxonomies.php:644
 msgid "Classify posts by their general locations."
 msgstr "clasificar las publicaciones por sus ubicaciones generales."
 
-#: src/TouchPoint-WP/Taxonomies.php:684
+#: src/TouchPoint-WP/Taxonomies.php:677
 msgid "Classify posts by their church campus."
 msgstr "Clasifique las publicaciones por el campus."
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/Taxonomies.php:719
+#: src/TouchPoint-WP/Taxonomies.php:712
 #, php-format
 msgid "Classify things by %s."
 msgstr "Clasifica las cosas por %s."
 
-#: src/TouchPoint-WP/Taxonomies.php:754
+#: src/TouchPoint-WP/Taxonomies.php:747
 msgid "Classify involvements by the day on which they meet."
 msgstr "Clasificar las participaciones por el día en que se reúnen."
 
-#: src/TouchPoint-WP/Taxonomies.php:755
+#: src/TouchPoint-WP/Taxonomies.php:748
 msgid "Weekdays"
 msgstr "Días de semana"
 
-#: src/TouchPoint-WP/Taxonomies.php:785
+#: src/TouchPoint-WP/Taxonomies.php:778
 msgid "Classify involvements by tense (present, future, past)"
 msgstr "Clasificar las implicaciones por tiempo (presente, futuro, pasado)"
 
-#: src/TouchPoint-WP/Taxonomies.php:789
+#: src/TouchPoint-WP/Taxonomies.php:782
 msgid "Tense"
 msgstr "Tiempo"
 
-#: src/TouchPoint-WP/Taxonomies.php:789
+#: src/TouchPoint-WP/Taxonomies.php:782
 msgid "Tenses"
 msgstr "Tiempos"
 
-#: src/TouchPoint-WP/Taxonomies.php:816
+#: src/TouchPoint-WP/Taxonomies.php:809
 msgid "Classify involvements by the portion of the day in which they meet."
 msgstr "Clasifique las participaciones por la parte del día en que se reúnen."
 
-#: src/TouchPoint-WP/Taxonomies.php:822
+#: src/TouchPoint-WP/Taxonomies.php:815
 msgid "Times of Day"
 msgstr "Tiempos del Día"
 
-#: src/TouchPoint-WP/Taxonomies.php:852
+#: src/TouchPoint-WP/Taxonomies.php:845
 msgid "Classify involvements and users by their age groups."
 msgstr "Clasifica las implicaciones y los usuarios por sus grupos de edad."
 
-#: src/TouchPoint-WP/Taxonomies.php:855
+#: src/TouchPoint-WP/Taxonomies.php:848
 msgid "Age Groups"
 msgstr "Grupos de Edad"
 
-#: src/TouchPoint-WP/Taxonomies.php:885
+#: src/TouchPoint-WP/Taxonomies.php:878
 msgid "Classify involvements by whether participants are mostly single or married."
 msgstr "Clasifique las participaciones según si los participantes son en su mayoría solteros o casados."
 
-#: src/TouchPoint-WP/Taxonomies.php:891
+#: src/TouchPoint-WP/Taxonomies.php:884
 msgid "Marital Statuses"
 msgstr "Estados Civiles"
 
-#: src/TouchPoint-WP/Taxonomies.php:928
+#: src/TouchPoint-WP/Taxonomies.php:921
 msgid "Classify Partners by category chosen in settings."
 msgstr "Clasifique a los ministeriales por categoría elegida en la configuración."
 
@@ -1595,18 +1595,18 @@ msgstr "Seleccione los tipos de publicaciones que deberían tener Divisiones dis
 msgid "Select post types which should have Resident Codes available as a native taxonomy."
 msgstr "Seleccione los tipos de publicaciones que deberían tener códigos de residente disponibles como taxonomía nativa."
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:119
-#: src/TouchPoint-WP/Utilities/DateFormats.php:194
+#: src/TouchPoint-WP/Utilities/DateFormats.php:136
+#: src/TouchPoint-WP/Utilities/DateFormats.php:211
 msgid "Tonight"
 msgstr "este noche"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:121
-#: src/TouchPoint-WP/Utilities/DateFormats.php:196
+#: src/TouchPoint-WP/Utilities/DateFormats.php:138
+#: src/TouchPoint-WP/Utilities/DateFormats.php:213
 msgid "Today"
 msgstr "hoy"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:128
-#: src/TouchPoint-WP/Utilities/DateFormats.php:203
+#: src/TouchPoint-WP/Utilities/DateFormats.php:145
+#: src/TouchPoint-WP/Utilities/DateFormats.php:220
 msgid "Tomorrow"
 msgstr "mañana"
 
@@ -1623,28 +1623,28 @@ msgid "Scheduled"
 msgstr "Programado"
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:147
+#: src/TouchPoint-WP/Utilities/DateFormats.php:164
 #, php-format
 msgctxt "Date format string"
 msgid "Last %1$s, %2$s"
 msgstr "el pasado %1$s %2$s"
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:153
+#: src/TouchPoint-WP/Utilities/DateFormats.php:170
 #, php-format
 msgctxt "Date format string"
 msgid "This %1$s, %2$s"
 msgstr "este %1$s %2$s"
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:159
+#: src/TouchPoint-WP/Utilities/DateFormats.php:176
 #, php-format
 msgctxt "Date format string"
 msgid "Next %1$s, %2$s"
 msgstr "el proximo %1$s %2$s"
 
 #. translators: %1$s is "Monday".  %2$s is "January 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:164
+#: src/TouchPoint-WP/Utilities/DateFormats.php:181
 #, php-format
 msgctxt "Date format string"
 msgid "%1$s, %2$s"
@@ -1682,7 +1682,7 @@ msgstr "Lo que llamas Reuniones en tu iglesia"
 
 #: src/TouchPoint-WP/Settings.php:906
 #: src/TouchPoint-WP/Settings.php:908
-#: src/TouchPoint-WP/StatusWidget.php:118
+#: src/TouchPoint-WP/StatusWidget.php:113
 msgid "Meetings"
 msgstr "Reuniones"
 
@@ -1709,22 +1709,22 @@ msgstr "Reunión"
 msgid "Event"
 msgstr "Evento"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:137
+#: src/TouchPoint-WP/Utilities/DateFormats.php:154
 msgctxt "Date string for day of the week, when the year is current."
 msgid "l"
 msgstr "l"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:138
+#: src/TouchPoint-WP/Utilities/DateFormats.php:155
 msgctxt "Date string when the year is current."
 msgid "F j"
 msgstr "j F"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:140
+#: src/TouchPoint-WP/Utilities/DateFormats.php:157
 msgctxt "Date string for day of the week, when the year is not current."
 msgid "l"
 msgstr "l"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:141
+#: src/TouchPoint-WP/Utilities/DateFormats.php:158
 msgctxt "Date string when the year is not current."
 msgid "F j, Y"
 msgstr "j F Y"
@@ -1750,61 +1750,61 @@ msgid "Creating a Meeting object from an object without a post_id is not yet sup
 msgstr "Aún no se admite la creación de un objeto de reunión a partir de un objeto sin post_id."
 
 #. translators: %1$s is the start date/time, %2$s is the end date/time.
-#: src/TouchPoint-WP/Utilities/DateFormats.php:89
-#: src/TouchPoint-WP/Utilities/DateFormats.php:331
+#: src/TouchPoint-WP/Utilities/DateFormats.php:106
+#: src/TouchPoint-WP/Utilities/DateFormats.php:348
 #, php-format
 msgid "%1$s &ndash; %2$s"
 msgstr "%1$s &ndash; %2$s"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:211
+#: src/TouchPoint-WP/Utilities/DateFormats.php:228
 msgctxt "Short date string for day of the week, when the year is current."
 msgid "D"
 msgstr "D"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:212
+#: src/TouchPoint-WP/Utilities/DateFormats.php:229
 msgctxt "Short date string when the year is current."
 msgid "M j"
 msgstr "j M"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:214
+#: src/TouchPoint-WP/Utilities/DateFormats.php:231
 msgctxt "Short date string for day of the week, when the year is not current."
 msgid "D"
 msgstr "D"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:215
+#: src/TouchPoint-WP/Utilities/DateFormats.php:232
 msgctxt "Short date string when the year is not current."
 msgid "M j, Y"
 msgstr "j M Y"
 
 #. translators: %1$s is the start date, %2$s start time, %3$s is the end date, and %4$s end time.
-#: src/TouchPoint-WP/Utilities/DateFormats.php:364
+#: src/TouchPoint-WP/Utilities/DateFormats.php:381
 #, php-format
 msgid "%1$s at %2$s &ndash; %3$s at %4$s"
 msgstr "%1$s a %2$s &ndash; %3$s a %4$s"
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:221
+#: src/TouchPoint-WP/Utilities/DateFormats.php:238
 #, php-format
 msgctxt "Short date format string"
 msgid "Last %1$s, %2$s"
 msgstr "el pasado %1$s %2$s"
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:227
+#: src/TouchPoint-WP/Utilities/DateFormats.php:244
 #, php-format
 msgctxt "Short date format string"
 msgid "This %1$s, %2$s"
 msgstr "este %1$s %2$s"
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:233
+#: src/TouchPoint-WP/Utilities/DateFormats.php:250
 #, php-format
 msgctxt "Short date format string"
 msgid "Next %1$s, %2$s"
 msgstr "proximo %1$s %2$s"
 
 #. translators: %1$s is "Mon".  %2$s is "Jan 1".
-#: src/TouchPoint-WP/Utilities/DateFormats.php:238
+#: src/TouchPoint-WP/Utilities/DateFormats.php:255
 #, php-format
 msgctxt "Short date format string"
 msgid "%1$s, %2$s"
@@ -1896,16 +1896,16 @@ msgstr "(Sin campus)"
 msgid "TouchPoint-WP Status"
 msgstr "Estado de TouchPoint-WP"
 
-#: src/TouchPoint-WP/StatusWidget.php:98
+#: src/TouchPoint-WP/StatusWidget.php:93
 msgid "Imported"
 msgstr "Importadas"
 
-#: src/TouchPoint-WP/StatusWidget.php:99
+#: src/TouchPoint-WP/StatusWidget.php:94
 msgid "Last Updated"
 msgstr "Actualizada"
 
-#: src/TouchPoint-WP/Utilities/DateFormats.php:130
-#: src/TouchPoint-WP/Utilities/DateFormats.php:205
+#: src/TouchPoint-WP/Utilities/DateFormats.php:147
+#: src/TouchPoint-WP/Utilities/DateFormats.php:222
 msgid "Yesterday"
 msgstr "Ayer"
 
@@ -1927,7 +1927,7 @@ msgstr "Permita que los desarrolladores de TouchPoint-WP incluyan públicamente 
 msgid "Sign in with %s"
 msgstr "Iniciar sesión con %s"
 
-#: src/TouchPoint-WP/Auth.php:442
+#: src/TouchPoint-WP/Auth.php:443
 msgid "No user account found."
 msgstr "No se encontró ninguna cuenta de usuario"
 
@@ -2097,16 +2097,16 @@ msgstr "Esta opción le permite filtrar las personas que se muestran en función
 msgid "Expand"
 msgstr "Expandir"
 
-#: src/TouchPoint-WP/StatusWidget.php:125
+#: src/TouchPoint-WP/StatusWidget.php:120
 msgid "Partners"
 msgstr "Misioneros"
 
-#: src/TouchPoint-WP/StatusWidget.php:130
+#: src/TouchPoint-WP/StatusWidget.php:125
 msgid "Reports"
 msgstr "Informes"
 
 #. Translators: %s is the current version number.
-#: src/TouchPoint-WP/StatusWidget.php:137
+#: src/TouchPoint-WP/StatusWidget.php:132
 #, php-format
 msgid "Version: %s"
 msgstr "versión: %s"
@@ -2116,3 +2116,8 @@ msgstr "versión: %s"
 #, php-format
 msgid "Profile in %s"
 msgstr "Perfil en %s"
+
+#: src/TouchPoint-WP/StatusWidget.php:59
+#: src/TouchPoint-WP/StatusWidget.php:66
+msgid "Never"
+msgstr "nunca"
