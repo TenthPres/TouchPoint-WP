@@ -419,7 +419,7 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 			$post->post_content = self::getFamEvAsContent($descriptionEv, $f, '');
 
 			// Excerpt / Summary
-			$post->post_excerpt = self::getFamEvAsContent($summaryEv, $f, null);
+			$post->post_excerpt = self::getFamEvAsContent($summaryEv, $f, '');
 
 			// Partner Category  This can't be moved to Taxonomy class because values aren't known.
 			if ($categoryEv !== '') {

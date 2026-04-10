@@ -613,8 +613,7 @@ abstract class Taxonomies
 				return $types;
 
 			case self::TAX_GP_CATEGORY:
-				if ($instance->settings->enable_involvements === "on"
-				    && class_exists('\tp\TouchPointWP\Partner', false)) {
+				if ($instance->settings->enable_global === "on") {
 					return [\tp\TouchPointWP\Partner::POST_TYPE];
 				}
 
@@ -907,7 +906,6 @@ abstract class Taxonomies
 		if (count($types) > 0) {
 			$tax = $instance->settings->global_primary_tax;
 			if ($tax !== "" &&
-			    is_object($tax) &&
 			    $instance->settings->enable_global === "on" &&
 			    count($instance->getFamilyEvFields([$tax])) > 0) {
 				$tax    = $instance->getFamilyEvFields([$tax])[0];
