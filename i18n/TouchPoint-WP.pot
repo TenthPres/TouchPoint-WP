@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-04-10T02:50:48+00:00\n"
+"POT-Creation-Date: 2026-04-10T04:08:37+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: TouchPoint-WP\n"
@@ -218,13 +218,13 @@ msgstr ""
 
 #: src/templates/admin/invKoForm.php:252
 #: src/TouchPoint-WP/Involvement.php:1929
-#: src/TouchPoint-WP/Taxonomies.php:748
+#: src/TouchPoint-WP/Taxonomies.php:747
 msgid "Weekday"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:256
 #: src/TouchPoint-WP/Involvement.php:1955
-#: src/TouchPoint-WP/Taxonomies.php:814
+#: src/TouchPoint-WP/Taxonomies.php:813
 msgid "Time of Day"
 msgstr ""
 
@@ -233,7 +233,7 @@ msgid "Prevailing Marital Status"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:264
-#: src/TouchPoint-WP/Taxonomies.php:847
+#: src/TouchPoint-WP/Taxonomies.php:846
 msgid "Age Group"
 msgstr ""
 
@@ -496,7 +496,7 @@ msgid "Language"
 msgstr ""
 
 #: src/TouchPoint-WP/Involvement.php:1977
-#: src/TouchPoint-WP/Taxonomies.php:883
+#: src/TouchPoint-WP/Taxonomies.php:882
 msgid "Marital Status"
 msgstr ""
 
@@ -1437,65 +1437,65 @@ msgstr ""
 msgid "New %s"
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:644
+#: src/TouchPoint-WP/Taxonomies.php:643
 msgid "Classify posts by their general locations."
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:677
+#: src/TouchPoint-WP/Taxonomies.php:676
 msgid "Classify posts by their church campus."
 msgstr ""
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/Taxonomies.php:712
+#: src/TouchPoint-WP/Taxonomies.php:711
 #, php-format
 msgid "Classify things by %s."
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:747
+#: src/TouchPoint-WP/Taxonomies.php:746
 msgid "Classify involvements by the day on which they meet."
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:748
+#: src/TouchPoint-WP/Taxonomies.php:747
 msgid "Weekdays"
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:778
+#: src/TouchPoint-WP/Taxonomies.php:777
 msgid "Classify involvements by tense (present, future, past)"
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:782
+#: src/TouchPoint-WP/Taxonomies.php:781
 msgid "Tense"
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:782
+#: src/TouchPoint-WP/Taxonomies.php:781
 msgid "Tenses"
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:809
+#: src/TouchPoint-WP/Taxonomies.php:808
 msgid "Classify involvements by the portion of the day in which they meet."
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:815
+#: src/TouchPoint-WP/Taxonomies.php:814
 msgid "Times of Day"
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:845
+#: src/TouchPoint-WP/Taxonomies.php:844
 msgid "Classify involvements and users by their age groups."
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:848
+#: src/TouchPoint-WP/Taxonomies.php:847
 msgid "Age Groups"
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:878
+#: src/TouchPoint-WP/Taxonomies.php:877
 msgid "Classify involvements by whether participants are mostly single or married."
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:884
+#: src/TouchPoint-WP/Taxonomies.php:883
 msgid "Marital Statuses"
 msgstr ""
 
-#: src/TouchPoint-WP/Taxonomies.php:921
+#: src/TouchPoint-WP/Taxonomies.php:919
 msgid "Classify Partners by category chosen in settings."
 msgstr ""
 
