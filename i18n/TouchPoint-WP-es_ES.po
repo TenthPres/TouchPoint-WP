@@ -185,8 +185,8 @@ msgstr "No se encontraron %s"
 msgid "%s will be imported overnight for the first time."
 msgstr "%s se importarán durante la noche por primera vez."
 
-#: src/TouchPoint-WP/Auth.php:404
-#: src/TouchPoint-WP/Auth.php:412
+#: src/TouchPoint-WP/Auth.php:407
+#: src/TouchPoint-WP/Auth.php:415
 msgid "Your login token is invalid."
 msgstr "Su token de inicio de sesión no es válido."
 
@@ -1922,12 +1922,12 @@ msgid "Allow the TouchPoint-WP developers to publicly list your site/church as u
 msgstr "Permita que los desarrolladores de TouchPoint-WP incluyan públicamente su sitio o iglesia como sitios que usan TouchPoint-WP. Esto ayuda a otras iglesias potenciales a ver lo que se puede hacer al combinar WordPress con el mejor ChMS del planeta. Solo se aplica si este sitio es accesible en Internet público."
 
 #. translators: %s is "what you call TouchPoint at your church", which is a setting
-#: src/TouchPoint-WP/Auth.php:139
+#: src/TouchPoint-WP/Auth.php:140
 #, php-format
 msgid "Sign in with %s"
 msgstr "Iniciar sesión con %s"
 
-#: src/TouchPoint-WP/Auth.php:443
+#: src/TouchPoint-WP/Auth.php:446
 msgid "No user account found."
 msgstr "No se encontró ninguna cuenta de usuario"
 
