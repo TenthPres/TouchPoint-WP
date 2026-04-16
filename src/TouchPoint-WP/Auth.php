@@ -104,6 +104,7 @@ abstract class Auth implements api, module
 				'a' => "logout"
 			]);
 
+			header("X-Redirected-By: TouchPoint-WP");
 			wp_redirect($redir, Http::SEE_OTHER_TEMP);
 			exit;
 		}
@@ -182,6 +183,7 @@ abstract class Auth implements api, module
 		}
 
 		if (self::wantsToLogin() && $redirect && $_SERVER['REQUEST_METHOD'] === "GET") {
+			header("X-Redirected-By: TouchPoint-WP");
 			wp_redirect(self::getLoginUrl(), Http::SEE_OTHER_TEMP);
 			exit();
 		}
@@ -362,6 +364,7 @@ abstract class Auth implements api, module
 		switch (strtolower($uri['path'][2])) {
 			case "login.js":   // Some hosts bypass PHP for js extensions, so this doesn't work.
 			case "login.jsr":
+				header("X-Redirected-By: TouchPoint-WP");
 				wp_redirect(content_url('/plugins/touchpoint-wp/ext/login.js'), Http::SEE_OTHER_TEMP);
 				exit;
 		}
