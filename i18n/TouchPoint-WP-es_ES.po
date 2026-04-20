@@ -125,13 +125,13 @@ msgstr "Género"
 
 #: src/templates/admin/invKoForm.php:252
 #: src/TouchPoint-WP/Involvement.php:1929
-#: src/TouchPoint-WP/Taxonomies.php:747
+#: src/TouchPoint-WP/Taxonomies.php:749
 msgid "Weekday"
 msgstr "Día laborable"
 
 #: src/templates/admin/invKoForm.php:256
 #: src/TouchPoint-WP/Involvement.php:1955
-#: src/TouchPoint-WP/Taxonomies.php:813
+#: src/TouchPoint-WP/Taxonomies.php:815
 msgid "Time of Day"
 msgstr "Hora del día"
 
@@ -140,7 +140,7 @@ msgid "Prevailing Marital Status"
 msgstr "Estado civil prevaleciente"
 
 #: src/templates/admin/invKoForm.php:264
-#: src/TouchPoint-WP/Taxonomies.php:846
+#: src/TouchPoint-WP/Taxonomies.php:848
 msgid "Age Group"
 msgstr "Grupo de edad"
 
@@ -168,7 +168,7 @@ msgstr "Grupo Pequeño"
 msgid "Small Groups"
 msgstr "Grupos Pequeños"
 
-#: src/templates/admin/invKoForm.php:458
+#: src/templates/admin/invKoForm.php:461
 msgid "Select..."
 msgstr "Seleccione..."
 
@@ -185,8 +185,8 @@ msgstr "No se encontraron %s"
 msgid "%s will be imported overnight for the first time."
 msgstr "%s se importarán durante la noche por primera vez."
 
-#: src/TouchPoint-WP/Auth.php:407
-#: src/TouchPoint-WP/Auth.php:415
+#: src/TouchPoint-WP/Auth.php:408
+#: src/TouchPoint-WP/Auth.php:416
 msgid "Your login token is invalid."
 msgstr "Su token de inicio de sesión no es válido."
 
@@ -787,7 +787,7 @@ msgid "TouchPoint-WP"
 msgstr "TouchPoint-WP"
 
 #: src/TouchPoint-WP/Settings.php:1450
-#: blocks/inv-list/index.js:113
+#: blocks/inv-list/index.js:112
 #: blocks/people-list/index.js:174
 msgid "Settings"
 msgstr "Ajustes"
@@ -1029,7 +1029,7 @@ msgid "Next"
 msgstr "Siguiente"
 
 #: src/TouchPoint-WP/Involvement.php:1977
-#: src/TouchPoint-WP/Taxonomies.php:882
+#: src/TouchPoint-WP/Taxonomies.php:884
 msgid "Marital Status"
 msgstr "Estado civil"
 
@@ -1326,65 +1326,65 @@ msgstr "Tipo de publicación no válida."
 msgid "Enable Campuses"
 msgstr "Habilitar Campus"
 
-#: src/TouchPoint-WP/Taxonomies.php:643
+#: src/TouchPoint-WP/Taxonomies.php:645
 msgid "Classify posts by their general locations."
 msgstr "clasificar las publicaciones por sus ubicaciones generales."
 
-#: src/TouchPoint-WP/Taxonomies.php:676
+#: src/TouchPoint-WP/Taxonomies.php:678
 msgid "Classify posts by their church campus."
 msgstr "Clasifique las publicaciones por el campus."
 
 #. translators: %s: taxonomy name, singular
-#: src/TouchPoint-WP/Taxonomies.php:711
+#: src/TouchPoint-WP/Taxonomies.php:713
 #, php-format
 msgid "Classify things by %s."
 msgstr "Clasifica las cosas por %s."
 
-#: src/TouchPoint-WP/Taxonomies.php:746
+#: src/TouchPoint-WP/Taxonomies.php:748
 msgid "Classify involvements by the day on which they meet."
 msgstr "Clasificar las participaciones por el día en que se reúnen."
 
-#: src/TouchPoint-WP/Taxonomies.php:747
+#: src/TouchPoint-WP/Taxonomies.php:749
 msgid "Weekdays"
 msgstr "Días de semana"
 
-#: src/TouchPoint-WP/Taxonomies.php:777
+#: src/TouchPoint-WP/Taxonomies.php:779
 msgid "Classify involvements by tense (present, future, past)"
 msgstr "Clasificar las implicaciones por tiempo (presente, futuro, pasado)"
 
-#: src/TouchPoint-WP/Taxonomies.php:781
+#: src/TouchPoint-WP/Taxonomies.php:783
 msgid "Tense"
 msgstr "Tiempo"
 
-#: src/TouchPoint-WP/Taxonomies.php:781
+#: src/TouchPoint-WP/Taxonomies.php:783
 msgid "Tenses"
 msgstr "Tiempos"
 
-#: src/TouchPoint-WP/Taxonomies.php:808
+#: src/TouchPoint-WP/Taxonomies.php:810
 msgid "Classify involvements by the portion of the day in which they meet."
 msgstr "Clasifique las participaciones por la parte del día en que se reúnen."
 
-#: src/TouchPoint-WP/Taxonomies.php:814
+#: src/TouchPoint-WP/Taxonomies.php:816
 msgid "Times of Day"
 msgstr "Tiempos del Día"
 
-#: src/TouchPoint-WP/Taxonomies.php:844
+#: src/TouchPoint-WP/Taxonomies.php:846
 msgid "Classify involvements and users by their age groups."
 msgstr "Clasifica las implicaciones y los usuarios por sus grupos de edad."
 
-#: src/TouchPoint-WP/Taxonomies.php:847
+#: src/TouchPoint-WP/Taxonomies.php:849
 msgid "Age Groups"
 msgstr "Grupos de Edad"
 
-#: src/TouchPoint-WP/Taxonomies.php:877
+#: src/TouchPoint-WP/Taxonomies.php:879
 msgid "Classify involvements by whether participants are mostly single or married."
 msgstr "Clasifique las participaciones según si los participantes son en su mayoría solteros o casados."
 
-#: src/TouchPoint-WP/Taxonomies.php:883
+#: src/TouchPoint-WP/Taxonomies.php:885
 msgid "Marital Statuses"
 msgstr "Estados Civiles"
 
-#: src/TouchPoint-WP/Taxonomies.php:919
+#: src/TouchPoint-WP/Taxonomies.php:921
 msgid "Classify Partners by category chosen in settings."
 msgstr "Clasifique a los ministeriales por categoría elegida en la configuración."
 
@@ -1437,7 +1437,7 @@ msgid "TouchPoint Report"
 msgstr "Informe de TouchPoint"
 
 #. translators: Last updated date/time for a report. %1$s is the date. %2$s is the time.
-#: src/TouchPoint-WP/Report.php:449
+#: src/TouchPoint-WP/Report.php:452
 #, php-format
 msgid "Updated on %1$s at %2$s"
 msgstr "Actualizada %1$s %2$s"
@@ -1610,7 +1610,7 @@ msgstr "hoy"
 msgid "Tomorrow"
 msgstr "mañana"
 
-#: src/templates/admin/invKoForm.php:421
+#: src/templates/admin/invKoForm.php:424
 msgid "(named person)"
 msgstr "(persona nombrada)"
 
@@ -1855,7 +1855,7 @@ msgid "This %s has been cancelled."
 msgstr "Este %s ha sido cancelado."
 
 #: src/templates/admin/invKoForm.php:212
-#: blocks/inv-list/index.js:130
+#: blocks/inv-list/index.js:129
 msgid "Division"
 msgstr "Division"
 
@@ -1927,7 +1927,7 @@ msgstr "Permita que los desarrolladores de TouchPoint-WP incluyan públicamente 
 msgid "Sign in with %s"
 msgstr "Iniciar sesión con %s"
 
-#: src/TouchPoint-WP/Auth.php:446
+#: src/TouchPoint-WP/Auth.php:447
 msgid "No user account found."
 msgstr "No se encontró ninguna cuenta de usuario"
 
@@ -1976,11 +1976,11 @@ msgstr "Lista de Participaciones"
 msgid "A list of Involvements from TouchPoint"
 msgstr "Una lista de participaciones de TouchPoint"
 
-#: blocks/inv-list/index.js:75
+#: blocks/inv-list/index.js:74
 msgid "All"
 msgstr "Todos"
 
-#: blocks/inv-list/index.js:121
+#: blocks/inv-list/index.js:120
 msgid "Post Type"
 msgstr "tipo de publicación"
 
@@ -1999,11 +1999,11 @@ msgstr "Una lista de participaciones de TouchPoint"
 msgid "None right now."
 msgstr "Nada por ahora"
 
-#: blocks/inv-list/index.js:116
+#: blocks/inv-list/index.js:115
 msgid "To use this block, import Involvements in the TouchPoint-WP settings."
 msgstr "Para utilizar este bloque, importe Involvements en la configuración de TouchPoint-WP."
 
-#: blocks/inv-list/index.js:143
+#: blocks/inv-list/index.js:142
 #: blocks/people-list/index.js:231
 msgid "Preview Only"
 msgstr "Solo vista previa"
@@ -2026,11 +2026,11 @@ msgstr "Solo se incluirán las participaciones de los campus seleccionados."
 msgid "This %s has already happened."
 msgstr "Este %s ya ha sucedido."
 
-#: blocks/inv-list/index.js:122
+#: blocks/inv-list/index.js:121
 msgid "These options are based on the Involvement post types you or your administrator have chosen to import in the TouchPoint-WP settings."
 msgstr "Estas opciones se basan en los tipos de entrada de «Involvement» que usted o su administrador han elegido importar en la configuración de TouchPoint-WP."
 
-#: blocks/inv-list/index.js:131
+#: blocks/inv-list/index.js:130
 msgid "This option allows you to filter the involvements that are shown on this list, such as limiting to a particular ministry. These options are those that you or your administrator configured as Divisions to import as taxonomies in the TouchPoint-WP settings."
 msgstr "Esta opción le permite filtrar las participaciones que se muestran en esta lista, como, por ejemplo, limitarlas a un ministerio en particular. Estas opciones son aquellas que usted o su administrador configuraron como Divisiones para importarlas como taxonomías en los ajustes de TouchPoint-WP."
 
@@ -2055,7 +2055,7 @@ msgctxt "block title"
 msgid "People List"
 msgstr "Lista de personas"
 
-#: blocks/inv-list/index.js:39
+#: blocks/inv-list/index.js:40
 #: blocks/people-list/index.js:50
 msgid "Loading Preview..."
 msgstr "Cargando vista previa..."
