@@ -340,7 +340,8 @@ abstract class Auth implements api, module
 			$userId   = get_current_user_id();
 			$peopleId = (int)(get_user_meta($userId, Person::META_PEOPLEID, true));
 		}
-		if ($peopleId >= 0) {
+		$peopleId = intval($peopleId);
+		if ($peopleId >= 0) {  // 0 is a valid peopleId for the purpose of this URL, but not elsewhere.
 			return $tpwp->host() . '/Person2/' . $peopleId . "#tab-personal";
 		}
 

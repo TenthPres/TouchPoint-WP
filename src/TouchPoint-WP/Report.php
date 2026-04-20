@@ -312,7 +312,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 							break;
 
 						default:
-							header("Content-Type: text/plain");
+							header("Content-Type: text/html");
 							break;
 					}
 
@@ -339,6 +339,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 						exit;
 					}
 
+					header("Content-Type: text/html");
 					echo $content;
 					exit;
 			}
@@ -411,6 +412,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 		}
 
 		if (self::$_indexingMode) {
+			// TODO issue #247 Interrogate if parent post has limited access permissions and follow that through with report to be applied in API versions.
+
 			// It has been added to the index already, so our work here is done.
 			return $content;
 		}

@@ -291,7 +291,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	 * Submit stats to Tenth.
 	 *
 	 * @param bool $blocking If true, will wait for the response from the server before returning and the method will
-	 * print a status.  If false, no status prints.
+	 * print a status.  If false, nothing prints.
 	 *
 	 * @return void
 	 */
@@ -327,7 +327,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 			'blocking' => $blocking,
 		]);
 
-		if (!$blocking) {
+		if ($blocking) {
 			if (is_wp_error($r)) {
 				echo "error";
 				error_log("TouchPoint-WP: Stats: Failed to submit telemetry to $endpoint: " . $r->get_error_message());
@@ -488,11 +488,17 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		$data = array_intersect_key($data, $s->getStatsForSubmission());
 		$data['updatedDT'] = date('Y-m-d H:i:s');
 
-		// upsert the data into the database into the stats table without destructive replace function
+		// Upsert the data into the stats table without treating a no-op update as a failed write.
 		global $wpdb;
-		$r = $wpdb->update($wpdb->prefix . TouchPointWP::TABLE_STATS, $data, ['installId' => $data['installId']]);
-		if ($r < 1) {
-			$r = $wpdb->insert($wpdb->prefix . TouchPointWP::TABLE_STATS, $data);
+		$table = $wpdb->prefix . TouchPointWP::TABLE_STATS;
+		$existingInstallId = $wpdb->get_var($wpdb->prepare(
+			"SELECT installId FROM {$table} WHERE installId = %s LIMIT 1",
+			$data['installId']
+		));
+		if ($existingInstallId !== null) {
+			$r = $wpdb->update($table, $data, ['installId' => $data['installId']]);
+		} else {
+			$r = $wpdb->insert($table, $data);
 		}
 
 		if ($r === false) {

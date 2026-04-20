@@ -25,7 +25,7 @@ echo "Update version in various json and js files..."
 node ./buildPipeline/versionUpdate.js
 
 echo "Cleaning up old build directory..."
-rm -r build
+rm -rf build
 if [ -f touchpoint-wp.zip ]; then
   rm touchpoint-wp.zip
 fi
