@@ -73,13 +73,13 @@ abstract class Taxonomies
 	 *
 	 * @return void
 	 */
-	public static function insertTermsForArrayBasedTaxonomy(array $list, string $taxonomy, bool $forceIdUpdate)
+	public static function insertTermsForArrayBasedTaxonomy(array $list, string $taxonomy, bool $forceIdUpdate): void
 	{
 		$existingIds = [];
+		$idUpdate = $forceIdUpdate;
 		foreach ($list as $slug => $name) {
 			// In addition to making sure term exists, make sure it has the correct meta id, too.
 			$term = self::termExists($name, $taxonomy);
-			$idUpdate = $forceIdUpdate;
 			if ( ! $term) {
 				$term = self::insertTerm(
 					$name,
@@ -93,13 +93,15 @@ abstract class Taxonomies
 					new TouchPointWP_WPError($term);
 					$term = null;
 				}
-				if ($idUpdate) {
-					TouchPointWP::queueFlushRewriteRules();
-				}
+				$idUpdate = true;
+
 			}
 			if ( ! ! $term) {
 				$existingIds[] = $term['term_id'];
 			}
+		}
+		if ($idUpdate) {
+			TouchPointWP::queueFlushRewriteRules();
 		}
 
 		// Delete any terms that are no longer current.
