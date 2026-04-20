@@ -396,6 +396,9 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                     let current = target();
                     newValue = newValue.toLowerCase().replaceAll(/([^a-z0-9/]+)+/g, '-')
 
+                    // force to 20 characters or less (will be shortened to 13 for private post_type field)
+                    newValue = newValue.substring(0, 20);
+
                     //only write if it changed
                     if (newValue !== current) {
                         target(newValue);

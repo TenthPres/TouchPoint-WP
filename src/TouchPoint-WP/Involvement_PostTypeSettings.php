@@ -249,7 +249,7 @@ class Involvement_PostTypeSettings
 		// Validate (or forcibly replace) slugs
 		foreach ($new as $type) {
 			$first = true;
-			$lower = preg_replace('/\W+/', '-', strtolower($type->slug));
+			$lower = preg_replace('/[^\w\/]+/', '-', strtolower($type->slug));
 			if ($lower !== $type->slug) { // force slug to be lowercase
 				$type->slug = $lower;
 				TouchPointWP::queueFlushRewriteRules();
@@ -258,7 +258,7 @@ class Involvement_PostTypeSettings
 			while ( // all the conditions in which the post type will need to be regenerated.
 			in_array($type->slug, $postTypesSlugs)
 			) {
-				$name = preg_replace('/\W+/', '-', strtolower($type->namePlural));
+				$name = preg_replace('/[^\w\/]+/', '-', strtolower($type->namePlural));
 				try {
 					$type->slug = $name . ($first ? "" : "-" . bin2hex(random_bytes(1)));
 				} catch (Exception) {
@@ -277,7 +277,7 @@ class Involvement_PostTypeSettings
 				$type->postType = null;
 			}
 			if ($type->postType !== null) {
-				$lower = preg_replace('/\W+/', '', strtolower($type->postType));
+				$lower = preg_replace('/[^\w\/]/', '', strtolower($type->postType));
 				if ($lower !== $type->postType) { // force postType to be lowercase
 					$type->postType = $lower;
 					TouchPointWP::queueFlushRewriteRules();
@@ -286,7 +286,8 @@ class Involvement_PostTypeSettings
 			$count = 1;
 			while ( // all the conditions in which the post type will need to be regenerated.
 				$type->postType === null ||
-				in_array($type->postType, $postTypeStrings) ||
+				in_array($type->postType, $postTypeStrings) || // duplicate
+				strlen($type->postType) > 17 ||
 				(
 					$type->postType !== "smallgroup" &&
 					$type->postType !== "course" &&
@@ -301,6 +302,7 @@ class Involvement_PostTypeSettings
 				}
 				$first          = false;
 				$type->postType = preg_replace('/\W+/', '_', $type->postType);
+				$type->postType = substr($type->postType, 0, 17); // enforce limit of 20 chars (17 after tp_ prefix)
 				TouchPointWP::queueFlushRewriteRules();
 			}
 			$postTypeStrings[] = $type->postType;
