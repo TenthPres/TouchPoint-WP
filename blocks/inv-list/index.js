@@ -30,7 +30,8 @@ wp.blocks.registerBlockType( metadata.name, {
 		const { attributes, setAttributes } = props;
 		const { postType, division } = attributes;
 		const blockProps = wp.blockEditor.useBlockProps();
-		const placeholderId = `tp-inv-list-${generateUniqueId()}`;
+		const placeholderIdRef = wp.element.useRef(generateUniqueId());
+		const placeholderId = `tp-inv-list-${placeholderIdRef.current}`;
 
 		// Per-instance refs for controller/lastPath to avoid cross-block collisions like People List
 		const previewControllerRef = wp.element.useRef(null);
@@ -40,8 +41,6 @@ wp.blocks.registerBlockType( metadata.name, {
 
 		const [postTypeOptions, setPostTypeOptions] = wp.element.useState([]);
 		const [divisionChildren, setDivisionChildren] = wp.element.useState(null);
-
-		props.onReplace(() => updateListContent())
 
 		wp.element.useEffect(() => {
 			(async () => {
