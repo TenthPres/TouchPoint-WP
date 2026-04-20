@@ -394,7 +394,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 read: target,
                 write: function(newValue) {
                     let current = target();
-                    newValue = newValue.toLowerCase().replaceAll(/([^a-z0-9]+)+/g, '-')
+                    newValue = newValue.toLowerCase().replaceAll(/([^a-z0-9/]+)+/g, '-')
 
                     //only write if it changed
                     if (newValue !== current) {
