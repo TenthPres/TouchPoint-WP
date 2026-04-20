@@ -62,6 +62,7 @@ abstract class BlocksController implements api
 	public static function enqueueBlockAssets(): void
 	{
 		$blocksRoot = TouchPointWP::$dir . '/blocks/';
+		$pluginFile = TouchPointWP::instance()->file;
 		$manifestPath = $blocksRoot . 'blocks-manifest.php';
 
 		if (!file_exists($manifestPath)) {
@@ -71,13 +72,11 @@ abstract class BlocksController implements api
 		$manifest_data = require $manifestPath;
 
 		foreach ($manifest_data as $block_name => $block_metadata) {
-			$block_dir = $blocksRoot . $block_name;
-
 			if (isset($block_metadata['editorScript'])) {
 				$fileName = substr($block_metadata['editorScript'], 7);
 				wp_enqueue_script(
 					"{$block_name}-editor-script",
-					plugins_url("$block_name/$fileName", $block_dir),
+					plugins_url("blocks/$block_name/$fileName", $pluginFile),
 					['wp-blocks', 'wp-element', 'wp-editor'],
 					TouchPointWP::VERSION
 				);
@@ -87,7 +86,7 @@ abstract class BlocksController implements api
 				$fileName = substr($block_metadata['editorStyle'], 7);
 				wp_enqueue_style(
 					"{$block_name}-editor-style",
-					plugins_url("$block_name/$fileName", $block_dir),
+					plugins_url("blocks/$block_name/$fileName", $pluginFile),
 					[],
 					TouchPointWP::VERSION
 				);
@@ -97,7 +96,7 @@ abstract class BlocksController implements api
 				$fileName = substr($block_metadata['style'], 7);
 				wp_enqueue_style(
 					"{$block_name}-style",
-					plugins_url("$block_name/$fileName", $block_dir),
+					plugins_url("blocks/$block_name/$fileName", $pluginFile),
 					[],
 					TouchPointWP::VERSION
 				);
@@ -107,7 +106,7 @@ abstract class BlocksController implements api
 				$fileName = substr($block_metadata['viewScript'], 7);
 				wp_enqueue_script(
 					"{$block_name}-view-script",
-					plugins_url("$block_name/$fileName", $block_dir),
+					plugins_url("blocks/$block_name/$fileName", $pluginFile),
 					[],
 					TouchPointWP::VERSION
 				);
@@ -155,4 +154,3 @@ abstract class BlocksController implements api
 		return false;
 	}
 }
-
