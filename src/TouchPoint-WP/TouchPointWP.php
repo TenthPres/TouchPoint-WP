@@ -629,21 +629,19 @@ class TouchPointWP
 	/**
 	 * Determine if the current user can edit *anything* and therefore may need access to wp-admin.
 	 *
-	 * @param int|null $userId
+	 * @param ?WP_User $user
 	 *
 	 * @return bool
 	 */
-	public static function userHasEditingPermissions(?int $userId = null): bool
+	public static function userHasEditingPermissions(?WP_User $user = null): bool
 	{
 		if (!function_exists('get_current_user_id')) {
 			return false;
 		}
 
-		if ($userId === null) {
-			$userId = get_current_user_id();
+		if ($user === null) {
+			$user = get_user(get_current_user_id());
 		}
-
-		$user = get_user($userId);
 
 		if (!$user) {
 			return false;

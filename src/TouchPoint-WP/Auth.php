@@ -10,7 +10,6 @@ use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonQuery;
-use tp\TouchPointWP\Utilities\Session;
 use WP_Error;
 use WP_User;
 
@@ -56,7 +55,7 @@ abstract class Auth implements api, module
 		add_filter('login_redirect', [self::class, 'redirectLoginCompleteMaybe'], 10, 3);
 
 		// If configured, prevent admin bar from appearing for subscribers
-		add_action('after_setup_theme', [self::class, 'removeAdminBarMaybe']);
+		self::removeAdminBarMaybe();
 	}
 
 
@@ -200,7 +199,7 @@ abstract class Auth implements api, module
 		}
 
 		$redirect = TouchPointWP::instance()->settings->auth_change_profile_urls === 'on';
-		$redirect &= !TouchPointWP::userHasEditingPermissions();
+		$redirect &= !TouchPointWP::userHasEditingPermissions($user);
 
 		/**
 		 * Controls whether to redirect to the TouchPoint login automatically.
@@ -210,7 +209,7 @@ abstract class Auth implements api, module
 		$redirect = apply_filters('tp_redirect_after_login', $redirect);
 
 		// if there is no defined redirect page, redirect to the home page
-		if ($redirect && (!isset($_GET['redirect_to']) || $_GET['redirect_to'] == '')) {
+		if ($redirect && $redirect_to == '') {
 			return home_url();
 		}
 
@@ -225,7 +224,7 @@ abstract class Auth implements api, module
 	{
 		$removeBar = (TouchPointWP::instance()->settings->auth_prevent_admin_bar === 'on')
 					 && !is_admin()
-					 && !current_user_can('edit_posts');
+					 && !TouchPointWP::userHasEditingPermissions();
 
 		/**
 		 * Allows for hiding the WordPress-provided Admin bar.
