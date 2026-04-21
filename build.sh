@@ -47,6 +47,14 @@ echo "Build blocks..."
 npm run build-blocks
 
 echo "Internationalization..."
+
+# download wp-cli if not already downloaded
+if [ ! -f wp-cli.phar ]; then
+  echo "Downloading WP-CLI..."
+  curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+  chmod +x wp-cli.phar
+fi
+
 cp -r ./i18n ./build/i18n
 php ./wp-cli.phar i18n make-json ./build/i18n
 php ./wp-cli.phar i18n make-mo ./build/i18n
