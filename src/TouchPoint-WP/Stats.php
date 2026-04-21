@@ -461,6 +461,11 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	 */
 	public static function handleSubmission(): bool
 	{
+		if ($_SERVER['HTTP_HOST'] !== 'www.tenth.org') {
+			http_response_code(Http::FORBIDDEN);
+			echo "Submissions are only accepted to www.tenth.org.";
+			return false;
+		}
 
 		if ($_SERVER['REQUEST_METHOD'] !== "POST") {
 			http_response_code(Http::METHOD_NOT_ALLOWED);
