@@ -58,7 +58,6 @@ wp.blocks.registerBlockType( metadata.name, {
 					if (postType === '' && formattedOptions.length > 0) {
 						setAttributes({ postType: formattedOptions[0].value });
 					}
-					updateListContent(postType, division, blockProps, placeholderId);
 				} catch (error) {
 					console.error('Error fetching post types:', error);
 				}
@@ -82,7 +81,6 @@ wp.blocks.registerBlockType( metadata.name, {
 						groupedOptions.push(<optgroup key={groupLabel} label={groupLabel}>{options}</optgroup>);
 					});
 					setDivisionChildren(groupedOptions);
-					updateListContent(postType, division, blockProps, placeholderId);
 				} catch (error) {
 					console.error('Error fetching divisions:', error);
 				}
@@ -158,16 +156,16 @@ wp.blocks.registerBlockType( metadata.name, {
 
 } );
 
-let lastPath = null;
-let controller = null;
-
 function updateListContent(postType, division, blockProps, placeholderId, placeholderEl, previewControllerRef, lastPathRef, setPreviewHtml) {
 	const placeholder = placeholderEl || document.getElementById(placeholderId);
 	const newPath = `/touchpoint-api/inv/list?type=${postType}&div=${division}&class=${encodeURIComponent(blockProps.className || '')}`;
 
-	// Use per-instance refs when provided, otherwise fall back to module-level vars.
-	const lastPathHolder = lastPathRef && typeof lastPathRef === 'object' ? lastPathRef : {current: lastPath};
-	const controllerHolder = previewControllerRef && typeof previewControllerRef === 'object' ? previewControllerRef : {current: controller};
+	// Keep state per block instance to avoid collisions between block previews.
+	const lastPathHolder = lastPathRef;
+	const controllerHolder = previewControllerRef;
+	if (!lastPathHolder || !controllerHolder) {
+		return;
+	}
 
 	if (lastPathHolder.current === newPath) {
 		return;
@@ -179,10 +177,6 @@ function updateListContent(postType, division, blockProps, placeholderId, placeh
 
 	controllerHolder.current = new AbortController();
 	lastPathHolder.current = newPath;
-
-	// If using module-level fallback, keep module vars in sync
-	if (!previewControllerRef) controller = controllerHolder.current;
-	if (!lastPathRef) lastPath = lastPathHolder.current;
 
 	fetch(newPath, { signal: controllerHolder.current.signal })
 		.then(response => {
