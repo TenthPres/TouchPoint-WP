@@ -8,6 +8,10 @@ namespace tp\TouchPointWP\Blocks;
 use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\TouchPointWP;
 
+if ( ! defined('ABSPATH')) {
+	exit;
+}
+
 abstract class BlocksController implements api
 {
 
