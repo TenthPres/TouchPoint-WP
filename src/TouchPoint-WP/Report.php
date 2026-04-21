@@ -692,8 +692,15 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 	 */
 	private static function cleanupSqlContent(string $content): string
 	{
-		$closes  = substr($content, strrpos($content, '</tr>') + 5);
-		$content = substr($content, 0, strrpos($content, '<tr'));
+		$closePos = strrpos($content, '</tr>');
+		$rowPos   = strrpos($content, '<tr');
+
+		if ($closePos === false || $rowPos === false) {
+			return $content;
+		}
+
+		$closes  = substr($content, $closePos + 5);
+		$content = substr($content, 0, $rowPos);
 		$content .= $closes;
 
 		return $content;
