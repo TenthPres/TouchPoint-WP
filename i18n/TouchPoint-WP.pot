@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-04-20T20:42:20+00:00\n"
+"POT-Creation-Date: 2026-04-21T16:55:08+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: TouchPoint-WP\n"
@@ -77,7 +77,7 @@ msgstr ""
 #: src/templates/admin/invKoForm.php:65
 #: src/templates/admin/invKoForm.php:164
 #: src/templates/admin/invKoForm.php:180
-#: src/templates/admin/invKoForm.php:334
+#: src/templates/admin/invKoForm.php:335
 #: src/templates/parts/involvement-nearby-list.php:2
 #: src/TouchPoint-WP/Meeting.php:801
 #: src/TouchPoint-WP/Rsvp.php:77
@@ -200,7 +200,7 @@ msgid "Default Filters"
 msgstr ""
 
 #: src/templates/admin/invKoForm.php:212
-#: blocks/inv-list/index.js:129
+#: blocks/inv-list/index.js:127
 msgid "Division"
 msgstr ""
 
@@ -261,11 +261,11 @@ msgstr ""
 msgid "Small Groups"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:424
+#: src/templates/admin/invKoForm.php:425
 msgid "(named person)"
 msgstr ""
 
-#: src/templates/admin/invKoForm.php:461
+#: src/templates/admin/invKoForm.php:462
 msgid "Select..."
 msgstr ""
 
@@ -362,17 +362,17 @@ msgid "The scripts on TouchPoint that interact with this plugin are out-of-date,
 msgstr ""
 
 #. translators: %s is "what you call TouchPoint at your church", which is a setting
-#: src/TouchPoint-WP/Auth.php:140
+#: src/TouchPoint-WP/Auth.php:139
 #, php-format
 msgid "Sign in with %s"
 msgstr ""
 
-#: src/TouchPoint-WP/Auth.php:408
-#: src/TouchPoint-WP/Auth.php:416
+#: src/TouchPoint-WP/Auth.php:407
+#: src/TouchPoint-WP/Auth.php:415
 msgid "Your login token is invalid."
 msgstr ""
 
-#: src/TouchPoint-WP/Auth.php:447
+#: src/TouchPoint-WP/Auth.php:446
 msgid "No user account found."
 msgstr ""
 
@@ -383,7 +383,7 @@ msgid "%s is cancelled."
 msgstr ""
 
 #. Translators: %s is the plural name of the of the Meetings, such as "Events".
-#: src/TouchPoint-WP/CalendarGrid.php:279
+#: src/TouchPoint-WP/CalendarGrid.php:280
 #, php-format
 msgid "There are no %s published for this month."
 msgstr ""
@@ -559,7 +559,7 @@ msgid "Contact Leaders"
 msgstr ""
 
 #: src/TouchPoint-WP/Involvement.php:4081
-#: src/TouchPoint-WP/Partner.php:1357
+#: src/TouchPoint-WP/Partner.php:1361
 msgid "Show on Map"
 msgstr ""
 
@@ -651,7 +651,7 @@ msgid "Unknown"
 msgstr ""
 
 #: src/TouchPoint-WP/Meeting.php:727
-#: src/TouchPoint-WP/TouchPointWP.php:1203
+#: src/TouchPoint-WP/TouchPointWP.php:1201
 msgid "Only GET requests are allowed."
 msgstr ""
 
@@ -677,7 +677,7 @@ msgstr ""
 msgid "The %1$s listed are only those shown on the map, as well as all %2$s."
 msgstr ""
 
-#: src/TouchPoint-WP/Partner.php:1297
+#: src/TouchPoint-WP/Partner.php:1301
 msgid "Not Shown on Map"
 msgstr ""
 
@@ -1353,7 +1353,7 @@ msgid "TouchPoint-WP"
 msgstr ""
 
 #: src/TouchPoint-WP/Settings.php:1450
-#: blocks/inv-list/index.js:112
+#: blocks/inv-list/index.js:110
 #: blocks/people-list/index.js:174
 msgid "Settings"
 msgstr ""
@@ -1533,32 +1533,32 @@ msgstr ""
 msgid "Documentation"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2251
+#: src/TouchPoint-WP/TouchPointWP.php:2249
 msgid "Unknown Type"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2308
+#: src/TouchPoint-WP/TouchPointWP.php:2306
 msgid "Your Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2311
+#: src/TouchPoint-WP/TouchPointWP.php:2309
 msgid "Public Searches"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2314
+#: src/TouchPoint-WP/TouchPointWP.php:2312
 msgid "Status Flags"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2319
-#: src/TouchPoint-WP/TouchPointWP.php:2320
+#: src/TouchPoint-WP/TouchPointWP.php:2317
+#: src/TouchPoint-WP/TouchPointWP.php:2318
 msgid "Current Value"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2510
+#: src/TouchPoint-WP/TouchPointWP.php:2508
 msgid "People Count Failed"
 msgstr ""
 
-#: src/TouchPoint-WP/TouchPointWP.php:2534
+#: src/TouchPoint-WP/TouchPointWP.php:2532
 msgid "People Query Failed"
 msgstr ""
 
@@ -2036,27 +2036,27 @@ msgstr ""
 msgid "Loading Preview..."
 msgstr ""
 
-#: blocks/inv-list/index.js:74
+#: blocks/inv-list/index.js:73
 msgid "All"
 msgstr ""
 
-#: blocks/inv-list/index.js:115
+#: blocks/inv-list/index.js:113
 msgid "To use this block, import Involvements in the TouchPoint-WP settings."
 msgstr ""
 
-#: blocks/inv-list/index.js:120
+#: blocks/inv-list/index.js:118
 msgid "Post Type"
 msgstr ""
 
-#: blocks/inv-list/index.js:121
+#: blocks/inv-list/index.js:119
 msgid "These options are based on the Involvement post types you or your administrator have chosen to import in the TouchPoint-WP settings."
 msgstr ""
 
-#: blocks/inv-list/index.js:130
+#: blocks/inv-list/index.js:128
 msgid "This option allows you to filter the involvements that are shown on this list, such as limiting to a particular ministry. These options are those that you or your administrator configured as Divisions to import as taxonomies in the TouchPoint-WP settings."
 msgstr ""
 
-#: blocks/inv-list/index.js:142
+#: blocks/inv-list/index.js:140
 #: blocks/people-list/index.js:231
 msgid "Preview Only"
 msgstr ""

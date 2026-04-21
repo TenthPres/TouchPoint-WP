@@ -275,9 +275,12 @@ class CalendarGrid {
 		if ($this->eventCount > 0) {
 			$this->html = $r;
 		} else {
-			// Translators: %s is the plural name of the of the Meetings, such as "Events".
-			$message = wp_sprintf(__("There are no %s published for this month.", "TouchPoint-WP"), TouchPointWP::instance()->settings->mc_name_plural);
-			$this->html = "<div class=\"calGrid noEvents\">$message</div>";
+			$message = wp_sprintf(
+				// Translators: %s is the plural name of the of the Meetings, such as "Events".
+				__("There are no %s published for this month.", "TouchPoint-WP"),
+				strtolower(__(TouchPointWP::instance()->settings->mc_name_plural, 'TouchPoint-WP'))
+			);
+			$this->html = "<div class=\"calGridEmpty noEvents\">$message</div>";
 		}
 
 		$this->next = DateTimeImmutable::createFromMutable($lastDayOfMonth);

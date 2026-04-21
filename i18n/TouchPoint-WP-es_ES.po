@@ -86,7 +86,7 @@ msgstr "Tipos de miembros de líder"
 #: src/templates/admin/invKoForm.php:65
 #: src/templates/admin/invKoForm.php:164
 #: src/templates/admin/invKoForm.php:180
-#: src/templates/admin/invKoForm.php:334
+#: src/templates/admin/invKoForm.php:335
 #: src/templates/parts/involvement-nearby-list.php:2
 #: src/TouchPoint-WP/Meeting.php:801
 #: src/TouchPoint-WP/Rsvp.php:77
@@ -168,7 +168,7 @@ msgstr "Grupo Pequeño"
 msgid "Small Groups"
 msgstr "Grupos Pequeños"
 
-#: src/templates/admin/invKoForm.php:461
+#: src/templates/admin/invKoForm.php:462
 msgid "Select..."
 msgstr "Seleccione..."
 
@@ -185,8 +185,8 @@ msgstr "No se encontraron %s"
 msgid "%s will be imported overnight for the first time."
 msgstr "%s se importarán durante la noche por primera vez."
 
-#: src/TouchPoint-WP/Auth.php:408
-#: src/TouchPoint-WP/Auth.php:416
+#: src/TouchPoint-WP/Auth.php:407
+#: src/TouchPoint-WP/Auth.php:415
 msgid "Your login token is invalid."
 msgstr "Su token de inicio de sesión no es válido."
 
@@ -275,7 +275,7 @@ msgid "Join"
 msgstr "Únete"
 
 #: src/TouchPoint-WP/Involvement.php:4081
-#: src/TouchPoint-WP/Partner.php:1357
+#: src/TouchPoint-WP/Partner.php:1361
 msgid "Show on Map"
 msgstr "Muestra en el mapa"
 
@@ -285,7 +285,7 @@ msgstr "Muestra en el mapa"
 msgid "The %1$s listed are only those shown on the map, as well as all %2$s."
 msgstr "Los %1$s enumerados son solo los que se muestran en el mapa, así como todos los %2$s."
 
-#: src/TouchPoint-WP/Partner.php:1297
+#: src/TouchPoint-WP/Partner.php:1301
 msgid "Not Shown on Map"
 msgstr "No se muestra en el mapa"
 
@@ -307,24 +307,24 @@ msgstr "Contacta"
 msgid "RSVP"
 msgstr "RSVP"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2251
+#: src/TouchPoint-WP/TouchPointWP.php:2249
 msgid "Unknown Type"
 msgstr "Tipo desconocido"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2308
+#: src/TouchPoint-WP/TouchPointWP.php:2306
 msgid "Your Searches"
 msgstr "Tus búsquedas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2311
+#: src/TouchPoint-WP/TouchPointWP.php:2309
 msgid "Public Searches"
 msgstr "Búsquedas públicas"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2314
+#: src/TouchPoint-WP/TouchPointWP.php:2312
 msgid "Status Flags"
 msgstr "Indicadores de Estado"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2319
-#: src/TouchPoint-WP/TouchPointWP.php:2320
+#: src/TouchPoint-WP/TouchPointWP.php:2317
+#: src/TouchPoint-WP/TouchPointWP.php:2318
 msgid "Current Value"
 msgstr "Valor actual"
 
@@ -341,7 +341,7 @@ msgstr "Configuración de API no válida o incompleta."
 msgid "Host appears to be missing from TouchPoint-WP configuration."
 msgstr "Parece que falta el host en la configuración de TouchPoint-WP."
 
-#: src/TouchPoint-WP/TouchPointWP.php:2534
+#: src/TouchPoint-WP/TouchPointWP.php:2532
 msgid "People Query Failed"
 msgstr "Consulta de registros de personas fallida"
 
@@ -787,7 +787,7 @@ msgid "TouchPoint-WP"
 msgstr "TouchPoint-WP"
 
 #: src/TouchPoint-WP/Settings.php:1450
-#: blocks/inv-list/index.js:112
+#: blocks/inv-list/index.js:110
 #: blocks/people-list/index.js:174
 msgid "Settings"
 msgstr "Ajustes"
@@ -1303,7 +1303,7 @@ msgid "Could not locate."
 msgstr "No se pudo localizar."
 
 #: src/TouchPoint-WP/Meeting.php:727
-#: src/TouchPoint-WP/TouchPointWP.php:1203
+#: src/TouchPoint-WP/TouchPointWP.php:1201
 msgid "Only GET requests are allowed."
 msgstr "Solo se permiten solicitudes GET."
 
@@ -1610,7 +1610,7 @@ msgstr "hoy"
 msgid "Tomorrow"
 msgstr "mañana"
 
-#: src/templates/admin/invKoForm.php:424
+#: src/templates/admin/invKoForm.php:425
 msgid "(named person)"
 msgstr "(persona nombrada)"
 
@@ -1811,7 +1811,7 @@ msgid "%1$s, %2$s"
 msgstr "%1$s %2$s"
 
 #. Translators: %s is the plural name of the of the Meetings, such as "Events".
-#: src/TouchPoint-WP/CalendarGrid.php:279
+#: src/TouchPoint-WP/CalendarGrid.php:280
 #, php-format
 msgid "There are no %s published for this month."
 msgstr "No hay %s publicados para este mes."
@@ -1855,7 +1855,7 @@ msgid "This %s has been cancelled."
 msgstr "Este %s ha sido cancelado."
 
 #: src/templates/admin/invKoForm.php:212
-#: blocks/inv-list/index.js:129
+#: blocks/inv-list/index.js:127
 msgid "Division"
 msgstr "Division"
 
@@ -1922,12 +1922,12 @@ msgid "Allow the TouchPoint-WP developers to publicly list your site/church as u
 msgstr "Permita que los desarrolladores de TouchPoint-WP incluyan públicamente su sitio o iglesia como sitios que usan TouchPoint-WP. Esto ayuda a otras iglesias potenciales a ver lo que se puede hacer al combinar WordPress con el mejor ChMS del planeta. Solo se aplica si este sitio es accesible en Internet público."
 
 #. translators: %s is "what you call TouchPoint at your church", which is a setting
-#: src/TouchPoint-WP/Auth.php:140
+#: src/TouchPoint-WP/Auth.php:139
 #, php-format
 msgid "Sign in with %s"
 msgstr "Iniciar sesión con %s"
 
-#: src/TouchPoint-WP/Auth.php:447
+#: src/TouchPoint-WP/Auth.php:446
 msgid "No user account found."
 msgstr "No se encontró ninguna cuenta de usuario"
 
@@ -1939,7 +1939,7 @@ msgstr "Las reuniones se mantendrán en el calendario hasta que el evento tenga 
 msgid "Change Profile Links"
 msgstr "Cambiar enlaces de perfil"
 
-#: src/TouchPoint-WP/TouchPointWP.php:2510
+#: src/TouchPoint-WP/TouchPointWP.php:2508
 msgid "People Count Failed"
 msgstr "El recuento de personas falló"
 
@@ -1976,11 +1976,11 @@ msgstr "Lista de Participaciones"
 msgid "A list of Involvements from TouchPoint"
 msgstr "Una lista de participaciones de TouchPoint"
 
-#: blocks/inv-list/index.js:74
+#: blocks/inv-list/index.js:73
 msgid "All"
 msgstr "Todos"
 
-#: blocks/inv-list/index.js:120
+#: blocks/inv-list/index.js:118
 msgid "Post Type"
 msgstr "tipo de publicación"
 
@@ -1999,11 +1999,11 @@ msgstr "Una lista de participaciones de TouchPoint"
 msgid "None right now."
 msgstr "Nada por ahora"
 
-#: blocks/inv-list/index.js:115
+#: blocks/inv-list/index.js:113
 msgid "To use this block, import Involvements in the TouchPoint-WP settings."
 msgstr "Para utilizar este bloque, importe Involvements en la configuración de TouchPoint-WP."
 
-#: blocks/inv-list/index.js:142
+#: blocks/inv-list/index.js:140
 #: blocks/people-list/index.js:231
 msgid "Preview Only"
 msgstr "Solo vista previa"
@@ -2026,11 +2026,11 @@ msgstr "Solo se incluirán las participaciones de los campus seleccionados."
 msgid "This %s has already happened."
 msgstr "Este %s ya ha sucedido."
 
-#: blocks/inv-list/index.js:121
+#: blocks/inv-list/index.js:119
 msgid "These options are based on the Involvement post types you or your administrator have chosen to import in the TouchPoint-WP settings."
 msgstr "Estas opciones se basan en los tipos de entrada de «Involvement» que usted o su administrador han elegido importar en la configuración de TouchPoint-WP."
 
-#: blocks/inv-list/index.js:130
+#: blocks/inv-list/index.js:128
 msgid "This option allows you to filter the involvements that are shown on this list, such as limiting to a particular ministry. These options are those that you or your administrator configured as Divisions to import as taxonomies in the TouchPoint-WP settings."
 msgstr "Esta opción le permite filtrar las participaciones que se muestran en esta lista, como, por ejemplo, limitarlas a un ministerio en particular. Estas opciones son aquellas que usted o su administrador configuraron como Divisiones para importarlas como taxonomías en los ajustes de TouchPoint-WP."
 

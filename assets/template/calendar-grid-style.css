@@ -63,8 +63,35 @@ div.calGrid div.calDay.after {
     background: #0001;
 }
 
+div.calGridEmpty {
+    text-align: center;
+    padding: 3em 0;
+}
+
+div.calGridNav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 div.calGridNav.bottom {
     display: none;
+}
+
+div.calGridNav > * {
+    flex-basis: 200px;
+}
+
+div.calGridNav > div.prev {
+    text-align: left;
+}
+
+div.calGridNav > div.month {
+    text-align: center;
+}
+
+div.calGridNav > div.next {
+    text-align: right;
 }
 
 @media screen and (max-width: 1000px) {
@@ -105,10 +132,4 @@ div.calGridNav.bottom {
     div.calGridNav.bottom {
         display: flex;
     }
-}
-
-div.calGridNav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
