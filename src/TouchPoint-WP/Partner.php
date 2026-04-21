@@ -1289,7 +1289,11 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		unset($l);
 
 		foreach ($this->category as $c) {
-			$attrs['category'] = $c->name;
+			if (!isset($attrs['category'])) {
+				$attrs['category'] = new StringableArray();
+			}
+
+			$attrs['category'][] = $c->name;
 		}
 
 		// Not shown on map (only if there is a map, and the partner isn't on it because they lack geo.)

@@ -129,7 +129,31 @@ class StringableArray extends ArrayObject
 			$postfix = $this->itemSuffix;
 		}
 		$joiner = $postfix . $separator . $prefix;
-		return $prefix . implode($joiner, $this->getArrayCopy()) . $postfix;
+
+		$r = $prefix;
+		$first = true;
+		foreach ($this->getIterator() as $item) {
+			if (!$first) {
+				$r .= $joiner;
+			}
+
+			// if $item is an object and implements join()
+			if (is_object($item) && method_exists($item, "join")) {
+				try {
+					$r .= $item->join($separator, $prefix, $postfix);
+				} catch (\Exception) {
+					// if it fails, just use the string value of the object
+					$r .= $item;
+				}
+			} else {
+				$r .= $item;
+			}
+
+			$first = false;
+		}
+		$r .= $postfix;
+
+		return $r;
 	}
 
 	/**
