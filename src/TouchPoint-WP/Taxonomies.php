@@ -78,7 +78,7 @@ abstract class Taxonomies
 		$existingIds = [];
 		$idUpdate = $forceIdUpdate;
 		foreach ($list as $slug => $name) {
-			// In addition to making sure term exists, make sure it has the correct meta id, too.
+			// In addition to making sure term exists, make sure it has the correct meta id if forceIdUpdate is true.
 			$term = self::termExists($name, $taxonomy);
 			if ( ! $term) {
 				$term = self::insertTerm(
@@ -123,14 +123,14 @@ abstract class Taxonomies
 	 *
 	 * @return void
 	 */
-	public static function insertTermsForLookupBasedTaxonomy(array $list, string $taxonomy, bool $forceIdUpdate)
+	public static function insertTermsForLookupBasedTaxonomy(array $list, string $taxonomy, bool $forceIdUpdate): void
 	{
 		$existingIds = [];
 		foreach ($list as $i) {
 			if ($i->name === null) {
 				continue;
 			}
-			// In addition to making sure term exists, make sure it has the correct meta id, too.
+			// In addition to making sure term exists, make sure it has the correct meta id if forceIdUpdate is true.
 			$term = self::termExists($i->name, $taxonomy);
 			$idUpdate = $forceIdUpdate;
 			if ( ! $term) {
