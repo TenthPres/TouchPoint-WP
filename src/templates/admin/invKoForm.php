@@ -21,26 +21,26 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
     <table data-bind="visible: _visible" style="margin-left: 2.4em;">
         <tr>
             <th>
-                <label for="it-singular" data-bind="attr: { for: 'it-' + slug() + '-singular'}"><?php _e("Singular Name", "TouchPoint-WP"); ?></label>
+                <label for="it-singular" data-bind="attr: { for: 'it-' + slugSterilized() + '-singular'}"><?php _e("Singular Name", "TouchPoint-WP"); ?></label>
             </th>
             <td colspan="2">
-                <input id="it-singular" type="text" data-bind="value: nameSingular, attr: { id: 'it-' + slug() + '-singular'}" />
+                <input id="it-singular" type="text" data-bind="value: nameSingular, attr: { id: 'it-' + slugSterilized() + '-singular'}" />
             </td>
         </tr>
         <tr>
             <th>
-                <label for="it-plural" data-bind="attr: { for: 'it-' + slug() + '-plural'}"><?php _e("Plural Name", "TouchPoint-WP"); ?></label>
+                <label for="it-plural" data-bind="attr: { for: 'it-' + slugSterilized() + '-plural'}"><?php _e("Plural Name", "TouchPoint-WP"); ?></label>
             </th>
             <td colspan="2">
-                <input id="it-plural" type="text" data-bind="value: namePlural, attr: { id: 'it-' + slug() + '-plural'}, valueUpdate: ['afterkeydown', 'input']" />
+                <input id="it-plural" type="text" data-bind="value: namePlural, attr: { id: 'it-' + slugSterilized() + '-plural'}, valueUpdate: ['afterkeydown', 'input']" />
             </td>
         </tr>
         <tr>
             <th>
-                <label for="it-slug" data-bind="attr: { for: 'it-' + slug() + '-slug'}"><?php _e("Slug", "TouchPoint-WP"); ?></label>
+                <label for="it-slug" data-bind="attr: { for: 'it-' + slugSterilized() + '-slug'}"><?php _e("Slug", "TouchPoint-WP"); ?></label>
             </th>
             <td colspan="2">
-                <input id="it-slug" type="text" data-bind="value: slug, attr: { id: 'it-' + slug() + '-slug'}" />
+                <input id="it-slug" type="text" data-bind="value: slug, attr: { id: 'it-' + slugSterilized() + '-slug'}" />
             </td>
         </tr>
 
@@ -50,8 +50,8 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 <p><?php _e("Only involvements from the selected divisions will be included.", "TouchPoint-WP"); ?></p>
                 <!-- ko foreach: $root.divisions -->
                 <p>
-                    <input id="it-div" type="checkbox" data-bind="value: 'div' + id, checked: $parent.importDivs, attr: {id: 'it-' + $parent.slug() + '-div-' + id}" />
-                    <label for="it-div" data-bind="text: name, attr: {for: 'it-' + $parent.slug() + '-div-' + id}"></label>
+                    <input id="it-div" type="checkbox" data-bind="value: 'div' + id, checked: $parent.importDivs, attr: {id: 'it-' + $parent.slugSterilized() + '-div-' + id}" />
+                    <label for="it-div" data-bind="text: name, attr: {for: 'it-' + $parent.slugSterilized() + '-div-' + id}"></label>
                 </p>
                 <!-- /ko -->
             </td>
@@ -65,17 +65,17 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 <p><?php _e("Loading...", "TouchPoint-WP"); ?></p>
                 <!-- /ko -->
                 <p>
-                    <input id="it-campus-all" type="checkbox" data-bind="checked: $data._importCampusesAll, attr: {id: 'it-' + $data.slug() + '-campus-all'}" />
-                    <label for="it-campus-all" data-bind="attr: {for: 'it-' + $data.slug() + '-campus-all'}"><?php _e("All Campuses", "TouchPoint-WP"); ?></label>
+                    <input id="it-campus-all" type="checkbox" data-bind="checked: $data._importCampusesAll, attr: {id: 'it-' + $data.slugSterilized() + '-campus-all'}" />
+                    <label for="it-campus-all" data-bind="attr: {for: 'it-' + $data.slugSterilized() + '-campus-all'}"><?php _e("All Campuses", "TouchPoint-WP"); ?></label>
                 </p>
                 <p>
-                    <input id="it-campus-no" type="checkbox" value="c0" data-bind="checked: $data.importCampuses, attr: {id: 'it-' + $data.slug() + '-campus-no'}" />
-                    <label for="it-campus-no" data-bind="attr: {for: 'it-' + $data.slug() + '-campus-no'}"><?php _e("(No Campus)", "TouchPoint-WP"); ?></label>
+                    <input id="it-campus-no" type="checkbox" value="c0" data-bind="checked: $data.importCampuses, attr: {id: 'it-' + $data.slugSterilized() + '-campus-no'}" />
+                    <label for="it-campus-no" data-bind="attr: {for: 'it-' + $data.slugSterilized() + '-campus-no'}"><?php _e("(No Campus)", "TouchPoint-WP"); ?></label>
                 </p>
                 <!-- ko foreach: $root.campuses -->
                 <p>
-                    <input id="it-campus" type="checkbox" data-bind="value: 'c' + id, checked: $parent.importCampuses, attr: {id: 'it-' + $parent.slug() + '-campus-' + id}" />
-                    <label for="it-campus" data-bind="text: $data.name, attr: {for: 'it-' + $parent.slug() + '-campus-' + id}"></label>
+                    <input id="it-campus" type="checkbox" data-bind="value: 'c' + id, checked: $parent.importCampuses, attr: {id: 'it-' + $parent.slugSterilized() + '-campus-' + id}" />
+                    <label for="it-campus" data-bind="text: $data.name, attr: {for: 'it-' + $parent.slugSterilized() + '-campus-' + id}"></label>
                 </p>
                 <!-- /ko -->
             </td>
@@ -83,76 +83,76 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
 
         <tr>
             <th>
-                <label for="it-hierarchical" data-bind="attr: { for: 'it-' + slug() + '-hierarchical'}"><?php _e("Import Hierarchically (Parent-Child Relationships)", "TouchPoint-WP"); ?></label>
+                <label for="it-hierarchical" data-bind="attr: { for: 'it-' + slugSterilized() + '-hierarchical'}"><?php _e("Import Hierarchically (Parent-Child Relationships)", "TouchPoint-WP"); ?></label>
             </th>
-            <td colspan="2"><input id="it-hierarchical" type="checkbox" data-bind="checked: hierarchical, attr: { id: 'it-' + slug() + '-hierarchical'}" /></td>
+            <td colspan="2"><input id="it-hierarchical" type="checkbox" data-bind="checked: hierarchical, attr: { id: 'it-' + slugSterilized() + '-hierarchical'}" /></td>
         </tr>
 
         <tr>
             <th>
-                <label for="it-useImages" data-bind="attr: { for: 'it-' + slug() + '-useImages'}"><?php _e("Import Images from TouchPoint", "TouchPoint-WP"); ?></label>
+                <label for="it-useImages" data-bind="attr: { for: 'it-' + slugSterilized() + '-useImages'}"><?php _e("Import Images from TouchPoint", "TouchPoint-WP"); ?></label>
             </th>
             <td colspan="2">
-                <input id="it-useImages" type="checkbox" data-bind="checked: useImages, attr: { id: 'it-' + slug() + '-useImages'}" />
-                <label for="it-useImages" data-bind="attr: { for: 'it-' + slug() + '-useImages'}"><?php _e("Importing images sometimes conflicts with other plugins. Disabling image imports can help.", "TouchPoint-WP"); ?></label>
+                <input id="it-useImages" type="checkbox" data-bind="checked: useImages, attr: { id: 'it-' + slugSterilized() + '-useImages'}" />
+                <label for="it-useImages" data-bind="attr: { for: 'it-' + slugSterilized() + '-useImages'}"><?php _e("Importing images sometimes conflicts with other plugins. Disabling image imports can help.", "TouchPoint-WP"); ?></label>
             </td>
         </tr>
 
         <?php if ($this->enable_meeting_cal === "on") { ?>
         <tr>
             <th>
-                <label for="it-importMeetings" data-bind="attr: { for: 'it-' + slug() + '-importMeetings'}"><?php _e("Import All Meetings to Calendar", "TouchPoint-WP"); ?></label>
+                <label for="it-importMeetings" data-bind="attr: { for: 'it-' + slugSterilized() + '-importMeetings'}"><?php _e("Import All Meetings to Calendar", "TouchPoint-WP"); ?></label>
             </th>
-            <td colspan="2"><input id="it-importMeetings" type="checkbox" data-bind="checked: importMeetings, attr: { id: 'it-' + slug() + '-importMeetings'}" /></td>
+            <td colspan="2"><input id="it-importMeetings" type="checkbox" data-bind="checked: importMeetings, attr: { id: 'it-' + slugSterilized() + '-importMeetings'}" /></td>
         </tr>
 
         <tr data-bind="visible: importMeetings">
             <th>
-                <label for="it-meetingGroupingMethod" data-bind="attr: { for: 'it-' + slug() + '-meetingGroupingMethod'}"><?php _e("Collect Meetings for Larger Events", "TouchPoint-WP"); ?></label>
+                <label for="it-meetingGroupingMethod" data-bind="attr: { for: 'it-' + slugSterilized() + '-meetingGroupingMethod'}"><?php _e("Collect Meetings for Larger Events", "TouchPoint-WP"); ?></label>
             </th>
             <td colspan="2">
-                <select id="it-meetingGroupingMethod" data-bind="value: meetingGroupingMethod, attr: { id: 'it-' + slug() + '-meetingGroupingMethod'}">
+                <select id="it-meetingGroupingMethod" data-bind="value: meetingGroupingMethod, attr: { id: 'it-' + slugSterilized() + '-meetingGroupingMethod'}">
                     <option value="<?php echo Meeting::GROUP_NONE; ?>"><?php _e("No Collecting", "TouchPoint-WP"); ?></option>
                     <option value="<?php echo Meeting::GROUP_UNSCHEDULED; ?>"><?php _e("Collect Meetings only from Involvements without Schedules", "TouchPoint-WP"); ?></option>
                     <option value="<?php echo Meeting::GROUP_ALL; ?>"><?php _e("Collect Meetings for all Involvements", "TouchPoint-WP"); ?></option>
                 </select>
-                <br /><label for="it-meetingGroupingMethod" data-bind="attr: { for: 'it-' + slug() + '-meetingGroupingMethod'}"><?php _e("Allows multiple meetings that are part of one larger event to be grouped together, such as sessions within a conference.  For meetings to be collected, they must be in the same involvement and must not have gaps between them larger than 23 hours.", "TouchPoint-WP"); ?></label></td>
+                <br /><label for="it-meetingGroupingMethod" data-bind="attr: { for: 'it-' + slugSterilized() + '-meetingGroupingMethod'}"><?php _e("Allows multiple meetings that are part of one larger event to be grouped together, such as sessions within a conference.  For meetings to be collected, they must be in the same involvement and must not have gaps between them larger than 23 hours.", "TouchPoint-WP"); ?></label></td>
         </tr>
         <?php } ?>
 
         <tr>
             <th>
-                <label for="it-useGeo" data-bind="attr: { for: 'it-' + slug() + '-useGeo'}"><?php _e("Use Geographic Location", "TouchPoint-WP"); ?></label>
+                <label for="it-useGeo" data-bind="attr: { for: 'it-' + slugSterilized() + '-useGeo'}"><?php _e("Use Geographic Location", "TouchPoint-WP"); ?></label>
             </th>
-            <td colspan="2"><input id="it-useGeo" type="checkbox" data-bind="checked: useGeo, attr: { id: 'it-' + slug() + '-useGeo'}" /></td>
+            <td colspan="2"><input id="it-useGeo" type="checkbox" data-bind="checked: useGeo, attr: { id: 'it-' + slugSterilized() + '-useGeo'}" /></td>
         </tr>
 
         <tr>
             <th><?php _e("Exclude Involvements if", 'TouchPoint-WP'); ?></th>
             <td colspan="2">
                 <p>
-                    <input id="it-excludeIf-closed" type="checkbox" value="closed" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-closed'}" />
-                    <label for="it-excludeIf-closed" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-closed'}"><?php _e("Involvement is Closed", "TouchPoint-WP"); ?></label>
+                    <input id="it-excludeIf-closed" type="checkbox" value="closed" data-bind="checked: excludeIf, attr: {id: 'it-' + slugSterilized() + '-excludeIf-closed'}" />
+                    <label for="it-excludeIf-closed" data-bind="attr: {for: 'it-' + slugSterilized() + '-excludeIf-closed'}"><?php _e("Involvement is Closed", "TouchPoint-WP"); ?></label>
                 </p>
                 <p>
-                    <input id="it-excludeIf-child" type="checkbox" value="child" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-child'}" />
-                    <label for="it-excludeIf-child" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-child'}"><?php _e("Involvement is a Child Involvement", "TouchPoint-WP"); ?></label>
+                    <input id="it-excludeIf-child" type="checkbox" value="child" data-bind="checked: excludeIf, attr: {id: 'it-' + slugSterilized() + '-excludeIf-child'}" />
+                    <label for="it-excludeIf-child" data-bind="attr: {for: 'it-' + slugSterilized() + '-excludeIf-child'}"><?php _e("Involvement is a Child Involvement", "TouchPoint-WP"); ?></label>
                 </p>
                 <p>
-                    <input id="it-excludeIf-notWeekly" type="checkbox" value="notWeekly" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-notWeekly'}" />
-                    <label for="it-excludeIf-notWeekly" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-notWeekly'}" title="<?php _e("Based on Involvement setting in TouchPoint", "TouchPoint-WP"); ?>"><?php _e("Involvement does not meet weekly", "TouchPoint-WP"); ?></label>
+                    <input id="it-excludeIf-notWeekly" type="checkbox" value="notWeekly" data-bind="checked: excludeIf, attr: {id: 'it-' + slugSterilized() + '-excludeIf-notWeekly'}" />
+                    <label for="it-excludeIf-notWeekly" data-bind="attr: {for: 'it-' + slugSterilized() + '-excludeIf-notWeekly'}" title="<?php _e("Based on Involvement setting in TouchPoint", "TouchPoint-WP"); ?>"><?php _e("Involvement does not meet weekly", "TouchPoint-WP"); ?></label>
                 </p>
                 <p>
-                    <input id="it-excludeIf-unscheduled" type="checkbox" value="unscheduled" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-unscheduled'}" />
-                    <label for="it-excludeIf-unscheduled" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-unscheduled'}"><?php _e("Involvement does not have a Schedule", "TouchPoint-WP"); ?></label>
+                    <input id="it-excludeIf-unscheduled" type="checkbox" value="unscheduled" data-bind="checked: excludeIf, attr: {id: 'it-' + slugSterilized() + '-excludeIf-unscheduled'}" />
+                    <label for="it-excludeIf-unscheduled" data-bind="attr: {for: 'it-' + slugSterilized() + '-excludeIf-unscheduled'}"><?php _e("Involvement does not have a Schedule", "TouchPoint-WP"); ?></label>
                 </p>
                 <p>
-                    <input id="it-excludeIf-noRegistration" type="checkbox" value="noRegistration" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-noRegistration'}" />
-                    <label for="it-excludeIf-noRegistration" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-noRegistration'}"><?php _e("Involvement has a registration type of \"No Online Registration\"", "TouchPoint-WP"); ?></label>
+                    <input id="it-excludeIf-noRegistration" type="checkbox" value="noRegistration" data-bind="checked: excludeIf, attr: {id: 'it-' + slugSterilized() + '-excludeIf-noRegistration'}" />
+                    <label for="it-excludeIf-noRegistration" data-bind="attr: {for: 'it-' + slugSterilized() + '-excludeIf-noRegistration'}"><?php _e("Involvement has a registration type of \"No Online Registration\"", "TouchPoint-WP"); ?></label>
                 </p>
                 <p>
-                    <input id="it-excludeIf-registrationEnded" type="checkbox" value="registrationEnded" data-bind="checked: excludeIf, attr: {id: 'it-' + slug() + '-excludeIf-registrationEnded'}" />
-                    <label for="it-excludeIf-registrationEnded" data-bind="attr: {for: 'it-' + slug() + '-excludeIf-registrationEnded'}"><?php _e("Involvement registration has ended (end date is past)", "TouchPoint-WP"); ?></label>
+                    <input id="it-excludeIf-registrationEnded" type="checkbox" value="registrationEnded" data-bind="checked: excludeIf, attr: {id: 'it-' + slugSterilized() + '-excludeIf-registrationEnded'}" />
+                    <label for="it-excludeIf-registrationEnded" data-bind="attr: {for: 'it-' + slugSterilized() + '-excludeIf-registrationEnded'}"><?php _e("Involvement registration has ended (end date is past)", "TouchPoint-WP"); ?></label>
                 </p>
             </td>
         </tr>
@@ -165,8 +165,8 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 <!-- /ko -->
                 <!-- ko foreach: $data._activeMemberTypes -->
                 <p>
-                    <input id="it-leader-type" type="checkbox" data-bind="value: 'mt' + id, checked: $parent.leaderTypes, attr: {id: 'it-' + $parent.slug() + '-leader-type-' + id}" />
-                    <label for="it-leader-type" data-bind="text: description, attr: {for: 'it-' + $parent.slug() + '-leader-type-' + id}"></label>
+                    <input id="it-leader-type" type="checkbox" data-bind="value: 'mt' + id, checked: $parent.leaderTypes, attr: {id: 'it-' + $parent.slugSterilized() + '-leader-type-' + id}" />
+                    <label for="it-leader-type" data-bind="text: description, attr: {for: 'it-' + $parent.slugSterilized() + '-leader-type-' + id}"></label>
                 </p>
                 <!-- /ko -->
             </td>
@@ -181,18 +181,18 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
                 <!-- /ko -->
                 <!-- ko foreach: $data._activeMemberTypes -->
                 <p>
-                    <input id="it-host-type" type="checkbox" data-bind="value: 'mt' + id, checked: $parent.hostTypes, attr: {id: 'it-' + $parent.slug() + '-host-type-' + id}" />
-                    <label for="it-host-type" data-bind="text: description, attr: {for: 'it-' + $parent.slug() + '-host-type-' + id}"></label>
+                    <input id="it-host-type" type="checkbox" data-bind="value: 'mt' + id, checked: $parent.hostTypes, attr: {id: 'it-' + $parent.slugSterilized() + '-host-type-' + id}" />
+                    <label for="it-host-type" data-bind="text: description, attr: {for: 'it-' + $parent.slugSterilized() + '-host-type-' + id}"></label>
                 </p>
                 <!-- /ko -->
             </td>
         </tr>
         <tr data-bind="">
             <th>
-                <label for="it-tense" data-bind="attr: { for: 'it-' + slug() + '-tense'}"><?php _e("Default Grouping", "TouchPoint-WP"); ?></label>
+                <label for="it-tense" data-bind="attr: { for: 'it-' + slugSterilized() + '-tense'}"><?php _e("Default Grouping", "TouchPoint-WP"); ?></label>
             </th>
             <td colspan="2">
-                <select id="it-tense" data-bind="value: groupBy, attr: { id: 'it-' + slug() + '-tense'}">
+                <select id="it-tense" data-bind="value: groupBy, attr: { id: 'it-' + slugSterilized() + '-tense'}">
                     <option value=""><?php _e("No Grouping", "TouchPoint-WP"); ?></option>
                     <option value="-<?php echo Taxonomies::TAX_TENSE; ?>"><?php _e("Upcoming / Current", "TouchPoint-WP"); ?></option>
                     <option value="<?php echo Taxonomies::TAX_TENSE; ?>"><?php _e("Current / Upcoming", "TouchPoint-WP"); ?></option>
@@ -230,45 +230,45 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             </th>
             <td colspan="2">
                 <p>
-                    <input id="it-filt-div" type="checkbox" value="div" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-div'}" />
-                    <label for="it-filt-div" data-bind="attr: { for: 'it-' + slug() + '-filt-div'}"><?php echo $divisionsLabel ?></label>
+                    <input id="it-filt-div" type="checkbox" value="div" data-bind="checked: filters, attr: { id: 'it-' + slugSterilized() + '-filt-div'}" />
+                    <label for="it-filt-div" data-bind="attr: { for: 'it-' + slugSterilized() + '-filt-div'}"><?php echo $divisionsLabel ?></label>
                 </p>
                 <p>
-                    <input id="it-filt-genderId" type="checkbox" value="genderId" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-genderId'}" />
-                    <label for="it-filt-genderId" data-bind="attr: { for: 'it-' + slug() + '-filt-genderId'}"><?php _e("Gender", "TouchPoint-WP"); ?></label>
+                    <input id="it-filt-genderId" type="checkbox" value="genderId" data-bind="checked: filters, attr: { id: 'it-' + slugSterilized() + '-filt-genderId'}" />
+                    <label for="it-filt-genderId" data-bind="attr: { for: 'it-' + slugSterilized() + '-filt-genderId'}"><?php _e("Gender", "TouchPoint-WP"); ?></label>
                 </p>
                 <p data-bind="visible: useGeo">
-                    <input id="it-filt-rescode" type="checkbox" value="rescode" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-rescode'}" />
-                    <label for="it-filt-rescode" data-bind="attr: { for: 'it-' + slug() + '-filt-rescode'}"><?php echo $resCodeLabel ?></label>
+                    <input id="it-filt-rescode" type="checkbox" value="rescode" data-bind="checked: filters, attr: { id: 'it-' + slugSterilized() + '-filt-rescode'}" />
+                    <label for="it-filt-rescode" data-bind="attr: { for: 'it-' + slugSterilized() + '-filt-rescode'}"><?php echo $resCodeLabel ?></label>
                 </p>
                 <?php if ($this->get('enable_campuses') === "on") { ?>
                 <p>
-                    <input id="it-filt-campus" type="checkbox" value="campus" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-campus'}" />
-                    <label for="it-filt-campus" data-bind="attr: { for: 'it-' + slug() + '-filt-campus'}"><?php echo $campusLabel ?></label>
+                    <input id="it-filt-campus" type="checkbox" value="campus" data-bind="checked: filters, attr: { id: 'it-' + slugSterilized() + '-filt-campus'}" />
+                    <label for="it-filt-campus" data-bind="attr: { for: 'it-' + slugSterilized() + '-filt-campus'}"><?php echo $campusLabel ?></label>
                 </p>
                 <?php } ?>
                 <p>
-                    <input id="it-filt-weekday" type="checkbox" value="weekday" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-weekday'}" />
-                    <label for="it-filt-weekday" data-bind="attr: { for: 'it-' + slug() + '-filt-weekday'}"><?php _e("Weekday", "TouchPoint-WP"); ?></label>
+                    <input id="it-filt-weekday" type="checkbox" value="weekday" data-bind="checked: filters, attr: { id: 'it-' + slugSterilized() + '-filt-weekday'}" />
+                    <label for="it-filt-weekday" data-bind="attr: { for: 'it-' + slugSterilized() + '-filt-weekday'}"><?php _e("Weekday", "TouchPoint-WP"); ?></label>
                 </p>
                 <p>
-                    <input id="it-filt-timeOfDay" type="checkbox" value="timeOfDay" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-timeOfDay'}" />
-                    <label for="it-filt-timeOfDay" data-bind="attr: { for: 'it-' + slug() + '-filt-timeOfDay'}"><?php _e("Time of Day", "TouchPoint-WP"); ?></label>
+                    <input id="it-filt-timeOfDay" type="checkbox" value="timeOfDay" data-bind="checked: filters, attr: { id: 'it-' + slugSterilized() + '-filt-timeOfDay'}" />
+                    <label for="it-filt-timeOfDay" data-bind="attr: { for: 'it-' + slugSterilized() + '-filt-timeOfDay'}"><?php _e("Time of Day", "TouchPoint-WP"); ?></label>
                 </p>
                 <p>
-                    <input id="it-filt-marital" type="checkbox" value="inv_marital" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-marital'}" />
-                    <label for="it-filt-marital" data-bind="attr: { for: 'it-' + slug() + '-filt-marital'}"><?php _e("Prevailing Marital Status", "TouchPoint-WP"); ?></label>
+                    <input id="it-filt-marital" type="checkbox" value="inv_marital" data-bind="checked: filters, attr: { id: 'it-' + slugSterilized() + '-filt-marital'}" />
+                    <label for="it-filt-marital" data-bind="attr: { for: 'it-' + slugSterilized() + '-filt-marital'}"><?php _e("Prevailing Marital Status", "TouchPoint-WP"); ?></label>
                 </p>
                 <p>
-                    <input id="it-filt-agegroup" type="checkbox" value="agegroup" data-bind="checked: filters, attr: { id: 'it-' + slug() + '-filt-agegroup'}" />
-                    <label for="it-filt-agegroup" data-bind="attr: { for: 'it-' + slug() + '-filt-agegroup'}"><?php _e("Age Group", "TouchPoint-WP"); ?></label>
+                    <input id="it-filt-agegroup" type="checkbox" value="agegroup" data-bind="checked: filters, attr: { id: 'it-' + slugSterilized() + '-filt-agegroup'}" />
+                    <label for="it-filt-agegroup" data-bind="attr: { for: 'it-' + slugSterilized() + '-filt-agegroup'}"><?php _e("Age Group", "TouchPoint-WP"); ?></label>
                 </p>
             </td>
         </tr>
         <tr data-bind="">
-            <th><label for="it-taskOwner" data-bind="attr: {for: 'it-' + slug() + '-taskOwner'}"><?php _e("Task Owner", "TouchPoint-WP"); ?></th>
+            <th><label for="it-taskOwner" data-bind="attr: {for: 'it-' + slugSterilized() + '-taskOwner'}"><?php _e("Task Owner", "TouchPoint-WP"); ?></th>
             <td colspan="2">
-                <select id="it-taskOwner" data-bind="value: taskOwner, attr: { id: 'it-' + slug() + '-taskOwner'}" class="select2">
+                <select id="it-taskOwner" data-bind="value: taskOwner, attr: { id: 'it-' + slugSterilized() + '-taskOwner'}" class="select2">
                 </select>
             </td>
         </tr>
@@ -277,8 +277,8 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             <td colspan="2" class="column-wrap">
                 <!-- ko foreach: $root.keywords -->
                 <p>
-                    <input id="it-clt-kw" type="checkbox" data-bind="value: 'kw' + id, checked: $parent.contactKeywords, attr: {id: 'it-' + $parent.slug() + '-clt-kw-' + id}" />
-                    <label for="it-clt-kw" data-bind="text: name, attr: {for: 'it-' + $parent.slug() + '-clt-kw-' + id}"></label>
+                    <input id="it-clt-kw" type="checkbox" data-bind="value: 'kw' + id, checked: $parent.contactKeywords, attr: {id: 'it-' + $parent.slugSterilized() + '-clt-kw-' + id}" />
+                    <label for="it-clt-kw" data-bind="text: name, attr: {for: 'it-' + $parent.slugSterilized() + '-clt-kw-' + id}"></label>
                 </p>
                 <!-- /ko -->
             </td>
@@ -288,8 +288,8 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             <td colspan="2" class="column-wrap">
                 <!-- ko foreach: $root.keywords -->
                 <p>
-                    <input id="it-jt-kw" type="checkbox" data-bind="value: 'kw' + id, checked: $parent.joinKeywords, attr: {id: 'it-' + $parent.slug() + '-jt-kw-' + id}" />
-                    <label for="it-jt-kw" data-bind="text: name, attr: {for: 'it-' + $parent.slug() + '-jt-kw-' + id}"></label>
+                    <input id="it-jt-kw" type="checkbox" data-bind="value: 'kw' + id, checked: $parent.joinKeywords, attr: {id: 'it-' + $parent.slugSterilized() + '-jt-kw-' + id}" />
+                    <label for="it-jt-kw" data-bind="text: name, attr: {for: 'it-' + $parent.slugSterilized() + '-jt-kw-' + id}"></label>
                 </p>
                 <!-- /ko -->
             </td>
@@ -310,6 +310,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
         this.nameSingular = ko.observable(data.nameSingular ?? "<?php _e("Small Group", "TouchPoint-WP"); ?>");
         this.namePlural = ko.observable(data.namePlural ?? "<?php _e("Small Groups", "TouchPoint-WP"); ?>");
         this.slug = ko.observable(data.slug ?? "smallgroup").extend({slug: 0});
+        this.slugSterilized = ko.pureComputed({read: () => self.slug().replace("/", "-") });
         this.importDivs = ko.observable(data.importDivs ?? []);
         this.importCampuses = ko.observable(data.importCampuses ?? []);
         this.useGeo = ko.observable(data.useGeo ?? false);
