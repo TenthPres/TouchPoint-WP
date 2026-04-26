@@ -403,6 +403,10 @@ abstract class Auth implements api, module
 				return $e->toWpError();
 			}
 
+			if (is_wp_error($r)) {
+				return $r;
+			}
+
 			if ($r['response']['code'] !== Http::OK) {
 				$e = new TouchPointWP_Exception(__('Your login token is invalid.', 'TouchPoint-WP'), 177003);
 				return $e->toWpError();
