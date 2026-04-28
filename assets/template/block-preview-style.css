@@ -19,3 +19,9 @@
 .tp-preview-block:hover::before {
     opacity: 1;
 }
+
+/* compensates for margin on person list */
+.person-list.tp-preview-block::before {
+    left: 0;
+    right: 0;
+}
