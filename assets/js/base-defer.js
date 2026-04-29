@@ -1133,7 +1133,7 @@
                 if (response.error !== undefined) {
                     if (response.geo === false) {
                         if (navigator.geolocation && location.protocol === 'https:') {
-                            tpvm._invNear.labelStr(__("We don't know where you are.", 'TouchPoint-WP') + "<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'tp', 'permission', 'Device Location');\">" + __("Click here to use your actual location.", 'TouchPoint-WP') + "</a>");
+                            tpvm._invNear.labelStr(__("We don't know where you are.", 'TouchPoint-WP') + "<br /><a href=\"javascript:tpvm.TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'tp', 'permission', 'Device Location');\">" + __("Click here to use your actual location.", 'TouchPoint-WP') + "</a>");
                         } else {
                             tpvm._invNear.labelStr(__("We don't know where you are.", 'TouchPoint-WP'));
                         }
@@ -1143,7 +1143,7 @@
                 } else if (response.geo?.human !== undefined) {
                     let label = response.geo.human;
                     if (response.geo.type === "ip" && navigator.geolocation && location.protocol === 'https:') {
-                        label += "<br /><a href=\"javascript:TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'tp', 'permission', 'Device Location');\">" + __("Click here to use your actual location.", 'TouchPoint-WP') + "</a>";
+                        label += "<br /><a href=\"javascript:tpvm.TP_DataGeo.geoByNavigator();\" onclick=\"tpvm._utils.ga('send', 'event', 'tp', 'permission', 'Device Location');\">" + __("Click here to use your actual location.", 'TouchPoint-WP') + "</a>";
                     }
                     tpvm._invNear.labelStr(label);
                 } else {

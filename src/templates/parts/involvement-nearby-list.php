@@ -8,7 +8,7 @@
         </h3>
         <p><small>
             <span data-bind="text: wp.i18n.sprintf('<?php /* translators: number of miles */ _ex("%2.1fmi", "miles. Unit is appended to a number.  %2.1f is the number, so %2.1fmi looks like '12.3mi'", 'TouchPoint-WP'); ?>', distance)"></span> &sdot;
-            <span data-bind="text: schedule"></span>
+            <span data-bind="html: schedule"></span>
         </small></p>
     </div>
     <!-- /ko -->
