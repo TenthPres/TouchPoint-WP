@@ -847,6 +847,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		self::$_indexingQueries['context']     = 'peopleLists';
 
 		$timeout = max((count(self::$_indexingQueries['pid']) / 2) + (count(self::$_indexingQueries['inv']) * 10) + 10, 50);
+		$timeout = intval(round($timeout));
 
 		// Submit to API
 		$people = TouchPointWP::instance()->doPersonQuery(self::$_indexingQueries, $verbose, $timeout);

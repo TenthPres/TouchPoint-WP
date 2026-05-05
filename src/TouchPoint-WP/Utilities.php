@@ -444,7 +444,7 @@ abstract class Utilities
 		$a = $s * min($l, 1 - $l) / 100;
 
 		$f = function ($n) use ($h, $l, $a) {
-			$k     = ($n + $h / 30) % 12;
+			$k     = round($n + $h / 30) % 12;
 			$color = $l - $a * max(min($k - 3, 9 - $k, 1), -1);
 
 			return round(255 * $color);
