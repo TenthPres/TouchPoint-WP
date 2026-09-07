@@ -1,7 +1,7 @@
 <?php
 namespace tp\TouchPointWP;
 
-/** @var TouchPointWP_Settings $this */
+/** @var Settings $this */
 
 ?>
 <form>
@@ -40,6 +40,14 @@ namespace tp\TouchPointWP;
         </tr>
         <tr>
             <th>
+                <label for="location-rad" data-bind="attr: { for: 'location-' + $index() + '-rad'}"><?php _e("Radius (miles)", "TouchPoint-WP"); ?></label>
+            </th>
+            <td colspan="2">
+                <input id="location-rad" type="text" data-bind="value: radius, attr: { id: 'location-' + $index() + '-rad'}" />
+            </td>
+        </tr>
+        <tr>
+            <th>
                 <label for="location-ips" data-bind="attr: { for: 'location-' + $index() + '-ips'}"><?php _e("Static IP Addresses", "TouchPoint-WP"); ?></label>
             </th>
             <td colspan="2">
@@ -71,6 +79,7 @@ namespace tp\TouchPointWP;
         this.name = ko.observable(data.name ?? "<?php _e("The Campus", "TouchPoint-WP"); ?>");
         this.lat = ko.observable(data.lat ?? "");
         this.lng = ko.observable(data.lng ?? "");
+        this.radius = ko.observable(data.radius ?? 0.1);
         this.ipAddresses = ko.observableArray(data.ipAddresses ?? []);
 
         this._visible = ko.observable(false);
@@ -109,27 +118,6 @@ namespace tp\TouchPointWP;
     }
 
     function initLocationVM() {
-        // noinspection JSUnusedLocalSymbols
-        ko.extenders.slug = function(target, option) {
-            let result = ko.pureComputed({
-                read: target,
-                write: function(newValue) {
-                    let current = target();
-                    newValue = newValue.toLowerCase().replaceAll(/([^a-z0-9]+)+/g, '-')
-
-                    //only write if it changed
-                    if (newValue !== current) {
-                        target(newValue);
-                    }
-                }
-            }).extend({ notify: 'always' });
-
-            //initialize
-            result(target());
-
-            return result;
-        }
-
         let formElt = document.getElementById('locations_json'),
             locationData = JSON.parse(formElt.innerText);
         tpvm._vmContext.locationsVM = new LocationsVM(locationData)

@@ -1,20 +1,21 @@
 <?php
 
-/** @var $people Person[] */
+/** @var $people tp\TouchPointWP\Person[] */
+/** @var $listClass string */
+/** @var $content string Alternative text to use if no people are  */
 
 
 use tp\TouchPointWP\TouchPointWP;
 
-if (! empty($people)) { ?>
+if (count($people) > 0) { ?>
 
-<div <?php post_class("person-list"); ?>>
+<div class="<?php echo $listClass; ?>" >
 <?php
     foreach ($people as $person) {
-        /** @noinspection PhpIncludeInspection */
         require TouchPointWP::$dir . "/src/templates/parts/person-list-item.php";
     } ?>
 </div>
 <?php
 } else {
-    echo "<!-- " . __("No people to show.  This may be because the list hasn't synced yet, or because it is not configured correctly.") . " -->";
+    echo $content;
 }

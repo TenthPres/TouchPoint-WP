@@ -1,0 +1,27 @@
+.tp-preview-block::before {
+    content: attr(data-preview-message);
+    width: 100%;
+    top: 0;
+    bottom: 0;
+    background: #00000088;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    position: absolute;
+    z-index: 11;
+    color: #ccc;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.tp-preview-block:hover::before {
+    opacity: 1;
+}
+
+/* compensates for margin on person list */
+.person-list.tp-preview-block::before {
+    left: 0;
+    right: 0;
+}
