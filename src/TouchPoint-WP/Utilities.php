@@ -115,7 +115,7 @@ abstract class Utilities
 
 		return self::$_dateTimeNowMinus1D;
 	}
-	
+
 	/**
 	 * @return DateTimeZone
 	 */
@@ -243,7 +243,7 @@ abstract class Utilities
 	 */
 	public static function getTimeOfDayTermForTime(DateTimeInterface $dt, bool $i18n = true): string
 	{
-		$timeInt = intval($dt->format('Hi'));
+		$timeInt = intval($dt->format('Gi'));
 
 		if ($timeInt < 300 || $timeInt >= 2200) {
 			return $i18n ? _x('Late Night', 'Time of Day', 'TouchPoint-WP') : "Late Night";
@@ -444,7 +444,7 @@ abstract class Utilities
 		$a = $s * min($l, 1 - $l) / 100;
 
 		$f = function ($n) use ($h, $l, $a) {
-			$k     = ($n + $h / 30) % 12;
+			$k     = round($n + $h / 30) % 12;
 			$color = $l - $a * max(min($k - 3, 9 - $k, 1), -1);
 
 			return round(255 * $color);
@@ -486,7 +486,7 @@ abstract class Utilities
 	 */
 	public static function createGuid(): string
 	{
-		mt_srand((int)(microtime(true) * 10000));
+		mt_srand(intval(microtime(true) * 10000) % PHP_INT_MAX);
 		$char   = strtoupper(md5(uniqid(rand(), true)));
 		$hyphen = chr(45); // "-"
 
@@ -498,7 +498,7 @@ abstract class Utilities
 	}
 
 	/**
-	 * Do a var_dump, but within a container that can be expanded or contracted. 
+	 * Do a var_dump, but within a container that can be expanded or contracted.
 	 *
 	 * @param ...$args
 	 *
@@ -827,7 +827,7 @@ abstract class Utilities
 
 		return (object)[
 			'id'            => 'touchpoint-wp/touchpoint-wp.php',
-			'slug'          => 'touchpoint-wp',
+			'slug'          => TouchPointWP::SLUG,
 			'plugin'        => 'touchpoint-wp/touchpoint-wp.php',
 			'new_version'   => $newV,
 			'url'           => 'https://github.com/TenthPres/TouchPoint-WP/',

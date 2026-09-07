@@ -49,4 +49,29 @@ abstract class Translation {
 
 		return $wpdb->get_var($wpdb->prepare($lang_code_query, $string, $string));
 	}
+
+
+	public static function setPostLanguageFromCampus(?string $campusName, \WP_Post $post, string $postType, bool $verbose = false, bool $applyChanges = true): void
+	{
+		if (Translation::useCampusAsLanguage() && $campusName !== null) {
+
+			// Set content's original language based on Campus.
+			$langCode = Translation::getWpmlLangCodeForString($campusName);
+			if ($langCode !== null) {
+				$args = [
+					'element_id'           => $post->ID,
+					'element_type'         => apply_filters('wpml_element_type', $postType),
+					'language_code'        => $langCode,
+					'source_language_code' => $langCode,
+					'trid'                 => $post->ID
+				];
+				if ($applyChanges) {
+					do_action('wpml_set_element_language_details', $args);
+				}
+				if ($verbose) {
+					echo "<p>Language Set to: $langCode</p>";
+				}
+			}
+		}
+	}
 }

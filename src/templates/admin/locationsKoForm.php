@@ -118,27 +118,6 @@ namespace tp\TouchPointWP;
     }
 
     function initLocationVM() {
-        // noinspection JSUnusedLocalSymbols
-        ko.extenders.slug = function(target, option) {
-            let result = ko.pureComputed({
-                read: target,
-                write: function(newValue) {
-                    let current = target();
-                    newValue = newValue.toLowerCase().replaceAll(/([^a-z0-9]+)+/g, '-')
-
-                    //only write if it changed
-                    if (newValue !== current) {
-                        target(newValue);
-                    }
-                }
-            }).extend({ notify: 'always' });
-
-            //initialize
-            result(target());
-
-            return result;
-        }
-
         let formElt = document.getElementById('locations_json'),
             locationData = JSON.parse(formElt.innerText);
         tpvm._vmContext.locationsVM = new LocationsVM(locationData)

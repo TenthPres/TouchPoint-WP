@@ -13,6 +13,7 @@ use DateTimeInterface;
  * @property-read DateTimeInterface mtgEndDt
  * @property-read ?string location
  * @property-read int status
+ * @property-read ?int involvementId
  */
 interface apiMeeting {
 	public function __get(string $what);

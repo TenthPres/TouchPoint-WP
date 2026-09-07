@@ -45,6 +45,7 @@ article.inv-list-item h2 a {
 
 .person-list {
     text-align: center;
+    margin: 0 -1.6em;
 }
 
 .person-list-item {
@@ -54,7 +55,9 @@ article.inv-list-item h2 a {
     padding: 0.8em;
     display: inline-block;
     width: 12em;
+    max-width: 24vw;
     height: 17em;
+    max-height: 40vw;
     overflow: hidden;
     background-size: cover;
     background-position: center;
@@ -72,9 +75,10 @@ article.inv-list-item h2 a {
     right: 0;
     margin: 1.5em 1em;
     opacity: 0;
+    text-align: center;
 }
 
-.person-list-item:hover .person-actions {
+.person-list-item.has-actions:hover .person-actions {
     opacity: 1;
 }
 
@@ -136,7 +140,7 @@ div.inv-list article.inv-list-item h2.entry-title {
     text-shadow: 0 0 3px #000, 0 0 5px #000;
 }
 
-.person-list-item:hover header.entry-header > * {
+.person-list-item.has-actions:hover header.entry-header > * {
     opacity: 0;
 }
 
@@ -179,6 +183,14 @@ h1.archive-title.page-title {
 
 .map p {
     text-align: inherit;
+}
+
+@keyframes bouncing-marker {
+    from { transform: translate3d(0, 0, 0);}
+    to { transform: translate3d(0, -15px, 0);}
+}
+.tp-map-marker.highlighted-marker {
+    animation: bouncing-marker .5s ease-in-out infinite alternate;
 }
 
 article .section-inner.TouchPointWP-detail {
@@ -238,5 +250,10 @@ header img.tpwp-accessibility-header-image {
 header .tpwp-alert-block {
     margin: 2em 20%;
     background: #f003;
+    padding: 1em;
+}
+header .tpwp-warn-block {
+    margin: 2em 20%;
+    background: #ff03;
     padding: 1em;
 }

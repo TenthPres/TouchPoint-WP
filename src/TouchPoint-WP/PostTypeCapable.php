@@ -6,18 +6,22 @@
 
 namespace tp\TouchPointWP;
 
+use ArrayAccess;
+use tp\TouchPointWP\Interfaces\actionButtons;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Interfaces\storedAsPost;
+use tp\TouchPointWP\Utilities\NotableAttributes;
 use tp\TouchPointWP\Utilities\StringableArray;
 use WP_Post;
 
+require_once 'Interfaces/actionButtons.php';
 require_once 'Interfaces/module.php';
 require_once 'Interfaces/storedAsPost.php';
 
 /**
  * This is a base class for those objects that can be derived from a Post.
  */
-abstract class PostTypeCapable implements module, storedAsPost
+abstract class PostTypeCapable implements module, storedAsPost, actionButtons
 {
 
 	protected int $post_id;
@@ -71,48 +75,38 @@ abstract class PostTypeCapable implements module, storedAsPost
 	 */
 	public function permalink(): string
 	{
-		return get_permalink($this->post);
+		return get_permalink($this->post_id);
 	}
 
 	/**
 	 * Get notable attributes.
 	 *
-	 * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
+	 * @param array|StringableArray $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
 	 *
-	 * @return string[]
+	 * @return NotableAttributes
 	 */
-	public abstract function notableAttributes(array $exclude = []): array;
+	public abstract function notableAttributes(array|StringableArray $exclude = []): NotableAttributes;
 
 	/**
 	 * Handle exclusions for the notableAttributes $exclusion variable.
 	 *
 	 * Removes all array items that have a value or key contained in the $exclude array's values.
 	 *
-	 * @param array $subject
-	 * @param array $exclude
+	 * @param StringableArray $subject
+	 * @param array           $exclude
 	 *
-	 * @return array
+	 * @return NotableAttributes
 	 */
-	protected function processAttributeExclusions(array $subject, array $exclude): array
+	protected function processAttributeExclusions(StringableArray $subject, array $exclude): NotableAttributes
 	{
-		$subject = array_diff($subject, $exclude);
+		$subject = array_diff($subject->getArrayCopy(), $exclude);
 		foreach ($exclude as $e) {
 			if (isset($subject[$e])) {
 				unset($subject[$e]);
 			}
 		}
-		return $subject;
+		return new NotableAttributes($subject);
 	}
-
-	/**
-	 * @param string|null $context A string that gives filters some context for where the request is coming from
-	 * @param string      $btnClass HTML class names to put into the buttons/links
-	 * @param bool        $withTouchPointLink Whether to include a link to the item within TouchPoint.
-	 * @param bool        $absoluteLinks  Set true to make the links absolute, so they work from apps or emails.
-	 *
-	 * @return StringableArray
-	 */
-	public abstract function getActionButtons(?string $context = null, string $btnClass = "", bool $withTouchPointLink = true, bool $absoluteLinks = false): StringableArray;
 
 	/**
 	 * Indicates if the given post can be instantiated as the given post type.

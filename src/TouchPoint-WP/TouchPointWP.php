@@ -7,6 +7,7 @@ namespace tp\TouchPointWP;
 
 use JsonException;
 use stdClass;
+use tp\TouchPointWP\Blocks\BlocksController;
 use tp\TouchPointWP\Utilities\Cleanup;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\Session;
@@ -21,11 +22,6 @@ if ( ! defined('ABSPATH')) {
 	exit;
 }
 
-if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once "Utilities.php";
-	require_once "Stats.php";
-}
-
 
 /**
  * Main plugin class.
@@ -35,12 +31,15 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.96";
+	public const VERSION = "0.0.97";
 
 	/**
 	 * The Token
 	 */
 	public const TOKEN = "TouchPointWP";
+	public const SLUG = "touchpoint-wp";
+
+	public const DOCS_URL = "https://github.com/TenthPres/TouchPoint-WP/wiki";
 
 	/**
 	 * API Endpoint prefix, and specific endpoints.  All must be lower-case.
@@ -54,9 +53,11 @@ class TouchPointWP
 	public const API_ENDPOINT_ADMIN = "admin";
 	public const API_ENDPOINT_STATS = "stats";
 	public const API_ENDPOINT_AUTH = "auth";
+	public const API_ENDPOINT_LOOKUP = "lookup";
 	public const API_ENDPOINT_REPORT = "report";
 	public const API_ENDPOINT_ADMIN_SCRIPTZIP = "admin/scriptzip";
 	public const API_ENDPOINT_CLEANUP = "cleanup";
+	public const API_ENDPOINT_BLOCKS = "blocks";
 	public const API_ENDPOINT_GEOLOCATE = "geolocate";
 
 	/**
@@ -69,7 +70,7 @@ class TouchPointWP
 	 */
 	public const HOOK_PREFIX = "tp_";
 
-	public const INIT_ACTION_HOOK = "tp_init"; // Note that this is also hard-coded where the action is declared.
+	public const INIT_ACTION_HOOK = "tp_init";  // Note that this is also hard-coded where the action is called.
 
 	/**
 	 * Prefix to use for all settings.
@@ -84,9 +85,10 @@ class TouchPointWP
 	public const TABLE_STATS = self::TABLE_PREFIX . "stats";
 
 	/**
-	 * Typical amount of time in hours for metadata to last (e.g. genders and resCodes).
+	 * Typical amount of time in seconds for metadata to last (e.g. genders and resCodes).
 	 */
-	public const CACHE_TTL = 8;
+	public const CACHE_TTL = 8 * 3600;
+	public const CACHE_TTL_SHORT = 120;
 
 	public const TTL_IP_GEO = 5;  // years until deleted
 	public const TTU_IP_GEO = 180; // days until updated
@@ -198,6 +200,8 @@ class TouchPointWP
 
 	public bool $debug;
 
+	protected static string $apiVersion = "";
+
 	/**
 	 * Indicates that the current request is being processed through the API.
 	 *
@@ -233,6 +237,9 @@ class TouchPointWP
 		// Register frontend JS & CSS.
 		add_action('init', [$this, 'registerScriptsAndStyles'], 0);
 
+		// Register blocks
+		add_action('init', [BlocksController::class, 'init']);
+
 		add_action('wp_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
 		add_action('admin_print_footer_scripts', [$this, 'printDynamicFooterScripts'], 1000);
 
@@ -258,6 +265,8 @@ class TouchPointWP
 
 		add_filter('cron_schedules', [self::class, 'cronAdd15Minutes']);
 
+		add_filter('plugin_row_meta', [self::class, 'pluginRowMeta'], 10, 3);
+
 		self::scheduleCleanup();
 	}
 
@@ -275,6 +284,72 @@ class TouchPointWP
 		];
 
 		return $schedules;
+	}
+
+	/**
+	 * Adjust the meta info in the Plugin list with better information.
+	 *
+	 * @param $pluginMeta array The links and stuff that gets joined by pipes.
+	 * @param $pluginFile string Not used here, but points to the root plugin file.
+	 * @param $pluginData array metadata from the plugin header.
+	 *
+	 * @return array
+	 * @noinspection PhpUnusedParameterInspection
+	 */
+	public static function pluginRowMeta(array $pluginMeta, string $pluginFile, array $pluginData): array
+	{
+		if (isset($pluginData['slug']) && $pluginData['slug'] === self::SLUG) {
+
+			// Remove default View Details link.
+			foreach ($pluginMeta as $k => $m) {
+				if (str_contains($m, 'plugin-install.php?tab=plugin-information') ||
+				    str_contains($m, 'github.com/jkrrv')) {
+					unset($pluginMeta[$k]);
+				}
+			}
+
+			// Made with X in Philly by Tenth
+			$madeWiths = [
+				"🥪" => _x("Sandwiches (probably cheesesteaks)", "Explanation for the sandwich emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+				"❤️" => _x("love. obviously.", "Explanation for the heart emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+				"🥨" => _x("Soft Pretzels", "Explanation for the pretzel emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+				"🍩" => _x("Donuts (preferably Federal)", "Explanation for the Donut emoji in \"Made with (emoji) in Philly by Tenth\"", "TouchPoint-WP"),
+			];
+			$madeWithK = array_rand($madeWiths);
+			/** @noinspection HtmlUnknownTarget */
+			$pluginMeta[] = sprintf(
+				'<a href="%s" target="_blank">%s</a>',
+				"https://www.tenth.org/tech/wp",
+				sprintf(
+					// translators: This placeholder is filled by a food emoji. The food varies.
+					__("Made with %s in Philly by Tenth", "TouchPoint-WP"),
+					sprintf(
+						'<span title="%s">%s</span>',
+						$madeWiths[$madeWithK],
+						$madeWithK
+					)
+			    )
+			);
+
+			// View details link
+			// note for i18n: these deliberately don't have the domain in order to use the WordPress defaults.
+			/** @noinspection HtmlUnknownTarget */
+			$pluginMeta[] = sprintf(
+				'<a href="%s" target="_blank" aria-label="%s">%s</a>',
+				$pluginData['PluginURI'],
+				esc_attr(sprintf(__('More information about %s'), $pluginData['Name'])),
+				__('View details')
+			);
+
+			// Documentation link
+			/** @noinspection HtmlUnknownTarget */
+			$pluginMeta[] = sprintf(
+				'<a href="%s" target="_blank">%s</a>',
+				self::DOCS_URL,
+				__('Documentation', "TouchPoint-WP")
+			);
+		}
+		return $pluginMeta;
 	}
 
 	/**
@@ -386,20 +461,6 @@ class TouchPointWP
 
 
 	/**
-	 * Get TouchPoint icon as an SVG that can printed inline.
-	 *
-	 * @return string
-	 */
-	public static function TouchPointIcon(): string
-	{
-		if (self::$_icon === null) {
-			self::$_icon = file_get_contents(TouchPointWP::$dir . "/assets/branding/icon-curcolor.svg");
-		}
-		return self::$_icon;
-	}
-	protected static ?string $_icon = null;
-
-	/**
 	 * @param bool         $continue Whether to parse the request
 	 * @param WP           $wp Current WordPress environment instance
 	 * @param array|string $extraVars Passed query variables
@@ -498,6 +559,13 @@ class TouchPointWP
 				}
 			}
 
+			// Lookup endpoints
+			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_LOOKUP) {
+				if ( ! Lookup::api($reqUri)) {
+					return $continue;
+				}
+			}
+
 			// Admin endpoints
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_ADMIN) {
 				self::admin(); // initialize the instance.
@@ -525,6 +593,13 @@ class TouchPointWP
 				count($reqUri['path']) === 2) {
 				$this->ajaxGeolocate();
 			}
+
+			// Blocks
+			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_BLOCKS) {
+			    if ( ! BlocksController::api($reqUri)) {
+				    return $continue;
+			    }
+			}
 		}
 
 		self::$context = "";
@@ -550,6 +625,72 @@ class TouchPointWP
 		return current_user_can('manage_options');
 	}
 
+
+	/**
+	 * Determine if the current user can edit *anything* and therefore may need access to wp-admin.
+	 *
+	 * @param ?WP_User $user
+	 *
+	 * @return bool
+	 */
+	public static function userHasEditingPermissions(?WP_User $user = null): bool
+	{
+		if (!function_exists('get_current_user_id')) {
+			return false;
+		}
+
+		if ($user === null) {
+			$user = get_user(get_current_user_id());
+		}
+
+		if (!$user) {
+			return false;
+		}
+
+		foreach ($user->caps as $cap => $enabled) {
+			if (!$enabled) {
+				continue;
+			}
+
+			// if cap starts with any of several terms "edit", "Manage", etc, return true.
+			if (str_starts_with($cap, 'edit_') ||
+			    str_starts_with($cap, 'manage_') ||
+			    str_starts_with($cap, 'publish_') ||
+			    str_starts_with($cap, 'delete_') ||
+			    str_starts_with($cap, 'create_') ||
+			    str_starts_with($cap, 'switch_') ||
+			    str_contains($cap, 'admin') || // various admin-like stuff.
+			    str_contains($cap, "translat") // various WPML capabilities
+			) {
+				return true;
+			}
+		}
+
+		foreach ($user->roles as $role) {
+			$role = get_role($role);
+			if ($role === null) {
+				continue;
+			}
+			foreach ($role->capabilities as $cap => $enabled) {
+				if (!$enabled) {
+					continue;
+				}
+
+				// if cap starts with any of several terms "edit", "Manage", etc, return true.
+				if (str_starts_with($cap, 'edit_') ||
+				    str_starts_with($cap, 'manage_') ||
+				    str_starts_with($cap, 'publish_') ||
+				    str_starts_with($cap, 'delete_') ||
+				    str_starts_with($cap, 'create_') ||
+				    str_starts_with($cap, 'switch_')
+				) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Print Dynamic Instantiation scripts.
 	 *
@@ -557,13 +698,13 @@ class TouchPointWP
 	 */
 	public function printDynamicFooterScripts(): void
 	{
-		if (self::isApi()) {
+		if (self::isApi() || !self::$hasRenderedBaseInlineScript) {
 			return;
 		}
 
 		echo "<script defer id=\"TP-Dynamic-Instantiation\">\n";
 		if ($this->debug) {
-			echo "\ttpvm.DEBUG = true;\n";
+			echo "\tif (tpvm) tpvm.DEBUG = true;\n";
 		}
 
 		// TODO this should possibly be moved to ajax for better caching -- especially if only used for RSVP.
@@ -856,7 +997,7 @@ class TouchPointWP
 		/**
 		 * Fires after the plugin has been initialized.
 		 */
-		do_action(self::INIT_ACTION_HOOK);
+		do_action("tp_init"); // needs to be hard-coded for documenter
 	}
 
 	/**
@@ -867,8 +1008,10 @@ class TouchPointWP
 	 */
 	public static function renderBaseInlineScript(): void
 	{
-		include self::instance()->assets_dir . '/js/base-inline.php';
+		include_once self::instance()->assets_dir . '/js/base-inline.php';
+		self::$hasRenderedBaseInlineScript = true;
 	}
+	protected static $hasRenderedBaseInlineScript = false;
 
 	public function registerScriptsAndStyles(): void
 	{
@@ -890,7 +1033,8 @@ class TouchPointWP
 		);
 		wp_set_script_translations(
 			self::SHORTCODE_PREFIX . 'base-defer',
-			'TouchPoint-WP', $this->getJsLocalizationDir()
+			'TouchPoint-WP',
+			$this->getJsLocalizationDir()
 		);
 
 		wp_register_script(
@@ -928,20 +1072,12 @@ class TouchPointWP
 		wp_register_script(
 			TouchPointWP::SHORTCODE_PREFIX . "googleMaps",
 			sprintf(
-				"https://maps.googleapis.com/maps/api/js?key=%s&v=3&libraries=geometry&language=$lang",
+				"https://maps.googleapis.com/maps/api/js?key=%s&v=3&loading=async&libraries=geometry,marker&language=$lang",
 				TouchPointWP::instance()->settings->google_maps_api_key
 			),
 			[TouchPointWP::SHORTCODE_PREFIX . "base-defer"],
 			null,
 			true
-		);
-
-		wp_register_script(
-			TouchPointWP::SHORTCODE_PREFIX . "fontAwesome",
-			"https://kit.fontawesome.com/2b5f44e07f.js",
-			[],
-			6, // When changing versions, some CSS references will need to be updated, too.
-			false
 		);
 
 		if ( ! ! $this->involvements) {
@@ -1006,9 +1142,9 @@ class TouchPointWP
 	public static function requireStyle(?string $name = null): void
 	{
 		$filename = strtolower($name);
-		
+
 		$includeStyle = true;
-		
+
 		/**
 		 * Filter to determine if a given stylesheet (which comes with TouchPoint-WP) should be included.
 		 *
@@ -1040,7 +1176,7 @@ class TouchPointWP
 	public function filterByTag(?string $tag, ?string $handle): string
 	{
 		if (!str_contains($tag, ' async') &&
-		    strpos($handle, '-async') > 0
+		    strpos($handle, '-async')
 		) {
 			$tag = str_replace(' src=', ' async="async" src=', $tag);
 		}
@@ -1494,6 +1630,9 @@ class TouchPointWP
 	 */
 	public static function useTribeCalendar(): bool
 	{
+		if ( ! function_exists('is_plugin_active')) {
+			require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+		}
 		return self::useTribeCalendarPro() || is_plugin_active('the-events-calendar/the-events-calendar.php');
 	}
 
@@ -1533,8 +1672,7 @@ class TouchPointWP
 		// Remove parents that have no children
 		if ($noChildlessParents) {
 			foreach ($lineage[0] as $i => $term) {
-				if ( ! isset($lineage[$term->term_id])) {
-					/** @noinspection PhpIllegalArrayKeyTypeInspection -- there isn't an error here. */
+				if (!isset($lineage[$term->term_id])) {
 					unset($lineage[0][$i]);
 				}
 			}
@@ -1571,13 +1709,42 @@ class TouchPointWP
 	}
 
 	/**
-	 * Get the member types currently in use for the named divisions.
+	 * Get the member types currently in use for the given involvements.
 	 *
-	 * @param string[] $divisions
+	 * @param string[] $involvements
 	 *
 	 * @return array
 	 */
-	public function getMemberTypesForDivisions(array $divisions = []): array
+	public function getMemberTypesForInvolvements(array $involvements = []): array
+	{
+		// sort involvements
+		sort($involvements);
+
+		$cacheKey = "tp_memTypesForInv_" . implode(",", $involvements);
+
+		// check transients for cache.
+		$cached = get_transient($cacheKey);
+		if ($cached !== false) {
+			return $cached;
+		}
+
+		// if not in cache, get from API and cache.  If API fails, return empty array (probably better than nothing).
+		$mts = $this->getMemberTypesForInvolvements_fromApi($involvements);
+
+		// Cache for a very short period.
+		set_transient($cacheKey, $mts, self::CACHE_TTL_SHORT);
+		return $mts;
+	}
+
+	/**
+	 * Get the member types currently in use for the named divisions.
+	 *
+	 * @param string[] $divisions
+	 * @param bool $shortCache Set to true to make it much more likely that the division cache will refresh.
+	 *
+	 * @return array
+	 */
+	public function getMemberTypesForDivisions(array $divisions = [], bool $shortCache = false): array
 	{
 		$divisions = implode(",", $divisions);
 		$divisions = str_replace('div', '', $divisions);
@@ -1591,9 +1758,10 @@ class TouchPointWP
 			$mtObj       = (object)[];
 		} else {
 			$mtObj = json_decode($mtObj);
+			$cacheTime = $shortCache ? self::CACHE_TTL_SHORT : self::CACHE_TTL;
 			if ( ! isset($mtObj->$divKey)) {
 				$needsUpdate = true;
-			} else if (strtotime($mtObj->$divKey->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($mtObj->$divKey->memTypes)) {
+			} else if (strtotime($mtObj->$divKey->_updated) < time() - $cacheTime || ! is_array($mtObj->$divKey->memTypes)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1616,18 +1784,41 @@ class TouchPointWP
 	 *
 	 * @return string[]
 	 */
-	public function getDivisionsAsKVArray(): array
+	public function getDivisionsAsKVArray(bool $shortCache = false): array
 	{
-		return self::flattenArrayToKV($this->getDivisions(), 'id', 'name', 'div');
+		return self::flattenArrayToKV($this->getDivisions($shortCache), 'id', 'name', 'div');
+	}
+
+	/**
+	 * Returns an array of objects that correspond to divisions that are actively being imported as a taxonomy.  Each
+	 * Division has a name and an id.  The name is both the Program and Division.
+	 *
+	 * @return object[]
+	 */
+	public function getImportedDivisions(): array
+	{
+		$enabledDivisions = $this->settings->dv_divisions;
+		$enabled = [];
+		foreach ($this->getDivisions() as $d) {
+			if (!$d->pName || !$d->dName) {
+				continue;
+			}
+			if (in_array('div' . $d->id, $enabledDivisions)) {
+				$enabled[] = $d;
+			}
+		}
+		return $enabled;
 	}
 
 	/**
 	 * Returns an array of objects that correspond to divisions.  Each Division has a name and an id.  The name is both
 	 * the Program and Division.
 	 *
+	 * @param bool $shortCache Set to true to make it much more likely that the division cache will refresh.
+	 *
 	 * @returns object[]
 	 */
-	public function getDivisions(): array
+	public function getDivisions(bool $shortCache = false): array
 	{
 		$divsObj = $this->settings->get('meta_divisions');
 
@@ -1636,7 +1827,8 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$divsObj = json_decode($divsObj);
-			if (strtotime($divsObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($divsObj->divs)) {
+			$cacheTime = $shortCache ? self::CACHE_TTL_SHORT : self::CACHE_TTL;
+			if (strtotime($divsObj->_updated) < time() - $cacheTime || ! is_array($divsObj->divs)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1694,13 +1886,31 @@ class TouchPointWP
 		];
 	}
 
+	/**
+	 * Get new MemberTypes for a list of Involvements.  Does not cache them.
+	 *
+	 * @param array $involvements
+	 *
+	 * @return stdClass[] An array of member types.  Empty array on failure.
+	 */
+	private function getMemberTypesForInvolvements_fromApi(array $involvements): array
+	{
+		try {
+			$return = $this->api->pyGet('MemTypes', ['invs' => implode(",", $involvements)]);
+		} catch (TouchPointWP_Exception) {
+			return [];
+		}
+
+		return $return->memTypes ?? [];
+	}
+
 
 	/**
 	 * Returns an array of objects that correspond to resident codes.  Each ResCode has a name, a code, and an id.
 	 *
 	 * @returns object[]
 	 */
-	public function getResCodes(): array
+	public function getResCodes(bool $shortCache = false): array
 	{
 		$rcObj = $this->settings->get('meta_resCodes');
 
@@ -1709,7 +1919,8 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$rcObj = json_decode($rcObj);
-			if (strtotime($rcObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($rcObj->resCodes)) {
+			$cacheTime = $shortCache ? self::CACHE_TTL_SHORT : self::CACHE_TTL;
+			if (strtotime($rcObj->_updated) < time() - $cacheTime || ! is_array($rcObj->resCodes)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1733,9 +1944,11 @@ class TouchPointWP
 	/**
 	 * Returns an array of objects that correspond to campuses.  Each Campus has a name, a code, and an id.
 	 *
+	 * @param bool $shortCache Set to true to shorten the expiry on the campus cache.
+	 *
 	 * @returns object[]
 	 */
-	public function getCampuses(): array
+	public function getCampuses(bool $shortCache = false): array
 	{
 		$cObj = $this->settings->get('meta_campuses');
 
@@ -1744,7 +1957,8 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$cObj = json_decode($cObj);
-			if (strtotime($cObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($cObj->campuses)) {
+			$cacheTime = $shortCache ? self::CACHE_TTL_SHORT : self::CACHE_TTL;
+			if (strtotime($cObj->_updated) < time() - $cacheTime || ! is_array($cObj->campuses)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1820,69 +2034,28 @@ class TouchPointWP
 	/**
 	 * Returns an array of objects that correspond to the genders.  Each Gender has a name and an id.
 	 *
+	 * @since 0.0.0 Added
+	 * @since 0.0.96 'Description' is now the human-readable version of the gender name.
+	 *
 	 * @returns object[]
 	 */
 	public function getGenders(): array
 	{
-		$gObj = $this->settings->get('meta_genders');
-
-		$needsUpdate = false;
-		if ($gObj === false || $gObj === null) {
-			$needsUpdate = true;
-		} else {
-			$gObj = json_decode($gObj);
-			if (strtotime($gObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($gObj->genders)) {
-				$needsUpdate = true;
-			}
-		}
-
-		// Get update if needed.
-		if ($needsUpdate) {
-			$update = $this->updateGenders();
-			if ($update !== false) {
-				$gObj = $update;
-			}
-		}
-
-		if ($gObj === false) {
+		try {
+			return Lookup::getLookup('Genders');
+		} catch (TouchPointWP_Exception) {
 			return [];
 		}
-
-		return $gObj->genders;
-	}
-
-
-	/**
-	 * @return false|object Update the genders if they're stale.
-	 */
-	private function updateGenders()
-	{
-		try {
-			$data = $this->api->pyGet('Genders');
-		} catch (TouchPointWP_Exception) {
-			return false;
-		}
-
-		if ( ! is_array($data->genders)) {
-			return false;
-		}
-
-		$obj = (object)[
-			'_updated' => date('c'),
-			'genders'  => $data->genders
-		];
-
-		$this->settings->set("meta_genders", json_encode($obj));
-
-		return $obj;
 	}
 
 	/**
 	 * Returns an array of objects that correspond to keywords.  Each Keyword has a name and an id.
 	 *
+	 * @param bool $shortCache Set to true to make it much more likely that the division cache will refresh.
+	 *
 	 * @returns object[]
 	 */
-	public function getKeywords(): array
+	public function getKeywords(bool $shortCache = false): array
 	{
 		$kObj = $this->settings->get('meta_keywords');
 
@@ -1891,7 +2064,8 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$kObj = json_decode($kObj);
-			if (strtotime($kObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($kObj->keywords)) {
+			$cacheTime = $shortCache ? self::CACHE_TTL_SHORT : self::CACHE_TTL;
+			if (strtotime($kObj->_updated) < time() - $cacheTime || ! is_array($kObj->keywords)) {
 				$needsUpdate = true;
 			}
 		}
@@ -1939,7 +2113,7 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$pevObj = json_decode($pevObj);
-			if (strtotime($pevObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($pevObj->personEvFields)) {
+			if (strtotime($pevObj->_updated) < time() - self::CACHE_TTL || ! is_array($pevObj->personEvFields)) {
 				$needsUpdate = true;
 			}
 		}
@@ -2000,7 +2174,7 @@ class TouchPointWP
 			$needsUpdate = true;
 		} else {
 			$fevObj = json_decode($fevObj);
-			if (strtotime($fevObj->_updated) < time() - 3600 * self::CACHE_TTL || ! is_array($fevObj->familyEvFields)) {
+			if (strtotime($fevObj->_updated) < time() - self::CACHE_TTL || ! is_array($fevObj->familyEvFields)) {
 				$needsUpdate = true;
 			}
 		}
@@ -2300,7 +2474,7 @@ class TouchPointWP
 			$parameters = (array)$parameters;
 		}
 
-		$r = $this->getHttpClient()->request(
+		$r = $this->getExtHttpClient()->request(
 			$url . "?" . http_build_query($parameters),
 			[
 				'method' => 'GET'
@@ -2369,11 +2543,11 @@ class TouchPointWP
 	}
 
 	/**
-	 * @deprecated 0.0.95 Use Api version instead.
+	 * Gets a WP_HTTP object intended for external/third-party API access.
 	 *
-	 * @return WP_Http|null
+	 * @return WP_Http
 	 */
-	private function getHttpClient(): ?WP_Http
+	private function getExtHttpClient(): WP_Http
 	{
 		if ($this->httpClient === null) {
 			$this->httpClient = new WP_Http();
@@ -2440,14 +2614,43 @@ class TouchPointWP
 	 * This function enqueues the stylesheet for the default templates, to avoid registering the style on sites where
 	 * custom templates exist.
 	 */
-	public static function enqueuePartialsStyle(): void
+	public static function enqueuePartialsStyle(?string $context = null): void
 	{
-		wp_enqueue_style(
-			TouchPointWP::SHORTCODE_PREFIX . 'partials-template-style',
-			self::instance()->assets_url . 'template/partials-template-style.css',
-			[],
-			TouchPointWP::VERSION
-		);
+		if (self::includePartialsStyle($context)) {
+			wp_enqueue_style(
+				TouchPointWP::SHORTCODE_PREFIX . 'partials-template-style',
+				self::instance()->assets_url . 'template/partials-template-style.css',
+				[],
+				TouchPointWP::VERSION
+			);
+		}
+	}
+
+	/**
+	 * Determines if the partials style should be rendered.
+	 *
+	 * @param string|null $context
+	 *
+	 * @return bool
+	 *
+	 * @since 0.0.97 Added
+	 */
+	public static function includePartialsStyle(?string $context = null): bool
+	{
+		$includePartialsStyle = true;
+
+		/**
+		 * Filter to determine if the stylesheet that provides default styling for overrideable theme elements should
+		 * be included.
+		 *
+		 * @params bool $includePartialsStyle Whether to include the styles.  Default true = include.
+		 * @params ?string $context a string that may be provided to clarify where the style is being called from.
+		 *
+		 * @noinspection PhpConditionAlreadyCheckedInspection
+		 * @noinspection PhpUnnecessaryLocalVariableInspection
+		 */
+		$includePartialsStyle = !!apply_filters("tp_include_partials_style", $includePartialsStyle, $context);
+		return $includePartialsStyle;
 	}
 
 	/**
@@ -2458,6 +2661,27 @@ class TouchPointWP
 	 */
 	public static function enqueueActionsStyle(string $action): void
 	{
+		if (self::includeActionsStyle($action)) {
+			wp_enqueue_style(
+				TouchPointWP::SHORTCODE_PREFIX . 'actions-style',
+				self::instance()->assets_url . 'template/actions-style.css',
+				[],
+				TouchPointWP::VERSION
+			);
+		}
+	}
+
+	/**
+	 * Determines if the actions style should be rendered.
+	 *
+	 * @param string $action
+	 *
+	 * @return bool
+	 *
+	 * @since 0.0.97 Added
+	 */
+	public static function includeActionsStyle(string $action): bool
+	{
 		$includeActionsStyle = true;
 
 		/**
@@ -2467,16 +2691,10 @@ class TouchPointWP
 		 * @params string $action The action that is being performed.
 		 *
 		 * @noinspection PhpConditionAlreadyCheckedInspection
+		 * @noinspection PhpUnnecessaryLocalVariableInspection
 		 */
 		$includeActionsStyle = !!apply_filters("tp_include_actions_style", $includeActionsStyle, $action);
-		if ($includeActionsStyle) {
-			wp_enqueue_style(
-				TouchPointWP::SHORTCODE_PREFIX . 'actions-style',
-				self::instance()->assets_url . 'template/actions-style.css',
-				[],
-				TouchPointWP::VERSION
-			);
-		}
+		return $includeActionsStyle;
 	}
 
 	/**
@@ -2557,12 +2775,41 @@ class TouchPointWP
 
 		$priorUser = wp_get_current_user();
 
-		$tpUser = get_user_by('login', 'touchpoint-wp');
+		$tpUser = self::getTpUser();
 		if ($tpUser && $tpUser !== $priorUser) {
 			$this->priorUser = $priorUser;
 			wp_set_current_user($tpUser->ID, $tpUser->user_login);
 		}
 	}
+
+
+
+	/**
+	 * If the current user is somehow making requests as the TouchPoint service, log out (or switch back to the proper user)
+	 *
+	 * @return void
+	 */
+	public function logoutServiceMaybe(): void
+	{
+		$currentUser = wp_get_current_user();
+		$tpUser = self::getTpUser();
+
+		if ($tpUser && $currentUser && $currentUser->ID === $tpUser->ID) {
+			$this->unsetTpWpUserAsCurrent();
+		}
+	}
+
+
+	/**
+	 * Returns the TouchPoint-WP Service user, or false if it doesn't exist.
+	 *
+	 * @return false|WP_User
+	 */
+	protected static function getTpUser(): false|WP_User
+	{
+		return get_user_by('login', 'touchpoint-wp');
+	}
+
 
 	/**
 	 * Restore the actual user to the user position.
@@ -2571,7 +2818,9 @@ class TouchPointWP
 	 */
 	public function unsetTpWpUserAsCurrent(): void
 	{
-		if ($this->priorUser) {
+		$tpUser = self::getTpUser();
+
+		if ($this->priorUser && (!$tpUser || $this->priorUser->ID !== $tpUser->ID)) {
 			wp_set_current_user($this->priorUser->ID, $this->priorUser->user_login);
 			$this->priorUser = null;
 		} else {

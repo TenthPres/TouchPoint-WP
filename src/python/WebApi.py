@@ -6,7 +6,7 @@ import linecache
 import sys
 import urllib
 
-VERSION = "0.0.96"
+VERSION = "0.0.97"
 
 sgContactEvName = "Contact"
 
@@ -116,13 +116,6 @@ if "Campuses" in Data.a:
     rcSql = '''SELECT Id, Code, Description as Name FROM lookup.Campus'''
     Data.Title = "All Campuses"
     Data.campuses = q.QuerySql(rcSql, {})
-
-if "Genders" in Data.a:
-    apiCalled = True
-    # noinspection SqlResolve
-    rcSql = '''SELECT Id, Code, Description as Name FROM lookup.Gender'''
-    Data.Title = "All Genders"
-    Data.genders = q.QuerySql(rcSql, {})
 
 if "Keywords" in Data.a:
     apiCalled = True
@@ -344,7 +337,7 @@ if "Invs" in Data.a:
                         FORMAT(om.MeetingEnd, 'yyyy-MM-ddTHH:mm:ss') as mtgEndDt,
                         om.Location as location,
                         om.Description as name,
-                        1 - om.DidNotMeet as status,
+                        IIF(om.DidNotMeet = 1 OR om.Canceled = 1 OR om.ApprovalStatus = 2, 0, 1) as status,  -- ApprovalStatus 2 = Rejected
                         om.Capacity as capacity,
                         CAST(me.Data as INT) as parentMtgId
                     FROM dbo.Meetings om
@@ -372,6 +365,27 @@ if "Invs" in Data.a:
             FOR JSON PATH, INCLUDE_NULL_VALUES
             ) as OrgSchedule
             FROM cteTargetOrgs cto),
+        -- pull aggregate MeetingSeries for all target organizations
+        cteMeetingSeries AS
+        (
+            SELECT cto.OrganizationId,
+                (
+                    SELECT DISTINCT ms.MeetingSeriesId as mtgSeriesId,
+                        FORMAT(ms.MeetingStart, 'yyyy-MM-ddTHH:mm:ss') as mtgStartDt,
+                        FORMAT(ms.MeetingEnd, 'yyyy-MM-ddTHH:mm:ss') as mtgEndDt,
+                        ms.RRuleString as RRuleString,
+                        ms.Description as name,
+                        IIF(ms.Canceled = 1 or ms.ApprovalStatus = 2, 0, 1) as status, -- ApprovalStatus 2 = Rejected
+                        ms.Capacity as capacity
+                    FROM dbo.MeetingSeries ms
+                        INNER JOIN cteTargetOrgs o
+                            ON ms.OrganizationId = o.OrganizationId
+                    WHERE ms.OrganizationId = cto.OrganizationId AND
+                        ms.SeriesCompleted = 0
+                    FOR JSON PATH, INCLUDE_NULL_VALUES
+                ) as OrgMeetingSeries
+            FROM cteTargetOrgs cto
+        ),
         -- pull aggregate divisions for all target organizations
         cteDivision AS 
         (SELECT OrganizationId, STRING_AGG(divId, ',') WITHIN GROUP (ORDER BY divId ASC) AS OrgDivision
@@ -448,6 +462,7 @@ if "Invs" in Data.a:
             , aa.PeopleAge                   AS [age_groups]
             , s.OrgSchedule                  AS [schedules]
             , m.OrgMeetings                  AS [meetings]
+            , e.OrgMeetingSeries             AS [meetingSeries]
             , d.OrgDivision                  AS [divs]
             , ol.lat                         AS [lat]
             , ol.lng                         AS [lng]
@@ -460,6 +475,8 @@ if "Invs" in Data.a:
                 ON o.OrganizationId = aa.OrganizationId
             LEFT JOIN cteSchedule s
                 ON o.OrganizationId = s.OrganizationId
+            LEFT JOIN cteMeetingSeries e
+                ON o.OrganizationId = e.OrganizationId
             LEFT JOIN cteMeeting m
                 ON o.OrganizationId = m.OrganizationId
             LEFT JOIN cteDivision d
@@ -505,17 +522,27 @@ if "MemTypes" in Data.a:
     apiCalled = True
 
     divs = Data.divs or ""
+    invs = Data.invs or ""
 
     regex = re.compile('[^0-9,]')
     divs = regex.sub('', divs)
+    invs = regex.sub('', invs)
 
     # noinspection SqlResolve
     memTypeSql = '''SELECT DISTINCT om.[MemberTypeId] as id, mt.[Code] as code, mt.[Description] as description
                     FROM OrganizationMembers om
                     JOIN DivOrg do ON om.OrganizationId = do.OrgId
                     JOIN lookup.MemberType mt ON om.[MemberTypeId] = mt.[Id]'''
+    where = " WHERE 1=0"
+    order = ""
+
     if divs != "":
-        memTypeSql += " WHERE do.DivId IN ({})".format(divs)
+        where += " OR do.DivId IN ({})".format(divs)
+
+    if invs != "":
+        where += " OR om.OrganizationId IN ({})".format(invs)
+
+    memTypeSql += where
     memTypeSql += " ORDER BY description ASC"
 
     Data.memTypes = model.SqlListDynamicData(memTypeSql)
@@ -793,9 +820,9 @@ if "inv_join" in Data.a and model.HttpMethod == "post":
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
-    SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
+    SELECT TOP 1 MainLeaderId as contactId FROM Organizations WHERE OrganizationId = {0} AND MainLeaderId IS NOT NULL
     UNION
-    SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
+    SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
     '''.format(oid, sgContactEvName, memTypes)
     orgContact = q.QuerySqlTop1(orgContactSql)
     orgContactPid = orgContact.contactId if orgContact is not None else None  # None if not found.  Falls back to Owner
@@ -843,9 +870,9 @@ if "inv_contact" in Data.a and model.HttpMethod == "post":
     orgContactSql = '''
     SELECT TOP 1 IntValue as contactId FROM OrganizationExtra WHERE OrganizationId = {0} AND Field = '{1}'
     UNION
-    SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
+    SELECT TOP 1 MainLeaderId as contactId FROM Organizations WHERE OrganizationId = {0} AND MainLeaderId IS NOT NULL
     UNION
-    SELECT TOP 1 LeaderId as contactId FROM Organizations WHERE OrganizationId = {0}
+    SELECT TOP 1 PeopleId as contactId FROM OrganizationMembers WHERE OrganizationId = {0} AND MemberTypeId in ({2})
     '''.format(oid, sgContactEvName, memTypes)
     orgContact = q.QuerySqlTop1(orgContactSql)
     orgContactPid = orgContact.contactId if orgContact is not None else None  # None if not found. Fall back to Owner
@@ -952,6 +979,9 @@ if ("people_get" in Data.a or "people_count" in Data.a) and model.HttpMethod == 
 
     Data.Title = 'People Query'
 
+    # noinspection SqlResolve
+    leaderMemberTypes = q.QuerySqlInts("SELECT Id FROM Lookup.MemberType WHERE AttendanceTypeId = 10")
+
     rules = []
     invsMembershipsToImport = []
     invsMemSubGroupsToImport = {}
@@ -975,9 +1005,23 @@ if ("people_get" in Data.a or "people_count" in Data.a) and model.HttpMethod == 
     # Involvements
     if inData.has_key('inv'):
         for iid in inData['inv']:
-            if inData['inv'][iid]['memTypes'] is None:
+            # All members.  Includes leaders.
+            if inData['inv'][iid]['memTypes'] is None or 0 in inData['inv'][iid]['memTypes']:
                 rules.append("IsMemberOf( Org={} ) = 1".format(iid))
-            else:
+                inData['inv'][iid]['memTypes'].remove(0)
+                for lmt in leaderMemberTypes:  # leaders are implied
+                    if lmt in inData['inv'][iid]['memTypes']:
+                        inData['inv'][iid]['memTypes'].remove(lmt)
+
+            # All leaders, but other types may be needed.
+            elif -1 in inData['inv'][iid]['memTypes']:
+                #  remove -1 and add leaderMemberTypes values
+                inData['inv'][iid]['memTypes'].remove(-1)
+                for lmt in leaderMemberTypes:
+                    inData['inv'][iid]['memTypes'].append(lmt)
+            
+            # leaders and anyone else
+            if len(inData['inv'][iid]['memTypes']) > 0:
                 rules.append("MemberTypeCodes( Org={} ) IN ( {} )"
                              .format(iid, ', '.join(map(str, inData['inv'][iid]['memTypes'])))
                              )
@@ -1304,7 +1348,6 @@ elif ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r par
 
             print("<p>Please email the following error message to <b>" +
                   model.Setting("AdminMail", "the church staff") + "</b>.</p><pre>")
-            # print(response)  TODO
             print_exception()
             print("</pre>")
 

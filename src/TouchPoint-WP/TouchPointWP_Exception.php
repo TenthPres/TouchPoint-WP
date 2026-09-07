@@ -26,17 +26,18 @@ class TouchPointWP_Exception extends Exception
 	 * @param string     $message
 	 * @param int        $code
 	 * @param ?Throwable $previous
+	 * @param mixed      $devDetail
 	 */
-	public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null)
+	public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null, mixed $devDetail = null)
 	{
 		parent::__construct($message, $code, $previous);
 		if (is_admin() && TouchPointWP::currentUserIsAdmin()) {
 			$message = $this->getMessage();
 			if (current_user_can('manage_options') && self::debugMode()) {
 				$message .= "<br />" . $this->getFile() . " @ " . $this->getLine() . "<br />";
-				$message .= str_replace("\n", "<br />", $this->getTraceAsString());
+				$message .= str_replace("\n", "<br />", esc_html($this->getTraceAsString()));
 			}
-			self::showAdminError($message);
+			self::showAdminError($message, $devDetail);
 		}
 		error_log("TouchPoint-WP: " . $message);
 		self::debugLog($this->getCode(), $this->getFile(), $this->getLine(), $this->getMessage() . " " . $this->getTraceAsString());
@@ -45,18 +46,19 @@ class TouchPointWP_Exception extends Exception
 	/**
 	 * Shows an admin error if and only if admin is loaded.
 	 *
-	 * @param $message
+	 * @param string $message
+	 * @param mixed  $devDetail
 	 *
 	 * @return void
 	 */
-	protected static function showAdminError($message): void
+	protected static function showAdminError(string $message, mixed $devDetail = null): void
 	{
 		if (is_admin() && TouchPointWP::currentUserIsAdmin()) {
 			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 				require_once 'TouchPointWP_AdminAPI.php';
 			}
 
-			TouchPointWP_AdminAPI::showError($message);
+			TouchPointWP_AdminAPI::showError($message, $devDetail);
 		}
 	}
 

@@ -45,9 +45,39 @@ class TouchPointWP_AdminAPI implements api
 		switch (strtolower($uri['path'][2])) {
 			case "memtypes":
 				header('Content-Type: application/json');
-				$divs = explode(",", $_GET['divs']);
-				$mt   = TouchPointWP::instance()->getMemberTypesForDivisions($divs);
-				echo json_encode($mt);
+				if (isset($_GET['divs']) && trim($_GET['divs']) !== '') {
+					$divs = explode(",", $_GET['divs']);
+					$mt   = TouchPointWP::instance()->getMemberTypesForDivisions($divs, true);
+					echo json_encode($mt);
+					exit;
+				}
+				if (isset($_GET['inv']) && trim($_GET['inv']) !== '') {
+					$inv = explode(",", $_GET['inv']);
+					$mt  = TouchPointWP::instance()->getMemberTypesForInvolvements($inv);
+					echo json_encode($mt);
+					exit;
+				}
+				echo json_encode([]);
+				exit;
+
+			case "divisions":
+				header('Content-Type: application/json');
+				$divs = TouchPointWP::instance()->getImportedDivisions();
+				echo json_encode($divs);
+				exit;
+
+			case "involvementsearch":
+				header('Content-Type: application/json');
+				if ( ! isset($_GET['s']) || trim($_GET['s']) === '') {
+					header('Cache-Control: public, max-age=' . YEAR_IN_SECONDS); // practically perpetual
+					echo json_encode([]);
+					exit;
+				}
+				$result = TouchPointWP::instance()->api->uGet('v1/Involvements', [
+					'terms' => $_GET['s']
+				]);
+				header('Cache-Control: public, max-age=60'); // 1 minute, to allow duplicates to be cached easily.
+				echo $result['body'];
 				exit;
 
 			case self::API_ENDPOINT_SCRIPTZIP:
@@ -94,6 +124,13 @@ class TouchPointWP_AdminAPI implements api
 					return false;
 				}
 				TouchPointWP::instance()->migrate(true);
+				exit;
+
+			case "flush-rewrite":
+				if ( ! TouchPointWP::currentUserIsAdmin()) {
+					return false;
+				}
+				TouchPointWP::instance()->flushRewriteRules(true);
 				exit;
 
 			case "phpinfo":
@@ -493,13 +530,21 @@ class TouchPointWP_AdminAPI implements api
 
 	/**
 	 * Display an error when there's something wrong with the TouchPoint connection.
+	 *
+	 * @param string $message
+	 * @param ?mixed $devDetail
 	 */
-	public static function showError($message): void
+	public static function showError(string $message, mixed $devDetail = null): void
 	{
 		add_action('admin_notices',
-			function () use ($message) {
+			function () use ($message, $devDetail) {
 				$class = 'notice notice-error';
 				printf('<div class="%1$s"><p><b>TouchPoint-WP:</b> %2$s</p></div>', esc_attr($class), $message);
+
+				if ($devDetail !== null) {
+					/** @noinspection JSCheckFunctionSignatures */
+					printf('<script>console.error(JSON.parse( %s ))</script>', json_encode(json_encode($devDetail)));
+				}
 			}, 10, 2
 		);
 	}

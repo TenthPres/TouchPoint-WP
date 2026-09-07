@@ -77,6 +77,89 @@ class Api
 
 
 	/**
+	 * Gets data from the API with Basic User Auth.
+	 *
+	 * This method is provided until TouchPoint has been updated to allow PAT authentication on more endpoints.  The
+	 * signature is identical to the PAT version so replacement later should be easy, however, onbehalf
+	 *
+	 * @param string $command The API endpoint to call
+	 * @param array $headers Headers to send with the request.
+	 * @param ?int $onBehalfPid The PID of the user to act on behalf of.
+	 * @param int $timeout Amount of time in sec to wait before timing out.
+	 * @param float $timeTaken The time taken to complete the request.
+	 *
+	 * @return array|WP_Error An array with headers, body, and other keys
+	 *
+	 * @throws TouchPointWP_Exception Thrown if the API credentials are incomplete.
+	 * @throws TouchPointWP_WPError
+	 *
+	 * @deprecated Use `get()` instead once possible, which uses PAT authentication.
+	 *
+	 * @since 0.0.96 Added and deprecated.
+	 *
+	 */
+	public function uGet(string $command, array $parameters = [], array $headers = [], ?int $onBehalfPid = null, int $timeout = 5, float &$timeTaken = 0): array|WP_Error
+	{
+		$tik = microtime(true);
+
+		if ( ! $this->settings()->hasValidApiSettings()) {
+			TouchPointWP::instance()->logoutServiceMaybe();
+			throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", "TouchPoint-WP"), 170001);
+		}
+
+		$this->checkApiValidity();
+		$host = $this->parent->host();
+		$url = $host . "/api/" . $command;
+
+		self::$apiCallLog[] = $url;
+
+		$headers['Authorization'] = $this->getBasicAuth();
+
+		if (!isset($headers['Content-Type'])) {
+			$headers['Content-Type'] = 'text/plain';
+		}
+
+		if ($onBehalfPid) {
+			TouchPointWP::instance()->logoutServiceMaybe();
+			throw new TouchPointWP_Exception("On-Behalf-Of is not supported for Basic Auth.");
+		}
+
+		// build query string
+		if (!empty($parameters)) {
+			$url .= (!str_contains($url, '?') ? '?' : '&') . http_build_query($parameters);
+		}
+
+		$r   = $this->getHttpClient()->request(
+			$url,
+			[
+				'method'  => 'GET',
+				'headers' => $headers,
+				'timeout' => $timeout
+			]
+		);
+
+		$timeTaken = microtime(true) - $tik;
+
+		return $r;
+	}
+
+
+	/**
+	 * Get the Basic Auth header for the API.  Only used until PAT is fully implemented.
+	 *
+	 * @deprecated
+	 *
+	 * @since 0.0.96 Added and deprecated.
+	 *
+	 * @return string
+	 */
+	protected function getBasicAuth(): string
+	{
+		return 'Basic ' . base64_encode($this->settings()->api_user . ':' . $this->settings()->api_pass);
+	}
+
+
+	/**
 	 * Gets data from the API via the python script.
 	 *
 	 * @param string $command The thing to get
@@ -95,10 +178,12 @@ class Api
 		}
 
 		if ( ! $this->settings()->hasValidApiSettings()) {
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", "TouchPoint-WP"), 170001);
 		}
 
 		if (!self::$allowApiCalls) {
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception("TouchPoint has received too many requests.", 170009);
 		}
 
@@ -109,6 +194,7 @@ class Api
 		$host = $this->parent->host();
 
 		if (!$host) {
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception(__('Host appears to be missing from TouchPoint-WP configuration.', 'TouchPoint-WP'), 170002);
 		}
 
@@ -126,9 +212,7 @@ class Api
 			[
 				'method'  => 'GET',
 				'headers' => [
-					'Authorization' => 'Basic ' . base64_encode(
-							$this->settings()->api_user . ':' . $this->settings()->api_pass
-						)
+					'Authorization' => $this->getBasicAuth()
 				],
 				'timeout' => $timeout
 			]
@@ -156,6 +240,7 @@ class Api
 		$host = $this->parent->host();
 
 		if ( ! $host) {
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception(
 				__("Host appears to be missing from TouchPoint-WP configuration.", "TouchPoint-WP"), 170002
 			);
@@ -223,23 +308,29 @@ class Api
 
 
 	/**
-	 * Do a GET to the standard API using a PAB.
+	 * Do a GET to the standard API using a PAT.
 	 *
-	 * @param string $command The API endpoint to call
+	 * @param string $command The API endpoint to call (after /api/)
+	 * @param array  $parameters URL parameters to be added.
 	 * @param array  $headers Headers to send with the request.
 	 * @param ?int   $onBehalfPid The PID of the user to act on behalf of.
 	 * @param int    $timeout Amount of time in sec to wait before timing out.
 	 * @param float  $timeTaken The time taken to complete the request.
 	 *
-	 * @return array|WP_Error The response from the Http request call.
+	 * @return array The response from the Http request call.
 	 * @throws TouchPointWP_Exception  If anything went wrong.
 	 */
-	public function get(string $command, array $headers = [], ?int $onBehalfPid = null, int $timeout = 5, float &$timeTaken = 0): array|WP_Error
+	public function get(string $command, array $parameters = [], array $headers = [], ?int $onBehalfPid = null, int $timeout = 5, float &$timeTaken = 0): array
 	{
 		$tik = microtime(true);
-
 		for ($attempt = 0; $attempt < 2; $attempt++) {
-			$url = $this->prepareRequest($command, $headers, $onBehalfPid);
+			$url = $this->prepareRequest("/api/" . $command, $headers, $onBehalfPid);
+
+			// build query string
+			if (!empty($parameters)) {
+				$url .= (!str_contains($url, '?') ? '?' : '&') . http_build_query($parameters);
+			}
+
 			$r   = $this->getHttpClient()->request(
 				$url,
 				[
@@ -250,10 +341,10 @@ class Api
 			);
 
 			if ($r instanceof WP_Error) {
-				return $r;
+				throw new TouchPointWP_WPError($r);
 			}
 
-			if ($r['response']['code'] === Http::FORBIDDEN) {
+			if ($r['response']['code'] === Http::UNAUTHORIZED) {
 				//if unauthorized, cycle PAT
 				$this->cyclePAT();
 			} elseif ($r['response']['code'] === Http::TOO_MANY_REQUESTS) {
@@ -271,9 +362,9 @@ class Api
 
 
 	/**
-	 * Do a POST to the standard API using a PAB.
+	 * Do a POST to the standard API using a PAT.
 	 *
-	 * @param string $command The API endpoint to call
+	 * @param string $command The API endpoint to call (after /api/)
 	 * @param ?mixed $data Data to post
 	 * @param array  $headers Headers to send with the request.
 	 * @param ?int   $onBehalfPid The PID of the user to act on behalf of.
@@ -288,7 +379,7 @@ class Api
 		$tik = microtime(true);
 
 		for ($attempt = 0; $attempt < 2; $attempt++) {
-			$url = $this->prepareRequest($command, $headers, $onBehalfPid);
+			$url = $this->prepareRequest("/api/" . $command, $headers, $onBehalfPid);
 			$r   = $this->getHttpClient()->request(
 				$url,
 				[
@@ -303,7 +394,7 @@ class Api
 				return $r;
 			}
 
-			if ($r['response']['code'] === Http::FORBIDDEN) {
+			if ($r['response']['code'] === Http::UNAUTHORIZED) {
 				//if unauthorized, cycle PAT
 				$this->cyclePAT();
 			} elseif ($r['response']['code'] === Http::TOO_MANY_REQUESTS) {
@@ -483,10 +574,12 @@ class Api
 	protected function checkApiValidity(): void
 	{
 		if ( ! $this->settings()->hasValidApiSettings()) {
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception(__("Invalid or incomplete API Settings.", "TouchPoint-WP"), 170001);
 		}
 
 		if (!self::$allowApiCalls) {
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception("TouchPoint has received too many requests.", 170009);
 		}
 
@@ -498,6 +591,7 @@ class Api
 				$mostCommon = "  Most Common: " . key($counts);
 			}
 
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception("Too many API calls have been attempted in this session.$mostCommon", 170009);
 		}
 	}
@@ -513,33 +607,39 @@ class Api
 	private static function parsePyApiResponse(WP_Error|array $response): array|stdClass
 	{
 		if ($response instanceof WP_Error) {
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_WPError($response);
 		}
 
 		if ($response['response']['code'] === 429) {
 			self::$allowApiCalls = false;
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception("TouchPoint has received too many requests.", 170009);
 		}
 
 		$respDecoded = json_decode($response['body']);
 
 		if ($respDecoded === null) {
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception("Connection Error", 179000);
 		}
 
 		// Most likely the issue where a module import failed for no apparent reason.
 		if (property_exists($respDecoded, 'output') &&
 		    str_starts_with($respDecoded->output, "Traceback (most recent call last):")) {
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179001);
 		}
 
 		// Some other script error
 		if (property_exists($respDecoded, 'output') && $respDecoded->output !== '') {
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception("Script error: " . $respDecoded->output, 179002);
 		}
 
 		// Error caught by error handling within Python script
 		if (property_exists($respDecoded, 'message') && $respDecoded->message !== '') {
+			TouchPointWP::instance()->logoutServiceMaybe();
 			throw new TouchPointWP_Exception($respDecoded->message, 179003);
 		}
 

@@ -12,8 +12,7 @@ if ( ! defined('ABSPATH')) {
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "jsInstantiation.php";
 	require_once "jsonLd.php";
-	require_once "Interfaces/hierarchical.php";
-	require_once "Interfaces/scheduled.php";
+	require_once "Interfaces/involvementMeetingCommon.php";
 	require_once "Interfaces/updatesViaCron.php";
 	require_once "Utilities.php";
 	require_once "Involvement_PostTypeSettings.php";
@@ -27,14 +26,13 @@ use Exception;
 use JsonSerializable;
 use stdClass;
 use tp\TouchPointWP\Interfaces\api;
-use tp\TouchPointWP\Interfaces\hasGeo;
-use tp\TouchPointWP\Interfaces\hierarchical;
+use tp\TouchPointWP\Interfaces\involvementMeetingCommon;
 use tp\TouchPointWP\Interfaces\module;
-use tp\TouchPointWP\Interfaces\scheduled;
 use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\DateFormats;
 use tp\TouchPointWP\Utilities\DateTimeExtended;
 use tp\TouchPointWP\Utilities\Http;
+use tp\TouchPointWP\Utilities\NotableAttributes;
 use tp\TouchPointWP\Utilities\PersonArray;
 use tp\TouchPointWP\Utilities\PersonQuery;
 use tp\TouchPointWP\Utilities\StringableArray;
@@ -48,7 +46,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo, module, hierarchical, JsonSerializable, scheduled
+class Involvement extends PostTypeCapable implements api, updatesViaCron, module, JsonSerializable, involvementMeetingCommon
 {
 	use jsInstantiation;
 	use jsonLd;
@@ -68,7 +66,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	protected const MEETING_STRATEGY_MULTIPLE = 2;
 
 	public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
-	public const CRON_OFFSET = 86400 + 3600;
+	public const CRON_OFFSET = 86400 - 3600;
 
 	protected static bool $_hasUsedMap = false;
 	protected static bool $_hasArchiveMap = false;
@@ -261,10 +259,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 	/**
 	 * Get the settings array of objects for Involvement Post Types
+     *
+     * Was previously protected, but that doesn't make sense since the underlying function isn't.
 	 *
 	 * @return Involvement_PostTypeSettings[]
 	 */
-	final protected static function &allTypeSettings(): array
+	final public static function &allTypeSettings(): array
 	{
 		return Involvement_PostTypeSettings::instance();
 	}
@@ -365,7 +365,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 *
 	 * @return int False on failure, or the number of groups that were updated or deleted.
 	 */
-	public final static function updateFromTouchPoint(bool $verbose = false): int
+	public final static function updateFromTouchPoint(?string $typeSlug = null, bool $verbose = false, bool $applyChanges = true): int
 	{
 		$count   = 0;
 		$success = true;
@@ -373,9 +373,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$startTime = microtime(true);
 
 		// Prevent other threads from attempting for an hour.
-		TouchPointWP::instance()->settings->set('inv_cron_last_run', time() - self::CRON_OFFSET + 3600);
+		if ($applyChanges) {
+			TouchPointWP::instance()->settings->set('inv_cron_last_run', time() + 3600);
+		}
 
-		$verbose &= TouchPointWP::currentUserIsAdmin();
+		// Any user can preview changes, only admins can apply them.
+		$verbose &= TouchPointWP::currentUserIsAdmin() | (TouchPointWP::currentUserPerson() !== null && !$applyChanges);
 
 		ini_set('max_execution_time', 300);
 		ini_set('memory_limit', '512M');
@@ -385,6 +388,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 
 		foreach (self::allTypeSettings() as $type) {
+            // Skip those that aren't pertinent.
+            if ($typeSlug !== null && $type->slug !== $typeSlug) {
+                continue;
+            }
 
 			if ($verbose) {
 				echo "<h2>$type->namePlural</h2>";
@@ -402,7 +409,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$update = false;
 			try {
 				TouchPointWP::instance()->setTpWpUserAsCurrent();
-				$update = self::updateInvolvementPostsForType($type, $verbose);
+				$update = self::updateInvolvementPostsForType($type, $verbose, $applyChanges);
 			} catch (Exception $e) {
 				if ($verbose) {
 					echo "An exception occurred while syncing $type->namePlural: " . $e->getMessage();
@@ -425,10 +432,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		}
 		unset($type);
 
-		if ($success && $count !== 0) {
-			TouchPointWP::instance()->settings->set('inv_cron_last_run', time());
-		} else {
-			TouchPointWP::instance()->settings->set('inv_cron_last_run', 0);
+		if ($applyChanges) {
+			if ($success && $count !== 0) {
+				TouchPointWP::instance()->settings->set('inv_cron_last_run', time());
+			} else {
+				TouchPointWP::instance()->settings->set('inv_cron_last_run', 0);
+			}
 		}
 
 		if ($verbose) {
@@ -677,6 +686,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			// Make sure items are unique.  #204
 			$m = array_unique($m, SORT_REGULAR);
 
+			usort($m, function ($a, $b) {
+				return $a->mtgStartDt <=> $b->mtgStartDt;
+			});
+
 			$this->_meetings = $m;
 		}
 
@@ -796,8 +809,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			foreach ($this->meetings() as $m) {
 				$mdt = $m->mtgStartDt;
 				if ($mdt > $now) {
+					// meetings are sorted, so first one past now is the next meeting
 					if ($this->_nextMeeting === null || $mdt < $this->_nextMeeting) {
 						$this->_nextMeeting = $mdt;
+						break;
 					}
 				}
 			}
@@ -821,15 +836,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	}
 
 	/**
-	 * @param $apiMeeting
+	 * @param \DateTimeInterface $dateTime
 	 *
 	 * @return bool
 	 *
 	 * TODO update with #184
 	 */
-	protected static function apiMeetingIsAllDay($apiMeeting): bool
+	protected static function apiMeetingIsAllDay(\DateTimeInterface $dateTime): bool
 	{
-		return $apiMeeting->mtgStartDt->format("His") === "000000";
+		return $dateTime->format("His") === "000000";
 	}
 
 
@@ -1053,8 +1068,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				$r['firstLast'] = wp_sprintf(
 				// translators: {start date} through {end date}  e.g. February 14 through August 12
 					__('%1$s through %2$s', 'TouchPoint-WP'),
-					$this->firstMeeting->format($dateFormat),
-					$this->lastMeeting->format($dateFormat)
+					$this->firstMeeting->format_i18n($dateFormat),
+					$this->lastMeeting->format_i18n($dateFormat)
 				);
 				if ($dayStr === null) {
 					$dayStr = $r['firstLast'];
@@ -1063,15 +1078,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					// translators: {schedule}, {start date} through {end date}  e.g. Sundays at 11am, February 14 through August 12
 						__('%1$s, %2$s through %3$s', 'TouchPoint-WP'),
 						$dayStr,
-						$this->firstMeeting->format($dateFormat),
-						$this->lastMeeting->format($dateFormat)
+						$this->firstMeeting->format_i18n($dateFormat),
+						$this->lastMeeting->format_i18n($dateFormat)
 					);
 				}
 			} elseif ($this->firstMeeting !== null) {
 				$r['firstLast'] = wp_sprintf(
 				// translators: Starts {start date}  e.g. Starts September 15
 					__('Starts %1$s', 'TouchPoint-WP'),
-					$this->firstMeeting->format($dateFormat)
+					$this->firstMeeting->format_i18n($dateFormat)
 				);
 				if ($dayStr === null) {
 					$dayStr = $r['firstLast'];
@@ -1080,14 +1095,14 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					// translators: {schedule}, starting {start date}  e.g. Sundays at 11am, starting February 14
 						__('%1$s, starting %2$s', 'TouchPoint-WP'),
 						$dayStr,
-						$this->firstMeeting->format($dateFormat)
+						$this->firstMeeting->format_i18n($dateFormat)
 					);
 				}
 			} elseif ($this->lastMeeting !== null) {
 				$r['firstLast'] = wp_sprintf(
 				// translators: Through {end date}  e.g. Through September 15
 					__('Through %1$s', 'TouchPoint-WP'),
-					$this->lastMeeting->format($dateFormat)
+					$this->lastMeeting->format_i18n($dateFormat)
 				);
 				if ($dayStr === null) {
 					$dayStr = $r['firstLast'];
@@ -1096,7 +1111,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					// translators: {schedule}, through {end date}  e.g. Sundays at 11am, through February 14
 						__('%1$s, through %2$s', 'TouchPoint-WP'),
 						$dayStr,
-						$this->lastMeeting->format($dateFormat)
+						$this->lastMeeting->format_i18n($dateFormat)
 					);
 				}
 			}
@@ -1266,6 +1281,26 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		return $r;
 	}
 
+
+	/**
+	 * Get an array of Involvement Post Types, with some basic info
+	 *
+	 * @return array[]
+	 */
+	public static function getPostTypesSummary(): array
+	{
+		$r = [];
+		foreach (self::allTypeSettings() as $pt) {
+			$r[] = [
+				/** @var Involvement_PostTypeSettings $pt */
+				'postType' => $pt->postTypeWithoutPrefix(),
+				'nameSingular' => $pt->nameSingular,
+				'namePlural' => $pt->namePlural
+			];
+		}
+		return $r;
+	}
+
 	/**
 	 * Display action buttons for an involvement.  Takes an id parameter for the Involvement ID.  If not provided,
 	 * the current post will be used.
@@ -1396,7 +1431,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				// language=javascript
 				"
                 tpvm.addEventListener('Involvement_fromObjArray', function() {
-                    TP_Involvement.initFilters();
+                    tpvm.TP_Involvement.initFilters();
                 });"
 			);
 			self::$filterJsAdded = true;
@@ -1413,7 +1448,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$q->set('orderby', 'title'); // will mostly be overwritten by geographic sort, if available.
 		$q->set('order', 'ASC');
 
-		if ($q->is_post_type_archive()) {
+		if ( ! isset($q->query['post_parent'])) {
 			$q->set('post_parent', 0);
 		}
 
@@ -1491,7 +1526,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			}
 		}
 
-		$containerClass = $params['class'] ?? self::$containerClass;
+		$containerClass = $params['class'] ?? [];
+		if (!str_contains(" " . $containerClass . " ", " " . self::$containerClass . " ")) {
+			$containerClass .= " " . self::$containerClass;
+		}
 
 		// Groupings
 		foreach ($terms as $termId => $name) {
@@ -1512,7 +1550,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			if ($q->post_count > 0) {
 				/** @noinspection SpellCheckingInspection */
 				if ($params['includecss']) {
-					TouchPointWP::enqueuePartialsStyle();
+					TouchPointWP::enqueuePartialsStyle("inv-list attribute");
 				}
 
 				echo "<div class=\"$containerClass\">";
@@ -1581,11 +1619,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * Print a list of involvements that match the given criteria.
 	 *
 	 * @param array|string $params
-	 * @param string       $content
+	 * @param string       $content  A string that is shown if no content is available.
 	 *
 	 * @return string
 	 *
-	 * @noinspection PhpUnusedParameterInspection
 	 * @noinspection PhpMissingParamTypeInspection
 	 */
 	public static function listShortcode($params = [], string $content = ""): string
@@ -1632,10 +1669,29 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$render = ob_get_clean();
 
 		if (trim($render) == "") {
+			if ($content !== "") {
+				return apply_shortcodes($content);
+			}
 			return "<!-- Nothing to show -->";
 		}
 
 		return apply_shortcodes($render);
+	}
+
+
+	/**
+	 * Get the list of involvements through API endpoint.  This is used by the Involvement List Shortcode.
+	 *
+	 * @return void
+	 */
+	protected static function ajaxListShortcode(): void
+	{
+		// This is an AJAX call, so we need to set the headers.
+		if ( ! headers_sent()) {
+			TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
+		}
+
+		echo self::listShortcode($_GET, __('None right now.', 'TouchPoint-WP'));
 	}
 
 	/**
@@ -1645,7 +1701,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * @return string
 	 * @noinspection PhpUnusedParameterInspection
 	 */
-	public static function nearbyShortcode($params = [], string $content = ""): string
+	public static function nearbyShortcode(array|string $params = [], string $content = ""): string
 	{
 		TouchPointWP::requireScript("knockout-defer");
 		TouchPointWP::requireScript("base-defer");
@@ -1691,6 +1747,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		ob_start();
 		$loadedPart = get_template_part('list-item', 'involvement-nearby-list');
 		if ($loadedPart === false) {
+			TouchPointWP::requireScript("wp-i18n");
 			require TouchPointWP::$dir . "/src/templates/parts/involvement-nearby-list.php";
 		}
 		$content = ob_get_clean();
@@ -1809,7 +1866,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					continue;
 				}
 
-				$name    = $g->name;
+				$name    = $g->description;
 				$id      = $g->id;
 				$content .= "<option value=\"$id\">$name</option>";
 			}
@@ -1989,6 +2046,14 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$iid = intval($post->{TouchPointWP::INVOLVEMENT_META_KEY});
 
 		if ($iid === 0) {
+			$iid = intval(get_post_meta($post->ID, TouchPointWP::INVOLVEMENT_META_KEY, true));
+		}
+
+		if (Meeting::postIsType($post) && !Involvement::postIsType($post)) {
+			throw new TouchPointWP_Exception("The post is a Meeting, not an Involvement.", 171004);
+		}
+
+		if ($iid === 0) {
 			throw new TouchPointWP_Exception("Invalid Involvement ID provided.", 171002);
 		}
 
@@ -2051,9 +2116,27 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				self::ajaxNearby();
 				exit;
 
+			case "list":
+				self::ajaxListShortcode();
+				exit;
+
+			/** @noinspection SpellCheckingInspection */
+			case "posttypes":
+				// Return the post types that are available for involvements.
+				header('Content-Type: application/json');
+				echo json_encode(Involvement::getPostTypesSummary());
+				exit;
+
 			case "force-sync":
 				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
-				echo self::updateFromTouchPoint(true);
+				$type = $_GET['type'] ?? null;
+				echo self::updateFromTouchPoint($type, true);
+				exit;
+
+			case "preview-sync":
+				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
+				$type = $_GET['type'] ?? null;
+				echo self::updateFromTouchPoint($type, true, false);
 				exit;
 		}
 
@@ -2293,9 +2376,6 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		/// Syncing ///
 		///////////////
 
-		// Do an update if needed.
-		add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'checkUpdates']);
-
 		// Setup cron for updating Involvements daily.
 		add_action(self::CRON_HOOK, [self::class, 'updateCron']);
 		if ( ! wp_next_scheduled(self::CRON_HOOK)) {
@@ -2306,6 +2386,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				self::CRON_HOOK
 			);
 		}
+
+		// Do an update if needed.
+		add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'checkUpdates']);
 
 		return true;
 	}
@@ -2407,21 +2490,46 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Put Post objects that represent Small Groups in order of increasing distance.
 	 *
-	 * @param WP_Post $a
-	 * @param WP_Post $b
+	 * @param WP_Post|Involvement $a
+	 * @param WP_Post|Involvement $b
 	 *
 	 * @return int
 	 */
-	public static function sortPosts(WP_Post $a, WP_Post $b): int
+	public static function sortPosts(WP_Post|Involvement $a, WP_Post|Involvement $b): int
 	{
-		try {
-			$a = self::fromPost($a);
-			$b = self::fromPost($b);
-
-			return self::sort($a, $b);
-		} catch (TouchPointWP_Exception) {
-			return $a <=> $b;
+		$comparable = true;
+		if ($a instanceof WP_Post) {
+			try {
+				if (Meeting::postIsType($a)) {
+					$a = Meeting::fromPost($a)->involvement();
+				} elseif (Involvement::postIsType($a)) {
+					$a = Involvement::fromPost($a);
+				} else {
+					$comparable = false;
+				}
+			} catch (TouchPointWP_Exception) {
+				$comparable = false;
+			}
 		}
+		if ($b instanceof WP_Post) {
+			try {
+				if (Meeting::postIsType($b)) {
+					$b = Meeting::fromPost($b)->involvement();
+				} elseif (Involvement::postIsType($b)) {
+					$b = Involvement::fromPost($b);
+				} else {
+					$comparable = false;
+				}
+			} catch (TouchPointWP_Exception) {
+				$comparable = false;
+			}
+		}
+
+		if ($comparable) {
+			return self::sort($a, $b);
+		}
+
+		return $a <=> $b;
 	}
 
 
@@ -2480,10 +2588,14 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				$post = get_post();
 				if ($post) {
 					$inv = null;
-					if (Meeting::postIsType($post)) {
-						$inv = Meeting::fromPost($post)?->involvement();
-					} elseif (Involvement::postIsType($post)) {
-						$inv = Involvement::fromPost($post);
+					try {
+						if (Meeting::postIsType($post)) {
+							$inv = Meeting::fromPost($post)?->involvement();
+						} elseif (Involvement::postIsType($post)) {
+							$inv = Involvement::fromPost($post);
+						}
+					} catch (TouchPointWP_Exception) {
+						// If the post is not an involvement, do nothing.
 					}
 					$inv?->enqueueForJsInstantiation();
 				}
@@ -2517,7 +2629,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			return false;
 		}
 
-		return $this->geo !== null && $this->geo->lat !== null && $this->geo->lng !== null;
+		return $this->geo !== null && $this->geo->lat !== null && $this->geo->lng !== null &&
+		       is_numeric($this->geo->lat) && is_numeric($this->geo->lng);
 	}
 
 	public function asGeoIFace(string $type = "unknown"): ?Geo
@@ -2539,10 +2652,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 *
 	 * @param Involvement_PostTypeSettings $typeSets
 	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
 	 *
 	 * @return false|int  False on failure.  Otherwise, the number of updates.
 	 */
-	final protected static function updateInvolvementPostsForType(Involvement_PostTypeSettings $typeSets, bool $verbose): bool|int
+	final protected static function updateInvolvementPostsForType(Involvement_PostTypeSettings $typeSets, bool $verbose, bool $applyChanges = true): bool|int
 	{
 		$siteTz = wp_timezone();
 
@@ -2630,7 +2744,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			if ($typeSets->postType === Meeting::POST_TYPE && !$inv->isParent) {
 				if (count($inv->meetings) < 1) {
 					if ($verbose) {
-						echo "<p>Stopping processing because no meetings were returned.  Involvement will be deleted from WordPress.</p>";
+						echo "<p>Stopping processing because no meetings were returned.  Involvement will be deleted from WordPress if it exists.</p>";
 					}
 					continue;
 				}
@@ -2710,21 +2824,25 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$inv->titleToUse = trim($inv->titleToUse);
 
 			if ($post === null) {
-				$post = wp_insert_post(
-					[ // create new
-						'post_type'  => $typeSets->postType,
-						'post_title' => $inv->titleToUse,
-						'post_name'  => $inv->titleToUse,
-						'post_status' => 'publish',
-						'meta_input' => [
-							TouchPointWP::INVOLVEMENT_META_KEY => $inv->involvementId
+				if ($applyChanges) {
+					$post = wp_insert_post(
+						[ // create new
+							'post_type'   => $typeSets->postType,
+							'post_title'  => $inv->titleToUse,
+							'post_name'   => $inv->titleToUse,
+							'post_status' => 'publish',
+							'meta_input'  => [
+								TouchPointWP::INVOLVEMENT_META_KEY => $inv->involvementId
+							]
 						]
-					]
-				);
-				$post = get_post($post);
+					);
+					$post = get_post($post);
+				} elseif ($verbose) {
+					echo "<p>Would create new Post for Involvement {$inv->involvementId} ({$inv->titleToUse}).</p>";
+				}
 			}
 
-			$postsToKeep =  [...$postsToKeep, ...Involvement::doPostUpdate($post, $inv, $typeSets, $verbose)];
+			$postsToKeep =  [...$postsToKeep, ...Involvement::doPostUpdate($post, $inv, $typeSets, $verbose, $applyChanges)];
 			$postsToKeep[] = $post->ID;
 		}
 		unset($inv);
@@ -2749,7 +2867,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$removals = 0;
 		foreach ($q->get_posts() as $post) {
 			set_time_limit(10);
-			wp_delete_post($post->ID, true);
+			if ($applyChanges) {
+				wp_delete_post($post->ID, true);
+			}
 			$removals++;
 		}
 
@@ -2767,14 +2887,19 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * @param object                       $inv
 	 * @param Involvement_PostTypeSettings $typeSets
 	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
 	 *
 	 * @return int[] A list of Post IDs that should be kept.
 	 */
-	protected static function doPostUpdate($post, object $inv, Involvement_PostTypeSettings $typeSets, bool $verbose = false): array
+	protected static function doPostUpdate($post, object $inv, Involvement_PostTypeSettings $typeSets, bool $verbose = false, bool $applyChanges = true): array
 	{
 		if ($post instanceof WP_Error) {
 			new TouchPointWP_WPError($post);
 			return [];
+		}
+
+		if (!$applyChanges && $post === null) {
+			$post = new WP_Post((object)[]); // Create an empty placeholder to dry-run the logic.
 		}
 
 		if ($post === null) {
@@ -2805,53 +2930,62 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			$parent = 0;
 			if ($inv->parentInvId > 0) {
 				$parent = self::getWpPostByInvolvementId($typeSets->postType, $inv->parentInvId);
-				$parent = $parent->ID;
-
-				if ($verbose) {
-					echo "<p>Parent Post: $parent</p>";
+				if ($parent !== null) {
+					$parent = $parent->ID;
+					if ($verbose) {
+						echo "<p>Parent Post: $parent</p>";
+					}
+				} elseif ($verbose) {
+					echo "<p>Parent Post could not be bound.</p>";
 				}
 			}
 
-			$post->post_parent = $parent;
+			if ($parent > 0) {
+				$post->post_parent = $parent;
+			} else {
+				$post->post_parent = 0;
+			}
 		}
 
 		// Status & Submit
 		$post->post_status = 'publish';
-		wp_update_post($post);
+		if ($applyChanges) {
+			wp_update_post($post);
 
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "locationName", $inv->location);
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "memberCount", $inv->memberCount);
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "genderId", $inv->genderId);
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupFull", !!$inv->groupFull);
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupClosed", !!$inv->closed);
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", !!$inv->hasRegQuestions);
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regUrl", $inv->redirectUrl);
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regTypeId", intval($inv->regTypeId));
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "siteRegTypeId", intval($inv->siteRegTypeId));
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", !!$inv->hasRegQuestions);
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "locationName", $inv->location);
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "memberCount", $inv->memberCount);
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "genderId", $inv->genderId);
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupFull", ! ! $inv->groupFull);
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "groupClosed", ! ! $inv->closed);
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", ! ! $inv->hasRegQuestions);
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regUrl", $inv->redirectUrl);
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regTypeId", intval($inv->regTypeId));
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "siteRegTypeId", intval($inv->siteRegTypeId));
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "hasRegQuestions", ! ! $inv->hasRegQuestions);
 
 
-		// Registration start
-		if ($inv->regStart === null) {
-			delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regStart");
-		} else {
-			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regStart", $inv->regStart);
+			// Registration start
+			if ($inv->regStart === null) {
+				delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regStart");
+			} else {
+				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regStart", $inv->regStart);
+			}
+
+			// Registration end
+			if ($inv->regEnd === null) {
+				delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd");
+			} else {
+				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd", $inv->regEnd);
+			}
+
+			// Update image, if appropriate.
+			$imageUrl = "";
+			if ( ! ! $typeSets->useImages) {
+				$imageUrl = $inv->imageUrl;
+			}
 		}
 
-		// Registration end
-		if ($inv->regEnd === null) {
-			delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd");
-		} else {
-			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd", $inv->regEnd);
-		}
-
-		// Update image, if appropriate.
-		$imageUrl = "";
-		if (!!$typeSets->useImages) {
-			$imageUrl = $inv->imageUrl;
-		}
-
-		$imageId = Utilities::updatePostImageFromUrl($post->ID, $imageUrl, $post->post_title, $verbose);
+		$imageId = Utilities::updatePostImageFromUrl($post->ID ?? 0, $imageUrl, $post->post_title, $verbose, $applyChanges);
 
 		////////////////////
 		//// SCHEDULING ////
@@ -2898,13 +3032,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		if ($inv->firstMeeting !== null && $inv->firstMeeting < Utilities::dateTimeNow()) { // First meeting already happened.
 			$inv->firstMeeting = null; // We don't need to list info from the past.
 		}
-		if ($inv->firstMeeting === null) {
-			delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "firstMeeting");
-		} else {
-			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "firstMeeting", $inv->firstMeeting);
+		if ($applyChanges) {
+			if ($inv->firstMeeting === null) {
+				delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "firstMeeting");
+			} else {
+				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "firstMeeting", $inv->firstMeeting);
+			}
 		}
 
-		// Determine if there are meetings beyond the end date, and if so, nullify the end date
+		// Determine if there are meetings beyond the end date, and if so, nullify the end date  TODO figure out if this is a good idea or not. Possibly repeated below?
 		if ($inv->lastMeeting !== null) {
 			foreach ($inv->meetings as $m) {
 				if ($m->mtgStartDt > $inv->lastMeeting) {
@@ -2916,38 +3052,50 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		if ($inv->lastMeeting !== null && $inv->lastMeeting > Utilities::dateTimeNowPlus1Y()) { // Last mtg is > 1yr away
 			$inv->lastMeeting = null; // For all practical purposes: it's not ending.
 		}
-		if ($inv->lastMeeting === null) {
-			delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "lastMeeting");
-		} else {
-			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "lastMeeting", $inv->lastMeeting);
+		if ($applyChanges) {
+			if ($inv->lastMeeting === null) {
+				delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "lastMeeting");
+			} else {
+				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "lastMeeting", $inv->lastMeeting);
+			}
 		}
 
 		// Clear Cached Schedule String
 		$cacheKey = $inv->involvementId . "_" . get_locale();
-		wp_cache_delete($cacheKey, self::SCHEDULE_STRING_CACHE_GROUP);
+		if ($applyChanges) {
+			wp_cache_delete($cacheKey, self::SCHEDULE_STRING_CACHE_GROUP);
+		}
 
 		// Tense
 		if ($inv->firstMeeting !== null) {
 			$tense = Taxonomies::TAX_TENSE_FUTURE;
 		}
-		/** @noinspection PhpRedundantOptionalArgumentInspection */
-		wp_set_post_terms($post->ID, [$tense], Taxonomies::TAX_TENSE, false);
+		if ($applyChanges) {
+			/** @noinspection PhpRedundantOptionalArgumentInspection */
+			wp_set_post_terms($post->ID, [$tense], Taxonomies::TAX_TENSE, false);
+		}
 
 		// Update meetings and schedules
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetings", $inv->meetings);
-		update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "schedules", $inv->schedules);
+		if ($applyChanges) {
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "meetings", $inv->meetings);
+			update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "schedules", $inv->schedules);
+		}
 
 		// Day of week taxonomy
 		$dayTerms = [];
 		foreach ($days as $k => $d) {
 			$dayTerms[] = Utilities::getDayOfWeekShortForNumber_noI18n(intval($k[1]));
 		}
-		/** @noinspection PhpRedundantOptionalArgumentInspection */
-		wp_set_post_terms($post->ID, $dayTerms, Taxonomies::TAX_WEEKDAY, false);
+		if ($applyChanges) {
+			/** @noinspection PhpRedundantOptionalArgumentInspection */
+			wp_set_post_terms($post->ID, $dayTerms, Taxonomies::TAX_WEEKDAY, false);
+		}
 
 		// Time of day taxonomy
-		/** @noinspection PhpRedundantOptionalArgumentInspection */
-		wp_set_post_terms($post->ID, $timeTerms, Taxonomies::TAX_DAYTIME, false);
+		if ($applyChanges) {
+			/** @noinspection PhpRedundantOptionalArgumentInspection */
+			wp_set_post_terms($post->ID, $timeTerms, Taxonomies::TAX_DAYTIME, false);
+		}
 
 
 		////////////////
@@ -2965,20 +3113,28 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			// Handle locations
 			if (property_exists($inv, "lat") && $inv->lat !== null &&
 			    property_exists($inv, "lng") && $inv->lng !== null) {
-				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", $inv->lat);
-				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", $inv->lng);
+				if ($applyChanges) {
+					update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat", $inv->lat);
+					update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng", $inv->lng);
+				}
 			} else {
-				delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat");
-				delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng");
+				if ($applyChanges) {
+					delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lat");
+					delete_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "geo_lng");
+				}
 			}
 
 			// Handle Resident Code
 			if (property_exists($inv, "resCodeName") && $inv->resCodeName !== null) {
-				/** @noinspection PhpRedundantOptionalArgumentInspection */
-				wp_set_post_terms($post->ID, [$inv->resCodeName], Taxonomies::TAX_RESCODE, false);
+				if ($applyChanges) {
+					/** @noinspection PhpRedundantOptionalArgumentInspection */
+					wp_set_post_terms($post->ID, [$inv->resCodeName], Taxonomies::TAX_RESCODE, false);
+				}
 			} else {
-				/** @noinspection PhpRedundantOptionalArgumentInspection */
-				wp_set_post_terms($post->ID, [], Taxonomies::TAX_RESCODE, false);
+				if ($applyChanges) {
+					/** @noinspection PhpRedundantOptionalArgumentInspection */
+					wp_set_post_terms($post->ID, [], Taxonomies::TAX_RESCODE, false);
+				}
 			}
 		}
 
@@ -2989,33 +3145,25 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		if (TouchPointWP::instance()->settings->enable_campuses === "on") {
 			if (property_exists($inv, "campusName") && $inv->campusName !== null) {
-				/** @noinspection PhpRedundantOptionalArgumentInspection */
-				wp_set_post_terms($post->ID, [$inv->campusName], Taxonomies::TAX_CAMPUS, false);
+				if ($applyChanges) {
+					/** @noinspection PhpRedundantOptionalArgumentInspection */
+					wp_set_post_terms($post->ID, [$inv->campusName], Taxonomies::TAX_CAMPUS, false);
+				}
 			} else {
-				/** @noinspection PhpRedundantOptionalArgumentInspection */
-				wp_set_post_terms($post->ID, [], Taxonomies::TAX_CAMPUS, false);
-			}
-
-			if (Translation::useCampusAsLanguage() && $inv->campusName !== null) {
-
-				// Set content's original language based on Campus.
-				$langCode = Translation::getWpmlLangCodeForString($inv->campusName);
-				if ($langCode !== null) {
-					$args = [
-						'element_id'           => $post->ID,
-						'element_type'         => apply_filters('wpml_element_type', $typeSets->postTypeWithPrefix()),
-						'language_code'        => $langCode,
-						'source_language_code' => $langCode,
-						'trid'                 => $post->ID
-					];
-					do_action( 'wpml_set_element_language_details', $args);
-					if ($verbose) {
-						echo "<p>Language Set to: $langCode</p>";
-					}
+				if ($applyChanges) {
+					/** @noinspection PhpRedundantOptionalArgumentInspection */
+					wp_set_post_terms($post->ID, [], Taxonomies::TAX_CAMPUS, false);
 				}
 			}
-		}
 
+			Translation::setPostLanguageFromCampus(
+				$inv->campusName,
+				$post,
+				$typeSets->postTypeWithPrefix(),
+				$verbose,
+				$applyChanges
+			);
+		}
 
 		/////////////////////
 		//// Demographic ////
@@ -3031,16 +3179,20 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				$maritalTax[] = "mostly_single";
 			}
 		}
-		/** @noinspection PhpRedundantOptionalArgumentInspection */
-		wp_set_post_terms($post->ID, $maritalTax, Taxonomies::TAX_INV_MARITAL, false);
+		if ($applyChanges) {
+			/** @noinspection PhpRedundantOptionalArgumentInspection */
+			wp_set_post_terms($post->ID, $maritalTax, Taxonomies::TAX_INV_MARITAL, false);
+		}
 
 		// Handle Age Groups
-		if ($inv->age_groups === null) {
-			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, [], Taxonomies::TAX_AGEGROUP, false);
-		} else {
-			/** @noinspection PhpRedundantOptionalArgumentInspection */
-			wp_set_post_terms($post->ID, $inv->age_groups, Taxonomies::TAX_AGEGROUP, false);
+		if ($applyChanges) {
+			if ($inv->age_groups === null) {
+				/** @noinspection PhpRedundantOptionalArgumentInspection */
+				wp_set_post_terms($post->ID, [], Taxonomies::TAX_AGEGROUP, false);
+			} else {
+				/** @noinspection PhpRedundantOptionalArgumentInspection */
+				wp_set_post_terms($post->ID, $inv->age_groups, Taxonomies::TAX_AGEGROUP, false);
+			}
 		}
 
 
@@ -3058,8 +3210,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				}
 			}
 		}
-		/** @noinspection PhpRedundantOptionalArgumentInspection */
-		wp_set_post_terms($post->ID, $divs, Taxonomies::TAX_DIV, false);
+		if ($applyChanges) {
+			/** @noinspection PhpRedundantOptionalArgumentInspection */
+			wp_set_post_terms($post->ID, $divs, Taxonomies::TAX_DIV, false);
+		}
 
 		if ($verbose) {
 			echo "<p>Division Terms:</p>";
@@ -3071,7 +3225,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		//// Meetings ////
 		//////////////////
 
-		$postsToKeep = self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imageId, $verbose);
+		$postsToKeep = self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imageId, $verbose, $applyChanges);
 
 		if ($verbose) {
 			echo "<hr />";
@@ -3144,22 +3298,24 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	}
 
 	/**
-	 * @param WP_Post|object               $post  The parent post, which could be a group or Meeting.
-	 * @param object                       $inv   The involvement object from the API.
+	 * @param object                       $post The parent post, which could be a group or Meeting.
+	 * @param object                       $inv The involvement object from the API.
 	 * @param Involvement_PostTypeSettings $typeSets
 	 * @param int                          $imagePostId
 	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
 	 *
 	 * @return int[] An array of Post IDs that have been updated, and which should be retained.
 	 */
 	protected static function updateMeetingsForInvolvement(
 		object $post, object $inv, Involvement_PostTypeSettings $typeSets,
-		int $imagePostId, bool $verbose = false): array
+		int $imagePostId, bool $verbose = false, bool $applyChanges = true): array
 	{
 
 		// Return if meetings shouldn't be imported at all.
 		if (!$typeSets->importMeetings && !$inv->showInSites) {
-			self::doMeetingMetaUpdates($post, null, false, $verbose);
+			/** @var $post WP_Post */
+			self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
 			return [$post->ID];
 		}
 
@@ -3178,7 +3334,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		if ($strategy === self::MEETING_STRATEGY_MULTIPLE) {
 
 			// If the main post was previously a single, it needs to have the meeting info removed.
-			self::doMeetingMetaUpdates($post, null, false, $verbose);
+			/** @var $post WP_Post */
+			self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
 
 			// Group meetings together if they're adjacent and settings allow.
 			$doGrouping = match($typeSets->meetingGroupingMethod) {
@@ -3221,22 +3378,22 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 				// A Meeting group, if it exists.
 				if ($groupingActive) {
-					$groupPost = self::updateMeeting($g, $inv, $typeSets, $post, $imagePostId, $verbose);
+					$groupPost = self::updateMeeting($g, $inv, $typeSets, $post, $imagePostId, $verbose, $applyChanges);
 					if ($groupPost) {
 						$postsToKeep[] = $groupPost->ID;
 					}
 					self::computeSlugs($g, $inv, true);
 				}
 
-				// Meetings within group
+				// Meetings within group (or ungrouped)
 				foreach ($g as $mtgO) {
 					if ($groupingActive) {
 						$mtgO->isGroupMember = true;
 					} else {
-						$mtgO->slugToUse    = $g->slugToUse;
-						$mtgO->titleToUse   = $g->titleToUse;
+						$mtgO->slugToUse     = $g->slugToUse;
+						$mtgO->titleToUse    = $mtgO->name ?? $g->titleToUse;
 					}
-					$updatedPost = self::updateMeeting($mtgO, $inv, $typeSets, $groupPost ?? $post, $imagePostId, $verbose);
+					$updatedPost = self::updateMeeting($mtgO, $inv, $typeSets, $groupPost ?? $post, $imagePostId, $verbose, $applyChanges);
 					if ($updatedPost) {
 						$postsToKeep[] = $updatedPost->ID;
 					}
@@ -3252,12 +3409,16 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			// TODO resolve Undefined array key 0 warning
 			// TODO make sure synced
 			if ($strategy === self::MEETING_STRATEGY_SINGLE) {
-				self::doMeetingMetaUpdates($post, $inv->meetings[0], !!$inv->showInSites, $verbose);
+				/** @var $post WP_Post */
+				self::doMeetingMetaUpdates($post, $inv->meetings[0], !!$inv->showInSites, $verbose, $applyChanges);
 			} else { // MEETING_STRATEGY_NONE
-				self::doMeetingMetaUpdates($post, null, false, $verbose);
+				/** @var $post WP_Post */
+				self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
 			}
 
-			wp_update_post($post);
+			if ($applyChanges) {
+				wp_update_post($post);
+			}
 
 			$postsToKeep[] = $post->ID;
 		}
@@ -3269,24 +3430,22 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Update a meeting post, or create it if it doesn't exist.
 	 *
-	 * @param Interfaces\apiMeeting $mtgO
-	 * @param object                $inv
-	 * @param array                 $slugFormats
-	 * @param array                 $slugStrategy
+	 * @param Interfaces\apiMeeting        $mtgO
+	 * @param object                       $inv
 	 * @param Involvement_PostTypeSettings $typeSets
-	 * @param ?WP_Post              $parentPost
-	 * @param int                   $imagePostId
-	 * @param bool                  $verbose
+	 * @param ?WP_Post                     $parentPost
+	 * @param int                          $imagePostId
+	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
 	 *
 	 * @return ?WP_Post
 	 */
-	protected static function updateMeeting($mtgO, $inv, $typeSets, $parentPost, $imagePostId, $verbose): ?WP_Post
+	protected static function updateMeeting(object $mtgO, object $inv, Involvement_PostTypeSettings $typeSets,
+		?WP_Post $parentPost, int $imagePostId, bool $verbose = false, bool $applyChanges = true): ?WP_Post
 	{
 		/////////////////////////////////
 		// Find or Create Meeting Post //
 		/////////////////////////////////
-
-		var_dump($mtgO);
 
 		$loops = 1;
 		do {
@@ -3312,6 +3471,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					echo "<p><b>Multiple Posts Exist.  An attempt will be made to remove them.</b></p>";
 				}
 
+				if (!$applyChanges) { // dont' loop forever, or do any deletions.
+					break;
+				}
 				for ($i = 1; $i <= $counts; $i++) {
 					wp_delete_post($mtgP[$i]->ID, true);
 				}
@@ -3332,18 +3494,25 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			if ($verbose) {
 				echo "<p>Post not found for Meeting $mtgO->mtgId.  Creating.</p>";
 			}
-			// create new
-			$mtgP = wp_insert_post([
-				                       'post_type'   => $typeSets->postTypeWithPrefix(),
-				                       'post_title'  => $mtgO->titleToUse,
-				                       'post_name'   => $mtgO->slugToUse,
-				                       'post_parent' => $parentPost->ID,
-				                       'post_status' => 'publish',
-				                       'meta_input'  => [
-					                       Meeting::MEETING_META_KEY => $mtgO->mtgId
-				                       ]
-			                       ]);
-			$mtgP = get_post($mtgP);
+			if ($applyChanges) {
+				// create new
+				$mtgP = wp_insert_post([
+					                       'post_type'   => $typeSets->postTypeWithPrefix(),
+					                       'post_title'  => $mtgO->titleToUse,
+					                       'post_name'   => $mtgO->slugToUse,
+					                       'post_parent' => $parentPost->ID,
+					                       'post_status' => 'publish',
+					                       'meta_input'  => [
+						                       Meeting::MEETING_META_KEY => $mtgO->mtgId
+					                       ]
+				                       ]);
+				$mtgP = get_post($mtgP);
+			} else {
+				if ($verbose) {
+					echo "<p>Would create new Post for Meeting {$mtgO->mtgId} ({$mtgO->titleToUse}).</p>";
+				}
+				$mtgP = new WP_Post((object)[]); // Create an empty placeholder to dry-run the logic.
+			}
 		}
 
 		$mtgP->post_title = $mtgO->titleToUse;
@@ -3356,18 +3525,22 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		}
 		$mtgP->post_parent = $parentPost->ID;
 
-		self::doMeetingMetaUpdates($mtgP, $mtgO, ! ! $inv->showInSites, $verbose);
+		self::doMeetingMetaUpdates($mtgP, $mtgO, ! ! $inv->showInSites, $verbose, $applyChanges);
+		Translation::setPostLanguageFromCampus($inv->campusName, $mtgP, $typeSets->postTypeWithPrefix(), $verbose, $applyChanges);
 
-		wp_update_post($mtgP);
+		if ($applyChanges) {
+			wp_update_post($mtgP);
 
-		if ($imagePostId > 0) {
-			set_post_thumbnail($mtgP->ID, $imagePostId);
-		} else {
-			delete_post_thumbnail($mtgP->ID);
-		}
 
-		if ($mtgP->post_name !== $mtgO->slugToUse) {
-			Utilities::forceSlugUpdate($mtgP->ID, $mtgO->slugToUse);
+			if ($imagePostId > 0) {
+				set_post_thumbnail($mtgP->ID, $imagePostId);
+			} else {
+				delete_post_thumbnail($mtgP->ID);
+			}
+
+			if ($mtgP->post_name !== $mtgO->slugToUse) {
+				Utilities::forceSlugUpdate($mtgP->ID, $mtgO->slugToUse);
+			}
 		}
 
 		return $mtgP;
@@ -3383,33 +3556,46 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 * @param ?object $mtgO
 	 * @param bool    $feature
 	 * @param bool    $verbose
+	 * @param bool    $applyChanges
 	 *
 	 * @return void
 	 */
-	protected static function doMeetingMetaUpdates(WP_Post $mtgP, ?object $mtgO, bool $feature, bool $verbose = false): void
+	protected static function doMeetingMetaUpdates(WP_Post $mtgP, ?object $mtgO, bool $feature, bool $verbose = false, bool $applyChanges = true): void
 	{
 		// If the main post was previously a single, it needs to have the meeting info removed.
 		if ($mtgO === null) {
-			delete_post_meta($mtgP->ID, Meeting::MEETING_META_KEY);
-			delete_post_meta($mtgP->ID, Meeting::MEETING_START_META_KEY);
-			delete_post_meta($mtgP->ID, Meeting::MEETING_END_META_KEY);
-			delete_post_meta($mtgP->ID, Meeting::MEETING_FEAT_META_KEY);
-			delete_post_meta($mtgP->ID, Meeting::MEETING_INV_ID_META_KEY);
-			delete_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY);
-			delete_post_meta($mtgP->ID, Meeting::MEETING_IS_GROUP_MEMBER);
+			if ($applyChanges) {
+				delete_post_meta($mtgP->ID, Meeting::MEETING_META_KEY);
+				delete_post_meta($mtgP->ID, Meeting::MEETING_START_META_KEY);
+				delete_post_meta($mtgP->ID, Meeting::MEETING_END_META_KEY);
+				delete_post_meta($mtgP->ID, Meeting::MEETING_FEAT_META_KEY);
+				delete_post_meta($mtgP->ID, Meeting::MEETING_INV_ID_META_KEY);
+				delete_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY);
+				delete_post_meta($mtgP->ID, Meeting::MEETING_IS_GROUP_MEMBER);
+			}
 		} else {
-			$eventIsPast = ($mtgO->mtgEndDt ?? $mtgO->mtgStartDt) < Utilities::dateTimeNow();
+			if ($applyChanges) {
+				$eventIsPast = ($mtgO->mtgEndDt ?? $mtgO->mtgStartDt) < Utilities::dateTimeNow();
 
-			update_post_meta($mtgP->ID, Meeting::MEETING_META_KEY, $mtgO->mtgId);
-			update_post_meta($mtgP->ID, Meeting::MEETING_START_META_KEY, DateFormats::timestampWithoutOffset($mtgO->mtgStartDt));
-			update_post_meta($mtgP->ID, Meeting::MEETING_END_META_KEY, DateFormats::timestampWithoutOffset($mtgO->mtgEndDt));
-			update_post_meta($mtgP->ID, Meeting::MEETING_FEAT_META_KEY, !!$feature);
-			update_post_meta($mtgP->ID, Meeting::MEETING_INV_ID_META_KEY, $mtgO->involvementId);
-			update_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY, intval($mtgO->status));
-			update_post_meta($mtgP->ID, Meeting::MEETING_IS_GROUP_MEMBER, 1 * isset($mtgO->isGroupMember));
+				update_post_meta($mtgP->ID, Meeting::MEETING_META_KEY, $mtgO->mtgId);
+				update_post_meta(
+					$mtgP->ID,
+					Meeting::MEETING_START_META_KEY,
+					DateFormats::timestampWithoutOffset($mtgO->mtgStartDt)
+				);
+				update_post_meta(
+					$mtgP->ID,
+					Meeting::MEETING_END_META_KEY,
+					DateFormats::timestampWithoutOffset($mtgO->mtgEndDt)
+				);
+				update_post_meta($mtgP->ID, Meeting::MEETING_FEAT_META_KEY, ! ! $feature);
+				update_post_meta($mtgP->ID, Meeting::MEETING_INV_ID_META_KEY, $mtgO->involvementId);
+				update_post_meta($mtgP->ID, Meeting::MEETING_STATUS_META_KEY, intval($mtgO->status));
+				update_post_meta($mtgP->ID, Meeting::MEETING_IS_GROUP_MEMBER, 1 * isset($mtgO->isGroupMember));
 
-			if ($mtgO->location !== null && !$eventIsPast) {
-				update_post_meta($mtgP->ID, Meeting::MEETING_LOCATION_META_KEY, $mtgO->location);
+				if ($mtgO->location !== null && ! $eventIsPast) {
+					update_post_meta($mtgP->ID, Meeting::MEETING_LOCATION_META_KEY, $mtgO->location);
+				}
 			}
 
 			if ($verbose) {
@@ -3431,6 +3617,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		if ($verbose) {
 			Utilities::var_dump_expandable($inv);
 		}
+
+		// TODO convert firstMeeting, lastMeeting and schedules to RRules
+
 
 		// Start and end dates
 		if ($inv->firstMeeting !== null) {
@@ -3464,6 +3653,39 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				unset($inv->schedules[$i]);
 			}
 		}
+
+		// TODO: extract end of meeting series from RRule and set involvement last meeting appropriately.
+		// TODO: extract start of meeting series from series (not rrule necessarily) and set involvement first meeting appropriately.
+		// TODO: figure out how to make meetings and series related, perhaps?
+		// TODO: calculate recurrence better.
+
+//		$rset = new RSet();
+//		foreach ($inv->meetingSeries as $i => $ms) {
+//			try {
+//				if ($ms->seriesStartDt === $ms->seriesEndDt || $ms->seriesEndDt == null) {
+//					$ms->seriesEndDt = null;
+//				} else {
+//					$ms->seriesEndDt = new DateTimeExtended($ms->seriesEndDt, $siteTz);
+//				}
+//				$ms->seriesStartDt = new DateTimeExtended($ms->seriesStartDt, $siteTz);
+//				$ms->seriesStartDt->isAllDay = self::apiMeetingIsAllDay($ms->seriesStartDt);
+//
+//				$ms->rro = RRule::createFromRfcString($ms->rRuleString ?? "");
+//				$rset->addRRule($ms->rro);
+//
+//				var_dump($ms->rro);
+//				var_dump($ms->rro->humanReadable());
+//				echo "<hr/>";
+//
+//			} catch (Exception) {
+//				unset($inv->meetingSeries[$i]);
+//			}
+//
+//			if ($ms->name == null || trim($ms->name) === "") {
+//				$ms->name = null;
+//			}
+//		}
+
 		foreach ($inv->meetings as $i => $m) {
 			try {
 				if ($m->mtgStartDt === $m->mtgEndDt || $m->mtgEndDt == null) {
@@ -3472,7 +3694,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 					$m->mtgEndDt = new DateTimeExtended($m->mtgEndDt, $siteTz);
 				}
 				$m->mtgStartDt = new DateTimeExtended($m->mtgStartDt, $siteTz);
-				$m->mtgStartDt->isAllDay = self::apiMeetingIsAllDay($m);
+				$m->mtgStartDt->isAllDay = self::apiMeetingIsAllDay($m->mtgStartDt);
+
+				// if meetings exist beyond lastMeeting, nullify lastMeeting
+				if ($inv->lastMeeting !== null && $m->mtgStartDt > $inv->lastMeeting) {
+					$inv->lastMeeting = null;
+				}
 			} catch (Exception) {
 				unset($inv->meetings[$i]);
 			}
@@ -3551,10 +3778,16 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		if (in_array(get_post_type($postId), $invTypes)) {
 			$post = get_post($postId);
-			try {
-				$i = Involvement::fromPost($post);
 
-				$author = $i->leaders()->__toString();
+			$author = null;
+			try {
+				if (Involvement::postIsType($post)) {
+					$inv    = Involvement::fromPost($post);
+					$author = $inv->leaders()->__toString();
+				} elseif (Meeting::postIsType($post)) {
+					$mtg    = Meeting::fromPost($post);
+					$author = $mtg->involvement()->leaders()->__toString();
+				}
 			} catch (TouchPointWP_Exception) {
 			}
 		}
@@ -3702,20 +3935,28 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	/**
 	 * Get notable attributes, such as gender restrictions, as strings.
 	 *
-	 * @param array $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent inv, not needed
-	 *	 here.)
+	 * @param array|StringableArray $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent inv,
+	 * not needed here.)
 	 *
-	 * @return string[]
+	 * @return NotableAttributes
+	 *
+	 * @since 0.0.11
+	 * @since 0.0.96 Changed to use NotableAttributes class, which is a StringableArray.
 	 */
-	public function notableAttributes(array $exclude = []): array
+	public function notableAttributes(array|StringableArray $exclude = []): NotableAttributes
 	{
-		$asMeeting = $this->AsAMeeting();
+		if (!is_array($exclude)) {
+			$exclude = $exclude->getArrayCopy();
+		}
+
+		$asMeeting = $this->asAMeeting();
 		if ($asMeeting !== null) {
 			$attrs = $asMeeting->notableAttributes(['involvement']);
 		} else {
 			$attrs = self::scheduleStrings($this->invId, $this);
 			unset($attrs['combined']);
 			$attrs = array_filter($attrs);
+			$attrs = new NotableAttributes($attrs);
 		}
 		unset($schStr);
 
@@ -3771,6 +4012,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		$attrs = $this->processAttributeExclusions($attrs, $exclude);
 
+		$inv = $this;
+
 		/**
 		 * Allows for manipulation of the notable attributes strings for an Involvement.  An array of strings.
 		 * Typically, these are the standardized strings that appear on the Involvement to give information about it,
@@ -3781,10 +4024,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		 *
 		 * @since 0.0.11 Added
 		 *
-		 * @param string[] $attrs The list of notable attributes.
-		 * @param Involvement $this The Involvement object.
+		 * @param NotableAttributes $attrs The list of notable attributes.
+		 * @param Involvement $inv The Involvement object.
 		 */
-		return apply_filters("tp_involvement_attributes", $attrs, $this);
+		return apply_filters("tp_involvement_attributes", $attrs, $inv);
 	}
 
 	/**
@@ -3820,11 +4063,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		if (self::allowContact($this->invType) && $this->leaders()->count() > 0) {
 			$text  = __("Contact Leaders", 'TouchPoint-WP');
 			if (!$absoluteLinks) {
-				$ret['contact_leader'] = "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"contact\" $btnClass>$text</button> ";
+				$ret['contact_leader'] = "<button type=\"button\" data-tp-involvement=\"$this->post_id\" data-tp-action=\"contact\" $btnClass>$text</button>";
 				TouchPointWP::enqueueActionsStyle('inv-contact');
 			} else {
 				$iid = $this->invId;
-				$ret['contact_leader'] = "<a href=\"$baseLink#tp-contact-i$iid\"$btnClass>$text</a> ";
+				$ret['contact_leader'] = "<a href=\"$baseLink#tp-contact-i$iid\"$btnClass>$text</a>";
 			}
 		}
 
@@ -3836,9 +4079,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		// Show on map button.  (Only works if map is called before this is.)
 		if (self::$_hasArchiveMap && $this->geo !== null && !$absoluteLinks) {
 			$text = __("Show on Map", 'TouchPoint-WP');
+			TouchPointWP::enqueueActionsStyle("show-on-map");
 			if ($ret->count() > 1) {
-				TouchPointWP::requireScript("fontAwesome");
-				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\" $btnClass><i class=\"fa-solid fa-location-pin\"></i></button>", "map");
+				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" title=\"$text\" $btnClass><i class=\"tenth-icons map-marker\"></i></button>", "map");
 			} else {
 				$ret->prepend("<button type=\"button\" data-tp-action=\"showOnMap\" $btnClass>$text</button>", "map");
 			}
@@ -3846,10 +4089,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 
 		if ($withTouchPointLink && TouchPointWP::currentUserIsAdmin()) {
 			$tpHost = TouchPointWP::instance()->host();
-			// Translators: %s is the system name.  "TouchPoint" by default.
+			// Translators: %s is the system name, "TouchPoint" by default.
 			$title  = wp_sprintf(__("Involvement in %s", "TouchPoint-WP"), TouchPointWP::instance()->settings->system_name);
-			$logo = TouchPointWP::TouchPointIcon();
-			$ret['inv_tp']  = "<a href=\"$tpHost/Org/$this->invId\" title=\"$title\" class=\"tp-TouchPoint-logo $classesOnly\">$logo</a>";
+			$url = "$tpHost/Org/$this->invId";
+			TouchPointWP::enqueueActionsStyle("inv-tp");
+			$ret['inv_tp']  = "<button type=\"button\" data-tp-action=\"inv-tp\" onclick=\"window.open('$url', '_blank', 'noopener');\" title=\"$title\" class=\"$classesOnly\"><i class=\"tenth-icons touchpoint-icon\"></i></button>";
 		}
 
 		/**
@@ -3934,8 +4178,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				$link  = TouchPointWP::instance()->host() . "/OnlineReg/" . $this->invId;
 				if (!$absoluteLinks) {
 					TouchPointWP::enqueueActionsStyle('inv-register');
+					return "<button type=\"button\" data-tp-action=\"register\" $btnClass onclick=\"window.location = '$link';\">$text</button>";
 				}
-				return "<a href=\"$link\" $btnClass>$text</a>  ";
+				return "<a href=\"$link\" $btnClass>$text</a>";
+
 
 			case RegistrationType::JOIN:
 				$text = __('Join', 'TouchPoint-WP');
@@ -3950,12 +4196,13 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 				$text = __('Register', 'TouchPoint-WP');
 				$link = $this->getRegistrationUrl();
 				if (!$absoluteLinks) {
-					TouchPointWP::enqueueActionsStyle('inv-register');
+					TouchPointWP::enqueueActionsStyle('inv-register-ext');
+					return "<button type=\"button\" data-tp-action=\"register-ext\" $btnClass onclick=\"window.open('$link', '_blank', 'noopener');\">$text</button>";
 				}
 				return "<a href=\"$link\" $btnClass>$text</a>  ";
 
 			case RegistrationType::RSVP:
-				$asAMeeting = $this->AsAMeeting();
+				$asAMeeting = $this->asAMeeting();
 				if ($asAMeeting !== null) {
 					if ($absoluteLinks) {
 						return $asAMeeting->getRsvpLink($btnClass);
@@ -3971,7 +4218,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 	 *
 	 * @return ?Meeting
 	 */
-	protected function AsAMeeting(): ?Meeting
+	protected function asAMeeting(): ?Meeting
 	{
 		if (!$this->post) {
 			$this->post = get_post($this->post_id);
@@ -3984,6 +4231,20 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Indicates if the meeting is in the past.
+	 *
+	 * @return bool
+	 */
+	public function isPast(): bool
+	{
+		$m = $this->asAMeeting();
+		if ($m) {
+			return $m->isPast();
+		}
+		return false;
 	}
 
 	/**
@@ -4002,7 +4263,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, hasGeo
 		$listStr = json_encode($queue);
 
 		return "\ttpvm.addEventListener('Involvement_class_loaded', function() {
-		TP_Involvement.fromObjArray($listStr);\n\t});\n";
+		tpvm.TP_Involvement.fromObjArray($listStr);\n\t});\n";
 	}
 
 	public function getTouchPointId(): int

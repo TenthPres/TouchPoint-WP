@@ -10,7 +10,6 @@ use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonQuery;
-use tp\TouchPointWP\Utilities\Session;
 use WP_Error;
 use WP_User;
 
@@ -56,7 +55,7 @@ abstract class Auth implements api, module
 		add_filter('login_redirect', [self::class, 'redirectLoginCompleteMaybe'], 10, 3);
 
 		// If configured, prevent admin bar from appearing for subscribers
-		add_action('after_setup_theme', [self::class, 'removeAdminBarMaybe']);
+		self::removeAdminBarMaybe();
 	}
 
 
@@ -104,6 +103,7 @@ abstract class Auth implements api, module
 				'a' => "logout"
 			]);
 
+			header("X-Redirected-By: TouchPoint-WP");
 			wp_redirect($redir, Http::SEE_OTHER_TEMP);
 			exit;
 		}
@@ -128,8 +128,12 @@ abstract class Auth implements api, module
 	{
 		$html = '<p class="touchpoint-wp-auth-form">';
 		$url = self::getLoginUrl();
+
+		TouchPointWP::enqueueActionsStyle('login');
+
 		/** @noinspection HtmlUnknownTarget */
 		$html .= "<a href=\"$url\" class=\"button button-secondary button-large\" style=\"width: 100%; text-align: center; margin-bottom: 1em;\">";
+		$html .= "<i class=\"tenth-icons touchpoint-icon\"></i>&nbsp;&nbsp;";
 		$html .= sprintf(
 			// translators: %s is "what you call TouchPoint at your church", which is a setting
 			__('Sign in with %s', 'TouchPoint-WP'),
@@ -178,6 +182,7 @@ abstract class Auth implements api, module
 		}
 
 		if (self::wantsToLogin() && $redirect && $_SERVER['REQUEST_METHOD'] === "GET") {
+			header("X-Redirected-By: TouchPoint-WP");
 			wp_redirect(self::getLoginUrl(), Http::SEE_OTHER_TEMP);
 			exit();
 		}
@@ -194,6 +199,7 @@ abstract class Auth implements api, module
 		}
 
 		$redirect = TouchPointWP::instance()->settings->auth_change_profile_urls === 'on';
+		$redirect &= !TouchPointWP::userHasEditingPermissions($user);
 
 		/**
 		 * Controls whether to redirect to the TouchPoint login automatically.
@@ -203,7 +209,7 @@ abstract class Auth implements api, module
 		$redirect = apply_filters('tp_redirect_after_login', $redirect);
 
 		// if there is no defined redirect page, redirect to the home page
-		if ($redirect && (!isset($_GET['redirect_to']) || $_GET['redirect_to'] == '')) {
+		if ($redirect && $redirect_to == '') {
 			return home_url();
 		}
 
@@ -218,7 +224,7 @@ abstract class Auth implements api, module
 	{
 		$removeBar = (TouchPointWP::instance()->settings->auth_prevent_admin_bar === 'on')
 					 && !is_admin()
-					 && !current_user_can('edit_posts');
+					 && !TouchPointWP::userHasEditingPermissions();
 
 		/**
 		 * Allows for hiding the WordPress-provided Admin bar.
@@ -242,7 +248,7 @@ abstract class Auth implements api, module
 	{
 		$preventAdmin = (TouchPointWP::instance()->settings->auth_change_profile_urls === 'on')
 					 && is_admin()  // means: request is in the admin area, not that user is an admin.
-					 && !current_user_can('edit_posts');
+					 && !TouchPointWP::userHasEditingPermissions();
 
 
 		$destination = null;
@@ -265,6 +271,7 @@ abstract class Auth implements api, module
 		$destination = apply_filters('tp_admin_area_redirect', $destination);
 
 		if ($destination) {
+			header("X-Redirected-By: TouchPoint-WP");
 			wp_redirect($destination, Http::SEE_OTHER_TEMP);
 			exit;
 		}
@@ -332,7 +339,8 @@ abstract class Auth implements api, module
 			$userId   = get_current_user_id();
 			$peopleId = (int)(get_user_meta($userId, Person::META_PEOPLEID, true));
 		}
-		if ($peopleId >= 0) {
+		$peopleId = intval($peopleId);
+		if ($peopleId >= 0) {  // 0 is a valid peopleId for the purpose of this URL, but not elsewhere.
 			return $tpwp->host() . '/Person2/' . $peopleId . "#tab-personal";
 		}
 
@@ -356,6 +364,7 @@ abstract class Auth implements api, module
 		switch (strtolower($uri['path'][2])) {
 			case "login.js":   // Some hosts bypass PHP for js extensions, so this doesn't work.
 			case "login.jsr":
+				header("X-Redirected-By: TouchPoint-WP");
 				wp_redirect(content_url('/plugins/touchpoint-wp/ext/login.js'), Http::SEE_OTHER_TEMP);
 				exit;
 		}
@@ -389,9 +398,13 @@ abstract class Auth implements api, module
 			$api = TouchPointWP::instance()->api;
 
 			try {
-				$r = $api->post("/api/v1/Account/ValidateOneTimeLogin", data: $_GET[self::LOGIN_PARAMETER]);
+				$r = $api->post("v1/Account/ValidateOneTimeLogin", data: $_GET[self::LOGIN_PARAMETER]);
 			} catch (TouchPointWP_Exception $e) {
 				return $e->toWpError();
+			}
+
+			if (is_wp_error($r)) {
+				return $r;
 			}
 
 			if ($r['response']['code'] !== Http::OK) {

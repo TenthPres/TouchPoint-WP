@@ -17,6 +17,7 @@ abstract class ImageConversions
 	 * @throws \ImagickException
 	 * @throws TouchPointWP_Exception
 	 * @noinspection PhpFullyQualifiedNameUsageInspection - Imagick is helpful but not required.
+	 * @noinspection PhpComposerExtensionStubsInspection - Imagick is helpful but not required.
 	 */
 	public static function svgToPng($svgContent, ?string $backgroundColor = null): string
 	{
@@ -49,7 +50,22 @@ abstract class ImageConversions
 			$im->setBackgroundColor(new \ImagickPixel('transparent'));
 		}
 
-		$im->readImageBlob($svg->saveXML());
+		// ImageMagick's generic "SVG" format auto-selects the RSVG renderer, which has an issue with text.
+		// In most systems, this provides a functional workaround.
+		if (count(\Imagick::queryFormats('MSVG')) >= 1) {
+			$tmp = tmpfile();
+			$tmpPath = stream_get_meta_data($tmp)['uri'];
+			fwrite($tmp, $svg->saveXML());
+			try {
+				$im->readImage('msvg:' . $tmpPath);
+			} finally {
+				fclose($tmp); // deletes the backing file
+			}
+		} else {
+			// MSVG blocked by host policy (rare) -- fall back to whatever
+			// coder ImageMagick auto-selects for generic SVG.
+			$im->readImageBlob($svg->saveXML());
+		}
 
 		$im->setImageAlphaChannel(\Imagick::ALPHACHANNEL_ACTIVATE);
 

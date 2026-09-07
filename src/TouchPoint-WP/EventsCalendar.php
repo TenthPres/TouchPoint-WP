@@ -21,7 +21,7 @@ use WP_Query;
  * This class and its features are deprecated since it will no longer be needed when mobile v2 is retired.
  *
  * @since 0.0.90 Deprecated.  Will be removed once v2.0 apps are no longer in use, as this won't be necessary for 3.0+.
- * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 exists.
+ * @deprecated since 0.0.90  Will not be necessary once mobile 3.0 is dependable.
  */
 abstract class EventsCalendar implements api, module
 {
@@ -83,6 +83,7 @@ abstract class EventsCalendar implements api, module
 
 			$content = trim(get_the_content(null, true, $eQ->ID));
 			$content = self::formatContent($content);
+			$content_ios = self::deeplinkReplacements($content);
 
 			// Not needed for apps, but helpful for diagnostics
 			$eO['ID'] = $eQ->ID;
@@ -96,7 +97,7 @@ abstract class EventsCalendar implements api, module
 			$eO['RelatedImageFileKey'] = $eO['image'];
 
 			// iOS
-			$eO['Description'] = str_replace("{{MOBILE_OS}}", "iOS", $content);
+			$eO['Description'] = str_replace("{{MOBILE_OS}}", "iOS", $content_ios);
 			// Android
 			$eO['content'] = str_replace("{{MOBILE_OS}}", "android", $content);
 
@@ -120,12 +121,27 @@ abstract class EventsCalendar implements api, module
 
 		return $eventsList;
 	}
-	
-	private static function formatContent(?string $content): string
+
+	private static function deeplinkReplacements(string $content): string
 	{
 		$tpDomain = TouchPointWP::instance()->settings->host;
 		$dlDomain = TouchPointWP::instance()->settings->host_deeplink;
 
+		// Replace TouchPoint links with deeplinks where applicable
+		// Registration Links
+		if ($tpDomain !== '' && $dlDomain !== '') {
+			$content = preg_replace(
+				"/:\/\/$tpDomain\/OnlineReg\/([\d]+)/i",
+				"://" . $dlDomain . '/registrations/register/${1}?from={{MOBILE_OS}}',
+				$content
+			);
+		}
+
+		return $content;
+	}
+	
+	private static function formatContent(?string $content): string
+	{
 		$content = apply_filters('the_content', $content);
 
 		/**
@@ -160,15 +176,7 @@ abstract class EventsCalendar implements api, module
 			$content
 		);
 
-		// Replace TouchPoint links with deeplinks where applicable
-		// Registration Links
-		if ($tpDomain !== '' && $dlDomain !== '') {
-			$content = preg_replace(
-				"/:\/\/$tpDomain\/OnlineReg\/([\d]+)/i",
-				"://" . $dlDomain . '/registrations/register/${1}?from={{MOBILE_OS}}',
-				$content
-			);
-		}
+		// Deeplink replacements should really happen here if they were dependable on Android.
 
 		if ($content !== '') {
 			$cssUrl = null;
@@ -301,6 +309,7 @@ abstract class EventsCalendar implements api, module
 			$content = trim(get_the_content(null, true, $eQ->ID));
 			$content .= "<div>" . $e->getActionButtons('mobile', 'btn', withTouchPointLink: false, absoluteLinks: true)->join("  ") . "</div>";
 			$content = self::formatContent($content);
+			$content_ios = self::deeplinkReplacements($content);
 
 			// Not needed for apps, but helpful for diagnostics
 			$eO['ID'] = $eQ->ID;
@@ -315,7 +324,7 @@ abstract class EventsCalendar implements api, module
 			$eO['RelatedImageFileKey'] = $eO['image'];
 
 			// iOS
-			$eO['Description'] = str_replace("{{MOBILE_OS}}", "iOS", $content);
+			$eO['Description'] = str_replace("{{MOBILE_OS}}", "iOS", $content_ios);
 			// Android
 			$eO['content'] = str_replace("{{MOBILE_OS}}", "android", $content);
 

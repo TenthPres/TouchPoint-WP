@@ -22,7 +22,7 @@ class TP_Meeting {
         this.location = obj.location;
         this.capacity = obj.capacity;
 
-        this.inv = TP_Involvement.fromObjArray([{name: obj.invName, invId: obj.invId}])[0];
+        this.inv = tpvm.TP_Involvement.fromObjArray([{name: obj.invName, invId: obj.invId}])[0];
 
         for (const ei in this.connectedElements) {
             if (!this.connectedElements.hasOwnProperty(ei)) continue;
@@ -190,6 +190,8 @@ class TP_Meeting {
         let meeting = this;
         showConfirm = !!showConfirm;
 
+        const {__, _n} = wp.i18n;
+
         tpvm._utils.ga('send', 'event', 'rsvp', 'rsvp complete', meeting.mtgId);
 
         let res = await tpvm.postData('mtg/rsvp', {mtgId: meeting.mtgId, responses: data});
@@ -225,6 +227,8 @@ class TP_Meeting {
     rsvpAction(forceAsk = false) {
         let meeting = this;
 
+        const {__, sprintf} = wp.i18n;
+
         tpvm._utils.ga('send', 'event', 'rsvp', 'rsvp btn click', meeting.mtgId);
 
         tpvm._utils.applyHashForAction("rsvp", this);
@@ -233,7 +237,7 @@ class TP_Meeting {
         let title = sprintf(__('RSVP for %s', 'TouchPoint-WP'),  (meeting.description ?? meeting.inv.name))
              + "<br /><small>" + this.dateTimeString() + "</small>";
 
-        TP_Person.DoInformalAuth(title, forceAsk).then(
+        tpvm.TP_Person.DoInformalAuth(title, forceAsk).then(
             (res) => rsvpUi(meeting, res).then(tpvm._utils.clearHash),
             () => tpvm._utils.clearHash()
         )
@@ -242,7 +246,7 @@ class TP_Meeting {
             tpvm._utils.ga('send', 'event', 'rsvp', 'rsvp userIdentified', meeting.mtgId);
 
             return Swal.fire({
-                html: `<p id="swal-tp-text">${__('Who is coming?', 'TouchPoint-WP')}</p><p class="small swal-tp-instruction">${__('Indicate who is or is not coming.  This will overwrite any existing RSVP.', 'TouchPoint-WP')}<br />${__('To avoid overwriting an existing RSVP, leave that person blank.', 'TouchPoint-WP')}<br />${__("To protect privacy, we won't show existing RSVPs here.", 'TouchPoint-WP')}</p></i>` + TP_Person.peopleArrayToRadio({Yes: __('Yes', 'TouchPoint-WP'), No: __('No', 'TouchPoint-WP')}, people, tpvm._secondaryUsers),
+                html: `<p id="swal-tp-text">${__('Who is coming?', 'TouchPoint-WP')}</p><p class="small swal-tp-instruction">${__('Indicate who is or is not coming.  This will overwrite any existing RSVP.', 'TouchPoint-WP')}<br />${__('To avoid overwriting an existing RSVP, leave that person blank.', 'TouchPoint-WP')}<br />${__("To protect privacy, we won't show existing RSVPs here.", 'TouchPoint-WP')}</p></i>` + tpvm.TP_Person.peopleArrayToRadio({Yes: __('Yes', 'TouchPoint-WP'), No: __('No', 'TouchPoint-WP')}, people, tpvm._secondaryUsers),
                 customClass: tpvm._utils.defaultSwalClasses(),
                 showConfirmButton: true,
                 showCancelButton: true,

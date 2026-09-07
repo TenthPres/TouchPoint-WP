@@ -11,7 +11,7 @@ the_post();
 $pst   = get_post();
 $prtnr = Partner::fromPost($pst);
 
-TouchPointWP::enqueuePartialsStyle();
+TouchPointWP::enqueuePartialsStyle("partner-single");
 
 ?>
 
@@ -46,14 +46,7 @@ TouchPointWP::enqueuePartialsStyle();
     <div class="section-inner TouchPointWP-detail">
         <div class="TouchPointWP-detail-cell">
             <div class="TouchPointWP-detail-cell-section partner-logistics" >
-                <?php
-                $metaStrings = [];
-                foreach ($prtnr->notableAttributes() as $a)
-                {
-                    $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-                }
-                echo implode("<br />", $metaStrings);
-                ?>
+                <?php echo $prtnr->notableAttributes()->join("<br />"); ?>
             </div>
             <div class="TouchPointWP-detail-cell-section partner-actions">
                 <?php echo $prtnr->getActionButtons('single-template', "btn button") ?>

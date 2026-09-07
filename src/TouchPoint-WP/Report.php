@@ -312,7 +312,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 							break;
 
 						default:
-							header("Content-Type: text/plain");
+							header("Content-Type: text/html");
 							break;
 					}
 
@@ -339,6 +339,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 						exit;
 					}
 
+					header("Content-Type: text/html");
 					echo $content;
 					exit;
 			}
@@ -411,6 +412,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 		}
 
 		if (self::$_indexingMode) {
+			// TODO issue #247 Interrogate if parent post has limited access permissions and follow that through with report to be applied in API versions.
+
 			// It has been added to the index already, so our work here is done.
 			return $content;
 		}
@@ -578,7 +581,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 	{
 		TouchPointWP::instance()->setTpWpUserAsCurrent();
 
-		// Find Report Shortcodes in post content and add their involvements to the query.
+		// Find Report Shortcodes in post content and them to the list for updates.
 		$referencingPosts   = Utilities::getPostContentWithShortcode(self::SHORTCODE_REPORT);
 		$postIdsToNotDelete = [];
 
@@ -588,13 +591,18 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 		//////////////////
 
 		self::$_indexingMode = true;
+
+		global $post;
+		$originalPost = $post;
+
 		foreach ($referencingPosts as $postI) {
-			global $post;
 			$post = $postI;
 			set_time_limit(10);
 			apply_shortcodes($postI->post_content);
 		}
 		self::$_indexingMode = false;
+
+		$post = $originalPost;
 
 		$needsUpdate = [];
 		foreach (self::$_instances as $report) {
@@ -684,8 +692,15 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 	 */
 	private static function cleanupSqlContent(string $content): string
 	{
-		$closes  = substr($content, strrpos($content, '</tr>') + 5);
-		$content = substr($content, 0, strrpos($content, '<tr'));
+		$closePos = strrpos($content, '</tr>');
+		$rowPos   = strrpos($content, '<tr');
+
+		if ($closePos === false || $rowPos === false) {
+			return $content;
+		}
+
+		$closes  = substr($content, $closePos + 5);
+		$content = substr($content, 0, $rowPos);
 		$content .= $closes;
 
 		return $content;
@@ -778,7 +793,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron, storedAsP
 	 *
 	 * @return void
 	 */
-	public static function checkUpdates()
+	public static function checkUpdates(): void
 	{
 		// This method does nothing because the overhead is relatively great, and should not be hooked to every page load.
 	}

@@ -3,6 +3,7 @@
 use tp\TouchPointWP\Involvement;
 use tp\TouchPointWP\Meeting;
 use tp\TouchPointWP\PostTypeCapable;
+use tp\TouchPointWP\Taxonomies;
 use tp\TouchPointWP\TouchPointWP;
 
 $postType = get_post_type();
@@ -15,7 +16,7 @@ $p   = get_post();
 $tps = TouchPointWP::instance()->settings;
 $obj = PostTypeCapable::fromPost($p);
 
-TouchPointWP::enqueuePartialsStyle();
+TouchPointWP::enqueuePartialsStyle("involvement-single");
 
 ?>
 
@@ -46,8 +47,19 @@ TouchPointWP::enqueuePartialsStyle();
 
             echo wp_sprintf(
                 // Translators: %s is the singular name of the of a Meeting, such as "Event".
-                __('This %s has been Cancelled.', 'TouchPoint-WP'),
-                __($meetingsCalled) // deliberately no domain
+                __('This %s has been cancelled.', 'TouchPoint-WP'),
+                strtolower(__($meetingsCalled)) // deliberately no domain
+            );
+            echo "</div>";
+        } elseif ($obj->isPast()) {
+            echo "<div class='section-inner tpwp-alert-block tpwp-alert-info'>";
+
+            $meetingsCalled = $tps->mc_name_singular;
+
+            echo wp_sprintf(
+            // Translators: %s is the singular name of the of a Meeting, such as "Event".
+                    __('This %s has already happened.', 'TouchPoint-WP'),
+                    strtolower(__($meetingsCalled)) // deliberately no domain
             );
             echo "</div>";
         }
@@ -70,12 +82,8 @@ TouchPointWP::enqueuePartialsStyle();
         <div class="TouchPointWP-detail-cell">
             <div class="TouchPointWP-detail-cell-section involvement-logistics">
                 <?php
-                $metaStrings = [];
-                foreach ($obj->notableAttributes() as $a)
-                {
-                    $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-                }
-                echo implode("<br />", $metaStrings);
+                $notableAttributes = $obj->notableAttributes();
+                echo $notableAttributes->join("<br />");
                 ?>
             </div>
             <div class="TouchPointWP-detail-cell-section involvement-actions">
@@ -107,7 +115,7 @@ TouchPointWP::enqueuePartialsStyle();
 		/** @var WP_Post $post */
 		$loadedPart = get_template_part('list-item', 'involvement-list-item');
 		if ($loadedPart === false) {
-			TouchPointWP::enqueuePartialsStyle();
+			TouchPointWP::enqueuePartialsStyle("involvement-single child-item");
 			require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
 		}
 	}
@@ -140,7 +148,7 @@ if ($settings->importMeetings && $tps->enable_meeting_cal === "on") {
 		/** @var WP_Post $post */
 		$loadedPart = get_template_part('list-item', 'event-list-item');
 		if ($loadedPart === false) {
-			TouchPointWP::enqueuePartialsStyle();
+			TouchPointWP::enqueuePartialsStyle("involvement-single event-item");
 			require TouchPointWP::$dir . "/src/templates/parts/meeting-list-item.php";
 		}
 	}
