@@ -78,6 +78,7 @@
       <path value="$PROJECT_DIR$/vendor/theseer/tokenizer" />
       <path value="$PROJECT_DIR$/vendor/yoast/phpunit-polyfills" />
       <path value="$PROJECT_DIR$/vendor/rlanvin/php-rrule" />
+      <path value="$PROJECT_DIR$/vendor/evert/phpdoc-md" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.0">
