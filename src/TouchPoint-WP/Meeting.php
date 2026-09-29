@@ -51,6 +51,9 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	public const GROUP_UNSCHEDULED = "unscheduled";
 	public const GROUP_ALL = "all";
 
+	public const FEAT_SHOW_ON_SITES = "sites";
+	public const FEAT_TIER_EV = "tier_ev";
+
 	public const SHORTCODE_GRID = TouchPointWP::SHORTCODE_PREFIX . "Calendar";
 
 	public const STATUS_CANCELLED = "cancelled";

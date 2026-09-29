@@ -933,6 +933,21 @@ class Settings
 						'callback'    => fn($new) => $this->validation_slug($new, 'mc_slug')
 					],
 					[
+						'id'          => 'mc_featured',
+						'label'       => $this->__('Featured', 'TouchPoint-WP'),
+						'description' => $this->__(
+							"Which meetings should be featured on the calendar?",
+							'TouchPoint-WP'
+						),
+						'type'        => 'select',
+						'options'     => [
+							Meeting::FEAT_SHOW_ON_SITES => $this->__("\"Show on Sites\" is checked", "TouchPoint-WP"),
+							Meeting::FEAT_TIER_EV => $this->__("Tiers in Extra Value", "TouchPoint-WP"),
+						],
+						'default'     => Meeting::FEAT_SHOW_ON_SITES,
+						'autoload'    => false
+					],
+					[
 						'id'          => 'mc_future_days',
 						'label'       => $this->__('Days of Future', 'TouchPoint-WP'),
 						'description' => $this->__(
@@ -971,20 +986,20 @@ class Settings
 						'placeholder' => 1825,
 						'max'         => 3650,
 						'min'         => 0,
-						'auto'
+						'autoload'    => false
 					],
 					[
 						'id'          => 'mc_grouping_method',
-						'label'       => $this->__("Collect Meetings for Larger Events", "TouchPoint-WP"),
+						'label'       => $this->__("Gather Meetings for Larger Events", "TouchPoint-WP"),
 						'description' => $this->__("Allows multiple meetings that are part of one larger event to be grouped together, such as sessions within a conference.  For meetings to be collected, they must be in the same involvement and must not have gaps between them larger than 23 hours.", "TouchPoint-WP"),
 						'type'        => 'select',
 						'options'     => [
-							Meeting::GROUP_NONE => $this->__("No Collecting", "TouchPoint-WP"),
+							Meeting::GROUP_NONE => $this->__("No Gathering", "TouchPoint-WP"),
 							Meeting::GROUP_UNSCHEDULED => $this->__(
-								"Collect Meetings only from Involvements without Schedules",
+								"Gather Meetings only from Involvements without Schedules",
 								"TouchPoint-WP"
 							),
-							Meeting::GROUP_ALL => $this->__("Collect Meetings for all Involvements", "TouchPoint-WP"),
+							Meeting::GROUP_ALL => $this->__("Gather Meetings for all Involvements", "TouchPoint-WP"),
 						],
 						'default'     => Meeting::GROUP_UNSCHEDULED,
 						'autoload'    => false
