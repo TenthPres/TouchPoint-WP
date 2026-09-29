@@ -28,7 +28,6 @@
       <path value="$PROJECT_DIR$/vendor/pronamic/wp-documentor" />
       <path value="$PROJECT_DIR$/vendor/psr/container" />
       <path value="$PROJECT_DIR$/vendor/psr/log" />
-      <path value="$PROJECT_DIR$/vendor/skayo/phpdoc-md" />
       <path value="$PROJECT_DIR$/vendor/symfony/console" />
       <path value="$PROJECT_DIR$/vendor/symfony/deprecation-contracts" />
       <path value="$PROJECT_DIR$/vendor/symfony/filesystem" />
@@ -42,7 +41,6 @@
       <path value="$PROJECT_DIR$/vendor/symfony/process" />
       <path value="$PROJECT_DIR$/vendor/symfony/service-contracts" />
       <path value="$PROJECT_DIR$/vendor/symfony/string" />
-      <path value="$PROJECT_DIR$/vendor/twig/twig" />
       <path value="$PROJECT_DIR$/vendor/webmozart/assert" />
       <path value="$PROJECT_DIR$/../WordPressDemo" />
       <path value="$PROJECT_DIR$/vendor/antecedent/patchwork" />
@@ -78,6 +76,9 @@
       <path value="$PROJECT_DIR$/vendor/theseer/tokenizer" />
       <path value="$PROJECT_DIR$/vendor/yoast/phpunit-polyfills" />
       <path value="$PROJECT_DIR$/vendor/rlanvin/php-rrule" />
+      <path value="$PROJECT_DIR$/vendor/saggre/phpdocumentor-markdown" />
+      <path value="$PROJECT_DIR$/vendor/skayo/phpdoc-md" />
+      <path value="$PROJECT_DIR$/vendor/twig/twig" />
       <path value="$PROJECT_DIR$/vendor/evert/phpdoc-md" />
     </include_path>
   </component>

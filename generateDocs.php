@@ -33,32 +33,75 @@ array_map('unlink', glob('docs/tp-*.md'));
 echo "    Complete.\n\n";
 
 
+const MARKDOWN_TEMP_DIR = ".phpdoc/markdown";
+
 echo "Running PHPDoc Analysis...";
-exec("php " . PHPDOC_PHAR_FILENAME . " -d src -t docs --template=\"xml\"");
+if (is_dir(MARKDOWN_TEMP_DIR)) {
+	$files = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator(MARKDOWN_TEMP_DIR, FilesystemIterator::SKIP_DOTS),
+		RecursiveIteratorIterator::CHILD_FIRST
+	);
+	foreach ($files as $file) {
+		$file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+	}
+}
+exec("php " . PHPDOC_PHAR_FILENAME . " -d src -t " . MARKDOWN_TEMP_DIR .
+	 " --template=\"vendor/saggre/phpdocumentor-markdown/themes/markdown\"");
 echo "    Complete\n\n";
 
+
+// The markdown template writes one file per class in nested directories (classes/tp/TouchPointWP/Api.md) with relative
+// links.  GitHub wikis link pages by name only, so flatten into tp-TouchPointWP-Api.md and rewrite the links to match.
 echo "Creating Markdown files...";
-$argv[1] = "docs/structure.xml";
-$argv[2] = "docs/";
-$argv[3] = "--lt";
-$argv[4] = "%c";
-$argv[5] = "--index";
-$argv[6] = "_Sidebar.md";
-include "vendor/skayo/phpdoc-md/bin/phpdocmd";
-echo "    Complete.\n\n";
+$classDir = MARKDOWN_TEMP_DIR . "/classes/";
+$classFiles = [];
+foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($classDir, FilesystemIterator::SKIP_DOTS)) as $file) {
+	$path = str_replace('\\', '/', $file->getPathname());
+	$classFiles[$path] = substr($path, strlen($classDir), -3); // e.g. tp/TouchPointWP/Api
+}
+$pageNames = array_flip(str_replace('/', '-', $classFiles));
 
+$index = [];
+foreach ($classFiles as $path => $rel) {
+	$dir = dirname($rel);
+	$md = preg_replace_callback('~\[([^\]]*)\]\((\.{1,2}/[^)#]*)(#[^)]*)?\)~', function ($m) use ($dir, $pageNames) {
+		$parts = [];
+		foreach (explode('/', $dir . '/' . $m[2]) as $part) {
+			if ($part === '..') {
+				array_pop($parts);
+			} elseif ($part !== '.' && $part !== '') {
+				$parts[] = $part;
+			}
+		}
+		$target = implode('-', $parts);
 
-echo "Removing xml files...";
-array_map('unlink', glob('docs/*.xml'));
+		// Classes outside the plugin (e.g. WP_Post) have no page, so leave them as plain text.
+		return isset($pageNames[$target]) ? "[$m[1]]($target" . ($m[3] ?? '') . ")" : $m[1];
+	}, file_get_contents($path));
+
+	$page = str_replace('/', '-', $rel);
+	file_put_contents("docs/$page.md", str_replace('/', '\\', $rel) . "\n===============\n" . $md);
+	$index[str_replace('/', '\\', $dir)][basename($rel)] = $page;
+}
+
+uksort($index, 'strnatcasecmp');
+$indexMd = "API Index\n=========\n\n";
+foreach ($index as $namespace => $pages) {
+	uksort($pages, 'strnatcasecmp');
+	$indexMd .= "* $namespace\n";
+	foreach ($pages as $name => $page) {
+		$indexMd .= "    * [$name]($page)\n";
+	}
+}
+file_put_contents("docs/_Sidebar.md", $indexMd);
 echo "    Complete.\n\n";
 
 
 echo "Merging sidebar files...";
 $sidebar = file_get_contents("docs/.Sidebar.md");
-$automaticSidebar = file_get_contents("docs/_Sidebar.md");
-$automaticSidebar = str_replace("API Index", "PHP API Index", $automaticSidebar);
+$indexMd = str_replace("API Index", "PHP API Index",$indexMd);
 
-$sidebar .= $automaticSidebar;
+$sidebar .= $indexMd;
 
 file_put_contents("docs/_Sidebar.md", $sidebar);
 echo "    Complete.\n\n";
