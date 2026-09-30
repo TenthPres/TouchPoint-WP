@@ -294,7 +294,8 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 				'useGeo'                => false,
 				'hierarchical'          => true,
 				'postType'              => self::POST_TYPE_WO_PRE,
-				'meetingGroupingMethod' => TouchPointWP::instance()->settings->mc_grouping_method
+				// Previous behavior.  The setting no longer has a UI, so it may not be stored.
+				'meetingGroupingMethod' => TouchPointWP::instance()->settings->mc_grouping_method ?: self::GROUP_UNSCHEDULED
 			]);
 		}
 		return self::$_typeSet;
