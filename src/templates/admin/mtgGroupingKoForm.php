@@ -79,6 +79,13 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
         <span class="description"><?php _e("Classes and small groups that meet on a schedule keep each meeting on its own page, whatever their Involvement Type, and are never included in a parent's structure.", "TouchPoint-WP"); ?></span>
     </p>
 
+    <p>
+        <input id="tp-mg-keepHiddenChildren" type="checkbox" data-bind="checked: keepHiddenChildren" />
+        <label for="tp-mg-keepHiddenChildren"><?php _e("Keep archived meetings of child involvements that are no longer shown", "TouchPoint-WP"); ?></label>
+        <br />
+        <span class="description"><?php _e("When a child involvement's \"Show in Sites\" is turned off in TouchPoint, its meetings are normally removed from your site.  Check this to keep its archived meetings (those older than \"Archive After Days\"), so past Editions stay complete.  Its upcoming meetings are still removed.", "TouchPoint-WP"); ?></span>
+    </p>
+
     <h3><?php _e("How each option works", "TouchPoint-WP"); ?></h3>
     <p><?php _e("Options can be combined.  Any level that would contain only one item is skipped, so an Edition with only one meeting is just that meeting's page.", "TouchPoint-WP"); ?></p>
 
@@ -100,7 +107,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
     <details id="tp-mg-help-timeSlots">
         <summary><?php _e("Time Slots", "TouchPoint-WP"); ?></summary>
         <div>
-            <p><?php _e("Meetings of sibling child involvements that happen at the same time are grouped into a Time Slot, which is titled with its date and time.  For example, breakout sessions from several tracks, each of which is its own child involvement.  Requires Include Child Involvements.", "TouchPoint-WP"); ?></p>
+            <p><?php _e("Meetings of different involvements that happen at the same time are grouped into a Time Slot, which is titled with its date and time.  The meetings can be from the involvement itself, its child involvements, or its grandchild involvements.  For example, breakout sessions from several tracks, each of which is its own child involvement.  Requires Include Child Involvements.", "TouchPoint-WP"); ?></p>
         </div>
     </details>
 
@@ -166,6 +173,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
         self.rows = ko.observableArray((s.types ?? []).map((t) => new MtgGroupingRow(t, false)));
         self.otherTypes = new MtgGroupingRow(s.otherTypes ?? {}, true);
         self.skipScheduled = ko.observable(s.skipScheduled ?? true);
+        self.keepHiddenChildren = ko.observable(s.keepHiddenChildren ?? false);
         self.typeToAdd = ko.observable(undefined);
 
         self.typeName = function(id) {
@@ -204,7 +212,8 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
             return JSON.stringify({
                 types: self.rows().map((r) => r.toJS()),
                 otherTypes: self.otherTypes.toJS(),
-                skipScheduled: self.skipScheduled()
+                skipScheduled: self.skipScheduled(),
+                keepHiddenChildren: self.keepHiddenChildren()
             });
         };
     }

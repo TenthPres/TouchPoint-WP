@@ -21,7 +21,8 @@ if ( ! defined('ABSPATH')) {
  * @property-read ?int $invTypeId       The TouchPoint Involvement Type ID.  Null for the "all other types" settings.
  * @property-read bool $includeChildren Whether meetings of child (and grandchild) involvements are included.
  * @property-read bool $editions        Whether meetings are grouped into Editions.
- * @property-read bool $timeSlots       Whether simultaneous meetings of sibling involvements are grouped into Time Slots.
+ * @property-read bool $timeSlots       Whether simultaneous meetings of different involvements in the same structure are
+ *                                      grouped into Time Slots.
  * @property-read bool $clusters        Whether meetings of the same involvement are grouped into Clusters.
  * @property-read bool $legacy          Whether the previous behavior (collect meetings less than 23 hours apart) is used.
  *                                      Only possible for the "all other types" settings.
@@ -45,6 +46,7 @@ class Meeting_GroupingSettings
 	protected static array $_types = [];
 	protected static Meeting_GroupingSettings $_otherTypes;
 	protected static bool $_skipScheduled = true;
+	protected static bool $_keepHiddenChildren = false;
 	protected static bool $_legacyAvailable = false;
 
 	protected ?int $invTypeId = null;
@@ -66,7 +68,7 @@ class Meeting_GroupingSettings
 		$this->clusters        = ! ! ($o->clusters ?? false);
 		$this->legacy          = $allowLegacy && ! ! ($o->legacy ?? false);
 
-		// Time Slots are made from sibling involvements, so they require child involvements to be included.
+		// Time Slots are made from meetings of different involvements, so they require child involvements.
 		$this->timeSlots = $this->includeChildren && ! ! ($o->timeSlots ?? false);
 
 		if ($this->legacy) {
@@ -118,14 +120,18 @@ class Meeting_GroupingSettings
 	 */
 	protected static function applyData(object $data): void
 	{
-		self::$_legacyAvailable = ! ! ($data->legacyAvailable ?? false);
-		self::$_skipScheduled   = ! ! ($data->skipScheduled ?? true);
-		self::$_otherTypes      = new self($data->otherTypes ?? (object)[], self::$_legacyAvailable);
+		self::$_legacyAvailable    = ! ! ($data->legacyAvailable ?? false);
+		self::$_skipScheduled      = ! ! ($data->skipScheduled ?? true);
+		self::$_keepHiddenChildren = ! ! ($data->keepHiddenChildren ?? false);
+		self::$_otherTypes         = new self((object)($data->otherTypes ?? []), self::$_legacyAvailable);
 		self::$_otherTypes->invTypeId = null;
 
 		self::$_types = [];
-		foreach ($data->types ?? [] as $t) {
-			$s = new self($t);
+		foreach (is_array($data->types ?? null) ? $data->types : [] as $t) {
+			if ( ! is_object($t) && ! is_array($t)) {
+				continue;
+			}
+			$s = new self((object)$t);
 			if ($s->invTypeId === null || isset(self::$_types[$s->invTypeId])) {
 				continue; // Rows need a type, and each type can only be listed once.
 			}
@@ -257,6 +263,50 @@ class Meeting_GroupingSettings
 	}
 
 	/**
+	 * Whether archived meetings of child involvements are kept after the child involvement's "Show in Sites" is turned
+	 * off in TouchPoint.  If false, the child involvement's posts are removed when "Show in Sites" is turned off.  If
+	 * true, its archived meetings are kept, but not its upcoming ones.
+	 *
+	 * @return bool
+	 */
+	public static function keepHiddenChildren(): bool
+	{
+		self::load();
+
+		return self::$_keepHiddenChildren;
+	}
+
+	/**
+	 * Get the parameters the TouchPoint Involvement query needs to find structure owners and their child involvements.
+	 *
+	 * - childTypes: the Involvement Type IDs whose settings include child involvements.
+	 * - listedTypes: the Involvement Type IDs that have their own settings.
+	 * - childOther: 1 if the settings for all other Involvement Types include child involvements.  This applies to
+	 *   types that aren't listed, and to involvements without a type.
+	 * - keepHidden: 1 if hidden child involvements should still be returned.  See keepHiddenChildren().
+	 *
+	 * @return array{childTypes: string, listedTypes: string, childOther: int, keepHidden: int}
+	 */
+	public static function involvementQueryParameters(): array
+	{
+		self::load();
+
+		$childTypes = [];
+		foreach (self::$_types as $id => $t) {
+			if ($t->includeChildren) {
+				$childTypes[] = $id;
+			}
+		}
+
+		return [
+			'childTypes'  => implode(',', $childTypes),
+			'listedTypes' => implode(',', array_keys(self::$_types)),
+			'childOther'  => self::$_otherTypes->includeChildren ? 1 : 0,
+			'keepHidden'  => self::$_keepHiddenChildren ? 1 : 0,
+		];
+	}
+
+	/**
 	 * The gap, in seconds, after which a new Edition starts.  Measured from the end of one meeting to the start of the
 	 * next.
 	 *
@@ -310,10 +360,11 @@ class Meeting_GroupingSettings
 		}
 
 		return (object)[
-			'types'           => $types,
-			'otherTypes'      => self::$_otherTypes->rowObject(),
-			'skipScheduled'   => self::$_skipScheduled,
-			'legacyAvailable' => self::$_legacyAvailable,
+			'types'              => $types,
+			'otherTypes'         => self::$_otherTypes->rowObject(),
+			'skipScheduled'      => self::$_skipScheduled,
+			'keepHiddenChildren' => self::$_keepHiddenChildren,
+			'legacyAvailable'    => self::$_legacyAvailable,
 		];
 	}
 
