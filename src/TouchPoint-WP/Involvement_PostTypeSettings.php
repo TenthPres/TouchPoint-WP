@@ -69,10 +69,11 @@ class Involvement_PostTypeSettings
 	final public static function &instance(): array
 	{
 		if (!isset(self::$settings)) {
+			// inv_json may be false (and decode to null) when the Involvements feature is not enabled.
 			$json        = json_decode(TouchPointWP::instance()->settings->inv_json);
 			$settingsArr = [];
 
-			foreach ($json as $o) {
+			foreach ($json ?? [] as $o) {
 				$settingsArr[] = new Involvement_PostTypeSettings($o);
 			}
 

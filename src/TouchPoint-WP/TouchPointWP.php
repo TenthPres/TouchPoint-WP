@@ -1571,10 +1571,17 @@ class TouchPointWP
 	 */
 	protected static function clearScheduledHooks(): void
 	{
+		// Partner is only loaded when the Global feature is enabled, but its cron may still be scheduled.
+		if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
+			require_once 'Partner.php';
+		}
+
 		wp_clear_scheduled_hook(Involvement::CRON_HOOK);
 		wp_clear_scheduled_hook(Partner::CRON_HOOK);
 		wp_clear_scheduled_hook(Person::CRON_HOOK);
 		wp_clear_scheduled_hook(Report::CRON_HOOK);
+		wp_clear_scheduled_hook(Stats::CRON_HOOK);
+		wp_clear_scheduled_hook(Cleanup::CRON_HOOK);
 	}
 
 	/**
