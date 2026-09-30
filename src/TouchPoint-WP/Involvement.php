@@ -1527,6 +1527,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		}
 
 		$containerClass = $params['class'] ?? [];
+        if (is_array($containerClass)) {
+            $containerClass = implode(" ", $containerClass);
+        }
 		if (!str_contains(" " . $containerClass . " ", " " . self::$containerClass . " ")) {
 			$containerClass .= " " . self::$containerClass;
 		}
@@ -2775,7 +2778,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				continue;
 			}
 
-			if (in_array("notWeekly", $typeSets->excludeIf) && $inv->notWeekly) {
+			if (in_array("notWeekly", $typeSets->excludeIf) && $inv->notWeekly) { // TODO revisit with R&R schedules
 				if ($verbose) {
 					echo "<p>Stopping processing because Not-Weekly Involvements are excluded.  Involvement will be deleted from WordPress.</p>";
 				}
@@ -2797,7 +2800,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				continue;
 			}
 
-			if (in_array("unscheduled", $typeSets->excludeIf) && count($inv->occurrences) > 0) {
+			if (in_array("unscheduled", $typeSets->excludeIf) && count($inv->occurrences) > 0) { // TODO revisit with R&R schedules
 				$hasSchedule = false;
 				foreach ($inv->occurrences as $o) {
 					if ($o->type === 'S') {
