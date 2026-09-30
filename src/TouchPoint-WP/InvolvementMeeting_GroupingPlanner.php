@@ -1,0 +1,386 @@
+<?php
+/**
+ * @package TouchPointWP
+ */
+
+namespace tp\TouchPointWP;
+
+use DateTimeInterface;
+
+if ( ! defined('ABSPATH')) {
+	exit(1);
+}
+
+/**
+ * Plans how the meetings of one structure are grouped into Editions, Time Slots, and Clusters.
+ *
+ * A structure is an involvement (the structure owner) and, if its Meeting Grouping settings include child involvements,
+ * its child and grandchild involvements.  The planner only arranges meetings; it doesn't read or write posts, and it
+ * makes no WordPress calls.
+ *
+ * The result is a list of top-level items, in chronological order.  Each item is either a meeting (as provided by the
+ * API) or a MeetingArray whose groupRole is one of the MeetingArray::ROLE_ constants.  A MeetingArray may contain
+ * meetings and other MeetingArrays.
+ *
+ * @since 0.0.98 Added
+ */
+class InvolvementMeeting_GroupingPlanner
+{
+	protected object $owner;
+
+	/** @var object[] The involvements in the structure, including the owner, keyed by involvement ID. */
+	protected array $involvements;
+
+	protected bool $editions;
+	protected bool $timeSlots;
+	protected bool $clusters;
+	protected int $editionGap;
+	protected int $clusterGap;
+
+	/**
+	 * @param object   $owner        The structure owner, as provided by the API.
+	 * @param object[] $involvements The involvements in the structure, as provided by the API, including the owner.
+	 *                               Each must have a meetings array whose meetings have their involvementId set.
+	 * @param bool     $editions     Whether to group meetings into Editions.
+	 * @param bool     $timeSlots    Whether to group simultaneous meetings of different involvements into Time Slots.
+	 * @param bool     $clusters     Whether to group meetings of the same involvement into Clusters.
+	 * @param int      $editionGap   The gap, in seconds, after which a new Edition starts.
+	 * @param int      $clusterGap   The maximum gap, in seconds, between back-to-back meetings in a Cluster.
+	 */
+	public function __construct(
+		object $owner,
+		array $involvements,
+		bool $editions,
+		bool $timeSlots,
+		bool $clusters,
+		int $editionGap,
+		int $clusterGap
+	) {
+		$this->owner        = $owner;
+		$this->involvements = [];
+		foreach ($involvements as $inv) {
+			$this->involvements[$inv->involvementId] = $inv;
+		}
+		$this->involvements[$owner->involvementId] = $owner;
+
+		$this->editions   = $editions;
+		$this->timeSlots  = $timeSlots;
+		$this->clusters   = $clusters;
+		$this->editionGap = $editionGap;
+		$this->clusterGap = $clusterGap;
+	}
+
+	/**
+	 * Create a planner using the given Meeting Grouping settings and the gaps from the filters.
+	 *
+	 * @param object                   $owner        The structure owner, as provided by the API.
+	 * @param object[]                 $involvements The involvements in the structure, including the owner.
+	 * @param Meeting_GroupingSettings $rule         The settings that apply to the owner.
+	 *
+	 * @return InvolvementMeeting_GroupingPlanner
+	 */
+	public static function fromSettings(
+		object $owner,
+		array $involvements,
+		Meeting_GroupingSettings $rule
+	): InvolvementMeeting_GroupingPlanner {
+		return new self(
+			$owner,
+			$rule->includeChildren ? $involvements : [$owner],
+			$rule->editions,
+			$rule->timeSlots,
+			$rule->clusters,
+			Meeting_GroupingSettings::editionGap(),
+			Meeting_GroupingSettings::clusterGap()
+		);
+	}
+
+	/**
+	 * Plan the grouping.
+	 *
+	 * @return array The top-level items: meetings and MeetingArrays, in chronological order.
+	 */
+	public function plan(): array
+	{
+		$meetings = [];
+		foreach ($this->involvements as $inv) {
+			foreach ($inv->meetings ?? [] as $m) {
+				$meetings[] = $m;
+			}
+		}
+		if (count($meetings) === 0) {
+			return [];
+		}
+		usort($meetings, [self::class, 'compare']);
+
+		$groups = $this->editions ? $this->splitIntoEditions($meetings) : [$meetings];
+
+		$top = [];
+		foreach ($groups as $group) {
+			$items = $this->groupWithin($group);
+
+			if ($this->editions && count($items) > 1) {
+				$edition = new MeetingArray($items, $this->owner, MeetingArray::ROLE_EDITION);
+				$edition->titleToUse = self::titleOf($this->owner);
+				$top[] = $edition;
+			} else {
+				// An Edition with only one item is just that item.  Without Editions, items are at the top level.
+				$top = [...$top, ...$items];
+			}
+		}
+
+		return $top;
+	}
+
+	/**
+	 * Split chronologically sorted meetings into Editions, starting a new one wherever the time from the latest end so
+	 * far to the next start is more than the Edition gap.
+	 *
+	 * @param object[] $meetings Sorted meetings.
+	 *
+	 * @return object[][]
+	 */
+	protected function splitIntoEditions(array $meetings): array
+	{
+		$groups = [];
+		$current = [];
+		$latestEnd = null;
+
+		foreach ($meetings as $m) {
+			if ($latestEnd !== null && self::startOf($m) - $latestEnd > $this->editionGap) {
+				$groups[] = $current;
+				$current = [];
+				$latestEnd = null;
+			}
+			$current[] = $m;
+			$latestEnd = max($latestEnd ?? PHP_INT_MIN, self::endOf($m));
+		}
+		$groups[] = $current;
+
+		return $groups;
+	}
+
+	/**
+	 * Group the meetings of one Edition (or of the whole structure, without Editions) into Time Slots and Clusters.
+	 *
+	 * @param object[] $meetings Sorted meetings.
+	 *
+	 * @return array Meetings and MeetingArrays, in chronological order.
+	 */
+	protected function groupWithin(array $meetings): array
+	{
+		$items = [];
+		$grouped = []; // spl_object_id => true, for meetings that have been placed in a group.
+
+		// Time Slots: overlapping meetings of different involvements.
+		if ($this->timeSlots) {
+			foreach ($this->overlapSets($meetings) as $set) {
+				$invIds = array_unique(array_map(fn($m) => $m->involvementId, $set));
+				if (count($invIds) < 2) {
+					continue;
+				}
+				$slot = new MeetingArray($set, $this->owner, MeetingArray::ROLE_TIME_SLOT);
+				$items[] = $slot;
+				foreach ($set as $m) {
+					$grouped[spl_object_id($m)] = true;
+				}
+			}
+		}
+
+		if ($this->clusters) {
+			// Within an Edition, all the remaining meetings of each child involvement form one Cluster.
+			if ($this->editions) {
+				$byInv = [];
+				foreach ($meetings as $m) {
+					if (isset($grouped[spl_object_id($m)]) || $m->involvementId == $this->owner->involvementId) {
+						continue;
+					}
+					$byInv[$m->involvementId][] = $m;
+				}
+				foreach ($byInv as $invId => $set) {
+					if (count($set) < 2) {
+						continue;
+					}
+					$items[] = $this->newCluster($set, $invId);
+					foreach ($set as $m) {
+						$grouped[spl_object_id($m)] = true;
+					}
+				}
+			}
+
+			// Back-to-back meetings of the same involvement, with no other meeting between them.
+			$run = [];
+			$runEnd = null;
+			foreach ($meetings as $m) {
+				$eligible = ! isset($grouped[spl_object_id($m)]);
+				$continues = $eligible && count($run) > 0 &&
+				             $run[0]->involvementId == $m->involvementId &&
+				             self::startOf($m) - $runEnd <= $this->clusterGap;
+
+				if ( ! $continues) {
+					$this->closeRun($run, $items, $grouped);
+					$run = [];
+					$runEnd = null;
+				}
+				if ($eligible) {
+					$run[] = $m;
+					$runEnd = max($runEnd ?? PHP_INT_MIN, self::endOf($m));
+				}
+			}
+			$this->closeRun($run, $items, $grouped);
+		}
+
+		// Everything not in a group stands alone.
+		foreach ($meetings as $m) {
+			if ( ! isset($grouped[spl_object_id($m)])) {
+				$items[] = $m;
+			}
+		}
+
+		usort($items, [self::class, 'compare']);
+
+		foreach ($meetings as $m) {
+			$this->setMeetingTitle($m);
+		}
+
+		return $items;
+	}
+
+	/**
+	 * If a run of back-to-back meetings has more than one meeting, make it a Cluster.
+	 *
+	 * @param object[] $run
+	 * @param array    $items   The items being collected, which the Cluster is added to.
+	 * @param bool[]   $grouped The meetings that have been placed in a group.
+	 *
+	 * @return void
+	 */
+	protected function closeRun(array $run, array &$items, array &$grouped): void
+	{
+		if (count($run) < 2) {
+			return;
+		}
+		$items[] = $this->newCluster($run, $run[0]->involvementId);
+		foreach ($run as $m) {
+			$grouped[spl_object_id($m)] = true;
+		}
+	}
+
+	/**
+	 * Create a Cluster of meetings from one involvement.
+	 *
+	 * @param object[] $meetings
+	 * @param mixed    $involvementId
+	 *
+	 * @return MeetingArray
+	 */
+	protected function newCluster(array $meetings, mixed $involvementId): MeetingArray
+	{
+		$inv = $this->involvements[$involvementId] ?? $this->owner;
+		$cluster = new MeetingArray($meetings, $inv, MeetingArray::ROLE_CLUSTER);
+		$cluster->titleToUse = self::titleOf($inv);
+
+		return $cluster;
+	}
+
+	/**
+	 * Find sets of meetings that overlap in time.  Meetings are in the same set if each overlaps at least one other
+	 * meeting in the set.  Meetings without an end time are treated as instants, and overlap anything happening at that
+	 * instant.
+	 *
+	 * @param object[] $meetings Sorted meetings.
+	 *
+	 * @return object[][] Only sets with more than one meeting.
+	 */
+	protected function overlapSets(array $meetings): array
+	{
+		$sets = [];
+		$current = [];
+		$currentEnd = null;
+		$currentStart = null;
+
+		foreach ($meetings as $m) {
+			$start = self::startOf($m);
+			$overlaps = count($current) > 0 && ($start < $currentEnd || $start === $currentStart);
+			if ( ! $overlaps) {
+				if (count($current) > 1) {
+					$sets[] = $current;
+				}
+				$current = [];
+				$currentEnd = null;
+				$currentStart = $start;
+			}
+			$current[] = $m;
+			$currentEnd = max($currentEnd ?? PHP_INT_MIN, self::endOf($m));
+		}
+		if (count($current) > 1) {
+			$sets[] = $current;
+		}
+
+		return $sets;
+	}
+
+	/**
+	 * Set the title of a meeting: its name from TouchPoint, or else the title of its own involvement.
+	 *
+	 * @param object $m
+	 *
+	 * @return void
+	 */
+	protected function setMeetingTitle(object $m): void
+	{
+		$inv = $this->involvements[$m->involvementId] ?? $this->owner;
+		$m->titleToUse = $m->name ?? self::titleOf($inv);
+	}
+
+	/**
+	 * The title to use for an involvement.
+	 *
+	 * @param object $inv
+	 *
+	 * @return string
+	 */
+	protected static function titleOf(object $inv): string
+	{
+		return $inv->titleToUse ?? trim($inv->regTitle ?? $inv->name ?? "");
+	}
+
+	/**
+	 * The start of a meeting or group, as a timestamp.
+	 *
+	 * @param object $item
+	 *
+	 * @return int
+	 */
+	protected static function startOf(object $item): int
+	{
+		return $item->mtgStartDt->getTimestamp();
+	}
+
+	/**
+	 * The end of a meeting or group, as a timestamp.  The start is used if there is no end.
+	 *
+	 * @param object $item
+	 *
+	 * @return int
+	 */
+	protected static function endOf(object $item): int
+	{
+		$end = $item->mtgEndDt;
+		return $end instanceof DateTimeInterface ? $end->getTimestamp() : self::startOf($item);
+	}
+
+	/**
+	 * Chronological comparison of meetings or groups: by start, then end, then involvement, then meeting ID.
+	 *
+	 * @param object $a
+	 * @param object $b
+	 *
+	 * @return int
+	 */
+	protected static function compare(object $a, object $b): int
+	{
+		return [self::startOf($a), self::endOf($a), intval($a->involvementId), abs(intval($a->mtgId))] <=>
+		       [self::startOf($b), self::endOf($b), intval($b->involvementId), abs(intval($b->mtgId))];
+	}
+}

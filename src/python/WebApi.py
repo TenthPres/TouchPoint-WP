@@ -251,17 +251,17 @@ if "Invs" in Data.a:
         SELECT org4 oid, 1 as isParent FROM cteMeetingsQ
         ),
         -- find the structure owner of each organization: the top-most of itself, its parent, and its grandparent whose
-        -- Involvement Type includes child involvements in its meeting grouping.
+        -- Involvement Type includes child involvements in its meeting grouping.  A null Involvement Type is treated as 0.
         cteOrgTree as
         (
         SELECT o.OrganizationId,
             CASE
-                WHEN o3.OrganizationId IS NOT NULL AND (o3.OrganizationTypeId IN ({7}) OR ({9} = 1 AND
-                    (o3.OrganizationTypeId IS NULL OR o3.OrganizationTypeId NOT IN ({8})))) THEN o3.OrganizationId
-                WHEN o2.OrganizationId IS NOT NULL AND (o2.OrganizationTypeId IN ({7}) OR ({9} = 1 AND
-                    (o2.OrganizationTypeId IS NULL OR o2.OrganizationTypeId NOT IN ({8})))) THEN o2.OrganizationId
-                WHEN o.OrganizationTypeId IN ({7}) OR ({9} = 1 AND
-                    (o.OrganizationTypeId IS NULL OR o.OrganizationTypeId NOT IN ({8}))) THEN o.OrganizationId
+                WHEN o3.OrganizationId IS NOT NULL AND (COALESCE(o3.OrganizationTypeId, 0) IN ({7}) OR ({9} = 1 AND
+                    COALESCE(o3.OrganizationTypeId, 0) NOT IN ({8}))) THEN o3.OrganizationId
+                WHEN o2.OrganizationId IS NOT NULL AND (COALESCE(o2.OrganizationTypeId, 0) IN ({7}) OR ({9} = 1 AND
+                    COALESCE(o2.OrganizationTypeId, 0) NOT IN ({8}))) THEN o2.OrganizationId
+                WHEN COALESCE(o.OrganizationTypeId, 0) IN ({7}) OR ({9} = 1 AND
+                    COALESCE(o.OrganizationTypeId, 0) NOT IN ({8})) THEN o.OrganizationId
             END as ownerInvId
             FROM dbo.Organizations o
                 LEFT JOIN dbo.Organizations o2 ON o.ParentOrgId = o2.OrganizationId
@@ -315,7 +315,7 @@ if "Invs" in Data.a:
                 o.OrganizationId,
                 o.ParentOrgId as parentInvId,
                 COALESCE(ml.isParent, 0) as isParent, -- indicates this is the parent (or grandparent) of an inv w/ mtgs
-                o.OrganizationTypeId as invTypeId,
+                COALESCE(o.OrganizationTypeId, 0) as invTypeId,
                 ot.ownerInvId,
                 o.LeaderMemberTypeId,
                 o.Location,

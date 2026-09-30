@@ -47,6 +47,13 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	public const MEETING_INV_ID_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgInvId";
 	public const MEETING_IS_GROUP_MEMBER = TouchPointWP::SETTINGS_PREFIX . "isGroupMember";
 
+	/** The grouping type of a structural post: one of the MeetingArray::ROLE_ constants.  Not set on the previous behavior's collections. */
+	public const MEETING_GROUP_ROLE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgGroupRole";
+	/** The meeting IDs of all meetings in a structural post, including nested ones.  One meta row per meeting. */
+	public const MEETING_GROUP_MEMBERS_META_KEY = TouchPointWP::SETTINGS_PREFIX . "groupMtgId";
+	/** Paths a post had before it was moved or renamed by the sync, for redirects.  One meta row per path. */
+	public const MEETING_OLD_PATH_META_KEY = TouchPointWP::SETTINGS_PREFIX . "oldPath";
+
 	public const GROUP_NONE = "none";
 	public const GROUP_UNSCHEDULED = "unscheduled";
 	public const GROUP_ALL = "all";
@@ -319,11 +326,14 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 			throw new TouchPointWP_Exception("Invalid Meeting ID provided.", 171003);
 		}
 
-		if ( ! isset(self::$_instances[$mid])) {
-			self::$_instances[$mid] = new Meeting($post);
+		// Groups don't have unique meeting IDs (an Edition and its first Cluster share one), so cache them by post.
+		$key = $mid > 0 ? $mid : "p" . $post->ID;
+
+		if ( ! isset(self::$_instances[$key])) {
+			self::$_instances[$key] = new Meeting($post);
 		}
 
-		return self::$_instances[$mid];
+		return self::$_instances[$key];
 	}
 
 	/**

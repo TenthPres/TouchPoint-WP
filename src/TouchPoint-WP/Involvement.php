@@ -17,6 +17,8 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Utilities.php";
 	require_once "Involvement_PostTypeSettings.php";
 	require_once "MeetingArray.php";
+	require_once "InvolvementMeeting_GroupingPlanner.php";
+	require_once "InvolvementMeeting_GroupingWriter.php";
 }
 
 use DateInterval;
@@ -50,6 +52,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 {
 	use jsInstantiation;
 	use jsonLd;
+	use InvolvementMeeting_GroupingWriter;
 
 	public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "Inv-Map";
 	public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "Inv-Filters";
@@ -3757,7 +3760,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			if (self::postIsType($post)) {
 				$theDate = self::scheduleString(intval($post->{TouchPointWP::INVOLVEMENT_META_KEY})) ?? "";
 			} elseif (Meeting::postIsType($post)) {
-				$theDate = Meeting::scheduleString(intval($post->{Meeting::MEETING_META_KEY})) ?? "";
+				// Built from the post, since groups can't be looked up by their (non-unique) meeting ID.
+				try {
+					$theDate = Meeting::scheduleString(0, Meeting::fromPost(get_post($post))) ?? "";
+				} catch (TouchPointWP_Exception) {
+				}
 			}
 		}
 
