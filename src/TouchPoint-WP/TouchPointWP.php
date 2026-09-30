@@ -1987,6 +1987,24 @@ class TouchPointWP
 
 
 	/**
+	 * Returns an array of objects that correspond to TouchPoint Involvement Types.  Each Involvement Type has an id and
+	 * a description.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @returns object[]
+	 */
+	public function getInvolvementTypes(): array
+	{
+		try {
+			return Lookup::getLookup('OrganizationTypes');
+		} catch (TouchPointWP_Exception) {
+			return [];
+		}
+	}
+
+
+	/**
 	 * @return false|object Update the resident codes if they're stale.
 	 */
 	private function updateCampuses()

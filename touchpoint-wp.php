@@ -72,6 +72,7 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 
 	require_once __DIR__ . "/src/TouchPoint-WP/Person.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Meeting.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Meeting_GroupingSettings.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/CalendarGrid.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Involvement.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Location.php";
