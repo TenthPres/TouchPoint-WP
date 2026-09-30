@@ -5,18 +5,18 @@
 
 namespace tp\TouchPointWP;
 
-// TODO sort out what goes here, and what goes in Meetings.
+// TODO sort out what goes here, and what goes in Meetings.  Answer: all of this should go to Meetings.
+
+use tp\TouchPointWP\Interfaces\module;
 
 if ( ! defined('ABSPATH')) {
 	exit(1);
 }
 
-if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once 'Meeting.php';
-}
-
 /**
  * This class provides the RSVP functionality for Meetings.
+ *
+ * @deprecated  0.0.90  TODO is this true?
  */
 abstract class Rsvp implements module
 {
@@ -116,6 +116,8 @@ abstract class Rsvp implements module
 			TouchPointWP::requireScript('meeting-defer');
 			TouchPointWP::enqueueActionsStyle('rsvp');
 			Person::enqueueUsersForJsInstantiation();
+
+			// TODO merge with Meeting::rsvpButton()
 
 			return "<a href=\"#\" onclick=\"return false;\" $class disabled data-tp-action=\"rsvp\" data-tp-mtg=\"$meetingId\"><span class=\"rsvp-btn-content\" style=\"display:none\">$content</span><span class=\"rsvp-btn-preload\">$preloadMsg</span></a>";
 		}

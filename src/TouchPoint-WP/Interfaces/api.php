@@ -3,7 +3,7 @@
  * @package TouchPointWP
  */
 
-namespace tp\TouchPointWP;
+namespace tp\TouchPointWP\Interfaces;
 
 if ( ! defined('ABSPATH')) {
 	exit(1);
@@ -11,7 +11,9 @@ if ( ! defined('ABSPATH')) {
 
 
 /**
- * API Interface
+ * Any classes that handle API requests from the client via /touchpoint-api/ should implement this interface.
+ * 
+ * This is NOT for the connection to TouchPoint's API, but rather for XHR and such from the client.
  */
 interface api
 {

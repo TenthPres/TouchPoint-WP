@@ -51,6 +51,8 @@ abstract class Http
 	const EXPECTATION_FAILED = 417;
 	const IM_A_TEAPOT = 418;
 	const UPGRADE_REQUIRED = 426;
+	const PRECONDITION_REQUIRED = 428;
+	const TOO_MANY_REQUESTS = 429;
 
 	/* 500s - Server Error */
 	const SERVER_ERROR = 500;

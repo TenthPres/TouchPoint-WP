@@ -3,7 +3,7 @@
  * @package TouchPointWP
  */
 
-namespace tp\TouchPointWP;
+namespace tp\TouchPointWP\Interfaces;
 
 if ( ! defined('ABSPATH')) {
 	exit(1);
@@ -15,13 +15,12 @@ if ( ! defined('ABSPATH')) {
  */
 interface updatesViaCron
 {
-
 	/**
 	 * Check to see if a cron run is needed, and run it if so.  Connected to an init function.
 	 *
 	 * @return void
 	 */
-	public static function checkUpdates();
+	public static function checkUpdates(): void;
 
 	/**
 	 * Run the updating cron task.  Fail quietly to not disturb the visitor experience if using WP default cron
@@ -29,5 +28,5 @@ interface updatesViaCron
 	 *
 	 * @return void
 	 */
-	public static function updateCron();
+	public static function updateCron(): void;
 }

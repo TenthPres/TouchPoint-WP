@@ -2,6 +2,7 @@
 
 use tp\TouchPointWP\Involvement;
 use tp\TouchPointWP\Involvement_PostTypeSettings;
+use tp\TouchPointWP\PostTypeCapable;
 use tp\TouchPointWP\TouchPointWP;
 
 global $post;
@@ -9,7 +10,7 @@ global $post;
 /** @var $post WP_Post */
 /** @var $settings Involvement_PostTypeSettings */
 
-$inv = Involvement::fromPost($post);
+$inv = PostTypeCapable::fromPost($post);
 
 if (!isset($settings)) {
     $settings = Involvement::getSettingsForPostType($inv->invType);
@@ -21,7 +22,7 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
 
 ?>
 
-<article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class($postItemClass); ?> data-tp-involvement="<?php echo $inv->post_id ?>">
+<article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class($postItemClass); ?> data-tp-involvement="<?php echo $post->ID ?>">
     <header class="entry-header">
         <div class="entry-header-inner">
         <?php
@@ -32,15 +33,8 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
         <div class="post-meta-single post-meta-single-top">
             <span class="post-meta">
                 <?php
-
-                $metaStrings = [];
                 $notableAttributes = $inv->notableAttributes();
-                foreach ($notableAttributes as $a)
-                {
-                    $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-                }
-                echo implode(tp\TouchPointWP\TouchPointWP::$joiner, $metaStrings);
-
+                echo $notableAttributes;
                 ?>
             </span><!-- .post-meta -->
         </div>
@@ -67,17 +61,8 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
             $link = get_permalink($child);
             echo "<h3 class='inline'><a href=\"$link\" class='small'>$child->post_title</a></h3>";
 
-	        $childInv = Involvement::fromPost($child);
-
-	        $metaStrings = [];
-	        foreach ($childInv->notableAttributes($notableAttributes) as $a)
-	        {
-		        $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-	        }
-	        $m = implode(tp\TouchPointWP\TouchPointWP::$joiner, $metaStrings);
-            if ($m !== "") {
-                echo "<span class=\"post-meta\">$m</span>";
-            }
+	        $childInv = PostTypeCapable::fromPost($child);
+            echo $childInv->notableAttributes($notableAttributes);
 
             echo "</div>";
         }

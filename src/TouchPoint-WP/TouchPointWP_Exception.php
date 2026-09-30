@@ -7,10 +7,7 @@ namespace tp\TouchPointWP;
 
 use Exception;
 use Throwable;
-
-if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once 'TouchPointWP_AdminAPI.php';
-}
+use WP_Error;
 
 if ( ! defined('ABSPATH')) {
 	exit;
@@ -29,20 +26,40 @@ class TouchPointWP_Exception extends Exception
 	 * @param string     $message
 	 * @param int        $code
 	 * @param ?Throwable $previous
+	 * @param mixed      $devDetail
 	 */
-	public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null)
+	public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null, mixed $devDetail = null)
 	{
 		parent::__construct($message, $code, $previous);
 		if (is_admin() && TouchPointWP::currentUserIsAdmin()) {
 			$message = $this->getMessage();
 			if (current_user_can('manage_options') && self::debugMode()) {
 				$message .= "<br />" . $this->getFile() . " @ " . $this->getLine() . "<br />";
-				$message .= str_replace("\n", "<br />", $this->getTraceAsString());
+				$message .= str_replace("\n", "<br />", esc_html($this->getTraceAsString()));
 			}
-			TouchPointWP_AdminAPI::showError($message);
+			self::showAdminError($message, $devDetail);
 		}
-		error_log($message);
-		self::debugLog($this->getCode(), $this->getFile(), $this->getLine(), $this->getMessage());
+		error_log("TouchPoint-WP: " . $message);
+		self::debugLog($this->getCode(), $this->getFile(), $this->getLine(), $this->getMessage() . " " . $this->getTraceAsString());
+	}
+
+	/**
+	 * Shows an admin error if and only if admin is loaded.
+	 *
+	 * @param string $message
+	 * @param mixed  $devDetail
+	 *
+	 * @return void
+	 */
+	protected static function showAdminError(string $message, mixed $devDetail = null): void
+	{
+		if (is_admin() && TouchPointWP::currentUserIsAdmin()) {
+			if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
+				require_once 'TouchPointWP_AdminAPI.php';
+			}
+
+			TouchPointWP_AdminAPI::showError($message, $devDetail);
+		}
 	}
 
 	/**
@@ -87,12 +104,23 @@ class TouchPointWP_Exception extends Exception
 	public function toJson(): string
 	{
 		return json_encode([
-			                   'error' => [
-				                   'status'   => 'failure',
-				                   'code'     => $this->getCode(),
-				                   'message'  => $this->getMessage(),
-				                   'location' => $this->getFile() . " @ L" . $this->getLine()
-			                   ]
-		                   ]);
+							   'error' => [
+								   'status'   => 'failure',
+								   'code'     => $this->getCode(),
+								   'message'  => $this->getMessage(),
+								   'location' => $this->getFile() . " @ L" . $this->getLine()
+							   ]
+						   ]);
+	}
+
+
+	/**
+	 * Convert this exception to a WP_Error object that can be passed through the WordPress API.
+	 *
+	 * @return WP_Error
+	 */
+	public function toWpError(): WP_Error
+	{
+		return new WP_Error($this->getCode(), $this->getMessage());
 	}
 }

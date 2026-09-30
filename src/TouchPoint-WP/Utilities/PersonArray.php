@@ -17,4 +17,14 @@ class PersonArray extends ArrayObject
 	{
 		return Person::arrangeNamesForPeople($this) ?? "";
 	}
+
+	/**
+	 * Get the list of people, as a human-readable list of people, with links to their author pages.
+	 *
+	 * @return string
+	 */
+	public function toLinks(): string
+	{
+		return Person::arrangeNamesForPeople($this, true) ?? "";
+	}
 }

@@ -14,7 +14,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 }
 
 /**
- * Enables a class with Extra Values
+ * Enables a class to have Extra Values.  Defines several abstract methods that must be implemented.
  */
 trait extraValues
 {

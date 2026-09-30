@@ -10,6 +10,8 @@ use tp\TouchPointWP\TouchPointWP;
 /**
  * This class wraps handlers for $_SESSION to make it more easily workable.
  *
+ * @deprecated
+ *
  * @property array   $people
  * @property int[]   $primaryFam
  * @property int[]   $secondaryFam
@@ -31,6 +33,8 @@ class Session
 	/**
 	 * Start a session if one doesn't already exist.
 	 *
+	 * @deprecated
+	 *
 	 * @param array $options Options passed directly to session_start, but only if the session isn't yet active.
 	 *
 	 * @return bool  True if a session has been started (with this call or previously)
@@ -51,6 +55,8 @@ class Session
 	}
 
 	/**
+	 * @deprecated
+	 *
 	 * @return Session|null
 	 */
 	public static function instance(): ?Session

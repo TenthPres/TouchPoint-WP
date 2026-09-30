@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<phpdocumentor
+        configVersion="3"
+        xmlns="https://www.phpdoc.org"
+>
+    <title>TouchPoint WP</title>
+    <paths>
+        <output>docs/phpApi</output>
+        <cache>.phpdoc/cache</cache>
+    </paths>
+    <version number="0.0.90">
+        <api>
+            <source dsn=".">
+                <path>src/TouchPoint-WP</path>
+            </source>
+            <extensions>
+                <extension>php</extension>
+            </extensions>
+            <visibility>public</visibility>
+            <include-source>true</include-source>
+            <markers>
+                <marker>TODO</marker>
+            </markers>
+<!--            <default-package-name>TouchPointWP</default-package-name>-->
+        </api>
+    </version>
+<!--    <setting name="guides.enabled" value="true"/>-->
+</phpdocumentor>

@@ -1,6 +1,6 @@
 {
   "name": "touchpoint-wp",
-  "version": "0.0.37",
+  "version": "0.0.97",
   "description": "A WordPress Plugin for integrating with TouchPoint Church Management Software.",
   "directories": {
     "doc": "docs"
@@ -24,6 +24,21 @@
   },
   "homepage": "https://github.com/TenthPres/TouchPoint-WP#readme",
   "devDependencies": {
+    "@wordpress/block-editor": "^14",
+    "@wordpress/blocks": "^14",
+    "@wordpress/env": "^10",
+    "@wordpress/i18n": "^5",
+    "@wordpress/scripts": "^30.18.0",
+    "baseline-browser-mapping": "^2.10.12",
+    "style-loader": "^4.0.0",
     "uglify-js": "^3.17.4"
+  },
+  "dependencies": {
+    "@wordpress/components": "^30.0.0",
+    "@wordpress/element": "^6.27.0"
+  },
+  "scripts": {
+    "build-blocks": "wp-scripts build --webpack-src-dir=blocks --output-path=build/blocks ",
+    "postbuild-blocks": "wp-scripts build-blocks-manifest --input=blocks --output=build/blocks/blocks-manifest.php"
   }
 }

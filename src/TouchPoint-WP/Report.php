@@ -9,7 +9,13 @@ use DateInterval;
 use DateTime;
 use Exception;
 use JsonSerializable;
+use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\module;
+use tp\TouchPointWP\Interfaces\storedAsPost;
+use tp\TouchPointWP\Interfaces\updatesViaCron;
+use tp\TouchPointWP\Utilities\Database;
 use tp\TouchPointWP\Utilities\Http;
+use tp\TouchPointWP\Utilities\ImageConversions;
 use WP_Error;
 use WP_Post;
 use WP_Query;
@@ -19,14 +25,18 @@ if ( ! defined('ABSPATH')) {
 }
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once "api.php";
-	require_once "updatesViaCron.php";
+	require_once "Interfaces/api.php";
+	require_once "Interfaces/updatesViaCron.php";
+	require_once "Interfaces/storedAsPost.php";
+	require_once "Utilities/ImageConversions.php";
+	require_once "Utilities/Http.php";
+	require_once "Utilities/Database.php";
 }
 
 /**
  * The Report class gets and processes a SQL or Python report from TouchPoint and presents it in the UX.
  */
-class Report implements api, module, JsonSerializable, updatesViaCron
+class Report implements api, module, JsonSerializable, updatesViaCron, storedAsPost
 {
 	public const SHORTCODE_REPORT = TouchPointWP::SHORTCODE_PREFIX . "Report";
 	public const POST_TYPE = TouchPointWP::HOOK_PREFIX . "report";
@@ -36,6 +46,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	public const NAME_META_KEY = self::META_PREFIX . "name";
 	public const P1_META_KEY = self::META_PREFIX . "p1";
 	public const DEFAULT_CONTENT = '';
+
+	public static string $classDefault = "TouchPoint-report";
 
 
 	public static bool $_isLoaded = false;
@@ -49,7 +61,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 
 	protected string $type;
 	protected string $name;
-	protected float $interval;
+	protected float $interval;  // Hours
 	protected string $p1 = '';
 
 	protected int $status = 0;
@@ -62,7 +74,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	{
 		$this->name     = $params['name'];
 		$this->type     = $params['type'];
-		$this->interval = max(floor(floatval($params['interval']) * 4) / 4, 0.25);
+		$interval       = $params['interval'] ?? 24;
+		$this->interval = max(floor(floatval($interval) * 4) / 4, 0.25);
 		$this->p1       = $params['p1'] ?? "";
 	}
 
@@ -74,7 +87,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	 *
 	 * @return void
 	 */
-	protected function mergeParams($params)
+	protected function mergeParams($params): void
 	{
 		$this->interval = min($this->interval, $params['interval'] ?? $this->interval);
 	}
@@ -96,9 +109,11 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 		}
 
 		$params['type'] = strtolower($params['type']);
-		if ($params['type'] !== 'sql') {
+		if ($params['type'] !== 'sql' && $params['type'] !== 'python') {
 			throw new TouchPointWP_Exception("Invalid Report type.", 173002);
 		}
+
+		$params['interval'] = floatval($params['interval'] ?? 24);
 
 		$key = self::cacheKey($params);
 		if (isset(self::$_instances[$key])) {
@@ -138,7 +153,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 		/// Cron ///
 		////////////
 
-		// Setup cron for updating People daily.
+		// Setup cron for updating Reports daily.
 		add_action(self::CRON_HOOK, [self::class, 'updateCron']);
 		if ( ! wp_next_scheduled(self::CRON_HOOK)) {
 			// Runs every 15 minutes, starting now.
@@ -179,7 +194,17 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 				'has_archive'       => false,
 				'rewrite'           => false,
 				'can_export'        => false,
-				'delete_with_user'  => false
+				'delete_with_user'  => false,
+				'capability_type'   => 'post',
+				'capabilities' => [
+					'create_posts'        => 'do_not_allow', // Disable creating new posts
+					'edit_posts'          => 'do_not_allow', // Disable editing posts
+					'edit_others_posts'   => 'do_not_allow', // Disable editing others' posts
+					'delete_posts'        => 'do_not_allow', // Disable deleting posts
+					'delete_others_posts' => 'do_not_allow', // Disable deleting others' posts
+					'publish_posts'       => 'do_not_allow', // Disable publishing posts
+				],
+				'map_meta_cap' => true, // Ensure users can still view posts
 			]
 		);
 	}
@@ -214,6 +239,108 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 						http_response_code(Http::SERVER_ERROR);
 						echo "Update Failed: " . $ex->getMessage();
 					}
+					exit;
+			}
+		} else if (count($uri['path']) === 4 || count($uri['path']) === 5) {
+			$parts = explode(".", $uri['path'][3], 2);
+			if (count($parts) === 2) {
+				[$filename, $ext] = $parts;
+			} else {
+				$filename = $parts[0];
+				$ext	  = null;
+				if (isset($uri['path'][4])) {
+					$ext = str_replace("_", '.', $uri['path'][4]) ?? null;
+				}
+			}
+
+			switch ($uri['path'][2]) {
+				case "py":
+					TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
+
+					try {
+						$r       = Report::fromParams([
+							                              'type' => 'python',
+							                              'name' => $filename,
+							                              'p1'   => $_GET['p1'] ?? ''
+						                              ]);
+						$content = $r->content();
+					} catch (TouchPointWP_Exception) {
+						http_response_code(Http::SERVER_ERROR);
+						exit;
+					}
+
+					if ($content === self::DEFAULT_CONTENT) {
+						http_response_code(Http::NOT_FOUND);
+						exit;
+					}
+
+					switch ($ext) {
+						case "svg":
+							header("Content-Type: image/svg+xml");
+							break;
+
+						case "svg.png":
+							$bgColor = $_GET['bg'] ?? null;
+
+							if ($bgColor !== null) {
+								$bgColor = strtolower($bgColor);
+								if (preg_match('/^[0-9a-f]{6}$/', $bgColor)) {
+									$bgColor = "#" . $bgColor;
+								}
+							}
+
+							$bgColorStr = ($bgColor === null) ? "" : "_$bgColor";
+
+							$cached = get_post_meta($r->getPost()->ID, self::META_PREFIX . "svg_png" . $bgColorStr, true);
+							if ($cached !== '') {
+								$content = base64_decode($cached);
+							} else {
+								try {
+									$content = ImageConversions::svgToPng($content, $bgColor);
+									update_post_meta($r->getPost()->ID, self::META_PREFIX . "svg_png" . $bgColorStr, base64_encode($content));
+								} catch (TouchPointWP_Exception $e) {
+									http_response_code(Http::SERVICE_UNAVAILABLE);
+									echo $e->getMessage();
+									exit;
+								} catch (Exception $e) {
+									http_response_code(Http::SERVER_ERROR);
+									echo $e->getMessage();
+									exit;
+								}
+							}
+							header("Content-Type: image/png");
+							break;
+
+						default:
+							header("Content-Type: text/html");
+							break;
+					}
+
+
+					echo $content;
+					exit;
+
+				case "sql":
+					TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_NONE);
+					header("Cache-Control: max-age=3600, must-revalidate, public");
+					try {
+					$r = Report::fromParams([
+						                        'type'     => 'sql',
+						                        'name'     => $filename,
+						                        'p1'       => $_GET['p1'] ?? ''
+					                        ]);
+					} catch (TouchPointWP_Exception) {
+						http_response_code(Http::SERVER_ERROR);
+						exit;
+					}
+					$content = $r->content();
+					if ($content === self::DEFAULT_CONTENT) {
+						http_response_code(Http::NOT_FOUND);
+						exit;
+					}
+
+					header("Content-Type: text/html");
+					echo $content;
 					exit;
 			}
 		}
@@ -255,8 +382,9 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	 *
 	 * @return string
 	 */
-	public static function reportShortcode($params = [], string $content = ""): string
+	public static function reportShortcode(mixed $params = [], string $content = ""): string
 	{
+		/** @noinspection PhpRedundantOptionalArgumentInspection */
 		$params = array_change_key_case($params, CASE_LOWER);
 
 		$params = shortcode_atts(
@@ -265,13 +393,17 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 				'name'        => '',
 				'interval'    => 24,
 				'p1'          => '',
-				'showupdated' => 'true'
+				'showupdated' => 'true',
+				'inline'      => 'false'
 			],
 			$params,
 			self::SHORTCODE_REPORT
 		);
 
 		$params['showupdated'] = (strtolower($params['showupdated']) === 'true' || $params['showupdated'] === 1);
+		$params['inline'] = (strtolower($params['inline']) === 'true' || $params['inline'] === 1);
+
+		$params['showupdated'] = $params['showupdated'] && !$params['inline'];
 
 		try {
 			$report = self::fromParams($params);
@@ -280,8 +412,10 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 		}
 
 		if (self::$_indexingMode) {
+			// TODO issue #247 Interrogate if parent post has limited access permissions and follow that through with report to be applied in API versions.
+
 			// It has been added to the index already, so our work here is done.
-			return "";
+			return $content;
 		}
 
 		$rc = $report->content();
@@ -292,7 +426,24 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 
 		// Add Figure elt with a unique ID
 		$idAttr = "id=\"" . wp_unique_id('tp-report-') . "\"";
-		$rc     = "<figure $idAttr>\n\t" . str_replace("\n", "\n\t", $rc);
+
+		$class = self::$classDefault;
+
+		/**
+		 * Filter the class name to be used for the displaying the report.
+		 *
+		 * @param string $class The class name to be used.
+		 * @param Report $report The report being displayed.
+		 */
+		$class = apply_filters("tp_rpt_figure_class", $class, $report);
+
+		$permalink = esc_attr(get_post_permalink($report->getPost()));
+
+		$elt = $params['inline'] ? "span" : "figure";
+		$nt  = $params['inline'] ? "" : "\n\t";
+		$n   = $params['inline'] ? "" : "\n";
+
+		$rc = "<$elt $idAttr class=\"$class\" data-tp-report=\"$permalink\">$nt" . str_replace("\n", $nt, $rc);
 
 		// If desired, add a caption that indicates when the table was last updated.
 		if ($params['showupdated']) {
@@ -303,10 +454,10 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 				get_the_modified_time('', $report->getPost())
 			);
 
-			$rc .= "\n\t<figcaption class='tp-report-updated'>$updatedS</figcaption>";
+			$rc .= "$nt<figcaption class='tp-report-updated'>$updatedS</figcaption>";
 		}
 
-		$rc .= "\n</figure>";
+		$rc .= "$n</$elt>";
 
 		return $rc;
 	}
@@ -323,25 +474,24 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	{
 		if ( ! $this->_postLoaded || ($this->post === null && $create)) {
 			$q = new WP_Query([
-				'post_type'   => self::POST_TYPE,
-				'meta_query'  => [
-					'relation' => 'AND',
-					[
-						'key'   => self::TYPE_META_KEY,
-						'value' => $this->type
-					],
-					[
-						'key'   => self::NAME_META_KEY,
-						'value' => $this->name
-					],
-					[
-						'key'   => self::P1_META_KEY,
-						'value' => $this->p1
-					]
-				],
-				'numberposts' => 2
-// only need one, but if there's two, there should be an error condition.
-			]);
+				                  'post_type'   => self::POST_TYPE,
+				                  'meta_query'  => [
+					                  'relation' => 'AND',
+					                  [
+						                  'key'   => self::TYPE_META_KEY,
+						                  'value' => $this->type
+					                  ],
+					                  [
+						                  'key'   => self::NAME_META_KEY,
+						                  'value' => $this->name
+					                  ],
+					                  [
+						                  'key'   => self::P1_META_KEY,
+						                  'value' => $this->p1
+					                  ]
+				                  ],
+				                  'numberposts' => 2  // only need one, but if there's two, there should be an error condition.
+			                  ]);
 
 			$reportPosts = $q->get_posts();
 			$counts      = count($reportPosts);
@@ -349,18 +499,18 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 				new TouchPointWP_Exception("Multiple Posts Exist", 170006);
 			}
 			if ($counts > 0) { // post exists already.
-				$this->post = $reportPosts[0];
+				$this->post = reset($reportPosts);
 			} elseif ($create) {
 				$postId = wp_insert_post([
-					'post_type'   => self::POST_TYPE,
-					'post_status' => 'publish',
-					'post_name'   => $this->title(),
-					'meta_input'  => [
-						self::NAME_META_KEY => $this->name,
-						self::TYPE_META_KEY => $this->type,
-						self::P1_META_KEY   => $this->p1
-					]
-				]);
+					                         'post_type'   => self::POST_TYPE,
+					                         'post_status' => 'publish',
+					                         'post_name'   => $this->title() . " " . $this->type,
+					                         'meta_input'  => [
+						                         self::NAME_META_KEY => $this->name,
+						                         self::TYPE_META_KEY => $this->type,
+						                         self::P1_META_KEY   => $this->p1
+					                         ]
+				                         ]);
 				if (is_wp_error($postId)) {
 					$this->post = null;
 					new TouchPointWP_WPError($postId);
@@ -388,11 +538,14 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	 *
 	 * @return int|WP_Error|null
 	 */
-	protected function submitUpdate()
+	protected function submitUpdate(): int|null|WP_Error
 	{
 		if ( ! $this->getPost()) {
 			return null;
 		}
+
+		// Clear the cached PNGs if they exist.
+		Database::deletePostMetaByPrefix($this->post->ID, self::META_PREFIX . "svg_png");
 
 		return wp_update_post($this->post);
 	}
@@ -426,7 +579,9 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	 */
 	public static function updateFromTouchPoint(bool $forceEvenIfNotDue = false): int
 	{
-		// Find Report Shortcodes in post content and add their involvements to the query.
+		TouchPointWP::instance()->setTpWpUserAsCurrent();
+
+		// Find Report Shortcodes in post content and them to the list for updates.
 		$referencingPosts   = Utilities::getPostContentWithShortcode(self::SHORTCODE_REPORT);
 		$postIdsToNotDelete = [];
 
@@ -436,13 +591,18 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 		//////////////////
 
 		self::$_indexingMode = true;
+
+		global $post;
+		$originalPost = $post;
+
 		foreach ($referencingPosts as $postI) {
-			global $post;
 			$post = $postI;
 			set_time_limit(10);
 			apply_shortcodes($postI->post_content);
 		}
 		self::$_indexingMode = false;
+
+		$post = $originalPost;
 
 		$needsUpdate = [];
 		foreach (self::$_instances as $report) {
@@ -461,7 +621,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 
 		$updates = [];
 		if (count($needsUpdate) > 0) {
-			$data    = TouchPointWP::instance()->apiPost('report_run', ['reports' => $needsUpdate], 60);
+			$data    = TouchPointWP::instance()->api->pyPost('report_run', ['reports' => $needsUpdate], 60);
 			$updates = $data->report_results ?? [];
 		}
 
@@ -474,12 +634,18 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 		foreach ($updates as $u) {
 			try {
 				$report = self::fromParams($u);
-			} catch (TouchPointWP_Exception $e) {
+			} catch (TouchPointWP_Exception) {
 				continue;
 			}
 
+			$content = $u->result;
+
+			if ($u->type === 'sql') {
+				$content = self::cleanupSqlContent($content);
+			}
+
 			$post               = $report->getPost(true);
-			$post->post_content = self::cleanupContent($u->result);
+			$post->post_content = $content;
 			$submit             = $report->submitUpdate();
 
 			if ( ! in_array($post->ID, $postIdsToNotDelete)) {
@@ -511,6 +677,8 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 			TouchPointWP::instance()->flushRewriteRules();
 		}
 
+		TouchPointWP::instance()->unsetTpWpUserAsCurrent();
+
 		return $updateCount;
 	}
 
@@ -522,10 +690,17 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	 *
 	 * @return string
 	 */
-	private static function cleanupContent(string $content): string
+	private static function cleanupSqlContent(string $content): string
 	{
-		$closes  = substr($content, strrpos($content, '</tr>') + 5);
-		$content = substr($content, 0, strrpos($content, '<tr'));
+		$closePos = strrpos($content, '</tr>');
+		$rowPos   = strrpos($content, '<tr');
+
+		if ($closePos === false || $rowPos === false) {
+			return $content;
+		}
+
+		$closes  = substr($content, $closePos + 5);
+		$content = substr($content, 0, $rowPos);
 		$content .= $closes;
 
 		return $content;
@@ -535,12 +710,15 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	/**
 	 * Get the update Interval as a DateInterval for use with DateTime functions.
 	 *
+	 * @param int $diff Number of minutes to subtract from the interval.  Default is 15.
+	 *
 	 * @return DateInterval
 	 */
-	public function intervalAsDateInterval(): DateInterval
+	protected function intervalAsDateInterval(int $diff = 15): DateInterval
 	{
-		$m = ($this->interval * 60) % 60;
-		$h = $this->interval - ($m / 60);
+		$i = $this->interval - ($diff / 60); // subtract to avoid updates shifting later in the day.
+		$m = ($i * 60) % 60;
+		$h = $i - ($m / 60);
 
 		return new DateInterval("PT{$h}H{$m}M");
 	}
@@ -592,18 +770,18 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 			if ( ! $forked) {
 				self::updateFromTouchPoint();
 			}
-		} catch (Exception $ex) {
+		} catch (Exception) {
 		}
 	}
 
 	/**
 	 * Handle which data should be converted to JSON.  Used for posting to the API.
 	 *
-	 * @return object data which can be serialized by json_encode
+	 * @return array data which can be serialized by json_encode
 	 */
-	public function jsonSerialize(): object
+	public function jsonSerialize(): array
 	{
-		return (object)[
+		return [
 			'name' => $this->name,
 			'type' => $this->type,
 			'p1'   => $this->p1
@@ -615,7 +793,7 @@ class Report implements api, module, JsonSerializable, updatesViaCron
 	 *
 	 * @return void
 	 */
-	public static function checkUpdates()
+	public static function checkUpdates(): void
 	{
 		// This method does nothing because the overhead is relatively great, and should not be hooked to every page load.
 	}

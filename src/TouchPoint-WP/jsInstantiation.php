@@ -5,17 +5,22 @@
 
 namespace tp\TouchPointWP;
 
+use Closure;
+
 if ( ! defined('ABSPATH')) {
 	exit(1);
 }
 
 
 /**
- * Used for client-side instantiation
+ * Used for client-side instantiation.
+ *
+ * Note that classes that use this trait will likely also need to implement the JsonSerialize interface (implementation
+ * is provided here).
+ * 
  */
 trait jsInstantiation
 {
-
 	private static array $queueForJsInstantiation = [];
 	private static array $constructedObjects = [];
 	private static bool $requireAllObjectsInJs = false;
@@ -62,7 +67,7 @@ trait jsInstantiation
 	 *
 	 * @return void
 	 */
-	protected function registerConstruction()
+	protected function registerConstruction(): void
 	{
 		if ( ! isset(self::$constructedObjects[$this->getTouchPointId()])) {
 			self::$constructedObjects[$this->getTouchPointId()] = $this;
@@ -77,6 +82,24 @@ trait jsInstantiation
 	public static function requireAllObjectsInJs(bool $require = true): void
 	{
 		self::$requireAllObjectsInJs = $require;
+	}
+
+	/**
+	 * Get the JS for instantiation.
+	 *
+	 * @return object
+	 */
+	public function jsonSerialize(): object
+	{
+		// TODO PHP 8.1: rework closure method to 8.1+ standard
+		$item = Closure::fromCallable("get_object_vars")->__invoke($this);
+		$item['post_id'] = $this->post_id();
+
+		if (method_exists($this, 'asGeoIFace')) {
+			$item['geo'] = $this->asGeoIFace('known');
+		}
+
+		return (object)$item;
 	}
 
 	/**
