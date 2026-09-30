@@ -31,7 +31,7 @@ $description = get_the_archive_description();
 if (have_posts()) {
     global $wp_query;
 
-    TouchPointWP::enqueuePartialsStyle();
+    TouchPointWP::enqueuePartialsStyle("involvement-archive");
     ?>
     <header class="archive-header has-text-align-center header-footer-group">
         <div class="archive-header-inner section-inner medium">

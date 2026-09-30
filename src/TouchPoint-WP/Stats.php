@@ -50,6 +50,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	protected int $rsvps = 0;
 	protected int $people = 0; // updated by query
 	protected int $partnerPosts = 0; // updated by query
+	protected array $involvementCounts = []; // updated by query
 	protected int $userAuths = 0;
 	protected int $softAuths = 0;
 
@@ -175,7 +176,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	 *
 	 * @return void
 	 */
-	public static function checkUpdates()
+	public static function checkUpdates(): void
 	{
 		// This method does nothing because the overhead is relatively great, and should not be hooked to every page load.
 	}
@@ -289,9 +290,12 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	/**
 	 * Submit stats to Tenth.
 	 *
+	 * @param bool $blocking If true, will wait for the response from the server before returning and the method will
+	 * print a status.  If false, nothing prints.
+	 *
 	 * @return void
 	 */
-	protected function submitStats(): void
+	protected function submitStats(bool $blocking = false): void
 	{
 		$this->updateQueriedStats();
 
@@ -320,10 +324,23 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		$r = wp_remote_post($endpoint, [
 			'body' => ['data' => $data],
 			'timeout' => 10,
-//			'blocking' => false,
+			'blocking' => $blocking,
 		]);
-		var_dump($endpoint, $r, $data);
-		echo "ok";
+
+		if ($blocking) {
+			if (is_wp_error($r)) {
+				echo "error";
+				error_log("TouchPoint-WP: Stats: Failed to submit telemetry to $endpoint: " . $r->get_error_message());
+			} else {
+				$code = wp_remote_retrieve_response_code($r);
+				if ($code !== 200) {
+					echo "error";
+					error_log("TouchPoint-WP: Stats: Failed to submit telemetry to $endpoint: " . wp_remote_retrieve_body($r));
+				} else {
+					echo "ok";
+				}
+			}
+		}
 	}
 
 	/**
@@ -368,10 +385,17 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		global $wpdb;
 
 		$this->involvementPosts = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->postmeta WHERE meta_key = 'tp_invId'") ?? -1;
-		$this->reportPosts      = $wpdb->get_var("SELECT COUNT(*) as c FROM $wpdb->posts WHERE post_type = 'tp_report'") ?? -1;
+		$this->reportPosts      = $wpdb->get_var("SELECT COUNT(DISTINCT ID) as c FROM $wpdb->posts WHERE post_type = 'tp_report'") ?? -1;
 		$this->meetings         = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->postmeta WHERE meta_key = 'tp_mtgId'") ?? -1;
 		$this->people           = $wpdb->get_var("SELECT COUNT(DISTINCT meta_value) as c FROM $wpdb->usermeta WHERE meta_key = 'tp_peopleId';") ?? -1;
-		$this->partnerPosts     = $wpdb->get_var("SELECT COUNT(*) as c FROM $wpdb->posts WHERE post_type = 'tp_partner'") ?? -1;
+		$this->partnerPosts     = $wpdb->get_var("SELECT COUNT(DISTINCT ID) as c FROM $wpdb->posts WHERE post_type = 'tp_partner'") ?? -1;
+
+		$invCounts = [];
+		$invQuery = "SELECT COUNT(DISTINCT pm.meta_value) as c FROM $wpdb->postmeta pm JOIN $wpdb->posts p ON pm.post_id = p.ID WHERE pm.meta_key = 'tp_invId' AND p.post_type = %s";
+		foreach (Involvement::getPostTypes() as $type) {
+			$invCounts[$type] = intval($wpdb->get_var($wpdb->prepare($invQuery, $type))) ?? 0;
+		}
+		$this->involvementCounts = $invCounts;
 
 		$this->_dirty = true;
 
@@ -421,7 +445,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 				if ($_SERVER['REQUEST_METHOD'] === "POST") {
 					self::handleSubmission();
 				} else {
-					$s->submitStats();
+					$s->submitStats(true);
 				}
 				exit;
 
@@ -437,6 +461,11 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	 */
 	public static function handleSubmission(): bool
 	{
+		if ($_SERVER['HTTP_HOST'] !== 'www.tenth.org') {
+			http_response_code(Http::FORBIDDEN);
+			echo "Submissions are only accepted to www.tenth.org.";
+			return false;
+		}
 
 		if ($_SERVER['REQUEST_METHOD'] !== "POST") {
 			http_response_code(Http::METHOD_NOT_ALLOWED);
@@ -464,11 +493,17 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		$data = array_intersect_key($data, $s->getStatsForSubmission());
 		$data['updatedDT'] = date('Y-m-d H:i:s');
 
-		// upsert the data into the database into the stats table without destructive replace function
+		// Upsert the data into the stats table without treating a no-op update as a failed write.
 		global $wpdb;
-		$r = $wpdb->update($wpdb->prefix . TouchPointWP::TABLE_STATS, $data, ['installId' => $data['installId']]);
-		if ($r < 1) {
-			$r = $wpdb->insert($wpdb->prefix . TouchPointWP::TABLE_STATS, $data);
+		$table = $wpdb->prefix . TouchPointWP::TABLE_STATS;
+		$existingInstallId = $wpdb->get_var($wpdb->prepare(
+			"SELECT installId FROM {$table} WHERE installId = %s LIMIT 1",
+			$data['installId']
+		));
+		if ($existingInstallId !== null) {
+			$r = $wpdb->update($table, $data, ['installId' => $data['installId']]);
+		} else {
+			$r = $wpdb->insert($table, $data);
 		}
 
 		if ($r === false) {

@@ -120,9 +120,7 @@ Several plugins have lended structure, code, or inspiration to this plugin:
 ### Other Software Used Within this Software
 - [SweetAlert2](https://sweetalert2.github.io/) (MIT)
 - [Knockout JS](https://knockoutjs.com/) (MIT)
-- [Google Maps Javascript API](https://developers.google.com/maps/documentation/javascript/overview) 
-  ([Proprietary](https://developers.google.com/terms))
-- [FontAwesome](https://fontawesome.com/) ([SIL OFL 1.1](http://scripts.sil.org/OFL))
+- [Google Maps Javascript API](https://developers.google.com/maps/documentation/javascript/overview) ([Proprietary](https://developers.google.com/terms))
 
 ### License
 This plugin is released under the AGPL, which is "very strong copy-left".  Therefore, if you change this code and use it

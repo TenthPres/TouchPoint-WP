@@ -116,6 +116,13 @@ class Settings
 	 */
 	protected array $settings = [];
 
+	/**
+	 * Indicates whether strings are included in the settings parameters.
+	 *
+	 * @var bool
+	 */
+	protected bool $hasStrings = false;
+
 	public const UNDEFINED_PLACEHOLDER = INF;
 
 	/**
@@ -150,7 +157,7 @@ class Settings
 	 * @param ?TouchPointWP $parent Object instance.
 	 *
 	 * @return Settings instance
-	 * @since 0.0.90 Added
+	 * @since 0.0.37 Added
 	 * @static
 	 * @see TouchPointWP()
 	 */
@@ -168,13 +175,15 @@ class Settings
 	}
 
 	/**
-	 * Initialise settings
+	 * Initialize settings
+	 *
+	 * @param bool $withStrings Indicates that labels need to be included
 	 *
 	 * @return void
 	 */
-	public function initSettings(): void
+	public function initSettings(bool $withStrings = false): void
 	{
-		$this->settings = $this->settingsFields();
+		$this->settings = $this->settingsFields($withStrings);
 	}
 
 	/**
@@ -207,7 +216,7 @@ class Settings
 		) {
 			return true;
 		}
-		foreach (self::settingsFields() as $page) {
+		foreach ($this->settings as $page) {
 			foreach ($page['fields'] as $f) {
 				if ($f['id'] === $settingName) {
 					if (isset($f['autoload'])) {
@@ -227,7 +236,7 @@ class Settings
 	 */
 	private function getFieldMeta($fieldId): ?array
 	{
-		foreach ($this->settingsFields() as $category) {
+		foreach ($this->settings as $category) {
 			foreach ($category['fields'] as $field) {
 				if ($field['id'] === $fieldId) {
 					return $field;
@@ -238,6 +247,26 @@ class Settings
 	}
 
 	/**
+	 * A wrapper for the usual WordPress translation function, in order to make sure translations aren't called too early.
+	 *
+	 * @param string $text
+	 * @param string $domain
+	 *
+	 * @see __()
+	 *
+	 * @return string
+	 */
+	protected function __(string $text, string $domain): string
+	{
+		if (! $this->hasStrings) {
+			// If the init function hasn't been called yet, we can't use the translation function.
+			return "";
+		}
+
+		return __($text, $domain);
+	}
+
+	/**
 	 * Build settings fields
 	 *
 	 * @param bool|string $includeDetail Set to true to get options from TouchPoint, likely including the API calls. Set
@@ -245,26 +274,32 @@ class Settings
 	 *
 	 * @return array[] Fields to be displayed on settings page
 	 */
-	private function settingsFields(bool|string $includeDetail = false): array
+	private function settingsFields(bool $withStrings, bool|string $includeDetail = false): array
 	{
 		// Don't call API if we don't have API credentials
 		if ( ! $this->hasValidApiSettings()) {
 			$includeDetail = false;
 		}
 
-		if (count($this->settings) > 0 && $includeDetail === false) {
-			// Settings are already loaded, and they have adequate detail for the task at hand.
+		if (count($this->settings) > 0 && ($this->hasStrings >= $withStrings) && $includeDetail === false) {
+			// Settings are already loaded.
 			return $this->settings;
 		}
 
-		$this->settings['basic'] = [
-			'title'       => __('Basic Settings', 'TouchPoint-WP'),
-			'description' => __('Connect to TouchPoint and choose which features you wish to use.', 'TouchPoint-WP'),
+		$settings = [];
+
+		if ($withStrings) {
+			$this->hasStrings = true;
+		}
+
+		$settings['basic'] = [
+			'title'       => $this->__('Basic Settings', 'TouchPoint-WP'),
+			'description' => $this->__('Connect to TouchPoint and choose which features you wish to use.', 'TouchPoint-WP'),
 			'fields'      => [
 				[
 					'id'          => 'enable_authentication',
-					'label'       => __('Enable Authentication', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Enable Authentication', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'Allow TouchPoint users to sign into this website with TouchPoint.',
 						'TouchPoint-WP'
 					),
@@ -275,16 +310,16 @@ class Settings
 				],
 				[
 					'id'          => 'enable_rsvp',
-					'label'       => __('Enable RSVP Tool', 'TouchPoint-WP'),
-					'description' => __('Add a crazy-simple RSVP button to WordPress event pages.', 'TouchPoint-WP'),
+					'label'       => $this->__('Enable RSVP Tool', 'TouchPoint-WP'),
+					'description' => $this->__('Add a crazy-simple RSVP button to WordPress event pages.', 'TouchPoint-WP'),
 					'type'        => 'checkbox',
 					'default'     => '',
 					'autoload'    => true,
 				],
 				[
 					'id'          => 'enable_involvements',
-					'label'       => __('Enable Involvements', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Enable Involvements', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'Load Involvements from TouchPoint for involvement listings and entries native in your website.',
 						'TouchPoint-WP'
 					),
@@ -294,8 +329,8 @@ class Settings
 				],
 				[
 					'id'          => 'enable_meeting_cal',
-					'label'       => __('Enable Meeting Calendar', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Enable Meeting Calendar', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'Load Meetings from TouchPoint for a calendar, native in your website.',
 						'TouchPoint-WP'
 					),
@@ -305,8 +340,8 @@ class Settings
 				],
 				[
 					'id'          => 'enable_people_lists',
-					'label'       => __('Enable Public People Lists', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Enable Public People Lists', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'Import public people listings from TouchPoint (e.g. staff or elders)',
 						'TouchPoint-WP'
 					),
@@ -316,8 +351,8 @@ class Settings
 				],
 				[
 					'id'          => 'enable_global',
-					'label'       => __('Enable Global Partner Listings', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Enable Global Partner Listings', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'Import ministry partners from TouchPoint to list publicly.',
 						'TouchPoint-WP'
 					),
@@ -327,8 +362,8 @@ class Settings
 				],
 				[
 					'id'          => 'enable_campuses',
-					'label'       => __('Enable Campuses', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Enable Campuses', 'TouchPoint-WP'),
+					'description' => $this->__(
 						"Import campuses as a taxonomy. (You probably want to do this if you're multi-campus.)",
 						'TouchPoint-WP'
 					),
@@ -338,8 +373,8 @@ class Settings
 				],
 				[
 					'id'          => 'system_name',
-					'label'       => __('Display Name', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Display Name', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'What your church calls your TouchPoint database.',
 						'TouchPoint-WP'
 					),
@@ -349,8 +384,8 @@ class Settings
 				],
 				[
 					'id'          => 'host',
-					'label'       => __('TouchPoint Host Name', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('TouchPoint Host Name', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'The domain for your TouchPoint database, without the https or any slashes.',
 						'TouchPoint-WP'
 					),
@@ -365,8 +400,8 @@ class Settings
 				],
 				[
 					'id'          => 'host_deeplink',
-					'label'       => __('Custom Mobile App Deeplink Host Name', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Custom Mobile App Deeplink Host Name', 'TouchPoint-WP'),
+					'description' => $this->__(
 						"The domain for your mobile app deeplinks, without the https or any slashes.  If you aren't using the custom mobile app, leave this blank.",
 						'TouchPoint-WP'
 					),
@@ -377,8 +412,8 @@ class Settings
 				],
 				[
 					'id'          => 'api_user',
-					'label'       => __('TouchPoint API Username', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('TouchPoint API Username', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'The username of a user account in TouchPoint with API permissions.  It is strongly recommended that you create a separate person/user for this purpose, rather than using a staff member\'s account.',
 						'TouchPoint-WP'
 					),
@@ -390,8 +425,8 @@ class Settings
 				],
 				[
 					'id'          => 'api_pass',
-					'label'       => __('TouchPoint API User Password', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('TouchPoint API User Password', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'The password of a user account in TouchPoint with API permissions.',
 						'TouchPoint-WP'
 					),
@@ -406,8 +441,8 @@ class Settings
 				],
 				[
 					'id'          => 'api_script_name',
-					'label'       => __('TouchPoint API Script Name', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('TouchPoint API Script Name', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'The name of the Python script loaded into TouchPoint.  Don\'t change this unless you know what you\'re doing.',
 						'TouchPoint-WP'
 					),
@@ -418,8 +453,8 @@ class Settings
 				],
 				[
 					'id'          => 'google_maps_api_key',
-					'label'       => __('Google Maps Javascript API Key', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Google Maps Javascript API Key', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'Required for embedding maps.',
 						'TouchPoint-WP'
 					),
@@ -430,8 +465,8 @@ class Settings
 				],
 				[
 					'id'          => 'google_geo_api_key',
-					'label'       => __('Google Maps Geocoding API Key', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Google Maps Geocoding API Key', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'Optional.  Allows for reverse geocoding of user locations.',
 						'TouchPoint-WP'
 					),
@@ -441,8 +476,8 @@ class Settings
 				],
 				[
 					'id'          => 'ipapi_key',
-					'label'       => __('ipapi.co API Key', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('ipapi.co API Key', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'Optional. Allows for geolocation of user IP addresses.  This generally will work without a key, but may be rate limited.',
 						'TouchPoint-WP'
 					),
@@ -452,8 +487,8 @@ class Settings
 				],
 				[
 					'id'          => 'enable_public_listing',
-					'label'       => __('List Site in Directory', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('List Site in Directory', 'TouchPoint-WP'),
+					'description' => $this->__(
 						"Allow the TouchPoint-WP developers to publicly list your site/church as using TouchPoint-WP. Helps other prospective churches see what can be done by combining WordPress with the best ChMS on the planet.  Only applies if this site is accessible on the public internet.",
 						'TouchPoint-WP'
 					),
@@ -468,14 +503,14 @@ class Settings
 			&& $this->getWithoutDefault('system_name') !== self::UNDEFINED_PLACEHOLDER
 			&& $this->hasValidApiSettings()) {
 			/** @noinspection HtmlUnknownTarget */
-			$this->settings['basic']['fields'][] = [
+			$settings['basic']['fields'][] = [
 				'id'          => 'generate-scripts',
-				'label'       => __('Generate Scripts', 'TouchPoint-WP'),
+				'label'       => $this->__('Generate Scripts', 'TouchPoint-WP'),
 				'type'        => 'instructions',
 				'description' => strtr(
-					'<p>' . __('Once your settings on this page are set and saved, use this tool to generate the scripts needed for TouchPoint in a convenient installation package.', 'TouchPoint-WP') .
-					'  <a href="{uploadUrl}">' . __('Upload the package to {tpName} here', 'TouchPoint-WP') . '</a>.</p>
-<p><a href="{apiUrl}" class="button-secondary" target="tp_zipIfr">' . __('Generate Scripts', 'TouchPoint-WP') . '</a></p>
+					'<p>' . $this->__('Once your settings on this page are set and saved, use this tool to generate the scripts needed for TouchPoint in a convenient installation package.', 'TouchPoint-WP') .
+					'  <a href="{uploadUrl}">' . $this->__('Upload the package to {tpName} here', 'TouchPoint-WP') . '</a>.</p>
+<p><a href="{apiUrl}" class="button-secondary" target="tp_zipIfr">' . $this->__('Generate Scripts', 'TouchPoint-WP') . '</a></p>
 <iframe name="tp_zipIfr" style="width:0; height:0; opacity:0;"></iframe>',
 					[
 						'{apiUrl}'    => "/" . TouchPointWP::API_ENDPOINT . "/" . TouchPointWP::API_ENDPOINT_ADMIN_SCRIPTZIP,
@@ -490,14 +525,14 @@ class Settings
 			$includeThis              = $includeDetail === true || $includeDetail === 'people';
 			$urlParts = wp_parse_url(home_url());
 			$defaultUserPev = $urlParts['host'] . " User ID";
-			$this->settings['people'] = [
-				'title'       => __('People', 'TouchPoint-WP'),
-				'description' => __('Manage how people are synchronized between TouchPoint and WordPress.', 'TouchPoint-WP'),
+			$settings['people'] = [
+				'title'       => $this->__('People', 'TouchPoint-WP'),
+				'description' => $this->__('Manage how people are synchronized between TouchPoint and WordPress.', 'TouchPoint-WP'),
 				'fields'      => [
 					[
 						'id'          => 'people_contact_keywords',
-						'label'       => __('Contact Keywords', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Contact Keywords', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'These keywords will be used when someone clicks the "Contact" button on a Person\'s listing or profile.',
 							'TouchPoint-WP'
 						),
@@ -508,8 +543,8 @@ class Settings
 					],
 					[
 						'id'          => 'people_ev_wpId',
-						'label'       => __('Extra Value for WordPress User ID', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Extra Value for WordPress User ID', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'The name of the extra value to use for the WordPress User ID.  If you are using multiple WordPress instances with one TouchPoint database, you will need these values to be unique between WordPress instances.  In most cases, the default is fine.',
 							'TouchPoint-WP'
 						),
@@ -519,8 +554,8 @@ class Settings
 					],
 					[
 						'id'          => 'people_ev_bio',
-						'label'       => __('Extra Value: Biography', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Extra Value: Biography', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'Import a Bio from a Person Extra Value field.  Can be an HTML or Text Extra Value.  This will overwrite any values set by WordPress.  Leave blank to not import.',
 							'TouchPoint-WP'
 						),
@@ -530,9 +565,9 @@ class Settings
 					],
 					[
 						'id'          => 'people_ev_custom',
-						'label'       => __('Extra Values to Import', 'TouchPoint-WP'),
-						'description' => __(
-							'Import People Extra Value fields as User Meta data.',
+						'label'       => $this->__('Extra Values to Import', 'TouchPoint-WP'),
+						'description' => $this->__(
+							'Import People Extra Value fields as User Metadata.',
 							'TouchPoint-WP'
 						),
 						'type'        => 'checkbox_multi',
@@ -546,14 +581,14 @@ class Settings
 
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_authentication') === "on") { // TODO MULTI
 //			$includeThis = $includeDetail === true || $includeDetail === 'authentication';
-			$this->settings['authentication'] = [
-				'title'       => __('Authentication', 'TouchPoint-WP'),
-				'description' => __('Allow users to log into WordPress using TouchPoint.', 'TouchPoint-WP'),
+			$settings['authentication'] = [
+				'title'       => $this->__('Authentication', 'TouchPoint-WP'),
+				'description' => $this->__('Allow users to log into WordPress using TouchPoint.', 'TouchPoint-WP'),
 				'fields'      => [
 					[
 						'id'          => 'auth_default',
-						'label'       => __('Make TouchPoint the default authentication method.', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Make TouchPoint the default authentication method.', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'By checking this box, the TouchPoint login page will become the default.  To prevent the redirect and reach the standard WordPress login page, add \'tp_no_redirect\' as a URL parameter.',
 							'TouchPoint-WP'
 						),
@@ -562,8 +597,8 @@ class Settings
 					],
 					[
 						'id'          => 'auth_auto_provision',
-						'label'       => __('Enable Auto-Provisioning', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Enable Auto-Provisioning', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'Automatically create WordPress users, if needed, to match authenticated TouchPoint users.',
 							'TouchPoint-WP'
 						),
@@ -572,8 +607,8 @@ class Settings
 					],
 					[
 						'id'          => 'auth_change_profile_urls',
-						'label'       => __('Change Profile Links', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Change Profile Links', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'"Edit Profile" links will take the user to their TouchPoint profile, instead of their WordPress profile.',
 							'TouchPoint-WP'
 						),
@@ -582,15 +617,15 @@ class Settings
 					],
 					[
 						'id'          => 'auth_full_logout',
-						'label'       => __('Enable full logout', 'TouchPoint-WP'),
-						'description' => __('Logout of TouchPoint when logging out of WordPress.', 'TouchPoint-WP'),
+						'label'       => $this->__('Enable full logout', 'TouchPoint-WP'),
+						'description' => $this->__('Logout of TouchPoint when logging out of WordPress.', 'TouchPoint-WP'),
 						'type'        => 'checkbox',
 						'default'     => 'on',
 					],
 					[
 						'id'          => 'auth_prevent_admin_bar',
-						'label'       => __('Prevent Subscriber Admin Bar', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Prevent Subscriber Admin Bar', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'By enabling this option, users who can\'t edit anything won\'t see the Admin bar.',
 							'TouchPoint-WP'
 						),
@@ -603,14 +638,14 @@ class Settings
 
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_involvements') === "on") {  // TODO MULTI
 			$includeThis                    = $includeDetail === true || $includeDetail === 'involvements';
-			$this->settings['involvements'] = [
-				'title'       => __('Involvements', 'TouchPoint-WP'),
-				'description' => __('Import Involvements from TouchPoint to list them on your website, for Small Groups, Classes, and more.  Select the division(s) that immediately correspond to the type of Involvement you want to list.  For example, if you want a Small Group list and have a Small Group Division, only select the Small Group Division.  If you want Involvements to be filterable by additional Divisions, select those Divisions on the Divisions tab, not here.', 'TouchPoint-WP'),
+			$settings['involvements'] = [
+				'title'       => $this->__('Involvements', 'TouchPoint-WP'),
+				'description' => $this->__('Import Involvements from TouchPoint to list them on your website, for Small Groups, Classes, and more.  Select the division(s) that immediately correspond to the type of Involvement you want to list.  For example, if you want a Small Group list and have a Small Group Division, only select the Small Group Division.  If you want Involvements to be filterable by additional Divisions, select those Divisions on the Divisions tab, not here.', 'TouchPoint-WP'),
 				'fields'      => [
 					[
 						'id'          => 'inv_json', // involvement settings json (stored as a json string)
 						'type'        => 'textarea',
-						'label'       => __('Involvement Post Types', 'TouchPoint-WP'),
+						'label'       => $this->__('Involvement Post Types', 'TouchPoint-WP'),
 						'default'     => '[]',
 						'autoload'    => true,
 						'hidden'      => true,
@@ -639,14 +674,14 @@ class Settings
 
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_global') === "on") { // TODO MULTI
 			$includeThis              = $includeDetail === true || $includeDetail === 'global';
-			$this->settings['global'] = [
-				'title'       => __('Global Partners', 'TouchPoint-WP'),
-				'description' => __('Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners are grouped by family, and content is provided through Family Extra Values.  This works for both People and Business records.', 'TouchPoint-WP'),
+			$settings['global'] = [
+				'title'       => $this->__('Global Partners', 'TouchPoint-WP'),
+				'description' => $this->__('Manage how global partners are imported from TouchPoint for listing on WordPress.  Partners are grouped by family, and content is provided through Family Extra Values.  This works for both People and Business records.', 'TouchPoint-WP'),
 				'fields'      => [
 					[
 						'id'          => 'global_name_plural',
-						'label'       => __('Global Partner Name (Plural)', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Global Partner Name (Plural)', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'What you call Global Partners at your church',
 							'TouchPoint-WP'
 						),
@@ -656,8 +691,8 @@ class Settings
 					],
 					[
 						'id'          => 'global_name_singular',
-						'label'       => __('Global Partner Name (Singular)', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Global Partner Name (Singular)', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'What you call a Global Partner at your church',
 							'TouchPoint-WP'
 						),
@@ -667,8 +702,8 @@ class Settings
 					],
 					[
 						'id'          => 'global_name_plural_decoupled',
-						'label'       => __('Global Partner Name for Secure Places (Plural)', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Global Partner Name for Secure Places (Plural)', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'What you call Secure Global Partners at your church',
 							'TouchPoint-WP'
 						),
@@ -678,8 +713,8 @@ class Settings
 					],
 					[
 						'id'          => 'global_name_singular_decoupled',
-						'label'       => __('Global Partner Name for Secure Places (Singular)', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Global Partner Name for Secure Places (Singular)', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'What you call a Secure Global Partner at your church',
 							'TouchPoint-WP'
 						),
@@ -689,8 +724,8 @@ class Settings
 					],
 					[
 						'id'          => 'global_slug',
-						'label'       => __('Global Partner Slug', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Global Partner Slug', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'The root path for Global Partner posts',
 							'TouchPoint-WP'
 						),
@@ -702,8 +737,8 @@ class Settings
 					],
 					[
 						'id'          => 'global_search',
-						'label'       => __('Saved Search', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Saved Search', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'Anyone who is included in this saved search will be included in the listing.',
 							'TouchPoint-WP'
 						),
@@ -713,8 +748,8 @@ class Settings
 					],
 					[
 						'id'          => 'global_description',
-						'label'       => __('Extra Value: Description', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Extra Value: Description', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'Import a description from a Family Extra Value field.  Can be an HTML or Text Extra Value.  This becomes the body of the Global Partner post.',
 							'TouchPoint-WP'
 						),
@@ -724,8 +759,8 @@ class Settings
 					],
 					[
 						'id'          => 'global_summary',
-						'label'       => __('Extra Value: Summary', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Extra Value: Summary', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'Optional. Import a short description from a Family Extra Value field.  Can be an HTML or Text Extra Value.  If not provided, the full bio will be truncated.',
 							'TouchPoint-WP'
 						),
@@ -735,8 +770,8 @@ class Settings
 					],
 					[
 						'id'          => 'global_geo_lat',
-						'label'       => __('Latitude Override', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Latitude Override', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'Designate a text Family Extra Value that will contain a latitude that overrides any locations on the partner\'s profile for the partner map.  Both latitude and longitude must be provided for an override to take place.',
 							'TouchPoint-WP'
 						),
@@ -746,8 +781,8 @@ class Settings
 					],
 					[
 						'id'          => 'global_geo_lng',
-						'label'       => __('Longitude Override', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Longitude Override', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'Designate a text Family Extra Value that will contain a longitude that overrides any locations on the partner\'s profile for the partner map.  Both latitude and longitude must be provided for an override to take place.',
 							'TouchPoint-WP'
 						),
@@ -757,8 +792,8 @@ class Settings
 					],
 					[
 						'id'          => 'global_location',
-						'label'       => __('Public Location', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Public Location', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'Designate a text Family Extra Value that will contain the partner\'s location, as you want listed publicly.  For partners who have DecoupleLocation enabled, this field will be associated with the map point, not the list entry.',
 							'TouchPoint-WP'
 						),
@@ -768,9 +803,9 @@ class Settings
 					],
 					[
 						'id'          => 'global_fev_custom',
-						'label'       => __('Extra Values to Import', 'TouchPoint-WP'),
-						'description' => __(
-							'Import Family Extra Value fields as Meta data on the partner\'s post',
+						'label'       => $this->__('Extra Values to Import', 'TouchPoint-WP'),
+						'description' => $this->__(
+							'Import Family Extra Value fields as Metadata on the partner\'s post',
 							'TouchPoint-WP'
 						),
 						'type'        => 'checkbox_multi',
@@ -780,8 +815,8 @@ class Settings
 					],
 					[
 						'id'          => 'global_primary_tax',
-						'label'       => __('Primary Taxonomy', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Primary Taxonomy', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'Import a Family Extra Value as the primary means by which partners are organized.',
 							'TouchPoint-WP'
 						),
@@ -798,23 +833,23 @@ class Settings
 			$options = [];
 			$default = '';
 			if (TouchPointWP::useTribeCalendar()) {
-				$options['tribe'] = __('Events Calendar plugin by Modern Tribe', 'TouchPoint-WP');
+				$options['tribe'] = $this->__('Events Calendar plugin by Modern Tribe', 'TouchPoint-WP');
 				$default = 'tribe';
 			}
 			if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_meeting_cal') === "on") {
-				$options['meetings'] = __('TouchPoint Meetings', 'TouchPoint-WP');
+				$options['meetings'] = $this->__('TouchPoint Meetings', 'TouchPoint-WP');
 				$default = 'meetings';
 			}
 
 			/** @noinspection HtmlUnknownTarget */
-			$this->settings['events_calendar'] = [
-				'title'       => __('App 2.0 Calendar', 'TouchPoint-WP'),
-				'description' => __('Integrate Custom Mobile app version 2.0 with The Events Calendar from Modern Tribe.', 'TouchPoint-WP'),
+			$settings['events_calendar'] = [
+				'title'       => $this->__('App 2.0 Calendar', 'TouchPoint-WP'),
+				'description' => $this->__('Integrate Custom Mobile app version 2.0 with The Events Calendar from Modern Tribe.', 'TouchPoint-WP'),
 				'fields'      => [
 					[
 						'id'          => 'ec_app_cal_provider',
-						'label'       => __('Events Provider', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Events Provider', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'The source of events for version 2.0 of the Custom Mobile App.',
 							'TouchPoint-WP'
 						),
@@ -824,12 +859,12 @@ class Settings
 					],
 					[
 						'id'          => 'ec_app_cal_url',
-						'label'       => __('Events for Custom Mobile App', 'TouchPoint-WP'),
+						'label'       => $this->__('Events for Custom Mobile App', 'TouchPoint-WP'),
 						'type'        => 'instructions',
 						'description' => strtr(
-							'<p>' . __("To use your Events Calendar events in the Custom mobile app, set the Provider to <code>Wordpress Plugin - Modern Tribe</code> (regardless of which provider you're using above) and use this url:", 'TouchPoint-WP') . '</p>' .
+							'<p>' . $this->__("To use your Events Calendar events in the Custom mobile app, set the Provider to <code>Wordpress Plugin - Modern Tribe</code> (regardless of which provider you're using above) and use this url:", 'TouchPoint-WP') . '</p>' .
 							'<input type="url" value="{apiUrl}" readonly style="width: 100%;" />' .
-							'<a href="{previewUrl}" class="btn">' . __('Preview', 'TouchPoint-WP') . '</a>',
+							'<a href="{previewUrl}" class="btn">' . $this->__('Preview', 'TouchPoint-WP') . '</a>',
 							[
 								'{apiUrl}'	   => get_site_url() . "/" .
 												  TouchPointWP::API_ENDPOINT . "/" .
@@ -844,8 +879,8 @@ class Settings
 					],
 					[
 						'id'          => 'ec_use_standardizing_style',
-						'label'       => __('Use Standardizing Stylesheet', 'TouchPoint-WP'),
-						'description' => __( 'Inserts some basic CSS into the events feed to clean up display', 'TouchPoint-WP' ),
+						'label'       => $this->__('Use Standardizing Stylesheet', 'TouchPoint-WP'),
+						'description' => $this->__( 'Inserts some basic CSS into the events feed to clean up display', 'TouchPoint-WP' ),
 						'type'        => 'checkbox',
 						'default'     => 'on',
 					],
@@ -856,38 +891,38 @@ class Settings
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_meeting_cal') === "on") { // TODO MULTI
 //			$includeThis = $includeDetail === true || $includeDetail === 'events';
 			$tribe = TouchPointWP::useTribeCalendar();
-			$this->settings['meetCal'] = [
-				'title'       => __('Meeting Calendars', 'TouchPoint-WP'),
-				'description' => __('Import Meetings from TouchPoint to a calendar on your website.', 'TouchPoint-WP'),
+			$settings['meetCal'] = [
+				'title'       => $this->__('Meeting Calendars', 'TouchPoint-WP'),
+				'description' => $this->__('Import Meetings from TouchPoint to a calendar on your website.', 'TouchPoint-WP'),
 				'fields'      => [
 					[
 						'id'          => 'mc_name_plural',
-						'label'       => __('Meeting Name (Plural)', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Meeting Name (Plural)', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'What you call Meetings at your church',
 							'TouchPoint-WP'
 						),
 						'type'        => 'text',
-						'default'     => $tribe ? __('Meetings', 'TouchPoint-WP') : __('Events', 'TouchPoint-WP'),
+						'default'     => $tribe ? $this->__('Meetings', 'TouchPoint-WP') : $this->__('Events', 'TouchPoint-WP'),
 						'autoload'    => true,
-						'placeholder' => $tribe ? __('Meetings', 'TouchPoint-WP') : __('Events', 'TouchPoint-WP'),
+						'placeholder' => $tribe ? $this->__('Meetings', 'TouchPoint-WP') : $this->__('Events', 'TouchPoint-WP'),
 					],
 					[
 						'id'          => 'mc_name_singular',
-						'label'       => __('Meeting Name (Singular)', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Meeting Name (Singular)', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'What you call a Meeting at your church',
 							'TouchPoint-WP'
 						),
 						'type'        => 'text',
-						'default'     => $tribe ? __('Meeting', 'TouchPoint-WP') : __('Event', 'TouchPoint-WP'),
+						'default'     => $tribe ? $this->__('Meeting', 'TouchPoint-WP') : $this->__('Event', 'TouchPoint-WP'),
 						'autoload'    => true,
-						'placeholder' => $tribe ? __('Meeting', 'TouchPoint-WP') : __('Event', 'TouchPoint-WP'),
+						'placeholder' => $tribe ? $this->__('Meeting', 'TouchPoint-WP') : $this->__('Event', 'TouchPoint-WP'),
 					],
 					[
 						'id'          => 'mc_slug',
-						'label'       => __('Meetings Slug', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Meetings Slug', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'The root path for Meetings',
 							'TouchPoint-WP'
 						),
@@ -899,8 +934,8 @@ class Settings
 					],
 					[
 						'id'          => 'mc_future_days',
-						'label'       => __('Days of Future', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Days of Future', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'Meetings more than this many days in the future will not be imported.',
 							'TouchPoint-WP'
 						),
@@ -912,8 +947,8 @@ class Settings
 					],
 					[
 						'id'          => 'mc_archive_days',
-						'label'       => __('Archive After Days', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Archive After Days', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'Meetings more than this many days in the past will no longer update from TouchPoint, allowing you to keep some historical event information on the calendar for reference, even if you reuse and update the information in the Involvement.',
 							'TouchPoint-WP'
 						),
@@ -925,8 +960,8 @@ class Settings
 					],
 					[
 						'id'          => 'mc_hist_days',
-						'label'       => __('Days of History', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Days of History', 'TouchPoint-WP'),
+						'description' => $this->__(
 							// for reference: https://github.com/TenthPres/TouchPoint-WP/issues/224
 							"Meetings will be kept on the calendar until the event is this many days in the past.  Once an event is older than this, it'll be deleted.  Strongly recommend either very little history (less than a month) or a lot of history (at least 15 months).",
 							'TouchPoint-WP'
@@ -940,16 +975,16 @@ class Settings
 					],
 					[
 						'id'          => 'mc_grouping_method',
-						'label'       => __("Collect Meetings for Larger Events", "TouchPoint-WP"),
-						'description' => __("Allows multiple meetings that are part of one larger event to be grouped together, such as sessions within a conference.  For meetings to be collected, they must be in the same involvement and must not have gaps between them larger than 23 hours.", "TouchPoint-WP"),
+						'label'       => $this->__("Collect Meetings for Larger Events", "TouchPoint-WP"),
+						'description' => $this->__("Allows multiple meetings that are part of one larger event to be grouped together, such as sessions within a conference.  For meetings to be collected, they must be in the same involvement and must not have gaps between them larger than 23 hours.", "TouchPoint-WP"),
 						'type'        => 'select',
 						'options'     => [
-							Meeting::GROUP_NONE => __("No Collecting", "TouchPoint-WP"),
-							Meeting::GROUP_UNSCHEDULED => __(
+							Meeting::GROUP_NONE => $this->__("No Collecting", "TouchPoint-WP"),
+							Meeting::GROUP_UNSCHEDULED => $this->__(
 								"Collect Meetings only from Involvements without Schedules",
 								"TouchPoint-WP"
 							),
-							Meeting::GROUP_ALL => __("Collect Meetings for all Involvements", "TouchPoint-WP"),
+							Meeting::GROUP_ALL => $this->__("Collect Meetings for all Involvements", "TouchPoint-WP"),
 						],
 						'default'     => Meeting::GROUP_UNSCHEDULED,
 						'autoload'    => false
@@ -959,14 +994,14 @@ class Settings
 		}
 
 		$includeThis = $includeDetail === true || $includeDetail === 'divisions';
-		$this->settings['divisions'] = [
-			'title'       => __('Divisions', 'TouchPoint-WP'),
-			'description' => __('Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', 'TouchPoint-WP'),
+		$settings['divisions'] = [
+			'title'       => $this->__('Divisions', 'TouchPoint-WP'),
+			'description' => $this->__('Import Divisions from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.', 'TouchPoint-WP'),
 			'fields'      => [
 				[
 					'id'          => 'dv_name_plural',
-					'label'       => __('Division Name (Plural)', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Division Name (Plural)', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'What you call Divisions at your church',
 						'TouchPoint-WP'
 					),
@@ -977,8 +1012,8 @@ class Settings
 				],
 				[
 					'id'          => 'dv_name_singular',
-					'label'       => __('Division Name (Singular)', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Division Name (Singular)', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'What you call a Division at your church',
 						'TouchPoint-WP'
 					),
@@ -989,8 +1024,8 @@ class Settings
 				],
 				[
 					'id'          => 'dv_slug',
-					'label'       => __('Division Slug', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Division Slug', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'The root path for the Division Taxonomy',
 						'TouchPoint-WP'
 					),
@@ -1002,20 +1037,20 @@ class Settings
 				],
 				[
 					'id'          => 'dv_divisions',
-					'label'       => __('Divisions to Import', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Divisions to Import', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'These Divisions will be imported for the taxonomy',
 						'TouchPoint-WP'
 					),
 					'type'        => 'checkbox_multi',
-					'options'     => $includeThis ? $this->parent->getDivisionsAsKVArray() : [],
+					'options'     => $includeThis ? $this->parent->getDivisionsAsKVArray(true) : [],
 					'default'     => [],
 					'callback'    => function($new) { sort($new); return $new; }
 				],
 				[
 					'id'          => 'dv_additional_post_types',
-					'label'       => __('Post Types', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Post Types', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'Select post types which should have Divisions available as a native taxonomy.',
 						'TouchPoint-WP'
 					),
@@ -1028,14 +1063,14 @@ class Settings
 			],
 		];
 
-		$this->settings['locations'] = [
-			'title'       => __('Locations', 'TouchPoint-WP'),
-			'description' => __('Locations are physical places, probably campuses.  None are required, but they can help present geographic information clearly.', 'TouchPoint-WP'),
+		$settings['locations'] = [
+			'title'       => $this->__('Locations', 'TouchPoint-WP'),
+			'description' => $this->__('Locations are physical places, probably campuses.  None are required, but they can help present geographic information clearly.', 'TouchPoint-WP'),
 			'fields'      => [
 				[
 					'id'          => 'locations_json', // involvement settings json (stored as a json string)
 					'type'        => 'textarea',
-					'label'       => __('Locations', 'TouchPoint-WP'),
+					'label'       => $this->__('Locations', 'TouchPoint-WP'),
 					'default'     => '[]',
 					'hidden'      => true,
 					'description' => function () {
@@ -1053,17 +1088,17 @@ class Settings
 		];
 
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_campuses') === "on") { // TODO MULTI
-			$this->settings['campuses'] = [
-				'title'       => __('Campuses', 'TouchPoint-WP'),
-				'description' => __(
+			$settings['campuses'] = [
+				'title'       => $this->__('Campuses', 'TouchPoint-WP'),
+				'description' => $this->__(
 					'Import Campuses from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements.',
 					'TouchPoint-WP'
 				),
 				'fields'      => [
 					[
 						'id'          => 'camp_name_plural',
-						'label'       => __('Campus Name (Plural)', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Campus Name (Plural)', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'What you call Campuses at your church',
 							'TouchPoint-WP'
 						),
@@ -1074,8 +1109,8 @@ class Settings
 					],
 					[
 						'id'          => 'camp_name_singular',
-						'label'       => __('Campus Name (Singular)', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Campus Name (Singular)', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'What you call a Campus at your church',
 							'TouchPoint-WP'
 						),
@@ -1086,8 +1121,8 @@ class Settings
 					],
 					[
 						'id'          => 'camp_slug',
-						'label'       => __('Campus Slug', 'TouchPoint-WP'),
-						'description' => __(
+						'label'       => $this->__('Campus Slug', 'TouchPoint-WP'),
+						'description' => $this->__(
 							'The root path for the Campus Taxonomy',
 							'TouchPoint-WP'
 						),
@@ -1102,14 +1137,14 @@ class Settings
 		}
 
 		$includeThis = $includeDetail === true || $includeDetail === 'resident_codes';
-		$this->settings['resident_codes'] = [
-			'title'       => __('Resident Codes', 'TouchPoint-WP'),
-			'description' => __('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements that have locations.', 'TouchPoint-WP'),
+		$settings['resident_codes'] = [
+			'title'       => $this->__('Resident Codes', 'TouchPoint-WP'),
+			'description' => $this->__('Import Resident Codes from TouchPoint to your website as a taxonomy.  These are used to classify users and involvements that have locations.', 'TouchPoint-WP'),
 			'fields'      => [
 				[
 					'id'          => 'rc_name_plural',
-					'label'       => __('Resident Code Name (Plural)', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Resident Code Name (Plural)', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'What you call Resident Codes at your church',
 						'TouchPoint-WP'
 					),
@@ -1120,8 +1155,8 @@ class Settings
 				],
 				[
 					'id'          => 'rc_name_singular',
-					'label'       => __('Resident Code Name (Singular)', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Resident Code Name (Singular)', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'What you call a Resident Code at your church',
 						'TouchPoint-WP'
 					),
@@ -1132,8 +1167,8 @@ class Settings
 				],
 				[
 					'id'          => 'rc_slug',
-					'label'       => __('Resident Code Slug', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Resident Code Slug', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'The root path for the Resident Code Taxonomy',
 						'TouchPoint-WP'
 					),
@@ -1145,8 +1180,8 @@ class Settings
 				],
 				[
 					'id'          => 'rc_additional_post_types',
-					'label'       => __('Post Types', 'TouchPoint-WP'),
-					'description' => __(
+					'label'       => $this->__('Post Types', 'TouchPoint-WP'),
+					'description' => $this->__(
 						'Select post types which should have Resident Codes available as a native taxonomy.',
 						'TouchPoint-WP'
 					),
@@ -1289,11 +1324,9 @@ class Settings
 		 *
 		 * @since 0.0.90 Added
 		 *
-		 * @params array $this->settings The settings array.
+		 * @params array $settings The settings array.
 		 */
-		$this->settings = apply_filters('tp_settings_fields', $this->settings);
-
-		return $this->settings;
+		return apply_filters('tp_settings_fields', $settings);
 	}
 
 	/**
@@ -1311,7 +1344,7 @@ class Settings
 			return '';
 		}
 
-		return __('password saved', 'TouchPoint-WP');
+		return $this->__('password saved', 'TouchPoint-WP');
 	}
 
 	/**
@@ -1375,7 +1408,7 @@ class Settings
 		];
 
 		/**
-		 * Allows for manipulation of menu settings for the plugin. 
+		 * Allows for manipulation of menu settings for the plugin.
 		 *
 		 * @param array $settings The settings array.  Default values below.
 		 *
@@ -1495,6 +1528,7 @@ class Settings
 		return update_option(TouchPointWP::SETTINGS_PREFIX . $what, $value, $autoload); // TODO MULTI
 	}
 
+
 	/**
 	 * Migrate settings from version to version.  This may be called even when a migration isn't necessary.
 	 */
@@ -1509,6 +1543,9 @@ class Settings
 				TouchPointWP_AdminAPI::showError($e->getMessage());
 			}
 		}
+
+		// 0.0.97 -- Remove the old Genders meta
+		delete_option(TouchPointWP::SETTINGS_PREFIX . 'meta_genders');
 
 		// 0.0.95 -- Make sure the TpWp user exists
 		try {
@@ -1640,6 +1677,10 @@ class Settings
 		// 0.0.95 - Remove never-really-used option for deletion handling
 		delete_option('tp_mc_deletion_method');
 
+		// 0.0.96 - Remove old API key settings -- all options that start with tp_api_key
+		/** @noinspection SqlResolve */
+		$wpdb->query("DELETE FROM $wpdb->options WHERE option_name LIKE 'tp_api_key%'");
+
 		// Update version string
 		$this->set('version', TouchPointWP::VERSION);
 	}
@@ -1677,7 +1718,7 @@ class Settings
 			$currentSection = $_GET['tab'];
 		}
 
-		$this->settings = $this->settingsFields($currentSection);
+		$this->settings = $this->settingsFields(true, $currentSection);
 		foreach ($this->settings as $section => $data) {
 			// Check posted/selected tab.
 			if ($currentSection !== $section) {
@@ -1950,7 +1991,7 @@ class Settings
 	/**
 	 * Cloning is forbidden.
 	 *
-	 * @since 0.0.90 Added
+	 * @since 0.0.37 Added
 	 */
 	public function __clone()
 	{
@@ -1964,7 +2005,7 @@ class Settings
 	/**
 	 * Unserializing instances of this class is forbidden.
 	 *
-	 * @since 0.0.90 Added
+	 * @since 0.0.37 Added
 	 */
 	public function __wakeup()
 	{

@@ -52,7 +52,7 @@ class Location implements hasGeo
 		return self::$_locations;
 	}
 
-	public static function getLocationForIP(string $ipAddress = null): ?Location
+	public static function getLocationForIP(?string $ipAddress = null): ?Location
 	{
 		$ipAddress = $ipAddress ?? Utilities::getClientIp();
 

@@ -14,6 +14,23 @@ use tp\TouchPointWP\Utilities;
 abstract class DateFormats
 {
 	/**
+	 * Get a single string for a single given DateTime containing both the date and the time.
+	 *
+	 * @param DateTimeInterface $dt
+	 *
+	 * @return string
+	 */
+	public static function DateAndTimeStringFormatted(DateTimeInterface $dt): string
+	{
+		return wp_sprintf(
+		// translators: %1$s is the date(s), %2$s is the time(s).
+			__('%1$s at %2$s', 'TouchPoint-WP'),
+			DateFormats::DateStringFormattedShort($dt),
+			DateFormats::TimeStringFormatted($dt)
+		);
+	}
+
+	/**
 	 * Get a string for a single given DateTime.
 	 *
 	 * @param DateTimeInterface $dt
@@ -261,7 +278,7 @@ abstract class DateFormats
 	 *
 	 * @return ?string
 	 */
-	public static function DurationToString(?DateTimeExtended $start, ?DateTimeExtended $end, ?bool $multiDay = null, ): ?string
+	public static function DurationToString(?DateTimeExtended $start, ?DateTimeExtended $end, ?bool $multiDay = null): ?string
 	{
 		if ($start === null) {
 			return null;

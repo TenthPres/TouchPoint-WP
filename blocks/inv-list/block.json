@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "touchpoint-wp/inv-list",
+  "version": "0.0.97",
+  "title": "Involvement List",
+  "category": "widgets",
+  "icon": "grid-view",
+  "description": "A list of Involvements from TouchPoint",
+  "supports": {
+    "html": false,
+    "ariaLabel": true,
+    "reusable": false
+  },
+  "textdomain": "TouchPoint-WP",
+  "editorScript": "file:./index.js"
+}

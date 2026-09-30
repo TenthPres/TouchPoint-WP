@@ -14,15 +14,16 @@ Plugin Name:        TouchPoint WP
 Plugin URI:         https://github.com/tenthpres/touchpoint-wp
 Update URI:         https://github.com/tenthpres/touchpoint-wp
 Description:        A WordPress Plugin for integrating with TouchPoint Church Management Software.
-Version:            0.0.96
+Version:            0.0.97
 Author:             James K
 Author URI:         https://github.com/jkrrv
 License:            AGPLv3+
 Text Domain:        TouchPoint-WP
 Requires at least:  6.0
-Tested up to:       6.8
+Tested up to:       6.8.2
 Requires PHP:       8.0
 Release Asset:      true
+Domain Path:        /i18n
 */
 
 namespace tp\TouchPointWP;
@@ -46,6 +47,7 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once __DIR__ . "/src/TouchPoint-WP/TouchPointWP.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Settings.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Api.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Lookup.php";
 
 	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/api.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/module.php";
@@ -57,12 +59,16 @@ if (TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Translation.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/PersonArray.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/StringableArray.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/NotableAttributes.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Session.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/DateFormats.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/DateTimeExtended.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Utilities/Http.php";
+	require_once __DIR__ . "/src/TouchPoint-WP/Stats.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Taxonomies.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Interfaces/hasGeo.php";
+
+	require_once __DIR__ . "/src/TouchPoint-WP/Blocks/BlocksController.php";
 
 	require_once __DIR__ . "/src/TouchPoint-WP/Person.php";
 	require_once __DIR__ . "/src/TouchPoint-WP/Meeting.php";

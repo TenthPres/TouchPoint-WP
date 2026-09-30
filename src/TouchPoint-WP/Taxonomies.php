@@ -45,8 +45,8 @@ abstract class Taxonomies
 	protected static function getLabels(string $singular, string $plural): array
 	{
 		return [
-			'name'          => $singular,
-			'singular_name' => $plural,
+			'name'          => $plural,
+			'singular_name' => $singular,
 			/* translators: %s: taxonomy name, plural */
 			'search_items'  => sprintf(__('Search %s', 'TouchPoint-WP'), $plural),
 			/* translators: %s: taxonomy name, plural */
@@ -73,13 +73,13 @@ abstract class Taxonomies
 	 *
 	 * @return void
 	 */
-	public static function insertTermsForArrayBasedTaxonomy(array $list, string $taxonomy, bool $forceIdUpdate)
+	public static function insertTermsForArrayBasedTaxonomy(array $list, string $taxonomy, bool $forceIdUpdate): void
 	{
 		$existingIds = [];
+		$idUpdate = $forceIdUpdate;
 		foreach ($list as $slug => $name) {
-			// In addition to making sure term exists, make sure it has the correct meta id, too.
+			// In addition to making sure term exists, make sure it has the correct meta id if forceIdUpdate is true.
 			$term = self::termExists($name, $taxonomy);
-			$idUpdate = $forceIdUpdate;
 			if ( ! $term) {
 				$term = self::insertTerm(
 					$name,
@@ -93,13 +93,15 @@ abstract class Taxonomies
 					new TouchPointWP_WPError($term);
 					$term = null;
 				}
-				if ($idUpdate) {
-					TouchPointWP::queueFlushRewriteRules();
-				}
+				$idUpdate = true;
+
 			}
 			if ( ! ! $term) {
 				$existingIds[] = $term['term_id'];
 			}
+		}
+		if ($idUpdate) {
+			TouchPointWP::queueFlushRewriteRules();
 		}
 
 		// Delete any terms that are no longer current.
@@ -121,14 +123,14 @@ abstract class Taxonomies
 	 *
 	 * @return void
 	 */
-	public static function insertTermsForLookupBasedTaxonomy(array $list, string $taxonomy, bool $forceIdUpdate)
+	public static function insertTermsForLookupBasedTaxonomy(array $list, string $taxonomy, bool $forceIdUpdate): void
 	{
 		$existingIds = [];
 		foreach ($list as $i) {
 			if ($i->name === null) {
 				continue;
 			}
-			// In addition to making sure term exists, make sure it has the correct meta id, too.
+			// In addition to making sure term exists, make sure it has the correct meta id if forceIdUpdate is true.
 			$term = self::termExists($i->name, $taxonomy);
 			$idUpdate = $forceIdUpdate;
 			if ( ! $term) {
@@ -226,27 +228,20 @@ abstract class Taxonomies
 		if (isset($args[TouchPointWP::HOOK_PREFIX . 'post_type']) && ! empty($args[TouchPointWP::HOOK_PREFIX . 'post_type']) && $args['fields'] !== 'count') {
 			global $wpdb;
 
-			$post_types = [];
-
-			if (is_array($args[TouchPointWP::HOOK_PREFIX . 'post_type'])) {
-				foreach ($args[TouchPointWP::HOOK_PREFIX . 'post_type'] as $cpt) {
-					$post_types[] = "'" . $cpt . "'";
-				}
-			} else {
-				$post_types[] = "'" . $args[TouchPointWP::HOOK_PREFIX . 'post_type'] . "'";
-			}
+			$post_types = is_array($args[TouchPointWP::HOOK_PREFIX . 'post_type'])
+				? array_values($args[TouchPointWP::HOOK_PREFIX . 'post_type'])
+				: [$args[TouchPointWP::HOOK_PREFIX . 'post_type']];
 
 			if ( ! empty($post_types)) {
+				$placeholders = implode(', ', array_fill(0, count($post_types), '%s'));
+				$post_types_in_clause = $wpdb->prepare($placeholders, $post_types);
 				$clauses['fields'] = 'DISTINCT ' . str_replace(
 						'tt.*',
 						'tt.term_taxonomy_id, tt.taxonomy, tt.description, tt.parent',
 						$clauses['fields']
 					) . ', COUNT(p.post_type) AS count';
 				$clauses['join'] .= ' LEFT JOIN ' . $wpdb->term_relationships . ' AS r ON r.term_taxonomy_id = tt.term_taxonomy_id LEFT JOIN ' . $wpdb->posts . ' AS p ON p.ID = r.object_id';
-				$clauses['where'] .= ' AND (p.post_type IN (' . implode(
-						',',
-						$post_types
-					) . ') OR (tt.parent = 0 AND tt.count = 0))';
+				$clauses['where'] .= ' AND (p.post_type IN (' . $post_types_in_clause . ') OR (tt.parent = 0 AND tt.count = 0))';
 				$clauses['orderby'] = 'GROUP BY t.term_id ' . $clauses['orderby'];
 			}
 		}
@@ -316,14 +311,7 @@ abstract class Taxonomies
 		$types = self::getPostTypesForTaxonomy($instance, self::TAX_DIV);
 		if (count($types) > 0) {
 			$existingIds = [];
-			$enabledDivisions = $instance->settings->dv_divisions;
-			foreach ($instance->getDivisions() as $d) {
-				if (!in_array('div' . $d->id, $enabledDivisions)) {
-					continue;
-				}
-				if (!$d->pName || !$d->dName) {
-					continue;
-				}
+			foreach ($instance->getImportedDivisions() as $d) {
 
 				// Program
 				$idUpdate = self::$forceTermLookupIdUpdate;
@@ -627,8 +615,7 @@ abstract class Taxonomies
 				return $types;
 
 			case self::TAX_GP_CATEGORY:
-				if ($instance->settings->enable_involvements === "on"
-				    && class_exists('\tp\TouchPointWP\Partner', false)) {
+				if ($instance->settings->enable_global === "on") {
 					return [\tp\TouchPointWP\Partner::POST_TYPE];
 				}
 
@@ -670,6 +657,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -699,6 +690,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -732,6 +727,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => true
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -758,6 +757,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -788,6 +791,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -818,6 +825,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -847,6 +858,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -879,6 +894,10 @@ abstract class Taxonomies
 						'with_front'   => false,
 						'hierarchical' => false
 					],
+					'capabilities' => [
+						'manage_terms' => 'do_not_allow',
+						'edit_terms' => 'do_not_allow',
+					]
 				]
 			);
 			// Terms inserted via insertTerms method
@@ -886,10 +905,9 @@ abstract class Taxonomies
 
 		// Global Partner Category
 		$types = self::getPostTypesForTaxonomy($instance, self::TAX_GP_CATEGORY);
-		if ($types > 0) {
+		if (count($types) > 0) {
 			$tax = $instance->settings->global_primary_tax;
 			if ($tax !== "" &&
-			    is_object($tax) &&
 			    $instance->settings->enable_global === "on" &&
 			    count($instance->getFamilyEvFields([$tax])) > 0) {
 				$tax    = $instance->getFamilyEvFields([$tax])[0];
@@ -912,6 +930,10 @@ abstract class Taxonomies
 							'with_front'   => false,
 							'hierarchical' => false
 						],
+						'capabilities' => [
+							'manage_terms' => 'do_not_allow',
+							'edit_terms' => 'do_not_allow',
+						]
 					]
 				);
 				// Terms are inserted on sync.

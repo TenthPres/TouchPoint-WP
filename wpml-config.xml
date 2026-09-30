@@ -2,6 +2,7 @@
     <custom-types>
         <custom-type translate="0">tp_partner</custom-type>
         <custom-type translate="0">tp_report</custom-type>
+        <custom-type translate="0">tp_meeting</custom-type>
     </custom-types>
     <taxonomies>
         <taxonomy translate="1" display-as-translated="1">tp_rescode</taxonomy>
@@ -18,6 +19,9 @@
         <custom-field action="translate">tp_locationname</custom-field>
         <custom-field action="ignore">tp_membercount</custom-field>
         <custom-field action="ignore">tp_genderid</custom-field>
+        <custom-field action="ignore">tp_divid</custom-field>
+        <custom-field action="ignore">tp_lookup_id</custom-field>
+        <custom-field action="ignore">tp_programid</custom-field>
         <custom-field action="ignore">tp_groupfull</custom-field>
         <custom-field action="ignore">tp_groupclosed</custom-field>
         <custom-field action="ignore">tp_hasregquestions</custom-field>
@@ -47,4 +51,5 @@
         <key name="tp_rc_name_singular"/>
         <key name="tp_system_name"/>
     </admin-texts>
+    <shortcode-list>TP-Inv-Nearby,TP-Inv-List,TP-People,TP-RSVP,TP-Report</shortcode-list>
 </wpml-config>
