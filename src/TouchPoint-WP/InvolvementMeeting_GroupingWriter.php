@@ -76,6 +76,7 @@ trait InvolvementMeeting_GroupingWriter
 			'verbose'      => $verbose,
 			'apply'        => $applyChanges,
 			'meetingPosts' => [], // mtgId => WP_Post
+			'combined'     => [], // mtgId => true, for meeting posts that were also a child involvement's post
 			'groupPosts'   => [], // spl_object_id of a planned group => WP_Post
 			'keep'         => [],
 		];
@@ -88,7 +89,18 @@ trait InvolvementMeeting_GroupingWriter
 		$groups = [];
 		self::collectPlannedItems($items, $leaves, $groups);
 
-		$ctx->meetingPosts = self::findMeetingPosts($ctx->postType, array_map(fn($m) => $m->mtgId, $leaves), $verbose);
+		$childInvIds = array_values(array_diff(array_keys($ctx->involvements), [$owner->involvementId]));
+		$ctx->meetingPosts = self::findMeetingPosts(
+			$ctx->postType,
+			array_map(fn($m) => $m->mtgId, $leaves),
+			$childInvIds,
+			$verbose
+		);
+		foreach ($ctx->meetingPosts as $mid => $p) {
+			if (get_post_meta($p->ID, TouchPointWP::INVOLVEMENT_META_KEY, true) !== "") {
+				$ctx->combined[$mid] = true;
+			}
+		}
 		$ctx->groupPosts   = self::matchGroupPosts($ctx, $groups);
 
 		self::writeGroupingItems($ownerPost, $items, false, false, $ctx);
@@ -118,19 +130,23 @@ trait InvolvementMeeting_GroupingWriter
 	}
 
 	/**
-	 * Find the existing posts for meetings, anywhere within the post type.  Posts that are also an involvement's post
-	 * (from an involvement with a single meeting) aren't included.
+	 * Find the existing posts for meetings, anywhere within the post type.
+	 *
+	 * Posts that are also an involvement's post (from an involvement with a single meeting) are only included if the
+	 * involvement is one of the included child involvements.  Such a post becomes the meeting's post, so its archived
+	 * content isn't lost when the child's own post goes away.
 	 *
 	 * If a meeting has more than one post, the oldest is used.  The others aren't kept, so they're removed at the end
 	 * of the sync.
 	 *
 	 * @param string $postType
 	 * @param int[]  $mtgIds
+	 * @param int[]  $childInvIds The involvement IDs of the included child involvements.
 	 * @param bool   $verbose
 	 *
 	 * @return WP_Post[] Keyed by meeting ID.
 	 */
-	private static function findMeetingPosts(string $postType, array $mtgIds, bool $verbose): array
+	private static function findMeetingPosts(string $postType, array $mtgIds, array $childInvIds, bool $verbose): array
 	{
 		if (count($mtgIds) === 0) {
 			return [];
@@ -149,9 +165,20 @@ trait InvolvementMeeting_GroupingWriter
 					'value'   => array_map('strval', $mtgIds),
 					'compare' => 'IN',
 				],
-				[
+				count($childInvIds) === 0 ? [
 					'key'     => TouchPointWP::INVOLVEMENT_META_KEY,
 					'compare' => 'NOT EXISTS',
+				] : [
+					'relation' => 'OR',
+					[
+						'key'     => TouchPointWP::INVOLVEMENT_META_KEY,
+						'compare' => 'NOT EXISTS',
+					],
+					[
+						'key'     => TouchPointWP::INVOLVEMENT_META_KEY,
+						'value'   => array_map('strval', $childInvIds),
+						'compare' => 'IN',
+					],
 				],
 			],
 		]);
@@ -334,6 +361,16 @@ trait InvolvementMeeting_GroupingWriter
 				// Record the old path before moving or renaming.
 				if ($post->post_parent !== $parent->ID || $post->post_name !== $slug) {
 					self::recordOldPath($post, $parent, $slug, $ctx);
+				}
+			}
+
+			// A child involvement's post that was also its meeting's post is now just the meeting's post.
+			if ( ! $isGroup && isset($ctx->combined[$item->mtgId])) {
+				if ($ctx->verbose) {
+					echo "<p>Post $post->ID was the post of involvement $item->involvementId, and is now only the post of Meeting $item->mtgId.</p>";
+				}
+				if ($ctx->apply) {
+					delete_post_meta($post->ID, TouchPointWP::INVOLVEMENT_META_KEY);
 				}
 			}
 

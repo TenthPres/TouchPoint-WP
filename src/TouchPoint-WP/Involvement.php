@@ -64,6 +64,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	protected const SCHEDULE_STRING_CACHE_GROUP = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
 	protected const ENABLE_SCHEDULE_STRING_CACHE = true;
 
+	/** Meeting Grouping: an involvement whose meetings include its child involvements' meetings. */
+	protected const GROUPING_ROLE_OWNER = "owner";
+	/** Meeting Grouping: a child involvement whose meetings are handled by its structure owner. */
+	protected const GROUPING_ROLE_CHILD = "child";
+	/** Meeting Grouping: an involvement handled on its own. */
+	protected const GROUPING_ROLE_NORMAL = "normal";
+	/** Meeting Grouping: an involvement that isn't processed in this post type, since its owner handles it elsewhere. */
+	protected const GROUPING_ROLE_SKIP = "skip";
+
 	protected const MEETING_STRATEGY_NONE = 0;
 	protected const MEETING_STRATEGY_SINGLE = 1;
 	protected const MEETING_STRATEGY_MULTIPLE = 2;
@@ -2700,6 +2709,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				$qOpts['mtgFuture'] = 365;
 			}
 
+			// Meeting Grouping: which involvements are structure owners, and whether to include hidden children.
+			$qOpts = [...$qOpts, ...Meeting_GroupingSettings::involvementQueryParameters()];
+
 			$response = TouchPointWP::instance()->api->pyGet("Invs", $qOpts, 180, $verbose);
 
 		} catch (TouchPointWP_Exception) {
@@ -2730,14 +2742,25 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			return false;
 		}
 
+		////////////////////////
+		// Standardize Inputs //
+		////////////////////////
+
+		// Everything is standardized first, since structure owners need their child involvements' meetings.
+		$invData = self::dedupeApiInvolvements($invData);
+		foreach ($invData as $inv) {
+			self::standardizeApiData($inv, $siteTz, $verbose);
+			$inv->titleToUse = trim($inv->regTitle ?? $inv->name);
+		}
+		self::classifyForGrouping($invData, $verbose);
+
 		foreach ($invData as $inv) {
 			set_time_limit(15);
 
-			////////////////////////
-			// Standardize Inputs //
-			////////////////////////
-
-			self::standardizeApiData($inv, $siteTz, $verbose);
+			// Included child involvements are handled by their structure owner.
+			if ($inv->_groupingRole === self::GROUPING_ROLE_CHILD || $inv->_groupingRole === self::GROUPING_ROLE_SKIP) {
+				continue;
+			}
 
 
 			////////////////
@@ -3231,7 +3254,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		//// Meetings ////
 		//////////////////
 
-		$postsToKeep = self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imageId, $verbose, $applyChanges);
+		$postsToKeep = self::updateMeetingsWithGrouping($post, $inv, $typeSets, $imageId, $verbose, $applyChanges);
 
 		if ($verbose) {
 			echo "<hr />";
@@ -3301,6 +3324,215 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			}
 			$mtgO->slugToUse = $slug;
 		}
+	}
+
+	/**
+	 * Remove duplicate involvements from the API data.  The query can return an involvement twice when it both has
+	 * meetings and has children with meetings; the rows are otherwise the same.
+	 *
+	 * @param object[] $invData
+	 *
+	 * @return object[]
+	 */
+	protected static function dedupeApiInvolvements(array $invData): array
+	{
+		$unique = [];
+		foreach ($invData as $inv) {
+			$id = $inv->involvementId;
+			if (isset($unique[$id])) {
+				$unique[$id]->isParent = max($unique[$id]->isParent, $inv->isParent);
+				continue;
+			}
+			$unique[$id] = $inv;
+		}
+
+		return array_values($unique);
+	}
+
+	/**
+	 * Decide how each involvement's meetings are grouped, and bring child involvements' meetings into their structure
+	 * owners.
+	 *
+	 * Each involvement gets:
+	 * - _groupingRole: one of the GROUPING_ROLE_ constants.
+	 * - _grouping: the Meeting_GroupingSettings that apply (owners and normal involvements).
+	 * - _groupingNone: true if its meetings shouldn't be grouped at all, because it has a weekly schedule.
+	 * - _groupingStructure: for owners, the child involvements whose meetings are included.
+	 * - _ownMeetings: for owners, its own meetings.  Its meetings property then holds all the meetings in the
+	 *   structure, so its dates, tense, and schedule reflect the whole structure.
+	 *
+	 * An involvement with a weekly schedule is never grouped or included in a parent, when the weekly-schedule guard is
+	 * on.  (This uses the existing test for schedules, which doesn't always work with how TouchPoint now handles
+	 * schedules.  See follow-up D8.)
+	 *
+	 * @param object[] $invData Standardized API data.
+	 * @param bool     $verbose
+	 *
+	 * @return void
+	 */
+	protected static function classifyForGrouping(array $invData, bool $verbose): void
+	{
+		$byId = [];
+		foreach ($invData as $inv) {
+			$byId[intval($inv->involvementId)] = $inv;
+		}
+
+		$skipScheduled = Meeting_GroupingSettings::skipScheduled();
+		$isScheduled   = fn(object $i) => $skipScheduled && count($i->schedules ?? []) > 0;
+		$cutoff        = self::updateExpiry();
+
+		// Structure owners and normal involvements.
+		foreach ($invData as $inv) {
+			$ownerId = isset($inv->ownerInvId) ? intval($inv->ownerInvId) : null;
+			if ($ownerId !== null && $ownerId !== intval($inv->involvementId)) {
+				continue; // A child; decided below.
+			}
+			$inv->_groupingStructure = [];
+			$inv->_grouping          = Meeting_GroupingSettings::forInvolvementType(intval($inv->invTypeId ?? 0));
+			$inv->_groupingNone      = $isScheduled($inv);
+			$inv->_groupingRole      = ($ownerId !== null && ! $inv->_groupingNone) ?
+				self::GROUPING_ROLE_OWNER : self::GROUPING_ROLE_NORMAL;
+		}
+
+		// Child involvements.
+		foreach ($invData as $inv) {
+			if (isset($inv->_groupingRole)) {
+				continue;
+			}
+			$owner    = $byId[intval($inv->ownerInvId)] ?? null;
+			$viaOwner = ! ! ($inv->viaOwner ?? false);
+
+			if ($owner === null && ! $isScheduled($inv)) {
+				// Its owner is handled in another post type (or not at all).
+				$inv->_groupingRole = self::GROUPING_ROLE_SKIP;
+			} elseif ($owner === null || $owner->_groupingRole !== self::GROUPING_ROLE_OWNER || $isScheduled($inv)) {
+				// Not included in its owner's structure.  It's handled on its own, if it belongs in this post type.
+				$inv->_groupingRole      = $viaOwner ? self::GROUPING_ROLE_SKIP : self::GROUPING_ROLE_NORMAL;
+				$inv->_groupingStructure = [];
+				$inv->_grouping          = Meeting_GroupingSettings::forInvolvementType(intval($inv->invTypeId ?? 0));
+				$inv->_groupingNone      = $isScheduled($inv);
+			} else {
+				// Hidden children are only here to keep their archived meetings.
+				if ( ! $inv->showInSites) {
+					$inv->meetings = array_values(array_filter(
+						$inv->meetings,
+						fn($m) => ($m->mtgEndDt ?? $m->mtgStartDt) < $cutoff
+					));
+				}
+				if (count($inv->meetings) === 0) {
+					$inv->_groupingRole = self::GROUPING_ROLE_SKIP;
+				} else {
+					$inv->_groupingRole          = self::GROUPING_ROLE_CHILD;
+					$owner->_groupingStructure[] = $inv;
+				}
+			}
+
+			if ($verbose) {
+				echo "<p>Involvement $inv->involvementId ($inv->titleToUse) has structure owner $inv->ownerInvId: $inv->_groupingRole.</p>";
+			}
+		}
+
+		// Owners' dates reflect all the meetings in their structure.
+		foreach ($invData as $inv) {
+			if ($inv->_groupingRole !== self::GROUPING_ROLE_OWNER) {
+				continue;
+			}
+			$inv->_ownMeetings = $inv->meetings;
+			$all = $inv->meetings;
+			foreach ($inv->_groupingStructure as $child) {
+				$all = [...$all, ...$child->meetings];
+			}
+			usort($all, fn($a, $b) => $a->mtgStartDt <=> $b->mtgStartDt);
+			$inv->meetings = $all;
+
+			if ($inv->lastMeeting !== null) {
+				foreach ($all as $m) {
+					if ($m->mtgStartDt > $inv->lastMeeting) {
+						$inv->lastMeeting = null;
+						break;
+					}
+				}
+			}
+
+			if ($verbose) {
+				$n = count($inv->_groupingStructure);
+				echo "<p>Involvement $inv->involvementId ($inv->titleToUse) is a structure owner, including $n child involvement(s).</p>";
+			}
+		}
+	}
+
+	/**
+	 * Update an involvement's meetings, using its Meeting Grouping settings.  The previous behavior is used when those
+	 * settings call for it, and for involvements with no more than one meeting of their own and no child involvements
+	 * (whose post is also the meeting's post).
+	 *
+	 * @param WP_Post                      $post
+	 * @param object                       $inv The involvement, after classifyForGrouping().
+	 * @param Involvement_PostTypeSettings $typeSets
+	 * @param int                          $imagePostId
+	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
+	 *
+	 * @return int[] An array of Post IDs that have been updated, and which should be retained.
+	 */
+	protected static function updateMeetingsWithGrouping(
+		WP_Post $post,
+		object $inv,
+		Involvement_PostTypeSettings $typeSets,
+		int $imagePostId,
+		bool $verbose = false,
+		bool $applyChanges = true
+	): array {
+		/** @var ?Meeting_GroupingSettings $rule */
+		$rule = $inv->_grouping ?? null;
+		if ($rule === null || $rule->legacy) {
+			return self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imagePostId, $verbose, $applyChanges);
+		}
+
+		// Return if meetings shouldn't be imported at all.
+		if ( ! $typeSets->importMeetings && ! $inv->showInSites) {
+			self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
+			return [$post->ID];
+		}
+
+		$structure = $inv->_groupingStructure ?? [];
+		$own       = $inv->_ownMeetings ?? $inv->meetings;
+
+		// With no more than one meeting and no child involvements, the involvement's post is the meeting's post.
+		if (count($structure) === 0 && count($own) <= 1) {
+			return self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imagePostId, $verbose, $applyChanges);
+		}
+
+		// If the involvement's post was the meeting's post, it isn't anymore.
+		self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
+
+		$owner           = clone $inv;
+		$owner->meetings = $own;
+		$involvements    = [$owner, ...$structure];
+		$none            = ! empty($inv->_groupingNone);
+
+		$planner = new InvolvementMeeting_GroupingPlanner(
+			$owner,
+			$involvements,
+			! $none && $rule->editions,
+			! $none && $rule->timeSlots,
+			! $none && $rule->clusters,
+			Meeting_GroupingSettings::editionGap(),
+			Meeting_GroupingSettings::clusterGap()
+		);
+
+		$keep = self::writeGroupingPlan(
+			$post,
+			$owner,
+			$involvements,
+			$planner->plan(),
+			$typeSets,
+			$imagePostId,
+			$verbose,
+			$applyChanges
+		);
+
+		return [$post->ID, ...$keep];
 	}
 
 	/**

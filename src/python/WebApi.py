@@ -317,6 +317,8 @@ if "Invs" in Data.a:
                 COALESCE(ml.isParent, 0) as isParent, -- indicates this is the parent (or grandparent) of an inv w/ mtgs
                 COALESCE(o.OrganizationTypeId, 0) as invTypeId,
                 ot.ownerInvId,
+                -- 1 if the organization is only here because it's a child or grandchild of a structure owner
+                CASE WHEN o.OrganizationId IN (SELECT OrganizationId FROM cteBaseTargets) THEN 0 ELSE 1 END as viaOwner,
                 o.LeaderMemberTypeId,
                 o.Location,
                 o.OrganizationName AS name,
@@ -490,6 +492,7 @@ if "Invs" in Data.a:
             , o.[isParent]                   AS [isParent]
             , o.[invTypeId]                  AS [invTypeId]
             , o.[ownerInvId]                 AS [ownerInvId]
+            , o.[viaOwner]                   AS [viaOwner]
             , o.[LeaderMemberTypeId]         AS [leaderMemberTypeId]
             , o.[Location]                   AS [location]
             , o.[name]                       AS [name]
