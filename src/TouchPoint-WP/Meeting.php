@@ -69,6 +69,9 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 
 	private static bool $_isLoaded = false;
 	private static array $_instances = [];
+
+	/** @var array[] Edition years, by parent post ID, then by Edition post ID.  See editionYearForTitle(). */
+	private static array $_editionYears = [];
 	private static ?Involvement_PostTypeSettings $_typeSet = null;
 
 	public ?DateTimeImmutable $startDt = null;
@@ -443,12 +446,61 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 * @return StringableArray
 	 *
 	 * @since 0.0.90 Added
-	 * @since 0.0.98 Editions are described by whole days, without times.
+	 * @since 0.0.98 Editions are described by whole days, without times.  Clusters are described by their meetings'
+	 *               dates and times: consecutive meetings with different names are parts of one event, and are shown
+	 *               as one range; meetings with identical names are separate occurrences.
 	 */
 	public function scheduleStringArray(): StringableArray
 	{
-		if ($this->groupRole() === MeetingArray::ROLE_EDITION) {
+		$role = $this->groupRole();
+
+		if ($role === MeetingArray::ROLE_EDITION) {
 			return DateFormats::DurationToStringArray($this->startDt, $this->endDt, null, true);
+		}
+
+		// Only Clusters made by Meeting Grouping; the previous behavior's collections (no stored role) are unchanged.
+		if ($role === MeetingArray::ROLE_CLUSTER &&
+			get_post_meta($this->post_id, self::MEETING_GROUP_ROLE_META_KEY, true) === MeetingArray::ROLE_CLUSTER) {
+			$occurrences = [];
+			foreach (get_children(['post_parent' => $this->post_id, 'post_type' => get_post_type($this->post_id)]) as $child) {
+				try {
+					$m = self::fromPost($child);
+				} catch (TouchPointWP_Exception) {
+					continue;
+				}
+				if ($m->isMeetingGroup() || $m->startDt === null || $m->status() === self::STATUS_CANCELLED) {
+					continue;
+				}
+				$occurrences[] = [$m->startDt, $m->endDt, $m->isAllDay(), trim($m->name ?? "")];
+			}
+			usort($occurrences, fn($a, $b) => $a[0] <=> $b[0]);
+
+			// Consecutive meetings with different names are parts of one event, such as a dinner and then caroling, so
+			// they're combined into one range.  A meeting with the same name as the one before it is another occurrence
+			// of the same thing, such as a second performance or service.
+			$combined = [];
+			foreach ($occurrences as $o) {
+				$last = count($combined) - 1;
+				if ($last >= 0 && $combined[$last][3] !== $o[3]) {
+					$end = $o[1] ?? $o[0];
+					if ($combined[$last][1] === null || $end > $combined[$last][1]) {
+						$combined[$last][1] = $end;
+					}
+					$combined[$last][2] = $combined[$last][2] && $o[2];
+					$combined[$last][3] = $o[3];
+				} else {
+					$combined[] = $o;
+				}
+			}
+
+			$r = DateFormats::OccurrencesToStringArray(
+				array_map(fn($o) => [$o[0], $o[1], $o[2]], $combined),
+				3,
+				true
+			);
+			if (count($r) > 0) {
+				return $r;
+			}
 		}
 
 		return DateFormats::DurationToStringArray($this->startDt, $this->endDt, $this->isMultiDay(), $this->isAllDay());
@@ -939,8 +991,13 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	}
 
 	/**
-	 * Filters the title of a Time Slot, which is its date and time, formatted for the current language.  The title
-	 * stored for a Time Slot is only a fallback.
+	 * Filters the titles of Time Slots and Editions.
+	 *
+	 * - A Time Slot's title is its date and time, formatted for the current language.  The title stored for a Time
+	 *   Slot is only a fallback.
+	 * - An Edition's title gets its year when two or more Editions under the same parent have the same title, so they
+	 *   can be told apart (e.g. "Christmas at Tenth 2025" and "Christmas at Tenth 2026").  If two of them start in the
+	 *   same year, the year wouldn't tell them apart, so none of them gets it.  The stored title isn't changed.
 	 *
 	 * @since 0.0.98 Added
 	 *
@@ -951,7 +1008,22 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 */
 	public static function filterTitle(string $title, int $postId = 0): string
 	{
-		if ($postId === 0 || get_post_meta($postId, self::MEETING_GROUP_ROLE_META_KEY, true) !== MeetingArray::ROLE_TIME_SLOT) {
+		if ($postId === 0) {
+			return $title;
+		}
+
+		$role = get_post_meta($postId, self::MEETING_GROUP_ROLE_META_KEY, true);
+
+		if ($role === MeetingArray::ROLE_EDITION) {
+			$year = self::editionYearForTitle($postId);
+			if ($year === null) {
+				return $title;
+			}
+			// Translators: %1$s is the title of an event that happens every year, and %2$s is the year of this occurrence.
+			return wp_sprintf(_x('%1$s %2$s', 'Edition title with year', 'TouchPoint-WP'), $title, $year);
+		}
+
+		if ($role !== MeetingArray::ROLE_TIME_SLOT) {
 			return $title;
 		}
 
@@ -971,6 +1043,52 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 		}
 
 		return DateFormats::DateAndTimeStringFormatted($mtg->startDt);
+	}
+
+	/**
+	 * Get the year to add to an Edition's title, or null if none should be added.  See filterTitle().
+	 *
+	 * @param int $postId An Edition's post ID.
+	 *
+	 * @return ?string
+	 */
+	private static function editionYearForTitle(int $postId): ?string
+	{
+		$post = get_post($postId);
+		if ($post === null || ! $post->post_parent) {
+			return null;
+		}
+
+		$parentId = $post->post_parent;
+		if ( ! isset(self::$_editionYears[$parentId])) {
+			$siblings = get_children([
+				'post_parent' => $parentId,
+				'post_type'   => $post->post_type,
+				'meta_key'    => self::MEETING_GROUP_ROLE_META_KEY,
+				'meta_value'  => MeetingArray::ROLE_EDITION,
+			]);
+
+			// Group the Editions by title, with the year each starts.
+			$byTitle = [];
+			foreach ($siblings as $s) {
+				$start = intval(get_post_meta($s->ID, self::MEETING_START_META_KEY, true));
+				if ($start === 0) {
+					continue;
+				}
+				$byTitle[trim($s->post_title)][$s->ID] = wp_date('Y', $start);
+			}
+
+			// Only titles shared by two or more Editions, all starting in different years, get years.
+			$years = [];
+			foreach ($byTitle as $editions) {
+				if (count($editions) > 1 && count(array_unique($editions)) === count($editions)) {
+					$years += $editions;
+				}
+			}
+			self::$_editionYears[$parentId] = $years;
+		}
+
+		return self::$_editionYears[$parentId][$postId] ?? null;
 	}
 
 	/**

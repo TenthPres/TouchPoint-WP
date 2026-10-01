@@ -1024,7 +1024,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		$edition = $this->currentEditionScheduleString();
 		if ($edition !== null) {
 			return [
-				'datetime'  => $edition,
+				'datetime'  => null,
 				'date'      => $edition,
 				'time'      => null,
 				'firstLast' => null,
@@ -1208,10 +1208,6 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				return $r;
 			}
 
-			$forceDateTime = false;
-			$dateTimeArr = new StringableArray();
-			$dateArr = new StringableArray();
-			$timeArr = [];
 			$now = Utilities::dateTimeNow();
 
 			// filter meetings to only those not past
@@ -1227,42 +1223,22 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 //			below can be used to add "and others" to the list of dates/times to indicate that there are historical
 //			meetings that are not being shown.  However, this currently seems more confusing than helpful.
 
-			foreach ($meetings as $m) {
-				$a = DateFormats::DurationToStringArray($m->mtgStartDt, $m->mtgEndDt, null, $m->mtgStartDt->isAllDay);
+			$a = DateFormats::OccurrencesToStringArray(
+				array_map(fn($m) => [$m->mtgStartDt, $m->mtgEndDt, $m->mtgStartDt->isAllDay], $meetings),
+				2
+			);
 
-				if (isset($a['datetime'])) {
-					$forceDateTime = true;
-					$dateTimeArr[] = $a['datetime'];
-				} else {
-					$dateTimeArr[] = wp_sprintf(
-					// translators: %1$s is the date(s), %2$s is the time(s).
-						__('%1$s at %2$s', 'TouchPoint-WP'), $a['date'], $a['time']
-					);
-					if ( !$dateArr->contains(['date'])) {
-						$dateArr[] = $a['date'];
-					}
-					if (!in_array($a['time'], $timeArr)) {
-						$timeArr[] = $a['time'];
-					}
-				}
-			}
-			if (count($timeArr) > 1) {
-				$forceDateTime = true;
-			}
-
-			if ($forceDateTime) {
-				$r['datetime'] = $dateTimeArr->toListString(2);
+			if (isset($a['datetime'])) {
+				$r['datetime'] = $a['datetime'];
 				$r['combined'] = $r['datetime'];
-			} else {
-				$dateStr = $dateArr->toListString(2);
-
-				$r['date'] = $dateStr;
-				$r['time'] = $timeArr[0];
+			} elseif (isset($a['date'])) {
+				$r['date']     = $a['date'];
+				$r['time']     = $a['time'];
 				$r['combined'] = wp_sprintf(
 				// translators: %1$s is the date(s), %2$s is the time(s).
 					__('%1$s at %2$s', 'TouchPoint-WP'),
-					$dateStr,
-					$timeArr[0]
+					$a['date'],
+					$a['time']
 				);
 			}
 		}
@@ -4120,6 +4096,77 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		}
 	}
 
+
+	/**
+	 * Append the kinds of thing a post is to its title, such as "[Edition]" or "[Involvement, Meeting]".  This is a
+	 * debugging aid for Meeting Grouping, shown only when debugging is on (the tp_DEBUG option), unless the
+	 * tp_show_post_type_labels filter says otherwise.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @param string $title
+	 * @param int    $postId
+	 *
+	 * @return string
+	 */
+	public static function filterTitleTypeLabels(string $title, int $postId = 0): string
+	{
+		/**
+		 * Whether to append the kinds of thing a post is (Involvement, Meeting, Edition, and so on) to the titles of
+		 * Involvement and Meeting posts.  This is a debugging aid.
+		 *
+		 * @since 0.0.98 Added
+		 *
+		 * @param bool $show Default is true when debugging is on (the tp_DEBUG option is "true").
+		 */
+		$show = ! ! apply_filters('tp_show_post_type_labels', TouchPointWP::instance()->debug);
+
+		if ( ! $show || $postId === 0 || is_admin()) {
+			return $title;
+		}
+
+		$post = get_post($postId);
+		if ($post === null || ! in_array($post->post_type, Involvement_PostTypeSettings::getPostTypes(), true)) {
+			return $title;
+		}
+
+		$labels = [];
+		if (intval(get_post_meta($postId, TouchPointWP::INVOLVEMENT_META_KEY, true)) > 0) {
+			$labels[] = __("Involvement", "TouchPoint-WP");
+		}
+
+		$mtgId = intval(get_post_meta($postId, Meeting::MEETING_META_KEY, true));
+		if ($mtgId > 0) {
+			$labels[] = __("Meeting", "TouchPoint-WP");
+		} elseif ($mtgId < 0) {
+			$labels[] = match (get_post_meta($postId, Meeting::MEETING_GROUP_ROLE_META_KEY, true)) {
+				MeetingArray::ROLE_EDITION   => __("Edition", "TouchPoint-WP"),
+				MeetingArray::ROLE_TIME_SLOT => __("Time Slot", "TouchPoint-WP"),
+				MeetingArray::ROLE_CLUSTER   => __("Cluster", "TouchPoint-WP"),
+				default                      => __("Collection (previous behavior)", "TouchPoint-WP"),
+			};
+		}
+
+		if (get_post_meta($postId, Meeting::MEETING_IS_GROUP_MEMBER, true)) {
+			$parentRole = get_post_meta($post->post_parent, Meeting::MEETING_GROUP_ROLE_META_KEY, true);
+			$labels[]   = match ($parentRole) {
+				MeetingArray::ROLE_EDITION   => __("in an Edition", "TouchPoint-WP"),
+				MeetingArray::ROLE_TIME_SLOT => __("in a Time Slot", "TouchPoint-WP"),
+				MeetingArray::ROLE_CLUSTER   => __("in a Cluster", "TouchPoint-WP"),
+				default                      => __("in a group", "TouchPoint-WP"),
+			};
+		}
+
+		if ($post->post_status === self::POST_STATUS_HIDDEN) {
+			$labels[] = __("hidden", "TouchPoint-WP");
+		}
+
+		if (count($labels) === 0) {
+			return $title;
+		}
+
+		return $title . " [" . implode(", ", $labels) . "]";
+	}
 
 	/**
 	 * Replace the date with the schedule summary
