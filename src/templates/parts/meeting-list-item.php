@@ -83,9 +83,11 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
 
 
 	<?php if (isset($settings) && $settings->hierarchical) {
+		// Meetings, and groups of meetings, in chronological order.
 		$children = get_children([
 			                         'post_parent' => $post->ID,
-			                         'orderby' => 'title',
+			                         'meta_key' => Meeting::MEETING_START_META_KEY,
+			                         'orderby' => 'meta_value_num',
 			                         'order' => 'ASC',
 			                         'post_type' => get_post_type($post),
 			                         'meta_query' => [

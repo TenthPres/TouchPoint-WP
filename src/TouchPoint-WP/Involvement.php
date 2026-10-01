@@ -71,7 +71,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	 *
 	 * @since 0.0.98 Added
 	 */
-	public const POST_STATUS_HIDDEN = TouchPointWP::HOOK_PREFIX . "hidden_infrastructure";
+	public const POST_STATUS_HIDDEN = TouchPointWP::HOOK_PREFIX . "hidden_resource";
 
 	/** Meeting Grouping: an involvement whose meetings include its child involvements' meetings. */
 	protected const GROUPING_ROLE_OWNER = "owner";
@@ -972,12 +972,66 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	}
 
 	/**
+	 * Get the schedule of this involvement's current or next Edition, as whole days (such as "Fri, Nov 6 - Sun,
+	 * Nov 8").  Returns null if it has no Edition that hasn't ended.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @return ?string
+	 */
+	protected function currentEditionScheduleString(): ?string
+	{
+		$editions = get_posts([
+			'post_type'   => get_post_type($this->post_id),
+			'post_parent' => $this->post_id,
+			'numberposts' => 1,
+			'meta_key'    => Meeting::MEETING_START_META_KEY,
+			'orderby'     => 'meta_value_num',
+			'order'       => 'ASC',
+			'meta_query'  => [
+				[
+					'key'   => Meeting::MEETING_GROUP_ROLE_META_KEY,
+					'value' => MeetingArray::ROLE_EDITION,
+				],
+				[
+					'key'     => Meeting::MEETING_END_META_KEY,
+					'value'   => time(),
+					'compare' => '>=',
+					'type'    => 'NUMERIC',
+				],
+			],
+		]);
+
+		if (count($editions) === 0) {
+			return null;
+		}
+
+		try {
+			return Meeting::fromPost($editions[0])->scheduleStringArray()->join();
+		} catch (TouchPointWP_Exception) {
+			return null;
+		}
+	}
+
+	/**
 	 * Calculate the schedule strings.
 	 *
 	 * @return string[]
 	 */
 	protected function scheduleStrings_calc(): array
 	{
+		// An involvement whose meetings are grouped into Editions is described by its current or next Edition's days.
+		$edition = $this->currentEditionScheduleString();
+		if ($edition !== null) {
+			return [
+				'datetime'  => $edition,
+				'date'      => $edition,
+				'time'      => null,
+				'firstLast' => null,
+				'combined'  => $edition
+			];
+		}
+
 		$commonOccurrences = self::computeCommonOccurrences($this->meetings(), $this->schedules());
 
 		$dateFormat = get_option('date_format');
@@ -3599,15 +3653,22 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		}
 
 		if ($post === null && $applyChanges) {
-			$post = wp_insert_post([
+			$id = wp_insert_post([
 				'post_type'   => $typeSets->postType,
 				'post_title'  => $child->titleToUse,
 				'post_status' => self::POST_STATUS_HIDDEN,
 				'meta_input'  => [
 					TouchPointWP::INVOLVEMENT_META_KEY => $child->involvementId
 				]
-			]);
-			$post = get_post($post);
+			], true);
+			if ($id instanceof WP_Error) {
+				new TouchPointWP_WPError($id);
+				if ($verbose) {
+					echo "<p>A hidden post could not be created for Involvement {$child->involvementId}: " . $id->get_error_message() . "</p>";
+				}
+				return [];
+			}
+			$post = get_post($id);
 		} elseif ($post === null && $verbose) {
 			echo "<p>Would create a hidden post for Involvement {$child->involvementId} ({$child->titleToUse}).</p>";
 		}

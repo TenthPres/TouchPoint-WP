@@ -374,19 +374,38 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 *
 	 * In cases where a meeting post is also an involvement post, it will return the involvement, which has the same post_id.
 	 *
+	 * Otherwise, the parent is the post this meeting is under: the group (Edition, Time Slot, or Cluster) it's in, or
+	 * the involvement whose post it's under.  With Meeting Grouping, that involvement can be a structure owner rather
+	 * than the meeting's own involvement, which may be hidden.  If neither applies, the meeting's own involvement is
+	 * returned.
+	 *
+	 * @since 0.0.98 Follows the parent post, so Editions, Time Slots, and Clusters can be nested.
+	 *
 	 * @return ?Involvement|Meeting
 	 */
 	public function getParent(): Involvement|Meeting|null
 	{
-		if (!$this->isMeetingGroup() && $this->isMeetingGroupMember()) {
-			$parent = get_post($this->post->post_parent);
-			if ($parent) {
-				try {
-					return Meeting::fromPost($parent);
-				} catch (TouchPointWP_Exception) {
-				}
+		if (Involvement::postIsType($this->post)) {
+			try {
+				return $this->involvement();
+			} catch (TouchPointWP_Exception) {
+				return null;
 			}
 		}
+
+		$parent = $this->post->post_parent ? get_post($this->post->post_parent) : null;
+		if ($parent) {
+			try {
+				if (intval(get_post_meta($parent->ID, self::MEETING_META_KEY, true)) < 0) {
+					return Meeting::fromPost($parent);
+				}
+				if ($parent->post_status === 'publish' && Involvement::postIsType($parent)) {
+					return Involvement::fromPost($parent);
+				}
+			} catch (TouchPointWP_Exception) {
+			}
+		}
+
 		try {
 			return $this->involvement();
 		} catch (TouchPointWP_Exception) {
@@ -424,9 +443,14 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 * @return StringableArray
 	 *
 	 * @since 0.0.90 Added
+	 * @since 0.0.98 Editions are described by whole days, without times.
 	 */
 	public function scheduleStringArray(): StringableArray
 	{
+		if ($this->groupRole() === MeetingArray::ROLE_EDITION) {
+			return DateFormats::DurationToStringArray($this->startDt, $this->endDt, null, true);
+		}
+
 		return DateFormats::DurationToStringArray($this->startDt, $this->endDt, $this->isMultiDay(), $this->isAllDay());
 	}
 
@@ -531,7 +555,9 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 
 		if ($this->status() !== self::STATUS_CANCELLED) {
 			if ($inv->getRegistrationType() === RegistrationType::RSVP) {
-				if ($absoluteLinks) {
+				if ($this->isMeetingGroup()) {
+					// An RSVP is for a particular meeting, so a group doesn't have its own.
+				} elseif ($absoluteLinks) {
 					$ret['register'] = $this->getRsvpLink($btnClass);
 				} else {
 					$ret['register'] = $this->getRsvpButton($btnClass);
@@ -573,6 +599,24 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	public function isMeetingGroup(): bool
 	{
 		return $this->mtgId < 0;
+	}
+
+	/**
+	 * Get the grouping type of this group: one of the MeetingArray::ROLE_ constants.  The previous behavior's
+	 * collections have no stored role, and are treated as Clusters.  Returns null if this isn't a group.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @return ?string
+	 */
+	public function groupRole(): ?string
+	{
+		if ( ! $this->isMeetingGroup()) {
+			return null;
+		}
+		$role = get_post_meta($this->post_id, self::MEETING_GROUP_ROLE_META_KEY, true);
+
+		return $role !== "" ? $role : MeetingArray::ROLE_CLUSTER;
 	}
 
 	public function isMeetingGroupMember(): bool
@@ -891,6 +935,42 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	public static function init(): void
 	{
 		add_filter('post_thumbnail_id', [self::class, 'filterThumbnailId'], 10, 3);
+		add_filter('the_title', [self::class, 'filterTitle'], 10, 2);
+	}
+
+	/**
+	 * Filters the title of a Time Slot, which is its date and time, formatted for the current language.  The title
+	 * stored for a Time Slot is only a fallback.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @param string $title
+	 * @param int    $postId
+	 *
+	 * @return string
+	 */
+	public static function filterTitle(string $title, int $postId = 0): string
+	{
+		if ($postId === 0 || get_post_meta($postId, self::MEETING_GROUP_ROLE_META_KEY, true) !== MeetingArray::ROLE_TIME_SLOT) {
+			return $title;
+		}
+
+		$post = get_post($postId);
+		if ($post === null) {
+			return $title;
+		}
+
+		try {
+			$mtg = self::fromPost($post);
+		} catch (TouchPointWP_Exception) {
+			return $title;
+		}
+
+		if ($mtg->startDt === null) {
+			return $title;
+		}
+
+		return DateFormats::DateAndTimeStringFormatted($mtg->startDt);
 	}
 
 	/**
