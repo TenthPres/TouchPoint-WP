@@ -1092,7 +1092,7 @@ class TouchPointWP
 //			Auth::registerScriptsAndStyles();
 //		}
 
-		if ( ! ! $this->rsvp) {
+		if ( ! ! $this->rsvp || ! ! $this->involvements) {
 			Meeting::registerScriptsAndStyles();
 		}
 	}

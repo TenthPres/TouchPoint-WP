@@ -107,7 +107,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
     <details id="tp-mg-help-timeSlots">
         <summary><?php _e("Time Slots", "TouchPoint-WP"); ?></summary>
         <div>
-            <p><?php _e("Meetings of different involvements that happen at the same time are grouped into a Time Slot, which is titled with its date and time.  The meetings can be from the involvement itself, its child involvements, or its grandchild involvements.  For example, breakout sessions from several tracks, each of which is its own child involvement.  Requires Include Child Involvements.", "TouchPoint-WP"); ?></p>
+            <p><?php _e("Meetings of different involvements that start at the same time are grouped into a Time Slot, which is titled with its date and time.  The meetings can be from the involvement itself, its child involvements, or its grandchild involvements.  For example, breakout sessions from several tracks, each of which is its own child involvement.  Requires Include Child Involvements.", "TouchPoint-WP"); ?></p>
         </div>
     </details>
 

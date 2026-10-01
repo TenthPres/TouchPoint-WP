@@ -3605,7 +3605,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			! $none && $rule->timeSlots,
 			! $none && $rule->clusters,
 			Meeting_GroupingSettings::editionGap(),
-			Meeting_GroupingSettings::clusterGap()
+			Meeting_GroupingSettings::clusterGap(),
+			Meeting_GroupingSettings::timeSlotTolerance()
 		);
 
 		$keep = self::writeGroupingPlan(

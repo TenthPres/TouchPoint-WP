@@ -21,8 +21,8 @@ if ( ! defined('ABSPATH')) {
  * @property-read ?int $invTypeId       The TouchPoint Involvement Type ID.  Null for the "all other types" settings.
  * @property-read bool $includeChildren Whether meetings of child (and grandchild) involvements are included.
  * @property-read bool $editions        Whether meetings are grouped into Editions.
- * @property-read bool $timeSlots       Whether simultaneous meetings of different involvements in the same structure are
- *                                      grouped into Time Slots.
+ * @property-read bool $timeSlots       Whether meetings of different involvements in the same structure that start at the
+ *                                      same time are grouped into Time Slots.
  * @property-read bool $clusters        Whether meetings of the same involvement are grouped into Clusters.
  * @property-read bool $legacy          Whether the previous behavior (collect meetings less than 23 hours apart) is used.
  *                                      Only possible for the "all other types" settings.
@@ -343,6 +343,26 @@ class Meeting_GroupingSettings
 		 * @param int $seconds The gap, in seconds.  Default is 2 hours.
 		 */
 		return intval(apply_filters('tp_meeting_cluster_gap', self::DEFAULT_CLUSTER_GAP));
+	}
+
+	/**
+	 * How far apart, in seconds, the starts of meetings in a Time Slot may be.  Meetings of different involvements are
+	 * grouped into a Time Slot when they start at the same time, within this tolerance.
+	 *
+	 * @return int
+	 */
+	public static function timeSlotTolerance(): int
+	{
+		/**
+		 * Adjust how far apart, in minutes, the starts of meetings in a Time Slot may be.  With the default of 0,
+		 * meetings must start at exactly the same time to be in a Time Slot.  The tolerance is measured from the
+		 * earliest start in the Time Slot, so it doesn't chain from one meeting to the next.
+		 *
+		 * @since 0.0.98 Added
+		 *
+		 * @param int $minutes The tolerance, in minutes.  Default is 0.
+		 */
+		return max(0, intval(apply_filters('tp_meeting_time_slot_tolerance', 0))) * MINUTE_IN_SECONDS;
 	}
 
 	/**

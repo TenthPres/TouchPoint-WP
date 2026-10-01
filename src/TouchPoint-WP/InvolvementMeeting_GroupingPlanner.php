@@ -36,16 +36,19 @@ class InvolvementMeeting_GroupingPlanner
 	protected bool $clusters;
 	protected int $editionGap;
 	protected int $clusterGap;
+	protected int $timeSlotTolerance;
 
 	/**
 	 * @param object   $owner        The structure owner, as provided by the API.
 	 * @param object[] $involvements The involvements in the structure, as provided by the API, including the owner.
 	 *                               Each must have a meetings array whose meetings have their involvementId set.
 	 * @param bool     $editions     Whether to group meetings into Editions.
-	 * @param bool     $timeSlots    Whether to group simultaneous meetings of different involvements into Time Slots.
+	 * @param bool     $timeSlots    Whether to group meetings of different involvements that start at the same time
+	 *                               into Time Slots.
 	 * @param bool     $clusters     Whether to group meetings of the same involvement into Clusters.
 	 * @param int      $editionGap   The gap, in seconds, after which a new Edition starts.
 	 * @param int      $clusterGap   The maximum gap, in seconds, between back-to-back meetings in a Cluster.
+	 * @param int      $timeSlotTolerance How far apart, in seconds, the starts of meetings in a Time Slot may be.
 	 */
 	public function __construct(
 		object $owner,
@@ -54,7 +57,8 @@ class InvolvementMeeting_GroupingPlanner
 		bool $timeSlots,
 		bool $clusters,
 		int $editionGap,
-		int $clusterGap
+		int $clusterGap,
+		int $timeSlotTolerance = 0
 	) {
 		$this->owner        = $owner;
 		$this->involvements = [];
@@ -68,6 +72,7 @@ class InvolvementMeeting_GroupingPlanner
 		$this->clusters   = $clusters;
 		$this->editionGap = $editionGap;
 		$this->clusterGap = $clusterGap;
+		$this->timeSlotTolerance = $timeSlotTolerance;
 	}
 
 	/**
@@ -91,7 +96,8 @@ class InvolvementMeeting_GroupingPlanner
 			$rule->timeSlots,
 			$rule->clusters,
 			Meeting_GroupingSettings::editionGap(),
-			Meeting_GroupingSettings::clusterGap()
+			Meeting_GroupingSettings::clusterGap(),
+			Meeting_GroupingSettings::timeSlotTolerance()
 		);
 	}
 
@@ -172,9 +178,9 @@ class InvolvementMeeting_GroupingPlanner
 		$items = [];
 		$grouped = []; // spl_object_id => true, for meetings that have been placed in a group.
 
-		// Time Slots: overlapping meetings of different involvements.
+		// Time Slots: meetings of different involvements at the same time.
 		if ($this->timeSlots) {
-			foreach ($this->overlapSets($meetings) as $set) {
+			foreach ($this->sameStartSets($meetings) as $set) {
 				$invIds = array_unique(array_map(fn($m) => $m->involvementId, $set));
 				if (count($invIds) < 2) {
 					continue;
@@ -284,34 +290,32 @@ class InvolvementMeeting_GroupingPlanner
 	}
 
 	/**
-	 * Find sets of meetings that overlap in time.  Meetings are in the same set if each overlaps at least one other
-	 * meeting in the set.  Meetings without an end time are treated as instants, and overlap anything happening at that
-	 * instant.
+	 * Find sets of meetings that start at the same time, within the Time Slot tolerance.  The tolerance is measured
+	 * from the earliest start in each set, so it doesn't chain from one meeting to the next.  Overlapping isn't enough:
+	 * a long meeting (such as one spanning a whole conference) would otherwise pull everything it overlaps into one
+	 * set.
 	 *
 	 * @param object[] $meetings Sorted meetings.
 	 *
 	 * @return object[][] Only sets with more than one meeting.
 	 */
-	protected function overlapSets(array $meetings): array
+	protected function sameStartSets(array $meetings): array
 	{
 		$sets = [];
 		$current = [];
-		$currentEnd = null;
 		$currentStart = null;
 
 		foreach ($meetings as $m) {
 			$start = self::startOf($m);
-			$overlaps = count($current) > 0 && ($start < $currentEnd || $start === $currentStart);
-			if ( ! $overlaps) {
-				if (count($current) > 1) {
-					$sets[] = $current;
-				}
-				$current = [];
-				$currentEnd = null;
-				$currentStart = $start;
+			if (count($current) > 0 && $start - $currentStart <= $this->timeSlotTolerance) {
+				$current[] = $m;
+				continue;
 			}
-			$current[] = $m;
-			$currentEnd = max($currentEnd ?? PHP_INT_MIN, self::endOf($m));
+			if (count($current) > 1) {
+				$sets[] = $current;
+			}
+			$current = [$m];
+			$currentStart = $start;
 		}
 		if (count($current) > 1) {
 			$sets[] = $current;
