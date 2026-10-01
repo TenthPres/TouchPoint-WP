@@ -64,6 +64,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	protected const SCHEDULE_STRING_CACHE_GROUP = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
 	protected const ENABLE_SCHEDULE_STRING_CACHE = true;
 
+	/**
+	 * Post status for the posts of child involvements whose meetings are included in their parent's structure.  These
+	 * posts aren't shown anywhere; they exist so the child's Involvement object (for Register and RSVP buttons, for
+	 * example) can be created for its meetings.
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public const POST_STATUS_HIDDEN = TouchPointWP::HOOK_PREFIX . "hidden_infrastructure";
+
 	/** Meeting Grouping: an involvement whose meetings include its child involvements' meetings. */
 	protected const GROUPING_ROLE_OWNER = "owner";
 	/** Meeting Grouping: a child involvement whose meetings are handled by its structure owner. */
@@ -329,6 +338,16 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				]
 			);
 		}
+
+		// Posts of child involvements whose meetings are shown within their parent.  Not public or searchable.
+		register_post_status(self::POST_STATUS_HIDDEN, [
+			'label'                     => __('Hidden', 'TouchPoint-WP'),
+			'public'                    => false,
+			'internal'                  => true,
+			'exclude_from_search'       => true,
+			'show_in_admin_all_list'    => false,
+			'show_in_admin_status_list' => false,
+		]);
 
 		// Register default templates for Involvements
 		add_filter('template_include', [self::class, 'templateFilter'], 10, 1);
@@ -1612,6 +1631,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 
 		$q      = new WP_Query([
 			                       'post_type'   => $postType,
+			                       'post_status' => ['publish', 'private', self::POST_STATUS_HIDDEN],
 			                       'meta_key'    => TouchPointWP::INVOLVEMENT_META_KEY,
 			                       'meta_value'  => $involvementId,
 			                       'numberposts' => 2
@@ -2917,11 +2937,20 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	 * @param Involvement_PostTypeSettings $typeSets
 	 * @param bool                         $verbose
 	 * @param bool                         $applyChanges
+	 * @param string                       $postStatus     The status to give the post.
+	 * @param bool                         $updateMeetings Whether to update the involvement's meetings too.
 	 *
 	 * @return int[] A list of Post IDs that should be kept.
 	 */
-	protected static function doPostUpdate($post, object $inv, Involvement_PostTypeSettings $typeSets, bool $verbose = false, bool $applyChanges = true): array
-	{
+	protected static function doPostUpdate(
+		$post,
+		object $inv,
+		Involvement_PostTypeSettings $typeSets,
+		bool $verbose = false,
+		bool $applyChanges = true,
+		string $postStatus = 'publish',
+		bool $updateMeetings = true
+	): array {
 		if ($post instanceof WP_Error) {
 			new TouchPointWP_WPError($post);
 			return [];
@@ -2977,7 +3006,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		}
 
 		// Status & Submit
-		$post->post_status = 'publish';
+		$post->post_status = $postStatus;
 		if ($applyChanges) {
 			wp_update_post($post);
 
@@ -3254,7 +3283,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		//// Meetings ////
 		//////////////////
 
-		$postsToKeep = self::updateMeetingsWithGrouping($post, $inv, $typeSets, $imageId, $verbose, $applyChanges);
+		if ($updateMeetings) {
+			$postsToKeep = self::updateMeetingsWithGrouping($post, $inv, $typeSets, $imageId, $verbose, $applyChanges);
+		} else {
+			$postsToKeep = [$post->ID];
+		}
 
 		if ($verbose) {
 			echo "<hr />";
@@ -3532,7 +3565,64 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			$applyChanges
 		);
 
+		// Hidden posts for the included child involvements.  This comes after the plan is written, so that combined
+		// posts adopted as meeting posts are no longer found as the child's post.
+		foreach ($structure as $child) {
+			$keep = [...$keep, ...self::updateHiddenChildPost($child, $typeSets, $verbose, $applyChanges)];
+		}
+
 		return [$post->ID, ...$keep];
+	}
+
+	/**
+	 * Create or update the hidden post of a child involvement whose meetings are included in its parent's structure.
+	 * An existing post of the child (from before it was included) becomes the hidden post.
+	 *
+	 * @param object                       $child The child involvement, as provided by the API.
+	 * @param Involvement_PostTypeSettings $typeSets
+	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
+	 *
+	 * @return int[] The IDs of posts to keep.
+	 */
+	protected static function updateHiddenChildPost(
+		object $child,
+		Involvement_PostTypeSettings $typeSets,
+		bool $verbose = false,
+		bool $applyChanges = true
+	): array {
+		$post = self::getWpPostByInvolvementId($typeSets->postType, $child->involvementId);
+
+		// A post that is also a meeting's post was a combined post.  It's now only the meeting's post.
+		if ($post !== null && intval(get_post_meta($post->ID, Meeting::MEETING_META_KEY, true)) !== 0) {
+			$post = null;
+		}
+
+		if ($post === null && $applyChanges) {
+			$post = wp_insert_post([
+				'post_type'   => $typeSets->postType,
+				'post_title'  => $child->titleToUse,
+				'post_status' => self::POST_STATUS_HIDDEN,
+				'meta_input'  => [
+					TouchPointWP::INVOLVEMENT_META_KEY => $child->involvementId
+				]
+			]);
+			$post = get_post($post);
+		} elseif ($post === null && $verbose) {
+			echo "<p>Would create a hidden post for Involvement {$child->involvementId} ({$child->titleToUse}).</p>";
+		}
+
+		$keep = self::doPostUpdate($post, $child, $typeSets, $verbose, $applyChanges, self::POST_STATUS_HIDDEN, false);
+
+		// Hidden posts have no public URL, so their slug only needs to stay out of the way of their siblings'.
+		if ($applyChanges && $post instanceof WP_Post && $post->ID) {
+			$slug = "hidden-" . $child->involvementId;
+			if (get_post_field('post_name', $post->ID) !== $slug) {
+				Utilities::forceSlugUpdate($post->ID, $slug);
+			}
+		}
+
+		return $keep;
 	}
 
 	/**
