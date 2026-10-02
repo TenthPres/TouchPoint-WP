@@ -17,6 +17,8 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Utilities.php";
 	require_once "Involvement_PostTypeSettings.php";
 	require_once "MeetingArray.php";
+	require_once "InvolvementMeeting_GroupingPlanner.php";
+	require_once "InvolvementMeeting_GroupingWriter.php";
 }
 
 use DateInterval;
@@ -50,6 +52,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 {
 	use jsInstantiation;
 	use jsonLd;
+	use InvolvementMeeting_GroupingWriter;
 
 	public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "Inv-Map";
 	public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "Inv-Filters";
@@ -60,6 +63,24 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	protected const SCHEDULE_STRING_CACHE_EXPIRATION = 3600 * 8; // 8 hours.  Automatically deleted during sync.
 	protected const SCHEDULE_STRING_CACHE_GROUP = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
 	protected const ENABLE_SCHEDULE_STRING_CACHE = true;
+
+	/**
+	 * Post status for the posts of child involvements whose meetings are included in their parent's structure.  These
+	 * posts aren't shown anywhere; they exist so the child's Involvement object (for Register and RSVP buttons, for
+	 * example) can be created for its meetings.
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public const POST_STATUS_HIDDEN = TouchPointWP::HOOK_PREFIX . "hidden_resource";
+
+	/** Meeting Grouping: an involvement whose meetings include its child involvements' meetings. */
+	protected const GROUPING_ROLE_OWNER = "owner";
+	/** Meeting Grouping: a child involvement whose meetings are handled by its structure owner. */
+	protected const GROUPING_ROLE_CHILD = "child";
+	/** Meeting Grouping: an involvement handled on its own. */
+	protected const GROUPING_ROLE_NORMAL = "normal";
+	/** Meeting Grouping: an involvement that isn't processed in this post type, since its owner handles it elsewhere. */
+	protected const GROUPING_ROLE_SKIP = "skip";
 
 	protected const MEETING_STRATEGY_NONE = 0;
 	protected const MEETING_STRATEGY_SINGLE = 1;
@@ -317,6 +338,16 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				]
 			);
 		}
+
+		// Posts of child involvements whose meetings are shown within their parent.  Not public or searchable.
+		register_post_status(self::POST_STATUS_HIDDEN, [
+			'label'                     => __('Hidden', 'TouchPoint-WP'),
+			'public'                    => false,
+			'internal'                  => true,
+			'exclude_from_search'       => true,
+			'show_in_admin_all_list'    => false,
+			'show_in_admin_status_list' => false,
+		]);
 
 		// Register default templates for Involvements
 		add_filter('template_include', [self::class, 'templateFilter'], 10, 1);
@@ -941,12 +972,66 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	}
 
 	/**
+	 * Get the schedule of this involvement's current or next Edition, as whole days (such as "Fri, Nov 6 - Sun,
+	 * Nov 8").  Returns null if it has no Edition that hasn't ended.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @return ?string
+	 */
+	protected function currentEditionScheduleString(): ?string
+	{
+		$editions = get_posts([
+			'post_type'   => get_post_type($this->post_id),
+			'post_parent' => $this->post_id,
+			'numberposts' => 1,
+			'meta_key'    => Meeting::MEETING_START_META_KEY,
+			'orderby'     => 'meta_value_num',
+			'order'       => 'ASC',
+			'meta_query'  => [
+				[
+					'key'   => Meeting::MEETING_GROUP_ROLE_META_KEY,
+					'value' => MeetingArray::ROLE_EDITION,
+				],
+				[
+					'key'     => Meeting::MEETING_END_META_KEY,
+					'value'   => time(),
+					'compare' => '>=',
+					'type'    => 'NUMERIC',
+				],
+			],
+		]);
+
+		if (count($editions) === 0) {
+			return null;
+		}
+
+		try {
+			return Meeting::fromPost($editions[0])->scheduleStringArray()->join();
+		} catch (TouchPointWP_Exception) {
+			return null;
+		}
+	}
+
+	/**
 	 * Calculate the schedule strings.
 	 *
 	 * @return string[]
 	 */
 	protected function scheduleStrings_calc(): array
 	{
+		// An involvement whose meetings are grouped into Editions is described by its current or next Edition's days.
+		$edition = $this->currentEditionScheduleString();
+		if ($edition !== null) {
+			return [
+				'datetime'  => null,
+				'date'      => $edition,
+				'time'      => null,
+				'firstLast' => null,
+				'combined'  => $edition
+			];
+		}
+
 		$commonOccurrences = self::computeCommonOccurrences($this->meetings(), $this->schedules());
 
 		$dateFormat = get_option('date_format');
@@ -1123,10 +1208,6 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				return $r;
 			}
 
-			$forceDateTime = false;
-			$dateTimeArr = new StringableArray();
-			$dateArr = new StringableArray();
-			$timeArr = [];
 			$now = Utilities::dateTimeNow();
 
 			// filter meetings to only those not past
@@ -1142,42 +1223,22 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 //			below can be used to add "and others" to the list of dates/times to indicate that there are historical
 //			meetings that are not being shown.  However, this currently seems more confusing than helpful.
 
-			foreach ($meetings as $m) {
-				$a = DateFormats::DurationToStringArray($m->mtgStartDt, $m->mtgEndDt, null, $m->mtgStartDt->isAllDay);
+			$a = DateFormats::OccurrencesToStringArray(
+				array_map(fn($m) => [$m->mtgStartDt, $m->mtgEndDt, $m->mtgStartDt->isAllDay], $meetings),
+				2
+			);
 
-				if (isset($a['datetime'])) {
-					$forceDateTime = true;
-					$dateTimeArr[] = $a['datetime'];
-				} else {
-					$dateTimeArr[] = wp_sprintf(
-					// translators: %1$s is the date(s), %2$s is the time(s).
-						__('%1$s at %2$s', 'TouchPoint-WP'), $a['date'], $a['time']
-					);
-					if ( !$dateArr->contains(['date'])) {
-						$dateArr[] = $a['date'];
-					}
-					if (!in_array($a['time'], $timeArr)) {
-						$timeArr[] = $a['time'];
-					}
-				}
-			}
-			if (count($timeArr) > 1) {
-				$forceDateTime = true;
-			}
-
-			if ($forceDateTime) {
-				$r['datetime'] = $dateTimeArr->toListString(2);
+			if (isset($a['datetime'])) {
+				$r['datetime'] = $a['datetime'];
 				$r['combined'] = $r['datetime'];
-			} else {
-				$dateStr = $dateArr->toListString(2);
-
-				$r['date'] = $dateStr;
-				$r['time'] = $timeArr[0];
+			} elseif (isset($a['date'])) {
+				$r['date']     = $a['date'];
+				$r['time']     = $a['time'];
 				$r['combined'] = wp_sprintf(
 				// translators: %1$s is the date(s), %2$s is the time(s).
 					__('%1$s at %2$s', 'TouchPoint-WP'),
-					$dateStr,
-					$timeArr[0]
+					$a['date'],
+					$a['time']
 				);
 			}
 		}
@@ -1600,6 +1661,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 
 		$q      = new WP_Query([
 			                       'post_type'   => $postType,
+			                       'post_status' => ['publish', 'private', self::POST_STATUS_HIDDEN],
 			                       'meta_key'    => TouchPointWP::INVOLVEMENT_META_KEY,
 			                       'meta_value'  => $involvementId,
 			                       'numberposts' => 2
@@ -2697,6 +2759,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				$qOpts['mtgFuture'] = 365;
 			}
 
+			// Meeting Grouping: which involvements are structure owners, and whether to include hidden children.
+			$qOpts = [...$qOpts, ...Meeting_GroupingSettings::involvementQueryParameters()];
+
 			$response = TouchPointWP::instance()->api->pyGet("Invs", $qOpts, 180, $verbose);
 
 		} catch (TouchPointWP_Exception) {
@@ -2727,14 +2792,25 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			return false;
 		}
 
+		////////////////////////
+		// Standardize Inputs //
+		////////////////////////
+
+		// Everything is standardized first, since structure owners need their child involvements' meetings.
+		$invData = self::dedupeApiInvolvements($invData);
+		foreach ($invData as $inv) {
+			self::standardizeApiData($inv, $siteTz, $verbose);
+			$inv->titleToUse = trim($inv->regTitle ?? $inv->name);
+		}
+		self::classifyForGrouping($invData, $verbose);
+
 		foreach ($invData as $inv) {
 			set_time_limit(15);
 
-			////////////////////////
-			// Standardize Inputs //
-			////////////////////////
-
-			self::standardizeApiData($inv, $siteTz, $verbose);
+			// Included child involvements are handled by their structure owner.
+			if ($inv->_groupingRole === self::GROUPING_ROLE_CHILD || $inv->_groupingRole === self::GROUPING_ROLE_SKIP) {
+				continue;
+			}
 
 
 			////////////////
@@ -2891,11 +2967,20 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	 * @param Involvement_PostTypeSettings $typeSets
 	 * @param bool                         $verbose
 	 * @param bool                         $applyChanges
+	 * @param string                       $postStatus     The status to give the post.
+	 * @param bool                         $updateMeetings Whether to update the involvement's meetings too.
 	 *
 	 * @return int[] A list of Post IDs that should be kept.
 	 */
-	protected static function doPostUpdate($post, object $inv, Involvement_PostTypeSettings $typeSets, bool $verbose = false, bool $applyChanges = true): array
-	{
+	protected static function doPostUpdate(
+		$post,
+		object $inv,
+		Involvement_PostTypeSettings $typeSets,
+		bool $verbose = false,
+		bool $applyChanges = true,
+		string $postStatus = 'publish',
+		bool $updateMeetings = true
+	): array {
 		if ($post instanceof WP_Error) {
 			new TouchPointWP_WPError($post);
 			return [];
@@ -2951,7 +3036,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		}
 
 		// Status & Submit
-		$post->post_status = 'publish';
+		$post->post_status = $postStatus;
 		if ($applyChanges) {
 			wp_update_post($post);
 
@@ -3228,7 +3313,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		//// Meetings ////
 		//////////////////
 
-		$postsToKeep = self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imageId, $verbose, $applyChanges);
+		if ($updateMeetings) {
+			$postsToKeep = self::updateMeetingsWithGrouping($post, $inv, $typeSets, $imageId, $verbose, $applyChanges);
+		} else {
+			$postsToKeep = [$post->ID];
+		}
 
 		if ($verbose) {
 			echo "<hr />";
@@ -3298,6 +3387,280 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			}
 			$mtgO->slugToUse = $slug;
 		}
+	}
+
+	/**
+	 * Remove duplicate involvements from the API data.  The query can return an involvement twice when it both has
+	 * meetings and has children with meetings; the rows are otherwise the same.
+	 *
+	 * @param object[] $invData
+	 *
+	 * @return object[]
+	 */
+	protected static function dedupeApiInvolvements(array $invData): array
+	{
+		$unique = [];
+		foreach ($invData as $inv) {
+			$id = $inv->involvementId;
+			if (isset($unique[$id])) {
+				$unique[$id]->isParent = max($unique[$id]->isParent, $inv->isParent);
+				continue;
+			}
+			$unique[$id] = $inv;
+		}
+
+		return array_values($unique);
+	}
+
+	/**
+	 * Decide how each involvement's meetings are grouped, and bring child involvements' meetings into their structure
+	 * owners.
+	 *
+	 * Each involvement gets:
+	 * - _groupingRole: one of the GROUPING_ROLE_ constants.
+	 * - _grouping: the Meeting_GroupingSettings that apply (owners and normal involvements).
+	 * - _groupingNone: true if its meetings shouldn't be grouped at all, because it has a weekly schedule.
+	 * - _groupingStructure: for owners, the child involvements whose meetings are included.
+	 * - _ownMeetings: for owners, its own meetings.  Its meetings property then holds all the meetings in the
+	 *   structure, so its dates, tense, and schedule reflect the whole structure.
+	 *
+	 * An involvement with a weekly schedule is never grouped or included in a parent, when the weekly-schedule guard is
+	 * on.  (This uses the existing test for schedules, which doesn't always work with how TouchPoint now handles
+	 * schedules.  See follow-up D8.)
+	 *
+	 * @param object[] $invData Standardized API data.
+	 * @param bool     $verbose
+	 *
+	 * @return void
+	 */
+	protected static function classifyForGrouping(array $invData, bool $verbose): void
+	{
+		$byId = [];
+		foreach ($invData as $inv) {
+			$byId[intval($inv->involvementId)] = $inv;
+		}
+
+		$skipScheduled = Meeting_GroupingSettings::skipScheduled();
+		$isScheduled   = fn(object $i) => $skipScheduled && count($i->schedules ?? []) > 0;
+		$cutoff        = self::updateExpiry();
+
+		// Structure owners and normal involvements.
+		foreach ($invData as $inv) {
+			$ownerId = isset($inv->ownerInvId) ? intval($inv->ownerInvId) : null;
+			if ($ownerId !== null && $ownerId !== intval($inv->involvementId)) {
+				continue; // A child; decided below.
+			}
+			$inv->_groupingStructure = [];
+			$inv->_grouping          = Meeting_GroupingSettings::forInvolvementType(intval($inv->invTypeId ?? 0));
+			$inv->_groupingNone      = $isScheduled($inv);
+			$inv->_groupingRole      = ($ownerId !== null && ! $inv->_groupingNone) ?
+				self::GROUPING_ROLE_OWNER : self::GROUPING_ROLE_NORMAL;
+		}
+
+		// Child involvements.
+		foreach ($invData as $inv) {
+			if (isset($inv->_groupingRole)) {
+				continue;
+			}
+			$owner    = $byId[intval($inv->ownerInvId)] ?? null;
+			$viaOwner = ! ! ($inv->viaOwner ?? false);
+
+			if ($owner === null && ! $isScheduled($inv)) {
+				// Its owner is handled in another post type (or not at all).
+				$inv->_groupingRole = self::GROUPING_ROLE_SKIP;
+			} elseif ($owner === null || $owner->_groupingRole !== self::GROUPING_ROLE_OWNER || $isScheduled($inv)) {
+				// Not included in its owner's structure.  It's handled on its own, if it belongs in this post type.
+				$inv->_groupingRole      = $viaOwner ? self::GROUPING_ROLE_SKIP : self::GROUPING_ROLE_NORMAL;
+				$inv->_groupingStructure = [];
+				$inv->_grouping          = Meeting_GroupingSettings::forInvolvementType(intval($inv->invTypeId ?? 0));
+				$inv->_groupingNone      = $isScheduled($inv);
+			} else {
+				// Hidden children are only here to keep their archived meetings.
+				if ( ! $inv->showInSites) {
+					$inv->meetings = array_values(array_filter(
+						$inv->meetings,
+						fn($m) => ($m->mtgEndDt ?? $m->mtgStartDt) < $cutoff
+					));
+				}
+				if (count($inv->meetings) === 0) {
+					$inv->_groupingRole = self::GROUPING_ROLE_SKIP;
+				} else {
+					$inv->_groupingRole          = self::GROUPING_ROLE_CHILD;
+					$owner->_groupingStructure[] = $inv;
+				}
+			}
+
+			if ($verbose) {
+				echo "<p>Involvement $inv->involvementId ($inv->titleToUse) has structure owner $inv->ownerInvId: $inv->_groupingRole.</p>";
+			}
+		}
+
+		// Owners' dates reflect all the meetings in their structure.
+		foreach ($invData as $inv) {
+			if ($inv->_groupingRole !== self::GROUPING_ROLE_OWNER) {
+				continue;
+			}
+			$inv->_ownMeetings = $inv->meetings;
+			$all = $inv->meetings;
+			foreach ($inv->_groupingStructure as $child) {
+				$all = [...$all, ...$child->meetings];
+			}
+			usort($all, fn($a, $b) => $a->mtgStartDt <=> $b->mtgStartDt);
+			$inv->meetings = $all;
+
+			if ($inv->lastMeeting !== null) {
+				foreach ($all as $m) {
+					if ($m->mtgStartDt > $inv->lastMeeting) {
+						$inv->lastMeeting = null;
+						break;
+					}
+				}
+			}
+
+			if ($verbose) {
+				$n = count($inv->_groupingStructure);
+				echo "<p>Involvement $inv->involvementId ($inv->titleToUse) is a structure owner, including $n child involvement(s).</p>";
+			}
+		}
+	}
+
+	/**
+	 * Update an involvement's meetings, using its Meeting Grouping settings.  The previous behavior is used when those
+	 * settings call for it, and for involvements with no more than one meeting of their own and no child involvements
+	 * (whose post is also the meeting's post).
+	 *
+	 * @param WP_Post                      $post
+	 * @param object                       $inv The involvement, after classifyForGrouping().
+	 * @param Involvement_PostTypeSettings $typeSets
+	 * @param int                          $imagePostId
+	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
+	 *
+	 * @return int[] An array of Post IDs that have been updated, and which should be retained.
+	 */
+	protected static function updateMeetingsWithGrouping(
+		WP_Post $post,
+		object $inv,
+		Involvement_PostTypeSettings $typeSets,
+		int $imagePostId,
+		bool $verbose = false,
+		bool $applyChanges = true
+	): array {
+		/** @var ?Meeting_GroupingSettings $rule */
+		$rule = $inv->_grouping ?? null;
+		if ($rule === null || $rule->legacy) {
+			return self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imagePostId, $verbose, $applyChanges);
+		}
+
+		// Return if meetings shouldn't be imported at all.
+		if ( ! $typeSets->importMeetings && ! $inv->showInSites) {
+			self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
+			return [$post->ID];
+		}
+
+		$structure = $inv->_groupingStructure ?? [];
+		$own       = $inv->_ownMeetings ?? $inv->meetings;
+
+		// With no more than one meeting and no child involvements, the involvement's post is the meeting's post.
+		if (count($structure) === 0 && count($own) <= 1) {
+			return self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imagePostId, $verbose, $applyChanges);
+		}
+
+		// If the involvement's post was the meeting's post, it isn't anymore.
+		self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
+
+		$owner           = clone $inv;
+		$owner->meetings = $own;
+		$involvements    = [$owner, ...$structure];
+		$none            = ! empty($inv->_groupingNone);
+
+		$planner = new InvolvementMeeting_GroupingPlanner(
+			$owner,
+			$involvements,
+			! $none && $rule->editions,
+			! $none && $rule->timeSlots,
+			! $none && $rule->clusters,
+			Meeting_GroupingSettings::editionGap(),
+			Meeting_GroupingSettings::clusterGap(),
+			Meeting_GroupingSettings::timeSlotTolerance()
+		);
+
+		$keep = self::writeGroupingPlan(
+			$post,
+			$owner,
+			$involvements,
+			$planner->plan(),
+			$typeSets,
+			$imagePostId,
+			$verbose,
+			$applyChanges
+		);
+
+		// Hidden posts for the included child involvements.  This comes after the plan is written, so that combined
+		// posts adopted as meeting posts are no longer found as the child's post.
+		foreach ($structure as $child) {
+			$keep = [...$keep, ...self::updateHiddenChildPost($child, $typeSets, $verbose, $applyChanges)];
+		}
+
+		return [$post->ID, ...$keep];
+	}
+
+	/**
+	 * Create or update the hidden post of a child involvement whose meetings are included in its parent's structure.
+	 * An existing post of the child (from before it was included) becomes the hidden post.
+	 *
+	 * @param object                       $child The child involvement, as provided by the API.
+	 * @param Involvement_PostTypeSettings $typeSets
+	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
+	 *
+	 * @return int[] The IDs of posts to keep.
+	 */
+	protected static function updateHiddenChildPost(
+		object $child,
+		Involvement_PostTypeSettings $typeSets,
+		bool $verbose = false,
+		bool $applyChanges = true
+	): array {
+		$post = self::getWpPostByInvolvementId($typeSets->postType, $child->involvementId);
+
+		// A post that is also a meeting's post was a combined post.  It's now only the meeting's post.
+		if ($post !== null && intval(get_post_meta($post->ID, Meeting::MEETING_META_KEY, true)) !== 0) {
+			$post = null;
+		}
+
+		if ($post === null && $applyChanges) {
+			$id = wp_insert_post([
+				'post_type'   => $typeSets->postType,
+				'post_title'  => $child->titleToUse,
+				'post_status' => self::POST_STATUS_HIDDEN,
+				'meta_input'  => [
+					TouchPointWP::INVOLVEMENT_META_KEY => $child->involvementId
+				]
+			], true);
+			if ($id instanceof WP_Error) {
+				new TouchPointWP_WPError($id);
+				if ($verbose) {
+					echo "<p>A hidden post could not be created for Involvement {$child->involvementId}: " . $id->get_error_message() . "</p>";
+				}
+				return [];
+			}
+			$post = get_post($id);
+		} elseif ($post === null && $verbose) {
+			echo "<p>Would create a hidden post for Involvement {$child->involvementId} ({$child->titleToUse}).</p>";
+		}
+
+		$keep = self::doPostUpdate($post, $child, $typeSets, $verbose, $applyChanges, self::POST_STATUS_HIDDEN, false);
+
+		// Hidden posts have no public URL, so their slug only needs to stay out of the way of their siblings'.
+		if ($applyChanges && $post instanceof WP_Post && $post->ID) {
+			$slug = "hidden-" . $child->involvementId;
+			if (get_post_field('post_name', $post->ID) !== $slug) {
+				Utilities::forceSlugUpdate($post->ID, $slug);
+			}
+		}
+
+		return $keep;
 	}
 
 	/**
@@ -3735,6 +4098,77 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 
 
 	/**
+	 * Append the kinds of thing a post is to its title, such as "[Edition]" or "[Involvement, Meeting]".  This is a
+	 * debugging aid for Meeting Grouping, shown only when debugging is on (the tp_DEBUG option), unless the
+	 * tp_show_post_type_labels filter says otherwise.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @param string $title
+	 * @param int    $postId
+	 *
+	 * @return string
+	 */
+	public static function filterTitleTypeLabels(string $title, int $postId = 0): string
+	{
+		/**
+		 * Whether to append the kinds of thing a post is (Involvement, Meeting, Edition, and so on) to the titles of
+		 * Involvement and Meeting posts.  This is a debugging aid.
+		 *
+		 * @since 0.0.98 Added
+		 *
+		 * @param bool $show Default is true when debugging is on (the tp_DEBUG option is "true").
+		 */
+		$show = ! ! apply_filters('tp_show_post_type_labels', TouchPointWP::instance()->debug);
+
+		if ( ! $show || $postId === 0 || is_admin()) {
+			return $title;
+		}
+
+		$post = get_post($postId);
+		if ($post === null || ! in_array($post->post_type, Involvement_PostTypeSettings::getPostTypes(), true)) {
+			return $title;
+		}
+
+		$labels = [];
+		if (intval(get_post_meta($postId, TouchPointWP::INVOLVEMENT_META_KEY, true)) > 0) {
+			$labels[] = __("Involvement", "TouchPoint-WP");
+		}
+
+		$mtgId = intval(get_post_meta($postId, Meeting::MEETING_META_KEY, true));
+		if ($mtgId > 0) {
+			$labels[] = __("Meeting", "TouchPoint-WP");
+		} elseif ($mtgId < 0) {
+			$labels[] = match (get_post_meta($postId, Meeting::MEETING_GROUP_ROLE_META_KEY, true)) {
+				MeetingArray::ROLE_EDITION   => __("Edition", "TouchPoint-WP"),
+				MeetingArray::ROLE_TIME_SLOT => __("Time Slot", "TouchPoint-WP"),
+				MeetingArray::ROLE_CLUSTER   => __("Cluster", "TouchPoint-WP"),
+				default                      => __("Collection (previous behavior)", "TouchPoint-WP"),
+			};
+		}
+
+		if (get_post_meta($postId, Meeting::MEETING_IS_GROUP_MEMBER, true)) {
+			$parentRole = get_post_meta($post->post_parent, Meeting::MEETING_GROUP_ROLE_META_KEY, true);
+			$labels[]   = match ($parentRole) {
+				MeetingArray::ROLE_EDITION   => __("in an Edition", "TouchPoint-WP"),
+				MeetingArray::ROLE_TIME_SLOT => __("in a Time Slot", "TouchPoint-WP"),
+				MeetingArray::ROLE_CLUSTER   => __("in a Cluster", "TouchPoint-WP"),
+				default                      => __("in a group", "TouchPoint-WP"),
+			};
+		}
+
+		if ($post->post_status === self::POST_STATUS_HIDDEN) {
+			$labels[] = __("hidden", "TouchPoint-WP");
+		}
+
+		if (count($labels) === 0) {
+			return $title;
+		}
+
+		return $title . " [" . implode(", ", $labels) . "]";
+	}
+
+	/**
 	 * Replace the date with the schedule summary
 	 *
 	 * @param $theDate
@@ -3757,7 +4191,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			if (self::postIsType($post)) {
 				$theDate = self::scheduleString(intval($post->{TouchPointWP::INVOLVEMENT_META_KEY})) ?? "";
 			} elseif (Meeting::postIsType($post)) {
-				$theDate = Meeting::scheduleString(intval($post->{Meeting::MEETING_META_KEY})) ?? "";
+				// Built from the post, since groups can't be looked up by their (non-unique) meeting ID.
+				try {
+					$theDate = Meeting::scheduleString(0, Meeting::fromPost(get_post($post))) ?? "";
+				} catch (TouchPointWP_Exception) {
+				}
 			}
 		}
 

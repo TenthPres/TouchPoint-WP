@@ -1092,7 +1092,7 @@ class TouchPointWP
 //			Auth::registerScriptsAndStyles();
 //		}
 
-		if ( ! ! $this->rsvp) {
+		if ( ! ! $this->rsvp || ! ! $this->involvements) {
 			Meeting::registerScriptsAndStyles();
 		}
 	}
@@ -1983,6 +1983,24 @@ class TouchPointWP
 		}
 
 		return $cObj->campuses;
+	}
+
+
+	/**
+	 * Returns an array of objects that correspond to TouchPoint Involvement Types.  Each Involvement Type has an id and
+	 * a description.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @returns object[]
+	 */
+	public function getInvolvementTypes(): array
+	{
+		try {
+			return Lookup::getLookup('OrganizationTypes');
+		} catch (TouchPointWP_Exception) {
+			return [];
+		}
 	}
 
 

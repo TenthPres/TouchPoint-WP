@@ -2,6 +2,7 @@
 
 use tp\TouchPointWP\Involvement;
 use tp\TouchPointWP\Involvement_PostTypeSettings;
+use tp\TouchPointWP\Meeting;
 use tp\TouchPointWP\PostTypeCapable;
 use tp\TouchPointWP\TouchPointWP;
 
@@ -52,6 +53,12 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
             'order' => 'ASC',
             'post_type' => get_post_type($post)
         ]);
+        // Child involvements (which have no start) first, by title; then meetings and groups, chronologically.
+        usort($children, function ($a, $b) {
+            $aStart = intval(get_post_meta($a->ID, Meeting::MEETING_START_META_KEY, true));
+            $bStart = intval(get_post_meta($b->ID, Meeting::MEETING_START_META_KEY, true));
+            return [$aStart, $a->post_title] <=> [$bStart, $b->post_title];
+        });
         if (count($children) > 0) {
             echo "<div class='child-involvements'>";
         }

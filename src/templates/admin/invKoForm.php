@@ -103,20 +103,17 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             <th>
                 <label for="it-importMeetings" data-bind="attr: { for: 'it-' + slugSterilized() + '-importMeetings'}"><?php _e("Import All Meetings to Calendar", "TouchPoint-WP"); ?></label>
             </th>
-            <td colspan="2"><input id="it-importMeetings" type="checkbox" data-bind="checked: importMeetings, attr: { id: 'it-' + slugSterilized() + '-importMeetings'}" /></td>
-        </tr>
-
-        <tr data-bind="visible: importMeetings">
-            <th>
-                <label for="it-meetingGroupingMethod" data-bind="attr: { for: 'it-' + slugSterilized() + '-meetingGroupingMethod'}"><?php _e("Collect Meetings for Larger Events", "TouchPoint-WP"); ?></label>
-            </th>
             <td colspan="2">
-                <select id="it-meetingGroupingMethod" data-bind="value: meetingGroupingMethod, attr: { id: 'it-' + slugSterilized() + '-meetingGroupingMethod'}">
-                    <option value="<?php echo Meeting::GROUP_NONE; ?>"><?php _e("No Collecting", "TouchPoint-WP"); ?></option>
-                    <option value="<?php echo Meeting::GROUP_UNSCHEDULED; ?>"><?php _e("Collect Meetings only from Involvements without Schedules", "TouchPoint-WP"); ?></option>
-                    <option value="<?php echo Meeting::GROUP_ALL; ?>"><?php _e("Collect Meetings for all Involvements", "TouchPoint-WP"); ?></option>
-                </select>
-                <br /><label for="it-meetingGroupingMethod" data-bind="attr: { for: 'it-' + slugSterilized() + '-meetingGroupingMethod'}"><?php _e("Allows multiple meetings that are part of one larger event to be grouped together, such as sessions within a conference.  For meetings to be collected, they must be in the same involvement and must not have gaps between them larger than 23 hours.", "TouchPoint-WP"); ?></label></td>
+                <input id="it-importMeetings" type="checkbox" data-bind="checked: importMeetings, attr: { id: 'it-' + slugSterilized() + '-importMeetings'}" />
+                <label for="it-importMeetings" data-bind="attr: { for: 'it-' + slugSterilized() + '-importMeetings'}"><?php
+                    $groupingUrl = admin_url('options-general.php?page=' . TouchPointWP::TOKEN . '_Settings&tab=meetCal');
+                    echo wp_sprintf(
+                        // Translators: %s is a link to the Meeting Calendar settings tab.
+                        __('How meetings are grouped is set by Involvement Type, on the %s settings tab.', 'TouchPoint-WP'),
+                        '<a href="' . esc_url($groupingUrl) . '">' . esc_html__('Meeting Calendars', 'TouchPoint-WP') . '</a>'
+                    );
+                ?></label>
+            </td>
         </tr>
         <?php } ?>
 

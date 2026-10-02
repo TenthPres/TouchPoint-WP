@@ -19,6 +19,9 @@ use tp\TouchPointWP\Interfaces\apiMeeting;
  *
  * A class to hold an array of meetings grouped into a larger event, like a conference.
  *
+ * With Meeting Grouping, a MeetingArray can also be an Edition, Time Slot, or Cluster, and can contain other
+ * MeetingArrays.  See InvolvementMeeting_GroupingPlanner.
+ *
  * @package tp\TouchPointWP
  *
  * @property-read string name
@@ -31,16 +34,37 @@ use tp\TouchPointWP\Interfaces\apiMeeting;
  */
 class MeetingArray implements apiMeeting, IteratorAggregate, ArrayAccess, Countable
 {
+	public const ROLE_EDITION = "edition";
+	public const ROLE_TIME_SLOT = "timeSlot";
+	public const ROLE_CLUSTER = "cluster";
+
 	protected ?stdClass $_involvement = null; // This is NOT an Involvement class instance.
 	protected array $_meetings = [];
 
 	public string $slugToUse = "";
 	public string $titleToUse = "";
 
-	public function __construct($meetingArray = [], $involvement = null)
+	/**
+	 * @var ?string The grouping type: one of the ROLE_ constants, or null for the previous behavior's collections.
+	 */
+	public ?string $groupRole = null;
+
+	/**
+	 * @var ?bool Whether this group is inside another group.  Null (not false) when unknown, so the previous
+	 *            behavior's isset() check still treats its collections as top-level.
+	 */
+	public ?bool $isGroupMember = null;
+
+	/**
+	 * @param array     $meetingArray The meetings, or other MeetingArrays, in this group.
+	 * @param ?stdClass $involvement  The involvement this group represents (from the API, not an Involvement object).
+	 * @param ?string   $groupRole    The grouping type, one of the ROLE_ constants.
+	 */
+	public function __construct($meetingArray = [], $involvement = null, ?string $groupRole = null)
 	{
 		$this->_meetings = $meetingArray;
 		$this->_involvement = $involvement;
+		$this->groupRole = $groupRole;
 	}
 
 	public function __get(string $what)
@@ -51,7 +75,7 @@ class MeetingArray implements apiMeeting, IteratorAggregate, ArrayAccess, Counta
 
 		return match ($what) {
 			'name' => $this->_involvement?->name ?? "",
-			'mtgId' => -1 * $this[0]->mtgId, // Meeting groups have negative meetingIds, which are the negative of the first meeting in the group
+			'mtgId' => -1 * $this->firstMeeting()->mtgId, // Meeting groups have negative meetingIds, which are the negative of the first meeting in the group
 			'mtgStartDt' => $this->mtgStartDt(),
 			'mtgEndDt' => $this->mtgEndDt(),
 			'location' => $this->_involvement?->location ?? null,
@@ -59,6 +83,68 @@ class MeetingArray implements apiMeeting, IteratorAggregate, ArrayAccess, Counta
 			'involvementId' => $this->_involvement?->involvementId ?? null,
 			default => null,
 		};
+	}
+
+	/**
+	 * Get the individual meetings in this group, including those within nested groups, in the order they were added.
+	 *
+	 * @return object[]
+	 */
+	public function leafMeetings(): array
+	{
+		$r = [];
+		foreach ($this as $item) {
+			if ($item instanceof MeetingArray) {
+				$r = [...$r, ...$item->leafMeetings()];
+			} else {
+				$r[] = $item;
+			}
+		}
+		return $r;
+	}
+
+	/**
+	 * Get the first meeting in the group, which determines the group's (negative) mtgId.
+	 *
+	 * For the previous behavior's collections (no groupRole), this is the first meeting added, which is how those
+	 * collections have always been identified.  Existing posts are found by that ID, so it must not change.
+	 *
+	 * For Editions, Time Slots, and Clusters, it's the earliest meeting: by start, then end, then lowest meeting ID.
+	 * This doesn't depend on the order the meetings were added.
+	 *
+	 * @return object
+	 */
+	public function firstMeeting(): object
+	{
+		$leaves = $this->leafMeetings();
+
+		if ($this->groupRole === null) {
+			return $leaves[0];
+		}
+
+		$first = null;
+		foreach ($leaves as $m) {
+			if ($first === null || self::sortKey($m) < self::sortKey($first)) {
+				$first = $m;
+			}
+		}
+		return $first;
+	}
+
+	/**
+	 * A key for putting meetings in chronological order: start, then end (or start, if there's no end), then meeting ID.
+	 *
+	 * @param object $m
+	 *
+	 * @return int[]
+	 */
+	protected static function sortKey(object $m): array
+	{
+		return [
+			$m->mtgStartDt->getTimestamp(),
+			($m->mtgEndDt ?? $m->mtgStartDt)->getTimestamp(),
+			intval($m->mtgId)
+		];
 	}
 
 	/**
