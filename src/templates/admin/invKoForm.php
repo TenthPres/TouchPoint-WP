@@ -105,14 +105,14 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = {divs: $divs, kws: $kws
             </th>
             <td colspan="2">
                 <input id="it-importMeetings" type="checkbox" data-bind="checked: importMeetings, attr: { id: 'it-' + slugSterilized() + '-importMeetings'}" />
-                <label for="it-importMeetings" data-bind="attr: { for: 'it-' + slugSterilized() + '-importMeetings'}"><?php
+                <span class="description"><?php
                     $groupingUrl = admin_url('options-general.php?page=' . TouchPointWP::TOKEN . '_Settings&tab=meetCal');
                     echo wp_sprintf(
                         // Translators: %s is a link to the Meeting Calendar settings tab.
                         __('How meetings are grouped is set by Involvement Type, on the %s settings tab.', 'TouchPoint-WP'),
                         '<a href="' . esc_url($groupingUrl) . '">' . esc_html__('Meeting Calendars', 'TouchPoint-WP') . '</a>'
                     );
-                ?></label>
+                ?></span>
             </td>
         </tr>
         <?php } ?>

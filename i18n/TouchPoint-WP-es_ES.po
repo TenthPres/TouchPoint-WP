@@ -77,7 +77,7 @@ msgstr "La participación está cerrada"
 
 #: src/templates/admin/invKoForm.php:136
 msgid "Involvement is a Child Involvement"
-msgstr "La participación es una participación infantil"
+msgstr "La participación es una participación secundaria"
 
 #: src/templates/admin/invKoForm.php:158
 msgid "Leader Member Types"
@@ -2104,153 +2104,153 @@ msgstr "nunca"
 #: src/templates/admin/invKoForm.php:112
 #, php-format
 msgid "How meetings are grouped is set by Involvement Type, on the %s settings tab."
-msgstr ""
+msgstr "La forma en que se agrupan las reuniones se configura por tipo de participación, en la pestaña de ajustes %s."
 
 #: src/templates/admin/mtgGroupingKoForm.php:20
 msgid "This is an advanced feature to adjust how groups of meetings are imported and displayed.  If you're just getting started with TouchPoint-WP, hold off on this until you get the hang of the default behaviors."
-msgstr ""
+msgstr "Esta es una función avanzada para ajustar cómo se importan y se muestran los grupos de reuniones.  Si recién está comenzando con TouchPoint-WP, espere a familiarizarse con el comportamiento predeterminado antes de usarla."
 
 #: src/templates/admin/mtgGroupingKoForm.php:21
 msgid "Choose how meetings are grouped together on your site, based on each involvement's Involvement Type in TouchPoint.  These settings apply to every post type that imports meetings."
-msgstr ""
+msgstr "Elija cómo se agrupan las reuniones en su sitio, según el tipo de participación de cada participación en TouchPoint.  Estos ajustes se aplican a todos los tipos de publicación que importan reuniones."
 
 #: src/templates/admin/mtgGroupingKoForm.php:22
 msgid "An involvement uses the settings for its own Involvement Type, unless it is included in its parent's structure (because the parent's settings include child involvements).  Then, the parent's settings apply."
-msgstr ""
+msgstr "Una participación usa los ajustes de su propio tipo de participación, a menos que esté incluida en la estructura de su participación principal (porque los ajustes de la principal incluyen las participaciones secundarias).  En ese caso, se aplican los ajustes de la principal."
 
 #: src/templates/admin/mtgGroupingKoForm.php:27
 msgid "Involvement Type"
-msgstr ""
+msgstr "Tipo de participación"
 
 #: src/templates/admin/mtgGroupingKoForm.php:28
 #: src/templates/admin/mtgGroupingKoForm.php:83
 #: src/templates/admin/mtgGroupingKoForm.php:160
 msgid "Include Child Involvements"
-msgstr ""
+msgstr "Incluir participaciones secundarias"
 
 #: src/templates/admin/mtgGroupingKoForm.php:29
 #: src/templates/admin/mtgGroupingKoForm.php:91
 #: src/templates/admin/mtgGroupingKoForm.php:161
 msgid "Editions"
-msgstr ""
+msgstr "Ediciones"
 
 #: src/templates/admin/mtgGroupingKoForm.php:30
 #: src/templates/admin/mtgGroupingKoForm.php:98
 #: src/templates/admin/mtgGroupingKoForm.php:162
 msgid "Clusters"
-msgstr ""
+msgstr "Bloques"
 
 #: src/templates/admin/mtgGroupingKoForm.php:31
 #: src/templates/admin/mtgGroupingKoForm.php:41
 msgid "Remove"
-msgstr ""
+msgstr "Quitar"
 
 #: src/templates/admin/mtgGroupingKoForm.php:45
 #: src/templates/admin/mtgGroupingKoForm.php:165
 msgid "All other Involvement Types"
-msgstr ""
+msgstr "Todos los demás tipos de participación"
 
 #: src/templates/admin/mtgGroupingKoForm.php:52
 msgid "Previous behavior: meetings less than 23 hours apart are collected."
-msgstr ""
+msgstr "Comportamiento anterior: se agrupan las reuniones con menos de 23 horas de diferencia."
 
 #: src/templates/admin/mtgGroupingKoForm.php:60
 msgid "Set grouping for an Involvement Type:"
-msgstr ""
+msgstr "Configurar la agrupación para un tipo de participación:"
 
 #: src/templates/admin/mtgGroupingKoForm.php:62
 msgid "Add"
-msgstr ""
+msgstr "Agregar"
 
 #: src/templates/admin/mtgGroupingKoForm.php:64
 msgid "No Involvement Types could be loaded from TouchPoint, so only the settings for all Involvement Types can be changed."
-msgstr ""
+msgstr "No se pudieron cargar los tipos de participación desde TouchPoint, por lo que solo se pueden cambiar los ajustes para todos los tipos de participación."
 
 #: src/templates/admin/mtgGroupingKoForm.php:68
 msgid "Use the previous behavior for all other Involvement Types"
-msgstr ""
+msgstr "Usar el comportamiento anterior para todos los demás tipos de participación"
 
 #: src/templates/admin/mtgGroupingKoForm.php:69
 msgid "What is this?"
-msgstr ""
+msgstr "¿Qué es esto?"
 
 #: src/templates/admin/mtgGroupingKoForm.php:74
 msgid "Keep archived meetings of child involvements that are no longer shown"
-msgstr ""
+msgstr "Conservar las reuniones archivadas de las participaciones secundarias que ya no se muestran"
 
 #: src/templates/admin/mtgGroupingKoForm.php:76
 msgid "When a child involvement's \"Show in Sites\" is turned off in TouchPoint, its meetings are normally removed from your site.  Check this to keep its archived meetings (those older than \"Archive After Days\"), so past Editions stay complete.  Its upcoming meetings are still removed."
-msgstr ""
+msgstr "Cuando se desactiva \"Show in Sites\" en una participación secundaria en TouchPoint, normalmente sus reuniones se eliminan de su sitio.  Marque esta opción para conservar sus reuniones archivadas (las que tienen más antigüedad que \"Archivo después de días\"), para que las ediciones pasadas sigan completas.  Sus próximas reuniones se eliminan de todos modos."
 
 #: src/templates/admin/mtgGroupingKoForm.php:79
 msgid "How each option works"
-msgstr ""
+msgstr "Cómo funciona cada opción"
 
 #: src/templates/admin/mtgGroupingKoForm.php:80
 msgid "Options can be combined.  Any level that would contain only one item is skipped, so an Edition with only one meeting is just that meeting's page."
-msgstr ""
+msgstr "Las opciones se pueden combinar.  Se omite cualquier nivel que contendría un solo elemento, por lo que una edición con una sola reunión es simplemente la página de esa reunión."
 
 #: src/templates/admin/mtgGroupingKoForm.php:85
 msgid "Meetings of child and grandchild involvements (that have \"Show in Sites\" checked) are shown within this involvement, instead of within their own involvements.  The child involvements are not listed separately, but the Register and RSVP buttons on their meetings still use the child involvement.  This is useful when parts of an event have their own registration or RSVP."
-msgstr ""
+msgstr "Las reuniones de las participaciones secundarias y de segundo nivel (que tienen marcada la opción \"Show in Sites\") se muestran dentro de esta participación, en lugar de dentro de sus propias participaciones.  Las participaciones secundarias no se muestran por separado, pero los botones de registro y RSVP de sus reuniones siguen usando la participación secundaria.  Esto es útil cuando partes de un evento tienen su propio registro o RSVP."
 
 #: src/templates/admin/mtgGroupingKoForm.php:86
 msgid "If this is not checked, child involvements are listed on their own, as usual."
-msgstr ""
+msgstr "Si no se marca, las participaciones secundarias se muestran por separado, como de costumbre."
 
 #: src/templates/admin/mtgGroupingKoForm.php:93
 msgid "Each occurrence of an event that happens again and again in the same involvement becomes an Edition, such as this year's conference and last year's.  A new Edition starts whenever there are more than 25 days between the end of one meeting and the start of the next.  Past Editions stay on your site with their original descriptions."
-msgstr ""
+msgstr "Cada vez que se realiza un evento que se repite en la misma participación, se convierte en una edición, como la conferencia de este año y la del año pasado.  Comienza una nueva edición cada vez que hay más de 25 días entre el final de una reunión y el comienzo de la siguiente.  Las ediciones pasadas permanecen en su sitio con sus descripciones originales."
 
 #: src/templates/admin/mtgGroupingKoForm.php:100
 msgid "Meetings of the same involvement are grouped into a Cluster:"
-msgstr ""
+msgstr "Las reuniones de la misma participación se agrupan en un bloque:"
 
 #: src/templates/admin/mtgGroupingKoForm.php:102
 msgid "Back-to-back meetings form a Cluster: no more than 2 hours apart, with no other meeting between them.  For example, a memorial service and its reception.  Meetings on different days are never grouped this way."
-msgstr ""
+msgstr "Las reuniones consecutivas forman un bloque: con no más de 2 horas de diferencia y sin otra reunión entre ellas.  Por ejemplo, un servicio conmemorativo y su recepción.  Las reuniones de días distintos nunca se agrupan de esta manera."
 
 #: src/templates/admin/mtgGroupingKoForm.php:103
 msgid "Within an Edition, all of a child involvement's meetings form one Cluster, even if they're on different days.  For example, two performances of the same concert."
-msgstr ""
+msgstr "Dentro de una edición, todas las reuniones de una participación secundaria forman un bloque, aunque sean en días distintos.  Por ejemplo, dos funciones del mismo concierto."
 
 #: src/templates/admin/mtgGroupingKoForm.php:109
 msgid "Previous behavior"
-msgstr ""
+msgstr "Comportamiento anterior"
 
 #: src/templates/admin/mtgGroupingKoForm.php:111
 msgid "Meetings of the same involvement that start less than 23 hours apart are collected together, as in earlier versions of TouchPoint-WP.  Each post type keeps the \"Collect Meetings for Larger Events\" setting it had before.  This option is available because your site used it before upgrading, so that nothing changes until you choose."
-msgstr ""
+msgstr "Las reuniones de la misma participación que comienzan con menos de 23 horas de diferencia se agrupan, como en las versiones anteriores de TouchPoint-WP.  Cada tipo de publicación conserva el ajuste \"Recopilar reuniones para eventos más grandes\" que tenía antes.  Esta opción está disponible porque su sitio la usaba antes de actualizarse, para que nada cambie hasta que usted decida."
 
 #. Translators: %s is the ID number of an Involvement Type that no longer exists in TouchPoint.
 #: src/templates/admin/mtgGroupingKoForm.php:155
 #, php-format
 msgid "(Involvement Type %s)"
-msgstr ""
+msgstr "(Tipo de participación %s)"
 
 #. Translators: %s is a link to the event or involvement this one is part of.
 #: src/templates/involvement-single.php:47
 #, php-format
 msgid "Part of %s"
-msgstr ""
+msgstr "Parte de %s"
 
 #. Translators: %s is the plural name of Meetings, such as "Events".
 #: src/templates/involvement-single.php:177
 #, php-format
 msgid "Past %s"
-msgstr ""
+msgstr "%s anteriores"
 
 #: src/TouchPoint-WP/Involvement.php:344
 msgid "Hidden"
-msgstr ""
+msgstr "Oculto"
 
 #. Translators: %1$s is the title of an event that happens every year, and %2$s is the year of this occurrence.
 #: src/TouchPoint-WP/Meeting.php:1042
 #, php-format
 msgctxt "Edition title with year"
 msgid "%1$s %2$s"
-msgstr ""
+msgstr "%1$s %2$s"
 
 #: src/TouchPoint-WP/Settings.php:980
 msgid "Meeting Grouping"
-msgstr ""
+msgstr "Agrupación de reuniones"
