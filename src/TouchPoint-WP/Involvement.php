@@ -17,8 +17,8 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Utilities.php";
 	require_once "Involvement_PostTypeSettings.php";
 	require_once "MeetingArray.php";
-	require_once "InvolvementMeeting_GroupingPlanner.php";
-	require_once "InvolvementMeeting_GroupingWriter.php";
+	require_once "Meeting_GroupingPlanner.php";
+	require_once "Meeting_GroupingWriter.php";
 }
 
 use DateInterval;
@@ -52,7 +52,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 {
 	use jsInstantiation;
 	use jsonLd;
-	use InvolvementMeeting_GroupingWriter;
+	use Meeting_GroupingWriter;
 
 	public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "Inv-Map";
 	public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "Inv-Filters";
@@ -3591,7 +3591,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		$owner->meetings = $own;
 		$involvements    = [$owner, ...$structure];
 
-		$planner = new InvolvementMeeting_GroupingPlanner(
+		$planner = new Meeting_GroupingPlanner(
 			$owner,
 			$involvements,
 			$rule->editions,
@@ -4077,6 +4077,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				$m->mtgStartDt = new DateTimeExtended($m->mtgStartDt, $siteTz);
 				$m->mtgStartDt->isAllDay = self::apiMeetingIsAllDay($m->mtgStartDt);
 
+				// TouchPoint sometimes gives a meeting an end before its start (such as meetings from a series that all
+				// have the first meeting's end).  Such an end is meaningless, so it's treated as missing.
+				if ($m->mtgEndDt !== null && $m->mtgEndDt < $m->mtgStartDt) {
+					$m->mtgEndDt = null;
+				}
+
 				// if meetings exist beyond lastMeeting, nullify lastMeeting
 				if ($inv->lastMeeting !== null && $m->mtgStartDt > $inv->lastMeeting) {
 					$inv->lastMeeting = null;
@@ -4111,75 +4117,6 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		}
 	}
 
-
-	/**
-	 * Append the kinds of thing a post is to its title, such as "[Edition]" or "[Involvement, Meeting]".  This is a
-	 * debugging aid for Meeting Grouping, shown only when debugging is on (the tp_DEBUG option), unless the
-	 * tp_show_post_type_labels filter says otherwise.
-	 *
-	 * @since 0.0.98 Added
-	 *
-	 * @param string $title
-	 * @param int    $postId
-	 *
-	 * @return string
-	 */
-	public static function filterTitleTypeLabels(string $title, int $postId = 0): string
-	{
-		/**
-		 * Whether to append the kinds of thing a post is (Involvement, Meeting, Edition, and so on) to the titles of
-		 * Involvement and Meeting posts.  This is a debugging aid.
-		 *
-		 * @since 0.0.98 Added
-		 *
-		 * @param bool $show Default is true when debugging is on (the tp_DEBUG option is "true").
-		 */
-		$show = ! ! apply_filters('tp_show_post_type_labels', TouchPointWP::instance()->debug);
-
-		if ( ! $show || $postId === 0 || is_admin()) {
-			return $title;
-		}
-
-		$post = get_post($postId);
-		if ($post === null || ! in_array($post->post_type, Involvement_PostTypeSettings::getPostTypes(), true)) {
-			return $title;
-		}
-
-		$labels = [];
-		if (intval(get_post_meta($postId, TouchPointWP::INVOLVEMENT_META_KEY, true)) > 0) {
-			$labels[] = __("Involvement", "TouchPoint-WP");
-		}
-
-		$mtgId = intval(get_post_meta($postId, Meeting::MEETING_META_KEY, true));
-		if ($mtgId > 0) {
-			$labels[] = __("Meeting", "TouchPoint-WP");
-		} elseif ($mtgId < 0) {
-			$labels[] = match (get_post_meta($postId, Meeting::MEETING_GROUP_ROLE_META_KEY, true)) {
-				MeetingArray::ROLE_EDITION => __("Edition", "TouchPoint-WP"),
-				MeetingArray::ROLE_CLUSTER => __("Cluster", "TouchPoint-WP"),
-				default                    => __("Collection (previous behavior)", "TouchPoint-WP"),
-			};
-		}
-
-		if (get_post_meta($postId, Meeting::MEETING_IS_GROUP_MEMBER, true)) {
-			$parentRole = get_post_meta($post->post_parent, Meeting::MEETING_GROUP_ROLE_META_KEY, true);
-			$labels[]   = match ($parentRole) {
-				MeetingArray::ROLE_EDITION => __("in an Edition", "TouchPoint-WP"),
-				MeetingArray::ROLE_CLUSTER => __("in a Cluster", "TouchPoint-WP"),
-				default                    => __("in a group", "TouchPoint-WP"),
-			};
-		}
-
-		if ($post->post_status === self::POST_STATUS_HIDDEN) {
-			$labels[] = __("hidden", "TouchPoint-WP");
-		}
-
-		if (count($labels) === 0) {
-			return $title;
-		}
-
-		return $title . " [" . implode(", ", $labels) . "]";
-	}
 
 	/**
 	 * Replace the date with the schedule summary

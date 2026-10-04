@@ -20,7 +20,7 @@ use tp\TouchPointWP\Interfaces\apiMeeting;
  * A class to hold an array of meetings grouped into a larger event, like a conference.
  *
  * With Meeting Grouping, a MeetingArray can also be an Edition or Cluster, and can contain other
- * MeetingArrays.  See InvolvementMeeting_GroupingPlanner.
+ * MeetingArrays.  See Meeting_GroupingPlanner.
  *
  * @package tp\TouchPointWP
  *
@@ -47,6 +47,13 @@ class MeetingArray implements apiMeeting, IteratorAggregate, ArrayAccess, Counta
 	 * @var ?string The grouping type: one of the ROLE_ constants, or null for the previous behavior's collections.
 	 */
 	public ?string $groupRole = null;
+
+	/**
+	 * @var ?object For an Edition, its spanning meeting: one of the structure owner's own meetings that covers the whole
+	 *              Edition, such as a week-long conference meeting.  The Edition takes its name, and the meeting isn't
+	 *              listed within the Edition.  It's still one of the Edition's meetings.  Null if there isn't one.
+	 */
+	public ?object $spanningMeeting = null;
 
 	/**
 	 * @var ?bool Whether this group is inside another group.  Null (not false) when unknown, so the previous

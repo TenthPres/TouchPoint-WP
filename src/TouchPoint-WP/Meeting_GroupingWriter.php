@@ -14,7 +14,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 /**
- * Writes the posts for a grouping plan from InvolvementMeeting_GroupingPlanner: finds existing posts wherever they are
+ * Writes the posts for a grouping plan from Meeting_GroupingPlanner: finds existing posts wherever they are
  * in the tree, moves them into place, and creates posts that don't exist yet.
  *
  * Archived posts (those whose end is more than Archive After Days in the past) keep their content, title, and thumbnail.
@@ -24,7 +24,7 @@ if ( ! defined('ABSPATH')) {
  *
  * @since 0.0.98 Added
  */
-trait InvolvementMeeting_GroupingWriter
+trait Meeting_GroupingWriter
 {
 	/**
 	 * Slug formats for Editions, in increasing specificity.  A bare year isn't used, because WordPress reads a numeric
@@ -43,7 +43,7 @@ trait InvolvementMeeting_GroupingWriter
 	 * @param WP_Post                      $ownerPost    The structure owner's post.
 	 * @param object                       $owner        The structure owner, as provided by the API.
 	 * @param object[]                     $involvements The involvements in the structure, including the owner.
-	 * @param array                        $items        The plan, from InvolvementMeeting_GroupingPlanner::plan().
+	 * @param array                        $items        The plan, from Meeting_GroupingPlanner::plan().
 	 * @param Involvement_PostTypeSettings $typeSets
 	 * @param int                          $imagePostId  The image to use as the thumbnail, or 0 for none.
 	 * @param bool                         $verbose
@@ -108,16 +108,17 @@ trait InvolvementMeeting_GroupingWriter
 		return $ctx->keep;
 	}
 
-	/**
-	 * Print a planned tree as a nested list, for verbose output (previews).  Each item shows its kind, title, and
-	 * dates, and whether it uses an existing post, gets a new one, or is archived without a post and won't be created.
-	 *
-	 * @param array  $items
-	 * @param object $ctx
-	 *
-	 * @return void
-	 */
-	private static function printPlan(array $items, object $ctx): void
+    /**
+     * Print a planned tree as a nested list, for verbose output (previews).  Each item shows its kind, title, and
+     * dates, and whether it uses an existing post, gets a new one, or is archived without a post and won't be created.
+     *
+     * @param array $items
+     * @param object $ctx
+     * @param object|null $spanning
+     *
+     * @return void
+     */
+	private static function printPlan(array $items, object $ctx, ?object $spanning = null): void
 	{
 		$roles = [
 			MeetingArray::ROLE_EDITION => "Edition",
@@ -130,7 +131,7 @@ trait InvolvementMeeting_GroupingWriter
 			$archived = self::endTimestamp($item) < $ctx->cutoff;
 			$post     = $isGroup ? ($ctx->groupPosts[spl_object_id($item)] ?? null) : ($ctx->meetingPosts[$item->mtgId] ?? null);
 
-			$kind  = $isGroup ? ($roles[$item->groupRole] ?? "Group") : "Meeting";
+			$kind  = $isGroup ? ($roles[$item->groupRole] ?? "Group") : ($item === $spanning ? "Spanning meeting, not listed" : "Meeting");
 			$title = esc_html(self::titleForItem($item, $ctx));
 			$start = wp_date('Y-m-d g:ia', $item->mtgStartDt->getTimestamp());
 			$end   = wp_date('Y-m-d g:ia', self::endTimestamp($item));
@@ -149,7 +150,7 @@ trait InvolvementMeeting_GroupingWriter
 
 			echo "<li>[$kind] $title &middot; $when &middot; <i>$state</i>";
 			if ($isGroup) {
-				self::printPlan(iterator_to_array($item), $ctx);
+				self::printPlan(iterator_to_array($item), $ctx, $item->spanningMeeting);
 			}
 			echo "</li>";
 		}
@@ -449,6 +450,13 @@ trait InvolvementMeeting_GroupingWriter
 				if ($isGroup) {
 					update_post_meta($post->ID, Meeting::MEETING_GROUP_ROLE_META_KEY, $item->groupRole);
 					self::setGroupMembers($post->ID, array_map(fn($m) => intval($m->mtgId), $item->leafMeetings()));
+
+					// Kept current even when archived, since it's about the structure, not the content.
+					if ($item->spanningMeeting !== null) {
+						update_post_meta($post->ID, Meeting::EDITION_MEETING_META_KEY, intval($item->spanningMeeting->mtgId));
+					} else {
+						delete_post_meta($post->ID, Meeting::EDITION_MEETING_META_KEY);
+					}
 				}
 
 				if ($isNew || ! $archived) {

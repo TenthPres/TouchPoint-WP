@@ -51,6 +51,11 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	public const MEETING_GROUP_ROLE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgGroupRole";
 	/** The meeting IDs of all meetings in a structural post, including nested ones.  One meta row per meeting. */
 	public const MEETING_GROUP_MEMBERS_META_KEY = TouchPointWP::SETTINGS_PREFIX . "groupMtgId";
+	/**
+	 * On an Edition, the meeting ID of its spanning meeting: one of the structure owner's own meetings that covers the
+	 * whole Edition.  The Edition takes its name, and it isn't listed within the Edition.  Not set if there isn't one.
+	 */
+	public const EDITION_MEETING_META_KEY = TouchPointWP::SETTINGS_PREFIX . "editionMtgId";
 
 	public const GROUP_NONE = "none";
 	public const GROUP_UNSCHEDULED = "unscheduled";
@@ -986,6 +991,24 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	{
 		add_filter('post_thumbnail_id', [self::class, 'filterThumbnailId'], 10, 3);
 		add_filter('the_title', [self::class, 'filterTitle'], 10, 2);
+	}
+
+	/**
+	 * Whether a post is the spanning meeting of the post it's listed under, and so shouldn't be listed there.  The
+	 * parent is then an Edition, whose title and dates already come from that meeting.
+	 *
+	 * @param WP_Post $child  A post being listed.
+	 * @param WP_Post $parent The post it's listed under.
+	 *
+	 * @return bool
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public static function isSpanningMeetingOf(WP_Post $child, WP_Post $parent): bool
+	{
+		$spanningId = intval(get_post_meta($parent->ID, self::EDITION_MEETING_META_KEY, true));
+
+		return $spanningId > 0 && intval(get_post_meta($child->ID, self::MEETING_META_KEY, true)) === $spanningId;
 	}
 
 	/**

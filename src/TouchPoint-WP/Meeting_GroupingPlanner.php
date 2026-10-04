@@ -18,13 +18,17 @@ if ( ! defined('ABSPATH')) {
  * its child and grandchild involvements.  The planner only arranges meetings; it doesn't read or write posts, and it
  * makes no WordPress calls.
  *
+ * An Edition can have a spanning meeting: one of the owner's own meetings that covers the whole Edition, such as a
+ * week-long conference meeting.  It isn't grouped into a Cluster, and the Edition takes its name.  See
+ * MeetingArray::$spanningMeeting.
+ *
  * The result is a list of top-level items, in chronological order.  Each item is either a meeting (as provided by the
  * API) or a MeetingArray whose groupRole is one of the MeetingArray::ROLE_ constants.  A MeetingArray may contain
  * meetings and other MeetingArrays.
  *
  * @since 0.0.98 Added
  */
-class InvolvementMeeting_GroupingPlanner
+class Meeting_GroupingPlanner
 {
 	protected object $owner;
 
@@ -73,13 +77,13 @@ class InvolvementMeeting_GroupingPlanner
 	 * @param object[]                 $involvements The involvements in the structure, including the owner.
 	 * @param Meeting_GroupingSettings $rule         The settings that apply to the owner.
 	 *
-	 * @return InvolvementMeeting_GroupingPlanner
+	 * @return Meeting_GroupingPlanner
 	 */
 	public static function fromSettings(
 		object $owner,
 		array $involvements,
 		Meeting_GroupingSettings $rule
-	): InvolvementMeeting_GroupingPlanner {
+	): Meeting_GroupingPlanner {
 		return new self(
 			$owner,
 			$rule->includeChildren ? $involvements : [$owner],
@@ -112,11 +116,26 @@ class InvolvementMeeting_GroupingPlanner
 
 		$top = [];
 		foreach ($groups as $group) {
-			$items = $this->groupWithin($group);
+			// The spanning meeting is left out of Clusters, and added back as its own item in the Edition.
+			$spanning = $this->editions ? $this->spanningMeeting($group) : null;
+			if ($spanning === null) {
+				$items = $this->groupWithin($group);
+			} else {
+				$items = $this->groupWithin(array_values(array_filter($group, fn($m) => $m !== $spanning)));
+				$this->setMeetingTitle($spanning);
+				$items[] = $spanning;
+				usort($items, [self::class, 'compare']);
+			}
 
 			if ($this->editions && count($items) > 1) {
 				$edition = new MeetingArray($items, $this->owner, MeetingArray::ROLE_EDITION);
 				$edition->titleToUse = self::titleOf($this->owner);
+				if ($spanning !== null) {
+					$edition->spanningMeeting = $spanning;
+					if (trim($spanning->name ?? "") !== "") {
+						$edition->titleToUse = trim($spanning->name);
+					}
+				}
 				$top[] = $edition;
 			} else {
 				// An Edition with only one item is just that item.  Without Editions, items are at the top level.
@@ -153,6 +172,43 @@ class InvolvementMeeting_GroupingPlanner
 		$groups[] = $current;
 
 		return $groups;
+	}
+
+	/**
+	 * Find an Edition's spanning meeting: one of the owner's own meetings that starts no later than, and ends no
+	 * earlier than, every other meeting in the Edition.  If more than one qualifies, the first in chronological order
+	 * is used.
+	 *
+	 * @param object[] $meetings The Edition's meetings, sorted.
+	 *
+	 * @return ?object Null if there isn't one, or if the Edition has only one meeting.
+	 */
+	protected function spanningMeeting(array $meetings): ?object
+	{
+		if (count($meetings) < 2) {
+			return null;
+		}
+
+		foreach ($meetings as $candidate) {
+			if ($candidate->involvementId != $this->owner->involvementId ||
+				self::endOf($candidate) <= self::startOf($candidate)) {
+				continue;
+			}
+
+			$spans = true;
+			foreach ($meetings as $m) {
+				if ($m !== $candidate &&
+					(self::startOf($m) < self::startOf($candidate) || self::endOf($m) > self::endOf($candidate))) {
+					$spans = false;
+					break;
+				}
+			}
+			if ($spans) {
+				return $candidate;
+			}
+		}
+
+		return null;
 	}
 
 	/**

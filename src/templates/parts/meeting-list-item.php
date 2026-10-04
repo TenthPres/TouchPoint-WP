@@ -108,6 +108,10 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
 				continue;
 			}
 
+			if (Meeting::isSpanningMeetingOf($child, $post)) {
+				continue; // An Edition's spanning meeting is the Edition itself, as far as visitors are concerned.
+			}
+
 			/** @var WP_Post $child */
 			echo "<div>";
 			$link = get_permalink($child);

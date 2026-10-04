@@ -122,6 +122,10 @@ if ($settings->hierarchical || ($settings->importMeetings && $tps->enable_meetin
 
 	foreach (get_children(['post_parent' => $p->ID, 'post_type' => $postType]) as $child) {
 		/** @var WP_Post $child */
+		if (Meeting::isSpanningMeetingOf($child, $p)) {
+			continue; // An Edition's spanning meeting is the Edition itself, as far as visitors are concerned.
+		}
+
 		$start = intval(get_post_meta($child->ID, Meeting::MEETING_START_META_KEY, true));
 		$end   = intval(get_post_meta($child->ID, Meeting::MEETING_END_META_KEY, true)) ?: $start;
 

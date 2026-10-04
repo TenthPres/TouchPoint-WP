@@ -150,8 +150,10 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
 
         self.typeName = function(id) {
             let t = self.invTypes.find((it) => Number(it.id) === id);
+            <?php
             // Translators: %s is the ID number of an Involvement Type that no longer exists in TouchPoint.
-            return t ? t.description : "<?php echo esc_js(__("(Involvement Type %s)", "TouchPoint-WP")); ?>".replace("%s", id);
+            $str = __("(Involvement Type %s)", "TouchPoint-WP"); ?>
+            return t ? t.description : "<?php echo esc_js($str); ?>".replace("%s", id);
         };
 
         let optionNames = {

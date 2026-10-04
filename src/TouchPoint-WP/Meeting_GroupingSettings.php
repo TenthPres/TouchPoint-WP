@@ -53,12 +53,15 @@ class Meeting_GroupingSettings
 	protected bool $legacy = false;
 
 	/**
-	 * @param object $o          The stored settings for one Involvement Type.
-	 * @param bool   $allowLegacy Whether the previous behavior may be selected for this Involvement Type.
+	 * @param object $o            The stored settings for one Involvement Type.
+	 * @param bool   $isOtherTypes Whether these are the settings for all other Involvement Types, which have no
+	 *                             Involvement Type ID.
+	 * @param bool   $allowLegacy  Whether the previous behavior may be selected for this Involvement Type.
 	 */
-	protected function __construct(object $o, bool $allowLegacy = false)
+	protected function __construct(object $o, bool $isOtherTypes = false, bool $allowLegacy = false)
 	{
-		$this->invTypeId       = isset($o->invTypeId) && is_numeric($o->invTypeId) ? intval($o->invTypeId) : null;
+		$this->invTypeId       = ! $isOtherTypes && isset($o->invTypeId) && is_numeric($o->invTypeId) ?
+			intval($o->invTypeId) : null;
 		$this->includeChildren = ! ! ($o->includeChildren ?? false);
 		$this->editions        = ! ! ($o->editions ?? false);
 		$this->clusters        = ! ! ($o->clusters ?? false);
@@ -114,8 +117,7 @@ class Meeting_GroupingSettings
 	{
 		self::$_legacyAvailable    = ! ! ($data->legacyAvailable ?? false);
 		self::$_keepHiddenChildren = ! ! ($data->keepHiddenChildren ?? false);
-		self::$_otherTypes         = new self((object)($data->otherTypes ?? []), self::$_legacyAvailable);
-		self::$_otherTypes->invTypeId = null;
+		self::$_otherTypes         = new self((object)($data->otherTypes ?? []), true, self::$_legacyAvailable);
 
 		self::$_types = [];
 		foreach (is_array($data->types ?? null) ? $data->types : [] as $t) {
@@ -296,7 +298,9 @@ class Meeting_GroupingSettings
 		 *
 		 * @param int $seconds The gap, in seconds.  Default is 25 days.
 		 */
-		return intval(apply_filters('tp_meeting_edition_gap', self::DEFAULT_EDITION_GAP));
+		$seconds = apply_filters('tp_meeting_edition_gap', self::DEFAULT_EDITION_GAP);
+
+		return intval($seconds);
 	}
 
 	/**
@@ -316,7 +320,9 @@ class Meeting_GroupingSettings
 		 *
 		 * @param int $seconds The gap, in seconds.  Default is 2 hours.
 		 */
-		return intval(apply_filters('tp_meeting_cluster_gap', self::DEFAULT_CLUSTER_GAP));
+		$seconds = apply_filters('tp_meeting_cluster_gap', self::DEFAULT_CLUSTER_GAP);
+
+		return intval($seconds);
 	}
 
 	/**
