@@ -2930,22 +2930,51 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		//// Removals ////
 		//////////////////
 
+		return self::deleteUnkeptPosts($typeSets, $postsToKeep, $verbose, $applyChanges) + count($invData);
+	}
 
+	/**
+	 * Delete the posts of a post type that weren't kept by its sync.  Hidden posts are included, so a child involvement
+	 * that's no longer included in its parent's structure doesn't leave its hidden post behind.
+	 *
+	 * @param Involvement_PostTypeSettings $typeSets
+	 * @param int[]                        $postsToKeep
+	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
+	 *
+	 * @return int The number of posts deleted.
+	 */
+	protected static function deleteUnkeptPosts(
+		Involvement_PostTypeSettings $typeSets,
+		array $postsToKeep,
+		bool $verbose,
+		bool $applyChanges
+	): int {
 		if ($verbose) {
 			$tsn = $typeSets->namePlural;
 			echo "<h3>Deletions for $tsn</h3>";
 		}
 
-
-		// Delete posts that are no longer current
 		$q        = new WP_Query([
 			                         'post_type'    => $typeSets->postType,
+			                         'post_status'  => ['publish', 'private', self::POST_STATUS_HIDDEN],
 			                         'nopaging'     => true,
 			                         'post__not_in' => $postsToKeep
 		                         ]);
 		$removals = 0;
+		$cutoff   = self::updateExpiry()->getTimestamp();
 		foreach ($q->get_posts() as $post) {
 			set_time_limit(10);
+
+			if ($verbose) {
+				$end   = intval(get_post_meta($post->ID, Meeting::MEETING_END_META_KEY, true)) ?:
+					intval(get_post_meta($post->ID, Meeting::MEETING_START_META_KEY, true));
+				$path  = esc_html(get_page_uri($post));
+				$title = esc_html($post->post_title);
+				$note  = $end > 0 && $end < $cutoff ? " <b>(archived; its content will be lost)</b>" : "";
+				$verb  = $applyChanges ? "Deleting" : "Would delete";
+				echo "<p>$verb post $post->ID <code>$path</code> \"$title\"$note</p>";
+			}
 			if ($applyChanges) {
 				wp_delete_post($post->ID, true);
 			}
@@ -2953,10 +2982,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		}
 
 		if ($verbose) {
-			echo "<p>Deleted $removals posts.";
+			echo $applyChanges ? "<p>Deleted $removals posts.</p>" : "<p>Would delete $removals posts.</p>";
 		}
 
-		return $removals + count($invData);
+		return $removals;
 	}
 
 	/**
@@ -3065,15 +3094,20 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			} else {
 				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd", $inv->regEnd);
 			}
-
-			// Update image, if appropriate.
-			$imageUrl = "";
-			if ( ! ! $typeSets->useImages) {
-				$imageUrl = $inv->imageUrl;
-			}
 		}
 
-		$imageId = Utilities::updatePostImageFromUrl($post->ID ?? 0, $imageUrl, $post->post_title, $verbose, $applyChanges);
+		// Update image, if appropriate.  Only when applying changes: updatePostImageFromUrl() changes the media library,
+		// and deletes the post's current image if the URL is different or blank, so a preview must not call it.
+		$imageUrl = $typeSets->useImages ? ($inv->imageUrl ?? "") : "";
+		if ($applyChanges) {
+			$imageId = Utilities::updatePostImageFromUrl($post->ID ?? 0, $imageUrl, $post->post_title, $verbose);
+		} else {
+			$imageId = $post->ID ? intval(get_post_thumbnail_id($post->ID)) : 0;
+			if ($verbose) {
+				$shown = $imageUrl === "" ? "none" : esc_html($imageUrl);
+				echo "<p>Image (not changed in a preview): $shown</p>";
+			}
+		}
 
 		////////////////////
 		//// SCHEDULING ////
@@ -3419,14 +3453,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	 * Each involvement gets:
 	 * - _groupingRole: one of the GROUPING_ROLE_ constants.
 	 * - _grouping: the Meeting_GroupingSettings that apply (owners and normal involvements).
-	 * - _groupingNone: true if its meetings shouldn't be grouped at all, because it has a weekly schedule.
 	 * - _groupingStructure: for owners, the child involvements whose meetings are included.
 	 * - _ownMeetings: for owners, its own meetings.  Its meetings property then holds all the meetings in the
 	 *   structure, so its dates, tense, and schedule reflect the whole structure.
-	 *
-	 * An involvement with a weekly schedule is never grouped or included in a parent, when the weekly-schedule guard is
-	 * on.  (This uses the existing test for schedules, which doesn't always work with how TouchPoint now handles
-	 * schedules.  See follow-up D8.)
 	 *
 	 * @param object[] $invData Standardized API data.
 	 * @param bool     $verbose
@@ -3440,9 +3469,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			$byId[intval($inv->involvementId)] = $inv;
 		}
 
-		$skipScheduled = Meeting_GroupingSettings::skipScheduled();
-		$isScheduled   = fn(object $i) => $skipScheduled && count($i->schedules ?? []) > 0;
-		$cutoff        = self::updateExpiry();
+		$cutoff = self::updateExpiry();
 
 		// Structure owners and normal involvements.
 		foreach ($invData as $inv) {
@@ -3452,9 +3479,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			}
 			$inv->_groupingStructure = [];
 			$inv->_grouping          = Meeting_GroupingSettings::forInvolvementType(intval($inv->invTypeId ?? 0));
-			$inv->_groupingNone      = $isScheduled($inv);
-			$inv->_groupingRole      = ($ownerId !== null && ! $inv->_groupingNone) ?
-				self::GROUPING_ROLE_OWNER : self::GROUPING_ROLE_NORMAL;
+			$inv->_groupingRole      = $ownerId !== null ? self::GROUPING_ROLE_OWNER : self::GROUPING_ROLE_NORMAL;
 		}
 
 		// Child involvements.
@@ -3462,18 +3487,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			if (isset($inv->_groupingRole)) {
 				continue;
 			}
-			$owner    = $byId[intval($inv->ownerInvId)] ?? null;
-			$viaOwner = ! ! ($inv->viaOwner ?? false);
+			$owner = $byId[intval($inv->ownerInvId)] ?? null;
 
-			if ($owner === null && ! $isScheduled($inv)) {
+			if ($owner === null || $owner->_groupingRole !== self::GROUPING_ROLE_OWNER) {
 				// Its owner is handled in another post type (or not at all).
 				$inv->_groupingRole = self::GROUPING_ROLE_SKIP;
-			} elseif ($owner === null || $owner->_groupingRole !== self::GROUPING_ROLE_OWNER || $isScheduled($inv)) {
-				// Not included in its owner's structure.  It's handled on its own, if it belongs in this post type.
-				$inv->_groupingRole      = $viaOwner ? self::GROUPING_ROLE_SKIP : self::GROUPING_ROLE_NORMAL;
-				$inv->_groupingStructure = [];
-				$inv->_grouping          = Meeting_GroupingSettings::forInvolvementType(intval($inv->invTypeId ?? 0));
-				$inv->_groupingNone      = $isScheduled($inv);
 			} else {
 				// Hidden children are only here to keep their archived meetings.
 				if ( ! $inv->showInSites) {
@@ -3572,17 +3590,14 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		$owner           = clone $inv;
 		$owner->meetings = $own;
 		$involvements    = [$owner, ...$structure];
-		$none            = ! empty($inv->_groupingNone);
 
 		$planner = new InvolvementMeeting_GroupingPlanner(
 			$owner,
 			$involvements,
-			! $none && $rule->editions,
-			! $none && $rule->timeSlots,
-			! $none && $rule->clusters,
+			$rule->editions,
+			$rule->clusters,
 			Meeting_GroupingSettings::editionGap(),
-			Meeting_GroupingSettings::clusterGap(),
-			Meeting_GroupingSettings::timeSlotTolerance()
+			Meeting_GroupingSettings::clusterGap()
 		);
 
 		$keep = self::writeGroupingPlan(
@@ -4140,20 +4155,18 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			$labels[] = __("Meeting", "TouchPoint-WP");
 		} elseif ($mtgId < 0) {
 			$labels[] = match (get_post_meta($postId, Meeting::MEETING_GROUP_ROLE_META_KEY, true)) {
-				MeetingArray::ROLE_EDITION   => __("Edition", "TouchPoint-WP"),
-				MeetingArray::ROLE_TIME_SLOT => __("Time Slot", "TouchPoint-WP"),
-				MeetingArray::ROLE_CLUSTER   => __("Cluster", "TouchPoint-WP"),
-				default                      => __("Collection (previous behavior)", "TouchPoint-WP"),
+				MeetingArray::ROLE_EDITION => __("Edition", "TouchPoint-WP"),
+				MeetingArray::ROLE_CLUSTER => __("Cluster", "TouchPoint-WP"),
+				default                    => __("Collection (previous behavior)", "TouchPoint-WP"),
 			};
 		}
 
 		if (get_post_meta($postId, Meeting::MEETING_IS_GROUP_MEMBER, true)) {
 			$parentRole = get_post_meta($post->post_parent, Meeting::MEETING_GROUP_ROLE_META_KEY, true);
 			$labels[]   = match ($parentRole) {
-				MeetingArray::ROLE_EDITION   => __("in an Edition", "TouchPoint-WP"),
-				MeetingArray::ROLE_TIME_SLOT => __("in a Time Slot", "TouchPoint-WP"),
-				MeetingArray::ROLE_CLUSTER   => __("in a Cluster", "TouchPoint-WP"),
-				default                      => __("in a group", "TouchPoint-WP"),
+				MeetingArray::ROLE_EDITION => __("in an Edition", "TouchPoint-WP"),
+				MeetingArray::ROLE_CLUSTER => __("in a Cluster", "TouchPoint-WP"),
+				default                    => __("in a group", "TouchPoint-WP"),
 			};
 		}
 

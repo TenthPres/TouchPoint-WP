@@ -27,7 +27,6 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
                 <th scope="col"><?php _e("Involvement Type", "TouchPoint-WP"); ?></th>
                 <th scope="col" class="tp-mg-opt"><a href="#tp-mg-help-children"><?php _e("Include Child Involvements", "TouchPoint-WP"); ?></a></th>
                 <th scope="col" class="tp-mg-opt"><a href="#tp-mg-help-editions"><?php _e("Editions", "TouchPoint-WP"); ?></a></th>
-                <th scope="col" class="tp-mg-opt"><a href="#tp-mg-help-timeSlots"><?php _e("Time Slots", "TouchPoint-WP"); ?></a></th>
                 <th scope="col" class="tp-mg-opt"><a href="#tp-mg-help-clusters"><?php _e("Clusters", "TouchPoint-WP"); ?></a></th>
                 <th scope="col" class="tp-mg-remove"><span class="screen-reader-text"><?php _e("Remove", "TouchPoint-WP"); ?></span></th>
             </tr>
@@ -38,7 +37,6 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
                 <th scope="row" data-bind="text: $root.typeName(invTypeId)"></th>
                 <td class="tp-mg-opt"><input type="checkbox" data-bind="checked: includeChildren, attr: {'aria-label': $root.optionLabel($data, 'children')}" /></td>
                 <td class="tp-mg-opt"><input type="checkbox" data-bind="checked: editions, attr: {'aria-label': $root.optionLabel($data, 'editions')}" /></td>
-                <td class="tp-mg-opt"><input type="checkbox" data-bind="checked: timeSlots, enable: timeSlotsAllowed, attr: {'aria-label': $root.optionLabel($data, 'timeSlots')}" /></td>
                 <td class="tp-mg-opt"><input type="checkbox" data-bind="checked: clusters, attr: {'aria-label': $root.optionLabel($data, 'clusters')}" /></td>
                 <td class="tp-mg-remove"><a href="#" class="button" data-bind="click: $root.removeRow"><?php _e("Remove", "TouchPoint-WP"); ?></a></td>
             </tr>
@@ -48,11 +46,10 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
                 <!-- ko ifnot: legacy -->
                 <td class="tp-mg-opt"><input type="checkbox" data-bind="checked: includeChildren, attr: {'aria-label': $root.optionLabel($data, 'children')}" /></td>
                 <td class="tp-mg-opt"><input type="checkbox" data-bind="checked: editions, attr: {'aria-label': $root.optionLabel($data, 'editions')}" /></td>
-                <td class="tp-mg-opt"><input type="checkbox" data-bind="checked: timeSlots, enable: timeSlotsAllowed, attr: {'aria-label': $root.optionLabel($data, 'timeSlots')}" /></td>
                 <td class="tp-mg-opt"><input type="checkbox" data-bind="checked: clusters, attr: {'aria-label': $root.optionLabel($data, 'clusters')}" /></td>
                 <!-- /ko -->
                 <!-- ko if: legacy -->
-                <td colspan="4"><?php _e("Previous behavior: meetings less than 23 hours apart are collected.", "TouchPoint-WP"); ?></td>
+                <td colspan="3"><?php _e("Previous behavior: meetings less than 23 hours apart are collected.", "TouchPoint-WP"); ?></td>
                 <!-- /ko -->
                 <td class="tp-mg-remove"></td>
             </tr>
@@ -70,13 +67,6 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
         <input id="tp-mg-legacy" type="checkbox" data-bind="checked: otherTypes.legacy" />
         <label for="tp-mg-legacy"><?php _e("Use the previous behavior for all other Involvement Types", "TouchPoint-WP"); ?></label>
         (<a href="#tp-mg-help-legacy"><?php _e("What is this?", "TouchPoint-WP"); ?></a>)
-    </p>
-
-    <p>
-        <input id="tp-mg-skipScheduled" type="checkbox" data-bind="checked: skipScheduled" />
-        <label for="tp-mg-skipScheduled"><?php _e("Never group involvements that have a weekly schedule (recommended)", "TouchPoint-WP"); ?></label>
-        <br />
-        <span class="description"><?php _e("Classes and small groups that meet on a schedule keep each meeting on its own page, whatever their Involvement Type, and are never included in a parent's structure.", "TouchPoint-WP"); ?></span>
     </p>
 
     <p>
@@ -101,13 +91,6 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
         <summary><?php _e("Editions", "TouchPoint-WP"); ?></summary>
         <div>
             <p><?php _e("Each occurrence of an event that happens again and again in the same involvement becomes an Edition, such as this year's conference and last year's.  A new Edition starts whenever there are more than 25 days between the end of one meeting and the start of the next.  Past Editions stay on your site with their original descriptions.", "TouchPoint-WP"); ?></p>
-        </div>
-    </details>
-
-    <details id="tp-mg-help-timeSlots">
-        <summary><?php _e("Time Slots", "TouchPoint-WP"); ?></summary>
-        <div>
-            <p><?php _e("Meetings of different involvements that start at the same time are grouped into a Time Slot, which is titled with its date and time.  The meetings can be from the involvement itself, its child involvements, or its grandchild involvements.  For example, breakout sessions from several tracks, each of which is its own child involvement.  Requires Include Child Involvements.", "TouchPoint-WP"); ?></p>
         </div>
     </details>
 
@@ -136,23 +119,13 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
         this.invTypeId = isOther ? null : Number(data.invTypeId);
         this.includeChildren = ko.observable(!!data.includeChildren);
         this.editions = ko.observable(!!data.editions);
-        this.timeSlots = ko.observable(!!data.timeSlots);
         this.clusters = ko.observable(!!data.clusters);
         this.legacy = ko.observable(isOther && !!data.legacy);
-
-        // Time Slots are made from sibling involvements, so they need child involvements to be included.
-        this.timeSlotsAllowed = ko.pureComputed(() => self.includeChildren());
-        this.includeChildren.subscribe(function(v) {
-            if (!v) {
-                self.timeSlots(false);
-            }
-        });
 
         this.toJS = function() {
             let o = {
                 includeChildren: self.includeChildren(),
                 editions: self.editions(),
-                timeSlots: self.timeSlots(),
                 clusters: self.clusters()
             };
             if (isOther) {
@@ -172,7 +145,6 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
         self.legacyAvailable = !!s.legacyAvailable;
         self.rows = ko.observableArray((s.types ?? []).map((t) => new MtgGroupingRow(t, false)));
         self.otherTypes = new MtgGroupingRow(s.otherTypes ?? {}, true);
-        self.skipScheduled = ko.observable(s.skipScheduled ?? true);
         self.keepHiddenChildren = ko.observable(s.keepHiddenChildren ?? false);
         self.typeToAdd = ko.observable(undefined);
 
@@ -185,7 +157,6 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
         let optionNames = {
             children: "<?php echo esc_js(__("Include Child Involvements", "TouchPoint-WP")); ?>",
             editions: "<?php echo esc_js(__("Editions", "TouchPoint-WP")); ?>",
-            timeSlots: "<?php echo esc_js(__("Time Slots", "TouchPoint-WP")); ?>",
             clusters: "<?php echo esc_js(__("Clusters", "TouchPoint-WP")); ?>"
         };
         self.optionLabel = function(row, option) {
@@ -212,7 +183,6 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
             return JSON.stringify({
                 types: self.rows().map((r) => r.toJS()),
                 otherTypes: self.otherTypes.toJS(),
-                skipScheduled: self.skipScheduled(),
                 keepHiddenChildren: self.keepHiddenChildren()
             });
         };

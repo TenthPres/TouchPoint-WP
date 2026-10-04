@@ -11,7 +11,7 @@ if ( ! defined('ABSPATH')) {
 
 /**
  * The Meeting Grouping settings for one TouchPoint Involvement Type (or for all other Involvement Types).  Determines
- * which grouping types are used when meetings are imported: Editions, Time Slots, and Clusters, and whether child
+ * which grouping types are used when meetings are imported, Editions and Clusters, and whether child
  * involvements' meetings are included.
  *
  * All settings are stored together in the mc_grouping_json setting.
@@ -21,8 +21,6 @@ if ( ! defined('ABSPATH')) {
  * @property-read ?int $invTypeId       The TouchPoint Involvement Type ID.  Null for the "all other types" settings.
  * @property-read bool $includeChildren Whether meetings of child (and grandchild) involvements are included.
  * @property-read bool $editions        Whether meetings are grouped into Editions.
- * @property-read bool $timeSlots       Whether meetings of different involvements in the same structure that start at the
- *                                      same time are grouped into Time Slots.
  * @property-read bool $clusters        Whether meetings of the same involvement are grouped into Clusters.
  * @property-read bool $legacy          Whether the previous behavior (collect meetings less than 23 hours apart) is used.
  *                                      Only possible for the "all other types" settings.
@@ -45,14 +43,12 @@ class Meeting_GroupingSettings
 	/** @var Meeting_GroupingSettings[] Keyed by Involvement Type ID. */
 	protected static array $_types = [];
 	protected static Meeting_GroupingSettings $_otherTypes;
-	protected static bool $_skipScheduled = true;
 	protected static bool $_keepHiddenChildren = false;
 	protected static bool $_legacyAvailable = false;
 
 	protected ?int $invTypeId = null;
 	protected bool $includeChildren = false;
 	protected bool $editions = false;
-	protected bool $timeSlots = false;
 	protected bool $clusters = false;
 	protected bool $legacy = false;
 
@@ -68,13 +64,9 @@ class Meeting_GroupingSettings
 		$this->clusters        = ! ! ($o->clusters ?? false);
 		$this->legacy          = $allowLegacy && ! ! ($o->legacy ?? false);
 
-		// Time Slots are made from meetings of different involvements, so they require child involvements.
-		$this->timeSlots = $this->includeChildren && ! ! ($o->timeSlots ?? false);
-
 		if ($this->legacy) {
 			$this->includeChildren = false;
 			$this->editions        = false;
-			$this->timeSlots       = false;
 			$this->clusters        = false;
 		}
 	}
@@ -121,7 +113,6 @@ class Meeting_GroupingSettings
 	protected static function applyData(object $data): void
 	{
 		self::$_legacyAvailable    = ! ! ($data->legacyAvailable ?? false);
-		self::$_skipScheduled      = ! ! ($data->skipScheduled ?? true);
 		self::$_keepHiddenChildren = ! ! ($data->keepHiddenChildren ?? false);
 		self::$_otherTypes         = new self((object)($data->otherTypes ?? []), self::$_legacyAvailable);
 		self::$_otherTypes->invTypeId = null;
@@ -179,7 +170,6 @@ class Meeting_GroupingSettings
 		return (object)[
 			'types'           => [],
 			'otherTypes'      => (object)['legacy' => $legacy],
-			'skipScheduled'   => true,
 			'legacyAvailable' => $legacy,
 		];
 	}
@@ -195,7 +185,6 @@ class Meeting_GroupingSettings
 		return (object)[
 			'types'           => [],
 			'otherTypes'      => (object)['clusters' => true],
-			'skipScheduled'   => true,
 			'legacyAvailable' => false,
 		];
 	}
@@ -232,21 +221,6 @@ class Meeting_GroupingSettings
 		self::load();
 
 		return self::$_otherTypes;
-	}
-
-	/**
-	 * Whether involvements with a weekly schedule should never have their meetings grouped, regardless of their
-	 * Involvement Type.  This also prevents such involvements from being included in their parent's structure.
-	 *
-	 * Does not apply to the previous behavior, which has its own handling of scheduled involvements.
-	 *
-	 * @return bool
-	 */
-	public static function skipScheduled(): bool
-	{
-		self::load();
-
-		return self::$_skipScheduled;
 	}
 
 	/**
@@ -346,26 +320,6 @@ class Meeting_GroupingSettings
 	}
 
 	/**
-	 * How far apart, in seconds, the starts of meetings in a Time Slot may be.  Meetings of different involvements are
-	 * grouped into a Time Slot when they start at the same time, within this tolerance.
-	 *
-	 * @return int
-	 */
-	public static function timeSlotTolerance(): int
-	{
-		/**
-		 * Adjust how far apart, in minutes, the starts of meetings in a Time Slot may be.  With the default of 0,
-		 * meetings must start at exactly the same time to be in a Time Slot.  The tolerance is measured from the
-		 * earliest start in the Time Slot, so it doesn't chain from one meeting to the next.
-		 *
-		 * @since 0.0.98 Added
-		 *
-		 * @param int $minutes The tolerance, in minutes.  Default is 0.
-		 */
-		return max(0, intval(apply_filters('tp_meeting_time_slot_tolerance', 0))) * MINUTE_IN_SECONDS;
-	}
-
-	/**
 	 * Get the current settings as an object suitable for the settings form or for storage.
 	 *
 	 * @return object
@@ -382,7 +336,6 @@ class Meeting_GroupingSettings
 		return (object)[
 			'types'              => $types,
 			'otherTypes'         => self::$_otherTypes->rowObject(),
-			'skipScheduled'      => self::$_skipScheduled,
 			'keepHiddenChildren' => self::$_keepHiddenChildren,
 			'legacyAvailable'    => self::$_legacyAvailable,
 		];
@@ -398,7 +351,6 @@ class Meeting_GroupingSettings
 		$o = (object)[
 			'includeChildren' => $this->includeChildren,
 			'editions'        => $this->editions,
-			'timeSlots'       => $this->timeSlots,
 			'clusters'        => $this->clusters,
 		];
 

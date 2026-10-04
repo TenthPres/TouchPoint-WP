@@ -19,7 +19,7 @@ use tp\TouchPointWP\Interfaces\apiMeeting;
  *
  * A class to hold an array of meetings grouped into a larger event, like a conference.
  *
- * With Meeting Grouping, a MeetingArray can also be an Edition, Time Slot, or Cluster, and can contain other
+ * With Meeting Grouping, a MeetingArray can also be an Edition or Cluster, and can contain other
  * MeetingArrays.  See InvolvementMeeting_GroupingPlanner.
  *
  * @package tp\TouchPointWP
@@ -35,7 +35,6 @@ use tp\TouchPointWP\Interfaces\apiMeeting;
 class MeetingArray implements apiMeeting, IteratorAggregate, ArrayAccess, Countable
 {
 	public const ROLE_EDITION = "edition";
-	public const ROLE_TIME_SLOT = "timeSlot";
 	public const ROLE_CLUSTER = "cluster";
 
 	protected ?stdClass $_involvement = null; // This is NOT an Involvement class instance.
@@ -109,7 +108,7 @@ class MeetingArray implements apiMeeting, IteratorAggregate, ArrayAccess, Counta
 	 * For the previous behavior's collections (no groupRole), this is the first meeting added, which is how those
 	 * collections have always been identified.  Existing posts are found by that ID, so it must not change.
 	 *
-	 * For Editions, Time Slots, and Clusters, it's the earliest meeting: by start, then end, then lowest meeting ID.
+	 * For Editions and Clusters, it's the earliest meeting: by start, then end, then lowest meeting ID.
 	 * This doesn't depend on the order the meetings were added.
 	 *
 	 * @return object

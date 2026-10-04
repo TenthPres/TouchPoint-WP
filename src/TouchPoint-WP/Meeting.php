@@ -51,8 +51,6 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	public const MEETING_GROUP_ROLE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgGroupRole";
 	/** The meeting IDs of all meetings in a structural post, including nested ones.  One meta row per meeting. */
 	public const MEETING_GROUP_MEMBERS_META_KEY = TouchPointWP::SETTINGS_PREFIX . "groupMtgId";
-	/** Paths a post had before it was moved or renamed by the sync, for redirects.  One meta row per path. */
-	public const MEETING_OLD_PATH_META_KEY = TouchPointWP::SETTINGS_PREFIX . "oldPath";
 
 	public const GROUP_NONE = "none";
 	public const GROUP_UNSCHEDULED = "unscheduled";
@@ -377,12 +375,12 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 *
 	 * In cases where a meeting post is also an involvement post, it will return the involvement, which has the same post_id.
 	 *
-	 * Otherwise, the parent is the post this meeting is under: the group (Edition, Time Slot, or Cluster) it's in, or
+	 * Otherwise, the parent is the post this meeting is under: the group (Edition or Cluster) it's in, or
 	 * the involvement whose post it's under.  With Meeting Grouping, that involvement can be a structure owner rather
 	 * than the meeting's own involvement, which may be hidden.  If neither applies, the meeting's own involvement is
 	 * returned.
 	 *
-	 * @since 0.0.98 Follows the parent post, so Editions, Time Slots, and Clusters can be nested.
+	 * @since 0.0.98 Follows the parent post, so Editions and Clusters can be nested.
 	 *
 	 * @return ?Involvement|Meeting
 	 */
@@ -991,13 +989,10 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	}
 
 	/**
-	 * Filters the titles of Time Slots and Editions.
-	 *
-	 * - A Time Slot's title is its date and time, formatted for the current language.  The title stored for a Time
-	 *   Slot is only a fallback.
-	 * - An Edition's title gets its year when two or more Editions under the same parent have the same title, so they
-	 *   can be told apart (e.g. "Christmas at Tenth 2025" and "Christmas at Tenth 2026").  If two of them start in the
-	 *   same year, the year wouldn't tell them apart, so none of them gets it.  The stored title isn't changed.
+	 * Filters the titles of Editions.  An Edition's title gets its year when two or more Editions under the same parent
+	 * have the same title, so they can be told apart (e.g. "Christmas at Tenth 2025" and "Christmas at Tenth 2026").
+	 * If two of them start in the same year, the year wouldn't tell them apart, so none of them gets it.  The stored
+	 * title isn't changed.
 	 *
 	 * @since 0.0.98 Added
 	 *
@@ -1012,37 +1007,16 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 			return $title;
 		}
 
-		$role = get_post_meta($postId, self::MEETING_GROUP_ROLE_META_KEY, true);
-
-		if ($role === MeetingArray::ROLE_EDITION) {
-			$year = self::editionYearForTitle($postId);
-			if ($year === null) {
-				return $title;
-			}
-			// Translators: %1$s is the title of an event that happens every year, and %2$s is the year of this occurrence.
-			return wp_sprintf(_x('%1$s %2$s', 'Edition title with year', 'TouchPoint-WP'), $title, $year);
-		}
-
-		if ($role !== MeetingArray::ROLE_TIME_SLOT) {
+		if (get_post_meta($postId, self::MEETING_GROUP_ROLE_META_KEY, true) !== MeetingArray::ROLE_EDITION) {
 			return $title;
 		}
 
-		$post = get_post($postId);
-		if ($post === null) {
+		$year = self::editionYearForTitle($postId);
+		if ($year === null) {
 			return $title;
 		}
-
-		try {
-			$mtg = self::fromPost($post);
-		} catch (TouchPointWP_Exception) {
-			return $title;
-		}
-
-		if ($mtg->startDt === null) {
-			return $title;
-		}
-
-		return DateFormats::DateAndTimeStringFormatted($mtg->startDt);
+		// Translators: %1$s is the title of an event that happens every year, and %2$s is the year of this occurrence.
+		return wp_sprintf(_x('%1$s %2$s', 'Edition title with year', 'TouchPoint-WP'), $title, $year);
 	}
 
 	/**

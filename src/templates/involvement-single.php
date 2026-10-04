@@ -113,7 +113,7 @@ TouchPointWP::enqueuePartialsStyle("involvement-single");
 </article>
 
 <?php
-// Children of this post: child involvements, meetings, and groups of meetings (Editions, Time Slots, Clusters), in one
+// Children of this post: child involvements, meetings, and groups of meetings (Editions, Clusters), in one
 // list.  Hidden posts aren't included, since get_children() leaves out statuses that are excluded from search.
 if ($settings->hierarchical || ($settings->importMeetings && $tps->enable_meeting_cal === "on")) {
 	$now     = time();

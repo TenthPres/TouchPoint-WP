@@ -33,11 +33,6 @@ trait InvolvementMeeting_GroupingWriter
 	private static array $editionSlugFormats = ['Y-m', 'Y-m-d', 'Y-m-d-g', 'Y-m-d-ga', 'Y-m-d-gia', 'Y-m-d-His'];
 
 	/**
-	 * Slug formats for Time Slots, in increasing specificity.
-	 */
-	private static array $timeSlotSlugFormats = ['Y-m-d-Hi', 'Y-m-d-His'];
-
-	/**
 	 * Slug formats for meetings, and for Clusters whose title slug is taken, in increasing specificity.
 	 */
 	private static array $meetingSlugFormats = ['Y-m', 'Y-m-d', 'Y-m-d-g', 'Y-m-d-ga', 'Y-m-d-gia', 'Y-m-d-His'];
@@ -103,9 +98,62 @@ trait InvolvementMeeting_GroupingWriter
 		}
 		$ctx->groupPosts   = self::matchGroupPosts($ctx, $groups);
 
+		if ($verbose) {
+			echo "<p><b>Planned structure for {$owner->titleToUse}:</b></p>";
+			self::printPlan($items, $ctx);
+		}
+
 		self::writeGroupingItems($ownerPost, $items, false, false, $ctx);
 
 		return $ctx->keep;
+	}
+
+	/**
+	 * Print a planned tree as a nested list, for verbose output (previews).  Each item shows its kind, title, and
+	 * dates, and whether it uses an existing post, gets a new one, or is archived without a post and won't be created.
+	 *
+	 * @param array  $items
+	 * @param object $ctx
+	 *
+	 * @return void
+	 */
+	private static function printPlan(array $items, object $ctx): void
+	{
+		$roles = [
+			MeetingArray::ROLE_EDITION => "Edition",
+			MeetingArray::ROLE_CLUSTER => "Cluster",
+		];
+
+		echo "<ul>";
+		foreach ($items as $item) {
+			$isGroup  = $item instanceof MeetingArray;
+			$archived = self::endTimestamp($item) < $ctx->cutoff;
+			$post     = $isGroup ? ($ctx->groupPosts[spl_object_id($item)] ?? null) : ($ctx->meetingPosts[$item->mtgId] ?? null);
+
+			$kind  = $isGroup ? ($roles[$item->groupRole] ?? "Group") : "Meeting";
+			$title = esc_html(self::titleForItem($item, $ctx));
+			$start = wp_date('Y-m-d g:ia', $item->mtgStartDt->getTimestamp());
+			$end   = wp_date('Y-m-d g:ia', self::endTimestamp($item));
+			$when  = $start === $end ? $start : "$start &ndash; $end";
+
+			if ($post !== null) {
+				$state = "post $post->ID" . (isset($ctx->combined[$item->mtgId ?? 0]) ? ", was the involvement's post" : "");
+			} elseif (self::shouldCreate($item, $archived, $ctx)) {
+				$state = "new post";
+			} else {
+				$state = "archived with no post; won't be created";
+			}
+			if ($archived) {
+				$state .= ", archived";
+			}
+
+			echo "<li>[$kind] $title &middot; $when &middot; <i>$state</i>";
+			if ($isGroup) {
+				self::printPlan(iterator_to_array($item), $ctx);
+			}
+			echo "</li>";
+		}
+		echo "</ul>";
 	}
 
 	/**
@@ -358,9 +406,9 @@ trait InvolvementMeeting_GroupingWriter
 				}
 			} else {
 				$post = $e->post;
-				// Record the old path before moving or renaming.
+				// Report moves and renames, for previews.
 				if ($post->post_parent !== $parent->ID || $post->post_name !== $slug) {
-					self::recordOldPath($post, $parent, $slug, $ctx);
+					self::reportMove($post, $parent, $slug, $ctx);
 				}
 			}
 
@@ -543,7 +591,6 @@ trait InvolvementMeeting_GroupingWriter
 	 *
 	 * Candidates, in order:
 	 * - Editions: the date of their first meeting, from month to second.
-	 * - Time Slots: the date and time of their start.
 	 * - Clusters, and meetings inside a group: their title, and then dates.
 	 * - Other meetings: dates.
 	 *
@@ -623,8 +670,6 @@ trait InvolvementMeeting_GroupingWriter
 
 		if ($isGroup && $item->groupRole === MeetingArray::ROLE_EDITION) {
 			$formats = self::$editionSlugFormats;
-		} elseif ($isGroup && $item->groupRole === MeetingArray::ROLE_TIME_SLOT) {
-			$formats = self::$timeSlotSlugFormats;
 		} else {
 			$formats = self::$meetingSlugFormats;
 			if (($isGroup || $insideGroup) && ($item->titleToUse ?? "") !== "") {
@@ -640,7 +685,8 @@ trait InvolvementMeeting_GroupingWriter
 	}
 
 	/**
-	 * Remember a post's current path, before it's moved or renamed, so the old URL can be redirected.
+	 * In verbose output, report that a post is being moved or renamed.  Old URLs are left to WordPress's old-slug
+	 * redirects, or to a redirect plugin such as Redirection.
 	 *
 	 * @param WP_Post $post
 	 * @param WP_Post $newParent
@@ -649,21 +695,15 @@ trait InvolvementMeeting_GroupingWriter
 	 *
 	 * @return void
 	 */
-	private static function recordOldPath(WP_Post $post, WP_Post $newParent, string $newSlug, object $ctx): void
+	private static function reportMove(WP_Post $post, WP_Post $newParent, string $newSlug, object $ctx): void
 	{
-		$old = get_page_uri($post);
-		if ( ! $old) {
+		if ( ! $ctx->verbose) {
 			return;
 		}
 
-		if ($ctx->verbose) {
-			$newParentPath = $newParent->ID ? get_page_uri($newParent) : "";
-			echo "<p>Moving post $post->ID from <code>$old</code> to <code>$newParentPath/$newSlug</code>.</p>";
-		}
-
-		if ($ctx->apply && ! in_array($old, get_post_meta($post->ID, Meeting::MEETING_OLD_PATH_META_KEY), true)) {
-			add_post_meta($post->ID, Meeting::MEETING_OLD_PATH_META_KEY, $old);
-		}
+		$old = get_page_uri($post);
+		$newParentPath = $newParent->ID ? get_page_uri($newParent) : "";
+		echo "<p>Moving post $post->ID from <code>$old</code> to <code>$newParentPath/$newSlug</code>.</p>";
 	}
 
 	/**
@@ -709,8 +749,7 @@ trait InvolvementMeeting_GroupingWriter
 	}
 
 	/**
-	 * The title for a planned item.  Time Slots are titled with their date and time when displayed; the stored title
-	 * is a fallback in the site's formats.
+	 * The title for a planned item.
 	 *
 	 * @param object $item
 	 * @param object $ctx
@@ -719,14 +758,11 @@ trait InvolvementMeeting_GroupingWriter
 	 */
 	private static function titleForItem(object $item, object $ctx): string
 	{
-		if ($item instanceof MeetingArray && $item->groupRole === MeetingArray::ROLE_TIME_SLOT) {
-			return wp_date(get_option('date_format') . ' ' . get_option('time_format'), $item->mtgStartDt->getTimestamp());
-		}
 		return $item->titleToUse ?? $ctx->owner->titleToUse ?? "";
 	}
 
 	/**
-	 * The content for a planned item.  Meetings inside a Cluster, and Time Slots, have no content of their own.
+	 * The content for a planned item.  Meetings inside a Cluster have no content of their own.
 	 * Everything else gets the description of the involvement it represents.
 	 *
 	 * @param object $item
@@ -737,7 +773,7 @@ trait InvolvementMeeting_GroupingWriter
 	 */
 	private static function contentForItem(object $item, object $inv, bool $inCluster): string
 	{
-		if ($inCluster || ($item instanceof MeetingArray && $item->groupRole === MeetingArray::ROLE_TIME_SLOT)) {
+		if ($inCluster) {
 			return "";
 		}
 		if (($inv->description ?? null) === null || trim($inv->description) === "") {

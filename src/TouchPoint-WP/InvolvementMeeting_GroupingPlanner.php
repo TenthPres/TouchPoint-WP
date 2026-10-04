@@ -12,7 +12,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 /**
- * Plans how the meetings of one structure are grouped into Editions, Time Slots, and Clusters.
+ * Plans how the meetings of one structure are grouped into Editions and Clusters.
  *
  * A structure is an involvement (the structure owner) and, if its Meeting Grouping settings include child involvements,
  * its child and grandchild involvements.  The planner only arranges meetings; it doesn't read or write posts, and it
@@ -32,33 +32,26 @@ class InvolvementMeeting_GroupingPlanner
 	protected array $involvements;
 
 	protected bool $editions;
-	protected bool $timeSlots;
 	protected bool $clusters;
 	protected int $editionGap;
 	protected int $clusterGap;
-	protected int $timeSlotTolerance;
 
 	/**
 	 * @param object   $owner        The structure owner, as provided by the API.
 	 * @param object[] $involvements The involvements in the structure, as provided by the API, including the owner.
 	 *                               Each must have a meetings array whose meetings have their involvementId set.
 	 * @param bool     $editions     Whether to group meetings into Editions.
-	 * @param bool     $timeSlots    Whether to group meetings of different involvements that start at the same time
-	 *                               into Time Slots.
 	 * @param bool     $clusters     Whether to group meetings of the same involvement into Clusters.
 	 * @param int      $editionGap   The gap, in seconds, after which a new Edition starts.
 	 * @param int      $clusterGap   The maximum gap, in seconds, between back-to-back meetings in a Cluster.
-	 * @param int      $timeSlotTolerance How far apart, in seconds, the starts of meetings in a Time Slot may be.
 	 */
 	public function __construct(
 		object $owner,
 		array $involvements,
 		bool $editions,
-		bool $timeSlots,
 		bool $clusters,
 		int $editionGap,
-		int $clusterGap,
-		int $timeSlotTolerance = 0
+		int $clusterGap
 	) {
 		$this->owner        = $owner;
 		$this->involvements = [];
@@ -68,11 +61,9 @@ class InvolvementMeeting_GroupingPlanner
 		$this->involvements[$owner->involvementId] = $owner;
 
 		$this->editions   = $editions;
-		$this->timeSlots  = $timeSlots;
 		$this->clusters   = $clusters;
 		$this->editionGap = $editionGap;
 		$this->clusterGap = $clusterGap;
-		$this->timeSlotTolerance = $timeSlotTolerance;
 	}
 
 	/**
@@ -93,11 +84,9 @@ class InvolvementMeeting_GroupingPlanner
 			$owner,
 			$rule->includeChildren ? $involvements : [$owner],
 			$rule->editions,
-			$rule->timeSlots,
 			$rule->clusters,
 			Meeting_GroupingSettings::editionGap(),
-			Meeting_GroupingSettings::clusterGap(),
-			Meeting_GroupingSettings::timeSlotTolerance()
+			Meeting_GroupingSettings::clusterGap()
 		);
 	}
 
@@ -167,7 +156,7 @@ class InvolvementMeeting_GroupingPlanner
 	}
 
 	/**
-	 * Group the meetings of one Edition (or of the whole structure, without Editions) into Time Slots and Clusters.
+	 * Group the meetings of one Edition (or of the whole structure, without Editions) into Clusters.
 	 *
 	 * @param object[] $meetings Sorted meetings.
 	 *
@@ -177,21 +166,6 @@ class InvolvementMeeting_GroupingPlanner
 	{
 		$items = [];
 		$grouped = []; // spl_object_id => true, for meetings that have been placed in a group.
-
-		// Time Slots: meetings of different involvements at the same time.
-		if ($this->timeSlots) {
-			foreach ($this->sameStartSets($meetings) as $set) {
-				$invIds = array_unique(array_map(fn($m) => $m->involvementId, $set));
-				if (count($invIds) < 2) {
-					continue;
-				}
-				$slot = new MeetingArray($set, $this->owner, MeetingArray::ROLE_TIME_SLOT);
-				$items[] = $slot;
-				foreach ($set as $m) {
-					$grouped[spl_object_id($m)] = true;
-				}
-			}
-		}
 
 		if ($this->clusters) {
 			// Within an Edition, all the remaining meetings of each child involvement form one Cluster.
@@ -287,41 +261,6 @@ class InvolvementMeeting_GroupingPlanner
 		$cluster->titleToUse = self::titleOf($inv);
 
 		return $cluster;
-	}
-
-	/**
-	 * Find sets of meetings that start at the same time, within the Time Slot tolerance.  The tolerance is measured
-	 * from the earliest start in each set, so it doesn't chain from one meeting to the next.  Overlapping isn't enough:
-	 * a long meeting (such as one spanning a whole conference) would otherwise pull everything it overlaps into one
-	 * set.
-	 *
-	 * @param object[] $meetings Sorted meetings.
-	 *
-	 * @return object[][] Only sets with more than one meeting.
-	 */
-	protected function sameStartSets(array $meetings): array
-	{
-		$sets = [];
-		$current = [];
-		$currentStart = null;
-
-		foreach ($meetings as $m) {
-			$start = self::startOf($m);
-			if (count($current) > 0 && $start - $currentStart <= $this->timeSlotTolerance) {
-				$current[] = $m;
-				continue;
-			}
-			if (count($current) > 1) {
-				$sets[] = $current;
-			}
-			$current = [$m];
-			$currentStart = $start;
-		}
-		if (count($current) > 1) {
-			$sets[] = $current;
-		}
-
-		return $sets;
 	}
 
 	/**
