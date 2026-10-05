@@ -356,6 +356,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		add_filter('get_the_date', [self::class, 'filterPublishDate'], 10, 3);
 		add_filter('get_the_time', [self::class, 'filterPublishDate'], 10, 3);
 
+		// Register function to let posts inherit their parents' images
+		add_filter('post_thumbnail_id', [self::class, 'filterThumbnailId'], 10, 2);
+
 		// Register function to return leaders instead of authors
 		add_filter('the_author', [self::class, 'filterAuthor'], 10, 1);
 		add_filter('get_the_author_display_name', [self::class, 'filterAuthor'], 10, 1);
@@ -3102,7 +3105,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		if ($applyChanges) {
 			$imageId = Utilities::updatePostImageFromUrl($post->ID ?? 0, $imageUrl, $post->post_title, $verbose);
 		} else {
-			$imageId = $post->ID ? intval(get_post_thumbnail_id($post->ID)) : 0;
+			$imageId = $post->ID ? Utilities::ownThumbnailId($post->ID) : 0;
 			if ($verbose) {
 				$shown = $imageUrl === "" ? "none" : esc_html($imageUrl);
 				echo "<p>Image (not changed in a preview): $shown</p>";
@@ -4117,6 +4120,69 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		}
 	}
 
+
+	/**
+	 * Give a post the featured image of its nearest ancestor that has one, if it doesn't have one of its own.  This is
+	 * done when the image is requested, and nothing is copied to the child, so the child follows its parent's image
+	 * when that changes.
+	 *
+	 * Meetings and meeting groups that are archived (see Archive After Days) are left as they are, since their
+	 * content is frozen, and an event from a past year shouldn't pick up an image from the current one.
+	 *
+	 * @param int|false        $thumbnailId The post's own thumbnail ID, or 0 or false if it has none.
+	 * @param int|WP_Post|null $post        The post.  Default is the global post.
+	 *
+	 * @return int|false
+	 *
+	 * @since 0.0.98 Added, replacing Meeting::filterThumbnailId()
+	 */
+	public static function filterThumbnailId(int|false $thumbnailId, int|WP_Post|null $post = null): int|false
+	{
+		if ($thumbnailId > 0) {
+			return $thumbnailId;
+		}
+
+		$post = get_post($post);
+		if (!$post || !in_array($post->post_type, Involvement_PostTypeSettings::getPostTypes(), true)) {
+			return $thumbnailId;
+		}
+
+		$end = intval(get_post_meta($post->ID, Meeting::MEETING_END_META_KEY, true));
+		if ($end === 0) {
+			$end = intval(get_post_meta($post->ID, Meeting::MEETING_START_META_KEY, true));
+		}
+		if ($end > 0 && $end < self::updateExpiry()->getTimestamp()) {
+			return $thumbnailId;
+		}
+
+		$ancestorId = intval($post->post_parent);
+		for ($depth = 0; $ancestorId > 0 && $depth < 10; $depth++) {
+			$ancestorThumbnailId = Utilities::ownThumbnailId($ancestorId);
+			if ($ancestorThumbnailId > 0) {
+				/**
+				 * Allows a post to be prevented from inheriting its ancestor's featured image.  By default, an
+				 * Involvement or Meeting that has no image of its own uses the image of its nearest ancestor that has
+				 * one.  Return false to leave the post without an image.  This runs whenever the image is requested, so
+				 * it should be fast.
+				 *
+				 * @see Involvement::filterThumbnailId()
+				 *
+				 * @since 0.0.98 Added
+				 *
+				 * @param bool    $inherit              Whether the post should use the ancestor's image.  Default true.
+				 * @param WP_Post $post                 The post that doesn't have an image of its own.
+				 * @param int     $ancestorId           The ID of the post the image would come from.
+				 * @param int     $ancestorThumbnailId  The attachment ID of the image that would be used.
+				 */
+				$inherit = apply_filters('tp_inherit_thumbnail', true, $post, $ancestorId, $ancestorThumbnailId);
+
+				return $inherit ? $ancestorThumbnailId : $thumbnailId;
+			}
+			$ancestorId = intval(wp_get_post_parent_id($ancestorId));
+		}
+
+		return $thumbnailId;
+	}
 
 	/**
 	 * Replace the date with the schedule summary

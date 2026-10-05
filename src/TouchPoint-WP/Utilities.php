@@ -532,6 +532,23 @@ abstract class Utilities
 	}
 
 	/**
+	 * Get the attachment ID of a post's own featured image, ignoring any image inherited from an ancestor.
+	 *
+	 * Sync code should use this, not get_post_thumbnail_id(), which returns an inherited image for involvement and
+	 * meeting posts.  Otherwise, a child could be taken to own (and then delete or replace) its parent's image.
+	 *
+	 * @param int $postId
+	 *
+	 * @return int 0 if the post has no image of its own.
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public static function ownThumbnailId(int $postId): int
+	{
+		return intval(get_post_meta($postId, '_thumbnail_id', true));
+	}
+
+	/**
 	 * Updates or removes a post's featured image from a URL (e.g. from TouchPoint).
 	 *
 	 * If the $newUrl is blank or null, the image is removed.
@@ -574,7 +591,7 @@ abstract class Utilities
 		}
 
 		// get existing post image, if any
-		$oldAttId = get_post_thumbnail_id($postId);
+		$oldAttId = self::ownThumbnailId($postId);
 
 		// determine if a change is needed
 		if ($newAttId !== $oldAttId || ($newUrl !== "" && $oldAttId === 0)) {

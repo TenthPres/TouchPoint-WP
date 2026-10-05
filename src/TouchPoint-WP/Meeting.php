@@ -718,49 +718,6 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	}
 
 	/**
-	 * Filters the post thumbnail ID.  Allows meetings to have the image of their parent without having an image themselves.
-	 *
-	 * @param int|false        $thumbnail_id Post thumbnail ID or false if the post does not exist.
-	 * @param int|WP_Post|null $post         Post ID or WP_Post object. Default is global `$post`.
-	 */
-	public static function filterThumbnailId(int|false $thumbnail_id, int|WP_Post|null $post): bool|int
-	{
-		if ($thumbnail_id > 0) { // If already set, we have nothing to do.
-			return $thumbnail_id;
-		}
-
-		if (is_numeric($post)) {
-			$post = get_post($post);
-		}
-
-		if (!$post instanceof WP_Post) { // Something went wrong because we don't have a post.
-			return $thumbnail_id;
-		}
-
-		if (!self::postIsType($post) || Involvement::postIsType($post)) {
-			// Second condition is necessary to prevent loops when meeting post == involvement post
-			return $thumbnail_id;
-		}
-
-		try {
-			$meeting = Meeting::fromPost($post);
-			$involvementPostId = $meeting->involvement()?->post_id();
-			if (!$involvementPostId) {
-				return $thumbnail_id;
-			}
-
-			if (get_the_content(post: $involvementPostId) !== get_the_content(post: $meeting->post_id())) {
-				return $thumbnail_id;
-			}
-
-			return get_post_thumbnail_id($involvementPostId);
-		} catch (TouchPointWP_Exception) {
-		}
-
-		return $thumbnail_id;
-	}
-
-	/**
 	 * Handle API requests
 	 *
 	 * @param array $uri The request URI already parsed by parse_url()
@@ -989,7 +946,6 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 
 	public static function init(): void
 	{
-		add_filter('post_thumbnail_id', [self::class, 'filterThumbnailId'], 10, 3);
 		add_filter('the_title', [self::class, 'filterTitle'], 10, 2);
 	}
 
