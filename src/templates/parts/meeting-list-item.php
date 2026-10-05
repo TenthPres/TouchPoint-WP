@@ -21,10 +21,10 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
 <article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class($postItemClass); ?> data-tp-involvement="<?php echo $mtg->post_id() ?>">
     <header class="entry-header">
         <div class="entry-header-inner">
-        <?php
-        /** @noinspection HtmlUnknownTarget */
-        the_title(sprintf('<h2 class="entry-title default-max-width heading-size-1"><a href="%s">', esc_url(get_permalink())), '</a></h2>');
-        ?>
+        <?php $listTitle = $mtg->titleInList(); ?>
+        <?php if ($listTitle !== '') { ?>
+            <h2 class="entry-title default-max-width heading-size-1"><a href="<?php echo esc_url($mtg->permalink()); ?>"><?php echo $listTitle; ?></a></h2>
+        <?php } ?>
         </div>
         <div class="post-meta-single post-meta-single-top">
             <span class="post-meta">
@@ -67,13 +67,11 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
             }
             
             /** @var WP_Post $child */
+            $childInv = Involvement::fromPost($child);
+
             echo "<div>";
-            $link = get_permalink($child);
-            echo "<h3 class='inline'><a href=\"$link\" class='small'>$child->post_title</a></h3>";
-
-	        $childInv = Involvement::fromPost($child);
+            echo "<h3 class='inline'><a href=\"{$childInv->permalink()}\" class='small'>{$childInv->titleWithinParent($post)}</a></h3>";
             echo $childInv->notableAttributes($notableAttributes);
-
             echo "</div>";
         }
         if (count($children) > 0) {
@@ -113,13 +111,11 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
 			}
 
 			/** @var WP_Post $child */
-			echo "<div>";
-			$link = get_permalink($child);
-			echo "<h3 class='inline'><a href=\"$link\" class='small'>$child->post_title</a></h3>";
-
 			$childInv = Meeting::fromPost($child);
-            echo $childInv->notableAttributes($notableAttributes);
 
+			echo "<div>";
+			echo "<h3 class='inline'><a href=\"{$childInv->permalink()}\" class='small'>{$childInv->titleWithinParent($post)}</a></h3>";
+			echo $childInv->notableAttributes($notableAttributes);
 			echo "</div>";
 		}
 		if (count($children) > 0) {

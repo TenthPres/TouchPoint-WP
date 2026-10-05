@@ -26,10 +26,10 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
 <article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class($postItemClass); ?> data-tp-involvement="<?php echo $post->ID ?>">
     <header class="entry-header">
         <div class="entry-header-inner">
-        <?php
-        /** @noinspection HtmlUnknownTarget */
-        the_title(sprintf('<h2 class="entry-title default-max-width heading-size-1"><a href="%s">', esc_url(get_permalink())), '</a></h2>');
-        ?>
+        <?php $listTitle = $inv->titleInList(); ?>
+        <?php if ($listTitle !== '') { ?>
+            <h2 class="entry-title default-max-width heading-size-1"><a href="<?php echo esc_url($inv->permalink()); ?>"><?php echo $listTitle; ?></a></h2>
+        <?php } ?>
         </div>
         <div class="post-meta-single post-meta-single-top">
             <span class="post-meta">
@@ -64,13 +64,11 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
         }
         foreach ($children as $child) {
             /** @var WP_Post $child */
+            $childInv = PostTypeCapable::fromPost($child);
+
             echo "<div>";
-            $link = get_permalink($child);
-            echo "<h3 class='inline'><a href=\"$link\" class='small'>$child->post_title</a></h3>";
-
-	        $childInv = PostTypeCapable::fromPost($child);
+            echo "<h3 class='inline'><a href=\"{$childInv->permalink()}\" class='small'>{$childInv->titleWithinParent($post)}</a></h3>";
             echo $childInv->notableAttributes($notableAttributes);
-
             echo "</div>";
         }
         if (count($children) > 0) {

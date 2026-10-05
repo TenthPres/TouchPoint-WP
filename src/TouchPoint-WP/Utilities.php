@@ -847,6 +847,51 @@ abstract class Utilities
 	}
 
 	/**
+	 * Remove a prefix from the start of a title, such as a parent event's title from the titles of its parts.  For
+	 * example, "Global Outreach Conference: Q&A Luncheon" becomes "Q&A Luncheon" when the prefix is "Global Outreach
+	 * Conference".
+	 *
+	 * The prefix is only removed if it's followed by a separator (a colon, bar, middle dot, bullet, en dash, em dash,
+	 * or a hyphen with a space beside it), so "Christmas Eve Service" isn't shortened to "Eve Service" by "Christmas".  Case,
+	 * and whether quotation marks and apostrophes are straight or curly, don't matter.
+	 *
+	 * @param string $title  The full title.
+	 * @param string $prefix The prefix to remove.
+	 *
+	 * @return string The title without the prefix and separator.  If the title doesn't start with them, or nothing
+	 *                would be left, the title is returned as it was (trimmed).
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public static function titleWithoutPrefix(string $title, string $prefix): string
+	{
+		$title  = trim($title);
+		$prefix = trim($prefix);
+
+		$length = mb_strlen($prefix);
+		if ($length === 0 || mb_strlen($title) <= $length) {
+			return $title;
+		}
+
+		$normalize = fn(string $s): string => mb_strtolower(strtr($s, ["’" => "'", "‘" => "'", "“" => '"', "”" => '"']));
+		if ($normalize(mb_substr($title, 0, $length)) !== $normalize($prefix)) {
+			return $title;
+		}
+
+		$rest = mb_substr($title, $length);
+		if ( ! preg_match('/^(?:\s*[:|·•–—]\s*|\s+-\s*|\s*-\s+)/u', $rest, $separator)) {
+			return $title;
+		}
+
+		$rest = mb_substr($rest, mb_strlen($separator[0]));
+		if ( ! preg_match('/[\p{L}\p{N}]/u', $rest)) {
+			return $title;
+		}
+
+		return $rest;
+	}
+
+	/**
 	 * Returns true if a new release is available.
 	 *
 	 * @return ?object

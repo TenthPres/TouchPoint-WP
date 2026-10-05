@@ -171,7 +171,14 @@ if ($settings->hierarchical || ($settings->importMeetings && $tps->enable_meetin
 		echo "</div>";
 	}
 
-	if (count($past) > 0) {
+	if (count($past) > 0 && count($current) === 0) {
+		// Nothing else is listed, so there's nothing to tuck the past items away from.
+		echo "<div class='inv-list child-items child-items-past'>";
+		foreach ($past as $c) {
+			$renderChild($c[1]);
+		}
+		echo "</div>";
+	} elseif (count($past) > 0) {
 		$heading = wp_sprintf(
 			// Translators: %s is the plural name of Meetings, such as "Events".
 			__('Past %s', 'TouchPoint-WP'),

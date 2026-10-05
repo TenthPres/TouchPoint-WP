@@ -599,7 +599,7 @@ trait Meeting_GroupingWriter
 	 *
 	 * Candidates, in order:
 	 * - Editions: the date of their first meeting, from month to second.
-	 * - Clusters, and meetings inside a group: their title, and then dates.
+	 * - Clusters, and meetings inside a group: their title (without the parent's title), and then dates.
 	 * - Other meetings: dates.
 	 *
 	 * @param object[] $entries  The siblings.  Each gets its slug property set.
@@ -634,7 +634,7 @@ trait Meeting_GroupingWriter
 			if ($e->slug !== null) {
 				continue;
 			}
-			$c = self::slugCandidates($e->item, $e->isGroup, $insideGroup);
+			$c = self::slugCandidates($e->item, $e->isGroup, $insideGroup, $parent);
 			$candidates[$i] = $c;
 			foreach (array_unique($c) as $s) {
 				$counts[$s] = ($counts[$s] ?? 0) + 1;
@@ -666,13 +666,14 @@ trait Meeting_GroupingWriter
 	/**
 	 * The slug candidates for one planned item, in order of preference.
 	 *
-	 * @param object $item
-	 * @param bool   $isGroup
-	 * @param bool   $insideGroup
+	 * @param object  $item
+	 * @param bool    $isGroup
+	 * @param bool    $insideGroup
+	 * @param WP_Post $parent The post the item is under.
 	 *
 	 * @return string[]
 	 */
-	private static function slugCandidates(object $item, bool $isGroup, bool $insideGroup): array
+	private static function slugCandidates(object $item, bool $isGroup, bool $insideGroup, WP_Post $parent): array
 	{
 		$c = [];
 
@@ -681,7 +682,7 @@ trait Meeting_GroupingWriter
 		} else {
 			$formats = self::$meetingSlugFormats;
 			if (($isGroup || $insideGroup) && ($item->titleToUse ?? "") !== "") {
-				$c[] = Utilities::stringToSlug($item->titleToUse);
+				$c[] = self::titleSlug($item->titleToUse, $parent);
 			}
 		}
 
@@ -690,6 +691,24 @@ trait Meeting_GroupingWriter
 		}
 
 		return $c;
+	}
+
+	/**
+	 * A slug made from a title.  The parent's title is left out when the title starts with it, as it is when the title is
+	 * displayed (see PostTypeCapable::titleWithinParent()), since it's already in the parent's address.  Apostrophes are
+	 * dropped, and accents removed, so "God's House" becomes "gods-house", not "god-s-house".
+	 *
+	 * @param string  $title
+	 * @param WP_Post $parent The post the title's post is under.
+	 *
+	 * @return string
+	 */
+	private static function titleSlug(string $title, WP_Post $parent): string
+	{
+		$title = Utilities::titleWithoutPrefix($title, $parent->post_title);
+		$title = remove_accents(str_replace(["'", "’", "‘"], "", $title));
+
+		return Utilities::stringToSlug($title);
 	}
 
 	/**
