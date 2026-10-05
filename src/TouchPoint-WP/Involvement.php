@@ -17,6 +17,8 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Utilities.php";
 	require_once "Involvement_PostTypeSettings.php";
 	require_once "MeetingArray.php";
+	require_once "Meeting_GroupingPlanner.php";
+	require_once "Meeting_GroupingWriter.php";
 }
 
 use DateInterval;
@@ -50,6 +52,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 {
 	use jsInstantiation;
 	use jsonLd;
+	use Meeting_GroupingWriter;
 
 	public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "Inv-Map";
 	public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "Inv-Filters";
@@ -60,6 +63,24 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	protected const SCHEDULE_STRING_CACHE_EXPIRATION = 3600 * 8; // 8 hours.  Automatically deleted during sync.
 	protected const SCHEDULE_STRING_CACHE_GROUP = TouchPointWP::HOOK_PREFIX . "inv_schedule_string";
 	protected const ENABLE_SCHEDULE_STRING_CACHE = true;
+
+	/**
+	 * Post status for the posts of child involvements whose meetings are included in their parent's structure.  These
+	 * posts aren't shown anywhere; they exist so the child's Involvement object (for Register and RSVP buttons, for
+	 * example) can be created for its meetings.
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public const POST_STATUS_HIDDEN = TouchPointWP::HOOK_PREFIX . "hidden_resource";
+
+	/** Meeting Grouping: an involvement whose meetings include its child involvements' meetings. */
+	protected const GROUPING_ROLE_OWNER = "owner";
+	/** Meeting Grouping: a child involvement whose meetings are handled by its structure owner. */
+	protected const GROUPING_ROLE_CHILD = "child";
+	/** Meeting Grouping: an involvement handled on its own. */
+	protected const GROUPING_ROLE_NORMAL = "normal";
+	/** Meeting Grouping: an involvement that isn't processed in this post type, since its owner handles it elsewhere. */
+	protected const GROUPING_ROLE_SKIP = "skip";
 
 	protected const MEETING_STRATEGY_NONE = 0;
 	protected const MEETING_STRATEGY_SINGLE = 1;
@@ -72,6 +93,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	protected static bool $_hasArchiveMap = false;
 	private static array $_instances = [];
 	private static bool $_isLoaded = false;
+
+	/** @var int[] Attachment IDs of images that were replaced or whose posts were deleted, to be deleted at the end of the sync if no post uses them. */
+	private static array $_replacedImages = [];
 
 	public static string $containerClass = 'inv-list';
 	public static string $itemClass = 'inv-list-item';
@@ -318,12 +342,25 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			);
 		}
 
+		// Posts of child involvements whose meetings are shown within their parent.  Not public or searchable.
+		register_post_status(self::POST_STATUS_HIDDEN, [
+			'label'                     => __('Hidden', 'TouchPoint-WP'),
+			'public'                    => false,
+			'internal'                  => true,
+			'exclude_from_search'       => true,
+			'show_in_admin_all_list'    => false,
+			'show_in_admin_status_list' => false,
+		]);
+
 		// Register default templates for Involvements
 		add_filter('template_include', [self::class, 'templateFilter'], 10, 1);
 
 		// Register function to return schedule instead of publishing date
 		add_filter('get_the_date', [self::class, 'filterPublishDate'], 10, 3);
 		add_filter('get_the_time', [self::class, 'filterPublishDate'], 10, 3);
+
+		// Register function to let posts inherit their parents' images
+		add_filter('post_thumbnail_id', [self::class, 'filterThumbnailId'], 10, 2);
 
 		// Register function to return leaders instead of authors
 		add_filter('the_author', [self::class, 'filterAuthor'], 10, 1);
@@ -941,12 +978,66 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	}
 
 	/**
+	 * Get the schedule of this involvement's current or next Edition, as whole days (such as "Fri, Nov 6 - Sun,
+	 * Nov 8").  Returns null if it has no Edition that hasn't ended.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @return ?string
+	 */
+	protected function currentEditionScheduleString(): ?string
+	{
+		$editions = get_posts([
+			'post_type'   => get_post_type($this->post_id),
+			'post_parent' => $this->post_id,
+			'numberposts' => 1,
+			'meta_key'    => Meeting::MEETING_START_META_KEY,
+			'orderby'     => 'meta_value_num',
+			'order'       => 'ASC',
+			'meta_query'  => [
+				[
+					'key'   => Meeting::MEETING_GROUP_ROLE_META_KEY,
+					'value' => MeetingArray::ROLE_EDITION,
+				],
+				[
+					'key'     => Meeting::MEETING_END_META_KEY,
+					'value'   => time(),
+					'compare' => '>=',
+					'type'    => 'NUMERIC',
+				],
+			],
+		]);
+
+		if (count($editions) === 0) {
+			return null;
+		}
+
+		try {
+			return Meeting::fromPost($editions[0])->scheduleStringArray()->join();
+		} catch (TouchPointWP_Exception) {
+			return null;
+		}
+	}
+
+	/**
 	 * Calculate the schedule strings.
 	 *
 	 * @return string[]
 	 */
 	protected function scheduleStrings_calc(): array
 	{
+		// An involvement whose meetings are grouped into Editions is described by its current or next Edition's days.
+		$edition = $this->currentEditionScheduleString();
+		if ($edition !== null) {
+			return [
+				'datetime'  => null,
+				'date'      => $edition,
+				'time'      => null,
+				'firstLast' => null,
+				'combined'  => $edition
+			];
+		}
+
 		$commonOccurrences = self::computeCommonOccurrences($this->meetings(), $this->schedules());
 
 		$dateFormat = get_option('date_format');
@@ -1123,10 +1214,6 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				return $r;
 			}
 
-			$forceDateTime = false;
-			$dateTimeArr = new StringableArray();
-			$dateArr = new StringableArray();
-			$timeArr = [];
 			$now = Utilities::dateTimeNow();
 
 			// filter meetings to only those not past
@@ -1142,42 +1229,22 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 //			below can be used to add "and others" to the list of dates/times to indicate that there are historical
 //			meetings that are not being shown.  However, this currently seems more confusing than helpful.
 
-			foreach ($meetings as $m) {
-				$a = DateFormats::DurationToStringArray($m->mtgStartDt, $m->mtgEndDt, null, $m->mtgStartDt->isAllDay);
+			$a = DateFormats::OccurrencesToStringArray(
+				array_map(fn($m) => [$m->mtgStartDt, $m->mtgEndDt, $m->mtgStartDt->isAllDay], $meetings),
+				2
+			);
 
-				if (isset($a['datetime'])) {
-					$forceDateTime = true;
-					$dateTimeArr[] = $a['datetime'];
-				} else {
-					$dateTimeArr[] = wp_sprintf(
-					// translators: %1$s is the date(s), %2$s is the time(s).
-						__('%1$s at %2$s', 'TouchPoint-WP'), $a['date'], $a['time']
-					);
-					if ( !$dateArr->contains(['date'])) {
-						$dateArr[] = $a['date'];
-					}
-					if (!in_array($a['time'], $timeArr)) {
-						$timeArr[] = $a['time'];
-					}
-				}
-			}
-			if (count($timeArr) > 1) {
-				$forceDateTime = true;
-			}
-
-			if ($forceDateTime) {
-				$r['datetime'] = $dateTimeArr->toListString(2);
+			if (isset($a['datetime'])) {
+				$r['datetime'] = $a['datetime'];
 				$r['combined'] = $r['datetime'];
-			} else {
-				$dateStr = $dateArr->toListString(2);
-
-				$r['date'] = $dateStr;
-				$r['time'] = $timeArr[0];
+			} elseif (isset($a['date'])) {
+				$r['date']     = $a['date'];
+				$r['time']     = $a['time'];
 				$r['combined'] = wp_sprintf(
 				// translators: %1$s is the date(s), %2$s is the time(s).
 					__('%1$s at %2$s', 'TouchPoint-WP'),
-					$dateStr,
-					$timeArr[0]
+					$a['date'],
+					$a['time']
 				);
 			}
 		}
@@ -1600,6 +1667,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 
 		$q      = new WP_Query([
 			                       'post_type'   => $postType,
+			                       'post_status' => ['publish', 'private', self::POST_STATUS_HIDDEN],
 			                       'meta_key'    => TouchPointWP::INVOLVEMENT_META_KEY,
 			                       'meta_value'  => $involvementId,
 			                       'numberposts' => 2
@@ -2697,6 +2765,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				$qOpts['mtgFuture'] = 365;
 			}
 
+			// Meeting Grouping: which involvements are structure owners, and whether to include hidden children.
+			$qOpts = [...$qOpts, ...Meeting_GroupingSettings::involvementQueryParameters()];
+
 			$response = TouchPointWP::instance()->api->pyGet("Invs", $qOpts, 180, $verbose);
 
 		} catch (TouchPointWP_Exception) {
@@ -2727,14 +2798,25 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			return false;
 		}
 
+		////////////////////////
+		// Standardize Inputs //
+		////////////////////////
+
+		// Everything is standardized first, since structure owners need their child involvements' meetings.
+		$invData = self::dedupeApiInvolvements($invData);
+		foreach ($invData as $inv) {
+			self::standardizeApiData($inv, $siteTz, $verbose);
+			$inv->titleToUse = trim($inv->regTitle ?? $inv->name);
+		}
+		self::classifyForGrouping($invData, $verbose);
+
 		foreach ($invData as $inv) {
 			set_time_limit(15);
 
-			////////////////////////
-			// Standardize Inputs //
-			////////////////////////
-
-			self::standardizeApiData($inv, $siteTz, $verbose);
+			// Included child involvements are handled by their structure owner.
+			if ($inv->_groupingRole === self::GROUPING_ROLE_CHILD || $inv->_groupingRole === self::GROUPING_ROLE_SKIP) {
+				continue;
+			}
 
 
 			////////////////
@@ -2854,33 +2936,93 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		//// Removals ////
 		//////////////////
 
+		$removals = self::deleteUnkeptPosts($typeSets, $postsToKeep, $verbose, $applyChanges);
 
+		////////////////
+		//// Images ////
+		////////////////
+
+		self::deleteUnusedReplacedImages($verbose);
+
+		return $removals + count($invData);
+	}
+
+	/**
+	 * Delete the images that were replaced during the sync, or that belonged to posts that were deleted, unless a post
+	 * still uses them.  This waits until the end of the sync because live meetings are updated after the image is
+	 * replaced, and archived meetings keep the image they had.
+	 *
+	 * @param bool $verbose
+	 *
+	 * @return void
+	 */
+	protected static function deleteUnusedReplacedImages(bool $verbose): void
+	{
+		$attachmentIds         = array_unique(self::$_replacedImages);
+		self::$_replacedImages = [];
+
+		foreach ($attachmentIds as $attachmentId) {
+			Utilities::deleteAttachmentIfUnused($attachmentId, $verbose);
+		}
+	}
+
+	/**
+	 * Delete the posts of a post type that weren't kept by its sync.  Hidden posts are included, so a child involvement
+	 * that's no longer included in its parent's structure doesn't leave its hidden post behind.
+	 *
+	 * @param Involvement_PostTypeSettings $typeSets
+	 * @param int[]                        $postsToKeep
+	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
+	 *
+	 * @return int The number of posts deleted.
+	 */
+	protected static function deleteUnkeptPosts(
+		Involvement_PostTypeSettings $typeSets,
+		array $postsToKeep,
+		bool $verbose,
+		bool $applyChanges
+	): int {
 		if ($verbose) {
 			$tsn = $typeSets->namePlural;
 			echo "<h3>Deletions for $tsn</h3>";
 		}
 
-
-		// Delete posts that are no longer current
 		$q        = new WP_Query([
 			                         'post_type'    => $typeSets->postType,
+			                         'post_status'  => ['publish', 'private', self::POST_STATUS_HIDDEN],
 			                         'nopaging'     => true,
 			                         'post__not_in' => $postsToKeep
 		                         ]);
 		$removals = 0;
+		$cutoff   = self::updateExpiry()->getTimestamp();
 		foreach ($q->get_posts() as $post) {
 			set_time_limit(10);
+
+			if ($verbose) {
+				$end   = intval(get_post_meta($post->ID, Meeting::MEETING_END_META_KEY, true)) ?:
+					intval(get_post_meta($post->ID, Meeting::MEETING_START_META_KEY, true));
+				$path  = esc_html(get_page_uri($post));
+				$title = esc_html($post->post_title);
+				$note  = $end > 0 && $end < $cutoff ? " <b>(archived; its content will be lost)</b>" : "";
+				$verb  = $applyChanges ? "Deleting" : "Would delete";
+				echo "<p>$verb post $post->ID <code>$path</code> \"$title\"$note</p>";
+			}
 			if ($applyChanges) {
+				$imageId = Utilities::ownThumbnailId($post->ID);
+				if ($imageId > 0) {
+					self::$_replacedImages[] = $imageId;
+				}
 				wp_delete_post($post->ID, true);
 			}
 			$removals++;
 		}
 
 		if ($verbose) {
-			echo "<p>Deleted $removals posts.";
+			echo $applyChanges ? "<p>Deleted $removals posts.</p>" : "<p>Would delete $removals posts.</p>";
 		}
 
-		return $removals + count($invData);
+		return $removals;
 	}
 
 	/**
@@ -2891,11 +3033,20 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	 * @param Involvement_PostTypeSettings $typeSets
 	 * @param bool                         $verbose
 	 * @param bool                         $applyChanges
+	 * @param string                       $postStatus     The status to give the post.
+	 * @param bool                         $updateMeetings Whether to update the involvement's meetings too.
 	 *
 	 * @return int[] A list of Post IDs that should be kept.
 	 */
-	protected static function doPostUpdate($post, object $inv, Involvement_PostTypeSettings $typeSets, bool $verbose = false, bool $applyChanges = true): array
-	{
+	protected static function doPostUpdate(
+		$post,
+		object $inv,
+		Involvement_PostTypeSettings $typeSets,
+		bool $verbose = false,
+		bool $applyChanges = true,
+		string $postStatus = 'publish',
+		bool $updateMeetings = true
+	): array {
 		if ($post instanceof WP_Error) {
 			new TouchPointWP_WPError($post);
 			return [];
@@ -2951,7 +3102,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		}
 
 		// Status & Submit
-		$post->post_status = 'publish';
+		$post->post_status = $postStatus;
 		if ($applyChanges) {
 			wp_update_post($post);
 
@@ -2980,15 +3131,24 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			} else {
 				update_post_meta($post->ID, TouchPointWP::SETTINGS_PREFIX . "regEnd", $inv->regEnd);
 			}
-
-			// Update image, if appropriate.
-			$imageUrl = "";
-			if ( ! ! $typeSets->useImages) {
-				$imageUrl = $inv->imageUrl;
-			}
 		}
 
-		$imageId = Utilities::updatePostImageFromUrl($post->ID ?? 0, $imageUrl, $post->post_title, $verbose, $applyChanges);
+		// Update image, if appropriate.  Only when applying changes: updatePostImageFromUrl() changes the media library,
+		// and deletes the post's current image if the URL is different or blank, so a preview must not call it.
+		// A replaced image is deleted at the end of the sync, if nothing is using it.  Archived meetings may be, and
+		// other live meetings may not have been updated yet.
+		$imageUrl = $typeSets->useImages ? ($inv->imageUrl ?? "") : "";
+		if ($applyChanges) {
+			$imageId = Utilities::updatePostImageFromUrl(
+				$post->ID ?? 0, $imageUrl, $post->post_title, $verbose, self::$_replacedImages
+			);
+		} else {
+			$imageId = $post->ID ? Utilities::ownThumbnailId($post->ID) : 0;
+			if ($verbose) {
+				$shown = $imageUrl === "" ? "none" : esc_html($imageUrl);
+				echo "<p>Image (not changed in a preview): $shown</p>";
+			}
+		}
 
 		////////////////////
 		//// SCHEDULING ////
@@ -3228,7 +3388,15 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		//// Meetings ////
 		//////////////////
 
-		$postsToKeep = self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imageId, $verbose, $applyChanges);
+		if ($updateMeetings) {
+			// Meetings use the post's image, which may be inherited if it doesn't have one.
+			if ($imageId === 0 && $post->ID) {
+				$imageId = intval(self::filterThumbnailId(0, $post));
+			}
+			$postsToKeep = self::updateMeetingsWithGrouping($post, $inv, $typeSets, $imageId, $verbose, $applyChanges);
+		} else {
+			$postsToKeep = [$post->ID];
+		}
 
 		if ($verbose) {
 			echo "<hr />";
@@ -3298,6 +3466,261 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			}
 			$mtgO->slugToUse = $slug;
 		}
+	}
+
+	/**
+	 * Remove duplicate involvements from the API data.  The query can return an involvement twice when it both has
+	 * meetings and has children with meetings; the rows are otherwise the same.
+	 *
+	 * @param object[] $invData
+	 *
+	 * @return object[]
+	 */
+	protected static function dedupeApiInvolvements(array $invData): array
+	{
+		$unique = [];
+		foreach ($invData as $inv) {
+			$id = $inv->involvementId;
+			if (isset($unique[$id])) {
+				$unique[$id]->isParent = max($unique[$id]->isParent, $inv->isParent);
+				continue;
+			}
+			$unique[$id] = $inv;
+		}
+
+		return array_values($unique);
+	}
+
+	/**
+	 * Decide how each involvement's meetings are grouped, and bring child involvements' meetings into their structure
+	 * owners.
+	 *
+	 * Each involvement gets:
+	 * - _groupingRole: one of the GROUPING_ROLE_ constants.
+	 * - _grouping: the Meeting_GroupingSettings that apply (owners and normal involvements).
+	 * - _groupingStructure: for owners, the child involvements whose meetings are included.
+	 * - _ownMeetings: for owners, its own meetings.  Its meetings property then holds all the meetings in the
+	 *   structure, so its dates, tense, and schedule reflect the whole structure.
+	 *
+	 * @param object[] $invData Standardized API data.
+	 * @param bool     $verbose
+	 *
+	 * @return void
+	 */
+	protected static function classifyForGrouping(array $invData, bool $verbose): void
+	{
+		$byId = [];
+		foreach ($invData as $inv) {
+			$byId[intval($inv->involvementId)] = $inv;
+		}
+
+		$cutoff = self::updateExpiry();
+
+		// Structure owners and normal involvements.
+		foreach ($invData as $inv) {
+			$ownerId = isset($inv->ownerInvId) ? intval($inv->ownerInvId) : null;
+			if ($ownerId !== null && $ownerId !== intval($inv->involvementId)) {
+				continue; // A child; decided below.
+			}
+			$inv->_groupingStructure = [];
+			$inv->_grouping          = Meeting_GroupingSettings::forInvolvementType(intval($inv->invTypeId ?? 0));
+			$inv->_groupingRole      = $ownerId !== null ? self::GROUPING_ROLE_OWNER : self::GROUPING_ROLE_NORMAL;
+		}
+
+		// Child involvements.
+		foreach ($invData as $inv) {
+			if (isset($inv->_groupingRole)) {
+				continue;
+			}
+			$owner = $byId[intval($inv->ownerInvId)] ?? null;
+
+			if ($owner === null || $owner->_groupingRole !== self::GROUPING_ROLE_OWNER) {
+				// Its owner is handled in another post type (or not at all).
+				$inv->_groupingRole = self::GROUPING_ROLE_SKIP;
+			} else {
+				// Hidden children are only here to keep their archived meetings.
+				if ( ! $inv->showInSites) {
+					$inv->meetings = array_values(array_filter(
+						$inv->meetings,
+						fn($m) => ($m->mtgEndDt ?? $m->mtgStartDt) < $cutoff
+					));
+				}
+				if (count($inv->meetings) === 0) {
+					$inv->_groupingRole = self::GROUPING_ROLE_SKIP;
+				} else {
+					$inv->_groupingRole          = self::GROUPING_ROLE_CHILD;
+					$owner->_groupingStructure[] = $inv;
+				}
+			}
+
+			if ($verbose) {
+				echo "<p>Involvement $inv->involvementId ($inv->titleToUse) has structure owner $inv->ownerInvId: $inv->_groupingRole.</p>";
+			}
+		}
+
+		// Owners' dates reflect all the meetings in their structure.
+		foreach ($invData as $inv) {
+			if ($inv->_groupingRole !== self::GROUPING_ROLE_OWNER) {
+				continue;
+			}
+			$inv->_ownMeetings = $inv->meetings;
+			$all = $inv->meetings;
+			foreach ($inv->_groupingStructure as $child) {
+				$all = [...$all, ...$child->meetings];
+			}
+			usort($all, fn($a, $b) => $a->mtgStartDt <=> $b->mtgStartDt);
+			$inv->meetings = $all;
+
+			if ($inv->lastMeeting !== null) {
+				foreach ($all as $m) {
+					if ($m->mtgStartDt > $inv->lastMeeting) {
+						$inv->lastMeeting = null;
+						break;
+					}
+				}
+			}
+
+			if ($verbose) {
+				$n = count($inv->_groupingStructure);
+				echo "<p>Involvement $inv->involvementId ($inv->titleToUse) is a structure owner, including $n child involvement(s).</p>";
+			}
+		}
+	}
+
+	/**
+	 * Update an involvement's meetings, using its Meeting Grouping settings.  The previous behavior is used when those
+	 * settings call for it, and for involvements with no more than one meeting of their own and no child involvements
+	 * (whose post is also the meeting's post).
+	 *
+	 * @param WP_Post                      $post
+	 * @param object                       $inv The involvement, after classifyForGrouping().
+	 * @param Involvement_PostTypeSettings $typeSets
+	 * @param int                          $imagePostId
+	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
+	 *
+	 * @return int[] An array of Post IDs that have been updated, and which should be retained.
+	 */
+	protected static function updateMeetingsWithGrouping(
+		WP_Post $post,
+		object $inv,
+		Involvement_PostTypeSettings $typeSets,
+		int $imagePostId,
+		bool $verbose = false,
+		bool $applyChanges = true
+	): array {
+		/** @var ?Meeting_GroupingSettings $rule */
+		$rule = $inv->_grouping ?? null;
+		if ($rule === null || $rule->legacy) {
+			return self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imagePostId, $verbose, $applyChanges);
+		}
+
+		// Return if meetings shouldn't be imported at all.
+		if ( ! $typeSets->importMeetings && ! $inv->showInSites) {
+			self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
+			return [$post->ID];
+		}
+
+		$structure = $inv->_groupingStructure ?? [];
+		$own       = $inv->_ownMeetings ?? $inv->meetings;
+
+		// With no more than one meeting and no child involvements, the involvement's post is the meeting's post.
+		if (count($structure) === 0 && count($own) <= 1) {
+			return self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imagePostId, $verbose, $applyChanges);
+		}
+
+		// If the involvement's post was the meeting's post, it isn't anymore.
+		self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
+
+		$owner           = clone $inv;
+		$owner->meetings = $own;
+		$involvements    = [$owner, ...$structure];
+
+		$planner = new Meeting_GroupingPlanner(
+			$owner,
+			$involvements,
+			$rule->editions,
+			$rule->clusters,
+			Meeting_GroupingSettings::editionGap(),
+			Meeting_GroupingSettings::clusterGap()
+		);
+
+		$keep = self::writeGroupingPlan(
+			$post,
+			$owner,
+			$involvements,
+			$planner->plan(),
+			$typeSets,
+			$imagePostId,
+			$verbose,
+			$applyChanges
+		);
+
+		// Hidden posts for the included child involvements.  This comes after the plan is written, so that combined
+		// posts adopted as meeting posts are no longer found as the child's post.
+		foreach ($structure as $child) {
+			$keep = [...$keep, ...self::updateHiddenChildPost($child, $typeSets, $verbose, $applyChanges)];
+		}
+
+		return [$post->ID, ...$keep];
+	}
+
+	/**
+	 * Create or update the hidden post of a child involvement whose meetings are included in its parent's structure.
+	 * An existing post of the child (from before it was included) becomes the hidden post.
+	 *
+	 * @param object                       $child The child involvement, as provided by the API.
+	 * @param Involvement_PostTypeSettings $typeSets
+	 * @param bool                         $verbose
+	 * @param bool                         $applyChanges
+	 *
+	 * @return int[] The IDs of posts to keep.
+	 */
+	protected static function updateHiddenChildPost(
+		object $child,
+		Involvement_PostTypeSettings $typeSets,
+		bool $verbose = false,
+		bool $applyChanges = true
+	): array {
+		$post = self::getWpPostByInvolvementId($typeSets->postType, $child->involvementId);
+
+		// A post that is also a meeting's post was a combined post.  It's now only the meeting's post.
+		if ($post !== null && intval(get_post_meta($post->ID, Meeting::MEETING_META_KEY, true)) !== 0) {
+			$post = null;
+		}
+
+		if ($post === null && $applyChanges) {
+			$id = wp_insert_post([
+				'post_type'   => $typeSets->postType,
+				'post_title'  => $child->titleToUse,
+				'post_status' => self::POST_STATUS_HIDDEN,
+				'meta_input'  => [
+					TouchPointWP::INVOLVEMENT_META_KEY => $child->involvementId
+				]
+			], true);
+			if ($id instanceof WP_Error) {
+				new TouchPointWP_WPError($id);
+				if ($verbose) {
+					echo "<p>A hidden post could not be created for Involvement {$child->involvementId}: " . $id->get_error_message() . "</p>";
+				}
+				return [];
+			}
+			$post = get_post($id);
+		} elseif ($post === null && $verbose) {
+			echo "<p>Would create a hidden post for Involvement {$child->involvementId} ({$child->titleToUse}).</p>";
+		}
+
+		$keep = self::doPostUpdate($post, $child, $typeSets, $verbose, $applyChanges, self::POST_STATUS_HIDDEN, false);
+
+		// Hidden posts have no public URL, so their slug only needs to stay out of the way of their siblings'.
+		if ($applyChanges && $post instanceof WP_Post && $post->ID) {
+			$slug = "hidden-" . $child->involvementId;
+			if (get_post_field('post_name', $post->ID) !== $slug) {
+				Utilities::forceSlugUpdate($post->ID, $slug);
+			}
+		}
+
+		return $keep;
 	}
 
 	/**
@@ -3699,6 +4122,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				$m->mtgStartDt = new DateTimeExtended($m->mtgStartDt, $siteTz);
 				$m->mtgStartDt->isAllDay = self::apiMeetingIsAllDay($m->mtgStartDt);
 
+				// TouchPoint sometimes gives a meeting an end before its start (such as meetings from a series that all
+				// have the first meeting's end).  Such an end is meaningless, so it's treated as missing.
+				if ($m->mtgEndDt !== null && $m->mtgEndDt < $m->mtgStartDt) {
+					$m->mtgEndDt = null;
+				}
+
 				// if meetings exist beyond lastMeeting, nullify lastMeeting
 				if ($inv->lastMeeting !== null && $m->mtgStartDt > $inv->lastMeeting) {
 					$inv->lastMeeting = null;
@@ -3735,6 +4164,69 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 
 
 	/**
+	 * Give a post the featured image of its nearest ancestor that has one, if it doesn't have one of its own.  This is
+	 * done when the image is requested, and nothing is copied to the child, so the child follows its parent's image
+	 * when that changes.
+	 *
+	 * Meetings and meeting groups that are archived (see Archive After Days) are left as they are, since their
+	 * content is frozen, and an event from a past year shouldn't pick up an image from the current one.
+	 *
+	 * @param int|false        $thumbnailId The post's own thumbnail ID, or 0 or false if it has none.
+	 * @param int|WP_Post|null $post        The post.  Default is the global post.
+	 *
+	 * @return int|false
+	 *
+	 * @since 0.0.98 Added, replacing Meeting::filterThumbnailId()
+	 */
+	public static function filterThumbnailId(int|false $thumbnailId, int|WP_Post|null $post = null): int|false
+	{
+		if ($thumbnailId > 0) {
+			return $thumbnailId;
+		}
+
+		$post = get_post($post);
+		if (!$post || !in_array($post->post_type, Involvement_PostTypeSettings::getPostTypes(), true)) {
+			return $thumbnailId;
+		}
+
+		$end = intval(get_post_meta($post->ID, Meeting::MEETING_END_META_KEY, true));
+		if ($end === 0) {
+			$end = intval(get_post_meta($post->ID, Meeting::MEETING_START_META_KEY, true));
+		}
+		if ($end > 0 && $end < self::updateExpiry()->getTimestamp()) {
+			return $thumbnailId;
+		}
+
+		$ancestorId = intval($post->post_parent);
+		for ($depth = 0; $ancestorId > 0 && $depth < 10; $depth++) {
+			$ancestorThumbnailId = Utilities::ownThumbnailId($ancestorId);
+			if ($ancestorThumbnailId > 0) {
+				/**
+				 * Allows a post to be prevented from inheriting its ancestor's featured image.  By default, an
+				 * Involvement or Meeting that has no image of its own uses the image of its nearest ancestor that has
+				 * one.  Return false to leave the post without an image.  This runs whenever the image is requested, so
+				 * it should be fast.
+				 *
+				 * @see Involvement::filterThumbnailId()
+				 *
+				 * @since 0.0.98 Added
+				 *
+				 * @param bool    $inherit              Whether the post should use the ancestor's image.  Default true.
+				 * @param WP_Post $post                 The post that doesn't have an image of its own.
+				 * @param int     $ancestorId           The ID of the post the image would come from.
+				 * @param int     $ancestorThumbnailId  The attachment ID of the image that would be used.
+				 */
+				$inherit = apply_filters('tp_inherit_thumbnail', true, $post, $ancestorId, $ancestorThumbnailId);
+
+				return $inherit ? $ancestorThumbnailId : $thumbnailId;
+			}
+			$ancestorId = intval(wp_get_post_parent_id($ancestorId));
+		}
+
+		return $thumbnailId;
+	}
+
+	/**
 	 * Replace the date with the schedule summary
 	 *
 	 * @param $theDate
@@ -3757,7 +4249,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			if (self::postIsType($post)) {
 				$theDate = self::scheduleString(intval($post->{TouchPointWP::INVOLVEMENT_META_KEY})) ?? "";
 			} elseif (Meeting::postIsType($post)) {
-				$theDate = Meeting::scheduleString(intval($post->{Meeting::MEETING_META_KEY})) ?? "";
+				// Built from the post, since groups can't be looked up by their (non-unique) meeting ID.
+				try {
+					$theDate = Meeting::scheduleString(0, Meeting::fromPost(get_post($post))) ?? "";
+				} catch (TouchPointWP_Exception) {
+				}
 			}
 		}
 

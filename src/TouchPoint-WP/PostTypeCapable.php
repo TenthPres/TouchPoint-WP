@@ -79,6 +79,74 @@ abstract class PostTypeCapable implements module, storedAsPost, actionButtons
 	}
 
 	/**
+	 * Get the title for display within its parent, such as in the parent's list of its parts.  If the title starts
+	 * with the parent's title and a separator, the parent's title is left out, since the parent's title is
+	 * already visible: "Global Outreach Conference: Q&A Luncheon" is displayed as "Q&A Luncheon" within "Global Outreach
+	 * Conference".  The stored title isn't changed.
+	 *
+	 * The result is filtered like any other title, so it can be printed in place of the_title().
+	 *
+	 * @param ?WP_Post $parent The parent to display this within.  Default is its own parent.
+	 *
+	 * @return string
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public function titleWithinParent(?WP_Post $parent = null): string
+	{
+		$post      = $this->getPost();
+		$fullTitle = get_the_title($post);
+		$parent    ??= $post->post_parent ? get_post($post->post_parent) : null;
+		$title     = $fullTitle;
+
+		if ($parent !== null && $parent->post_type === $post->post_type) {
+			$shortTitle = Utilities::titleWithoutPrefix($post->post_title, $parent->post_title);
+			if ($shortTitle !== trim($post->post_title)) {
+				$title = apply_filters('the_title', $shortTitle, $post->ID);
+			}
+		}
+
+		/**
+		 * Allows the title that's displayed for a post within its parent to be adjusted.  By default, the parent's title
+		 * is removed from the start of the post's title when the two are separated by a colon, dash, or similar.  This
+		 * can be used to handle other patterns, such as abbreviations, or to turn the behavior off by returning the full
+		 * title.
+		 *
+		 * This isn't used where a post is displayed on its own page, or outside of its parent, such as in the calendar.
+		 *
+		 * @see PostTypeCapable::titleWithinParent()
+		 *
+		 * @since 0.0.98 Added
+		 *
+		 * @param string   $title     The title to display, filtered like any other title.
+		 * @param WP_Post  $post      The post whose title is displayed.
+		 * @param ?WP_Post $parent    The parent it's displayed within, if any.
+		 * @param string   $fullTitle The post's full title, filtered like any other title.
+		 */
+		return (string)apply_filters('tp_title_within_parent', $title, $post, $parent, $fullTitle);
+	}
+
+	/**
+	 * Get the title for display in a list.  If the list is on the page of this one's parent, this is the title within
+	 * its parent (see titleWithinParent()).  Otherwise, such as in an archive or a list on some other page, this is
+	 * displayed on its own, and its full title is needed.
+	 *
+	 * @return string
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public function titleInList(): string
+	{
+		$post = $this->getPost();
+
+		if ($post->post_parent && is_singular() && get_queried_object_id() === intval($post->post_parent)) {
+			return $this->titleWithinParent();
+		}
+
+		return get_the_title($post);
+	}
+
+	/**
 	 * Get notable attributes.
 	 *
 	 * @param array|StringableArray $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)

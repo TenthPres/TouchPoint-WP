@@ -40,7 +40,7 @@ class TP_Meeting {
                 const action = actionBtns[ai].getAttribute('data-tp-action');
 
                 if (action === "rsvp" && this.mtgDateTime < TP_Meeting.now()) {
-                    actionBtns[ai].title = __("Event Past", 'TouchPoint-WP');
+                    actionBtns[ai].title = wp.i18n.__("Event Past", 'TouchPoint-WP');
                     actionBtns[ai].setAttribute("disabled", "disabled");
                     actionBtns[ai].classList.add("disabled");
                 } else {
