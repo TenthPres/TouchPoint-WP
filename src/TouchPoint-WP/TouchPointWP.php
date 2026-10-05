@@ -31,7 +31,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.97";
+	public const VERSION = "0.2.0";
 
 	/**
 	 * The Token
@@ -583,9 +583,7 @@ class TouchPointWP
 
 			// Cleanup endpoints
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_CLEANUP) {
-				if ( ! Cleanup::api($reqUri)) {
-					return $continue;
-				}
+				Cleanup::api($reqUri);
 			}
 
 			// Geolocate via IP
@@ -846,7 +844,8 @@ class TouchPointWP
 				partnerPosts int(10) DEFAULT 0,
 				userAuths int(10) DEFAULT 0,
 				softAuths int(10) DEFAULT 0,
-				
+				meetingGroupingLegacy tinyint(1) DEFAULT 0,
+
 				PRIMARY KEY  (installId)
 			)";
 			dbDelta($sql);

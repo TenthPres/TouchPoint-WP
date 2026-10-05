@@ -1,6 +1,6 @@
 {
   "name": "touchpoint-wp",
-  "version": "0.0.97",
+  "version": "0.2.0",
   "description": "A WordPress Plugin for integrating with TouchPoint Church Management Software.",
   "directories": {
     "doc": "docs"
@@ -38,6 +38,7 @@
     "@wordpress/element": "^6.27.0"
   },
   "scripts": {
+    "version": "node buildPipeline/setVersion.js",
     "build-blocks": "wp-scripts build --webpack-src-dir=blocks --output-path=build/blocks ",
     "postbuild-blocks": "wp-scripts build-blocks-manifest --input=blocks --output=build/blocks/blocks-manifest.php"
   }

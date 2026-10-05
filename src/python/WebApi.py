@@ -6,7 +6,7 @@ import linecache
 import sys
 import urllib
 
-VERSION = "0.0.97"
+VERSION = "0.2.0"
 
 sgContactEvName = "Contact"
 

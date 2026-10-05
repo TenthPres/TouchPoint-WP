@@ -160,20 +160,76 @@ class Meeting_GroupingSettings
 	}
 
 	/**
-	 * The settings for a site that hasn't saved Meeting Grouping settings yet.  Nothing changes: if meetings were
-	 * collected before, the previous behavior continues to be used.
+	 * Whether any posts exist that were made by the previous behavior's collecting.  Those are meeting posts with a
+	 * negative meeting ID (a collection's ID is the negative of its first meeting's) and no group role, which only the
+	 * current behavior sets.
+	 *
+	 * @return bool
+	 */
+	protected static function previousBehaviorGroupsExist(): bool
+	{
+		global $wpdb;
+
+		$postId = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT m.post_id
+				FROM $wpdb->postmeta m
+					JOIN $wpdb->posts p ON p.ID = m.post_id
+					LEFT JOIN $wpdb->postmeta r ON r.post_id = m.post_id AND r.meta_key = %s
+				WHERE m.meta_key = %s
+					AND CAST(m.meta_value AS SIGNED) < 0
+					AND r.meta_id IS NULL
+					AND p.post_status NOT IN ('trash', 'auto-draft')
+				LIMIT 1",
+				Meeting::MEETING_GROUP_ROLE_META_KEY,
+				Meeting::MEETING_META_KEY
+			)
+		);
+
+		return $postId !== null;
+	}
+
+	/**
+	 * The settings for a site that hasn't saved Meeting Grouping settings yet.
+	 *
+	 * - If meetings were collected before, and collections from the previous behavior exist, the previous behavior
+	 *   continues to be used, so those collections aren't rearranged until someone chooses.
+	 * - If meetings were set to be collected, but the previous behavior never produced a collection, there's nothing
+	 *   to preserve.  The site gets the same settings as a new site.
+	 * - Otherwise, meetings weren't collected, and still aren't.
 	 *
 	 * @return object
 	 */
 	protected static function defaultsForExistingSite(): object
 	{
-		$legacy = self::previousBehaviorWasUsed();
+		if ( ! self::previousBehaviorWasUsed()) {
+			return (object)[
+				'types'           => [],
+				'otherTypes'      => (object)[],
+				'legacyAvailable' => false,
+			];
+		}
+
+		if ( ! self::previousBehaviorGroupsExist()) {
+			return self::defaultsForNewSite();
+		}
 
 		return (object)[
 			'types'           => [],
-			'otherTypes'      => (object)['legacy' => $legacy],
-			'legacyAvailable' => $legacy,
+			'otherTypes'      => (object)['legacy' => true],
+			'legacyAvailable' => true,
 		];
+	}
+
+	/**
+	 * Whether the previous behavior is selected, and so used for Involvement Types that don't have their own settings.
+	 * It's reported as telemetry, to show when it can be removed.
+	 *
+	 * @return bool
+	 */
+	public static function previousBehaviorInUse(): bool
+	{
+		return self::forOtherTypes()->legacy;
 	}
 
 	/**
@@ -227,7 +283,7 @@ class Meeting_GroupingSettings
 
 	/**
 	 * Whether the previous behavior (collecting meetings less than 23 hours apart) can be selected.  Only sites that
-	 * used it before upgrading can select it.  It stays available even after other options are chosen.
+	 * had collections made by it when upgrading can select it.  It stays available even after other options are chosen.
 	 *
 	 * @return bool
 	 */

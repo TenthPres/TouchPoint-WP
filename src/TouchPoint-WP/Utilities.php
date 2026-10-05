@@ -553,16 +553,27 @@ abstract class Utilities
 	 *
 	 * If the $newUrl is blank or null, the image is removed.
 	 *
+	 * The image that's replaced is deleted from the media library right away, unless an array is provided for
+	 * $replacedAttIds.  Then, it's left in place, and its attachment ID is added to the array, so the caller can use
+	 * deleteAttachmentIfUnused() once other posts using it have been updated.
+	 *
 	 * @param int         $postId
 	 * @param string|null $newUrl
 	 * @param string      $title
 	 * @param bool        $verbose
+	 * @param array|null  $replacedAttIds Provide an array to defer deleting the replaced image.
 	 *
 	 * @return int The attachmentId for the image.  Can be reused for other posts.
 	 * @since 0.0.24 Added
+	 * @since 0.0.98 Added $replacedAttIds
 	 */
-	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title, bool $verbose = false): int
-	{
+	public static function updatePostImageFromUrl(
+		int $postId,
+		?string $newUrl,
+		string $title,
+		bool $verbose = false,
+		?array &$replacedAttIds = null
+	): int {
 		// Required for image handling
 		require_once(ABSPATH . 'wp-admin/includes/media.php');
 		require_once(ABSPATH . 'wp-admin/includes/file.php');
@@ -596,7 +607,11 @@ abstract class Utilities
 		// determine if a change is needed
 		if ($newAttId !== $oldAttId || ($newUrl !== "" && $oldAttId === 0)) {
 			if ($oldAttId > 0) { // Remove and delete old one.
-				wp_delete_attachment($oldAttId, true);
+				if ($replacedAttIds === null) {
+					wp_delete_attachment($oldAttId, true);
+				} else {
+					$replacedAttIds[] = $oldAttId;
+				}
 			}
 			if ($newAttId === 0 && $newUrl !== "") { // New image isn't in media yet.
 				set_time_limit(60);
@@ -623,6 +638,38 @@ abstract class Utilities
 		}
 
 		return $newAttId;
+	}
+
+	/**
+	 * Delete an image from the media library, unless a post still uses it as its featured image.  Archived meetings keep
+	 * the image they had, so an image that was replaced is only deleted when nothing is holding on to it.
+	 *
+	 * @param int  $attachmentId
+	 * @param bool $verbose
+	 *
+	 * @return bool True if the image was deleted.
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public static function deleteAttachmentIfUnused(int $attachmentId, bool $verbose = false): bool
+	{
+		global $wpdb;
+
+		$usedBy = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_thumbnail_id' AND meta_value = %s LIMIT 1",
+				(string)$attachmentId
+			)
+		);
+
+		if ($usedBy !== null) {
+			if ($verbose) {
+				echo "<p>Image $attachmentId was replaced, but is still used by Post $usedBy.  It will be kept.</p>";
+			}
+			return false;
+		}
+
+		return ! ! wp_delete_attachment($attachmentId, true);
 	}
 
 	/**

@@ -94,6 +94,9 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	private static array $_instances = [];
 	private static bool $_isLoaded = false;
 
+	/** @var int[] Attachment IDs of images that were replaced or whose posts were deleted, to be deleted at the end of the sync if no post uses them. */
+	private static array $_replacedImages = [];
+
 	public static string $containerClass = 'inv-list';
 	public static string $itemClass = 'inv-list-item';
 
@@ -2933,7 +2936,34 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		//// Removals ////
 		//////////////////
 
-		return self::deleteUnkeptPosts($typeSets, $postsToKeep, $verbose, $applyChanges) + count($invData);
+		$removals = self::deleteUnkeptPosts($typeSets, $postsToKeep, $verbose, $applyChanges);
+
+		////////////////
+		//// Images ////
+		////////////////
+
+		self::deleteUnusedReplacedImages($verbose);
+
+		return $removals + count($invData);
+	}
+
+	/**
+	 * Delete the images that were replaced during the sync, or that belonged to posts that were deleted, unless a post
+	 * still uses them.  This waits until the end of the sync because live meetings are updated after the image is
+	 * replaced, and archived meetings keep the image they had.
+	 *
+	 * @param bool $verbose
+	 *
+	 * @return void
+	 */
+	protected static function deleteUnusedReplacedImages(bool $verbose): void
+	{
+		$attachmentIds         = array_unique(self::$_replacedImages);
+		self::$_replacedImages = [];
+
+		foreach ($attachmentIds as $attachmentId) {
+			Utilities::deleteAttachmentIfUnused($attachmentId, $verbose);
+		}
 	}
 
 	/**
@@ -2979,6 +3009,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				echo "<p>$verb post $post->ID <code>$path</code> \"$title\"$note</p>";
 			}
 			if ($applyChanges) {
+				$imageId = Utilities::ownThumbnailId($post->ID);
+				if ($imageId > 0) {
+					self::$_replacedImages[] = $imageId;
+				}
 				wp_delete_post($post->ID, true);
 			}
 			$removals++;
@@ -3101,9 +3135,13 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 
 		// Update image, if appropriate.  Only when applying changes: updatePostImageFromUrl() changes the media library,
 		// and deletes the post's current image if the URL is different or blank, so a preview must not call it.
+		// A replaced image is deleted at the end of the sync, if nothing is using it.  Archived meetings may be, and
+		// other live meetings may not have been updated yet.
 		$imageUrl = $typeSets->useImages ? ($inv->imageUrl ?? "") : "";
 		if ($applyChanges) {
-			$imageId = Utilities::updatePostImageFromUrl($post->ID ?? 0, $imageUrl, $post->post_title, $verbose);
+			$imageId = Utilities::updatePostImageFromUrl(
+				$post->ID ?? 0, $imageUrl, $post->post_title, $verbose, self::$_replacedImages
+			);
 		} else {
 			$imageId = $post->ID ? Utilities::ownThumbnailId($post->ID) : 0;
 			if ($verbose) {
@@ -3351,6 +3389,10 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		//////////////////
 
 		if ($updateMeetings) {
+			// Meetings use the post's image, which may be inherited if it doesn't have one.
+			if ($imageId === 0 && $post->ID) {
+				$imageId = intval(self::filterThumbnailId(0, $post));
+			}
 			$postsToKeep = self::updateMeetingsWithGrouping($post, $inv, $typeSets, $imageId, $verbose, $applyChanges);
 		} else {
 			$postsToKeep = [$post->ID];
