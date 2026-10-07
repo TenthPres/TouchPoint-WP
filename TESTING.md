@@ -228,7 +228,9 @@ workflow:
 - Validates `composer.json`
 - Runs `composer update` rather than `composer install`, so each PHP version gets dependencies it can use
 - Runs the complete test suite with `composer test`
-- Generates a coverage report on PHP 8.3 only, and uploads it as an artifact
+- Measures code coverage on PHP 8.4 only, prints the overall percentage in the run, and uploads the report as an artifact
+- Submits the coverage report to [Coveralls](https://coveralls.io) from that same job.  The repository has to be enabled
+  at coveralls.io first.  A problem submitting doesn't fail the run, so check the step's log if results don't appear.
 
 You can view the test results in the "Actions" tab of the GitHub repository.
 

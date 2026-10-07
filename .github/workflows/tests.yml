@@ -54,6 +54,14 @@ jobs:
         if: matrix.php-version == '8.4'
         run: ./vendor/bin/phpunit --coverage-clover coverage.xml --coverage-text
 
+      - name: Submit coverage to Coveralls (PHP 8.4 only)
+        if: matrix.php-version == '8.4'
+        uses: coverallsapp/github-action@v2
+        with:
+          file: coverage.xml
+          format: clover
+          fail-on-error: false # A problem with Coveralls shouldn't fail the tests.
+
       - name: Report overall coverage (PHP 8.4 only)
         if: matrix.php-version == '8.4'
         run: |
