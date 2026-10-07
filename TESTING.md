@@ -91,6 +91,7 @@ Tests are organized in the `tests/` directory:
 - `tests/Unit/` - Unit tests for individual classes and methods
 - `tests/Integration/` - Integration tests that exercise WordPress filters together with the code that applies them
 - `tests/mocks/` - Minimal stand-ins for WordPress classes, such as `WP_Error`
+- `tests/Support/` - Helpers shared by tests.  For example, `MeetingFixtures` builds meetings and involvements shaped like the TouchPoint API's, so the meeting logic can be tested without the API or WordPress
 - `tests/TestCase.php` - Base test case class
 - `tests/bootstrap.php` - Bootstrap file with the WordPress function implementations
 
