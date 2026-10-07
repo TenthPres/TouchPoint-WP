@@ -318,10 +318,11 @@ abstract class Utilities
 	}
 
 	/**
-	 * Convert a list (string or array) to an int array.  Strips out non-numerics and explodes.
+	 * Convert a list (string or array) to an int array.  Strips out non-numerics and explodes.  Items that have no
+	 * digits in them, such as the empty ones in "1,,2", are left out.
 	 *
 	 * @param array|string $r
-	 * @param bool         $explode
+	 * @param bool         $explode If false, the IDs are returned as a comma-separated string instead.
 	 *
 	 * @return int[]|string
 	 */
@@ -331,13 +332,19 @@ abstract class Utilities
 			$r = implode(",", $r);
 		}
 
-		$r = preg_replace('/[^0-9,]+/', '', $r);
-
-		if ($explode) {
-			return json_decode("[" . $r . "]");
+		$ids = [];
+		foreach (explode(",", $r) as $item) {
+			$digits = preg_replace('/[^0-9]+/', '', $item);
+			if ($digits !== "") {
+				$ids[] = intval($digits);
+			}
 		}
 
-		return $r;
+		if ($explode) {
+			return $ids;
+		}
+
+		return implode(",", $ids);
 	}
 
 	/**
