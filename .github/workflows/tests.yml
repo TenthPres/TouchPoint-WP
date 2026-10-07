@@ -15,15 +15,15 @@ jobs:
   test:
     name: Run PHPUnit Tests
     runs-on: ubuntu-latest
-    
+
     strategy:
       fail-fast: false
       matrix:
         php-version: ['8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -37,7 +37,7 @@ jobs:
 
       - name: Cache Composer packages
         id: composer-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: vendor
           key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
@@ -47,17 +47,39 @@ jobs:
       - name: Install dependencies
         run: composer update --prefer-dist --no-progress  # use update to allow for different php versions in matrix.
 
-
       - name: Run test suite
         run: composer test
 
-      - name: Generate coverage report (PHP 8.3 only)
-        if: matrix.php-version == '8.3'
-        run: ./vendor/bin/phpunit --coverage-clover coverage.xml
+      - name: Measure code coverage (PHP 8.4 only)
+        if: matrix.php-version == '8.4'
+        run: ./vendor/bin/phpunit --coverage-clover coverage.xml --coverage-text
 
-      - name: Upload coverage to artifact (PHP 8.3 only)
-        if: matrix.php-version == '8.3'
-        uses: actions/upload-artifact@v4
+      - name: Report overall coverage (PHP 8.4 only)
+        if: matrix.php-version == '8.4'
+        run: |
+          php <<'PHP'
+          <?php
+          $metrics = simplexml_load_file('coverage.xml')->project->metrics;
+          $lines   = [(int)$metrics['coveredstatements'], (int)$metrics['statements']];
+          $methods = [(int)$metrics['coveredmethods'], (int)$metrics['methods']];
+          $percent = fn(array $p): string => $p[1] > 0 ? sprintf('%.2f%%', 100 * $p[0] / $p[1]) : 'n/a';
+
+          $headline = sprintf('Overall line coverage: %s (%d of %d lines)', $percent($lines), $lines[0], $lines[1]);
+          $methodLine = sprintf('Method coverage: %s (%d of %d methods)', $percent($methods), $methods[0], $methods[1]);
+
+          echo str_repeat('=', 60), PHP_EOL, $headline, PHP_EOL, $methodLine, PHP_EOL, str_repeat('=', 60), PHP_EOL;
+
+          // A notice shows at the top of the run page, and the summary shows on the run's Summary tab.
+          echo "::notice title=Code coverage (PHP 8.4)::$headline", PHP_EOL;
+          $summaryFile = getenv('GITHUB_STEP_SUMMARY');
+          if ($summaryFile) {
+              file_put_contents($summaryFile, "## Code coverage (PHP 8.4)\n\n**$headline**\n\n$methodLine\n", FILE_APPEND);
+          }
+          PHP
+
+      - name: Upload coverage to artifact (PHP 8.4 only)
+        if: matrix.php-version == '8.4'
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage.xml
