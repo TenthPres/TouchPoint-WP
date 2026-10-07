@@ -436,7 +436,6 @@ class Utilities_Test extends TestCase
 	 * IDs come from settings that people edit, and are used to build the queries sent to TouchPoint, so a stray comma
 	 * shouldn't stop an import.
 	 *
-	 * @group known-issue
 	 * @dataProvider provider_oddIdLists
 	 */
 	public function test_idArrayToIntArray_toleratesOddLists(string|array $input, array $expected): void

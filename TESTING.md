@@ -71,6 +71,18 @@ To run a specific test method:
 ./vendor/bin/phpunit --filter test_distance_calculation
 ```
 
+To skip the tests for known problems (see below):
+
+```bash
+./vendor/bin/phpunit --exclude-group known-issue
+```
+
+#### Known issues
+
+A test that describes how the code should behave, but that fails because it doesn't yet, is marked `@group known-issue`.
+That keeps the problem visible, and the test ready for whoever fixes it, without hiding a real failure behind a skipped
+or watered-down test.  Remove the group when the test passes.
+
 ### Code Coverage
 
 To generate a code coverage report:
@@ -182,9 +194,23 @@ implemented.  `TestCase` clears all filters before and after every test, so a te
 `wp_date()`.  They're simple stand-ins, not WordPress's real behavior.  If the code you're testing calls a WordPress
 function that isn't defined, add a stub to `tests/bootstrap.php`.  Keep it as simple as the test allows.
 
-**The current time.**  `current_datetime()` always returns 2025-11-12 21:00:00 UTC, so tests that depend on "now" give the
-same result every time.  Classes that cache the current time in a static property, such as `Utilities`, keep it between
-tests.  Reset those properties in `set_up()` with reflection, as `tests/Unit/Utilities_Test.php` does.
+**The current time, time zone, and options.**  Unless a test says otherwise, the current time is 2025-11-12 21:00 UTC (a
+Wednesday), the site's time zone is UTC, and the date and time formats are WordPress's defaults ("F j, Y" and "g:i a").
+A test can change them with these methods of `TestCase`, and they're put back afterward:
+
+- `setNow('2025-12-31 12:00')` sets the current time, and `setNow($time, 'America/New_York')` sets the time zone too
+- `setTimezone('America/New_York')` sets the site's time zone
+- `setOption('time_format', 'H:i')` sets any option that `get_option()` returns
+
+`TestCase` also clears what `Utilities` caches (the current time and the client's IP address) before and after every
+test, so a test doesn't have to.
+
+**Protected code and settings.**  Many of the plugin's helpers are protected static methods.  `TestCase` has
+`callStatic($class, $method, ...$arguments)` and `setStatic($class, $property, $value)` for calling and setting them with
+reflection.  `useGroupingSettings([...])` provides the Meeting Grouping settings without reading them from WordPress.
+(Static state that a test sets itself is the test's to put back.)
+
+**Test data.**  `tests/Support/MeetingFixtures.php` builds meetings and involvements shaped like the TouchPoint API's.
 
 **Logging.**  The plugin logs exceptions with `error_log()`.  The bootstrap sends that to the null device, so it doesn't
 clutter the test output.
