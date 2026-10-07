@@ -150,7 +150,7 @@ abstract class DateFormats
 				$nowTs = DateFormats::timestampWithoutOffset($now);
 
 
-				if ($tomorrow->format("Y") === $dt->format("Y")) { // Same Year
+				if ($now->format("Y") === $dt->format("Y")) { // Same Year
 					$day = wp_date(_x('l', "Date string for day of the week, when the year is current.", "TouchPoint-WP"), $ts);
 					$date = wp_date(_x('F j', "Date string when the year is current.", "TouchPoint-WP"), $ts);
 				} else {

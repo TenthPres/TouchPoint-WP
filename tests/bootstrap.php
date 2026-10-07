@@ -112,18 +112,29 @@ if (!function_exists('is_admin')) {
     }
 }
 
+// Dates and times work in UTC unless a test sets the site's time zone (see TestCase::setTimezone()).
+date_default_timezone_set('UTC');
+
+if (!function_exists('wp_timezone')) {
+    function wp_timezone() {
+        $zone = $GLOBALS['_wp_options']['timezone_string'] ?? '';
+        return new \DateTimeZone($zone !== '' ? $zone : 'UTC');
+    }
+}
+
+// The current time is fixed at 2025-11-12 21:00 UTC unless a test sets it (see TestCase::setNow()).
 if (!function_exists('current_datetime')) {
     function current_datetime() {
-        return new \DateTimeImmutable('2025-11-12 21:00:00', new \DateTimeZone('UTC'));
+        return new \DateTimeImmutable($GLOBALS['_wp_now'] ?? '2025-11-12 21:00:00', wp_timezone());
     }
 }
 
 if (!function_exists('wp_date')) {
-    function wp_date($format, $timestamp = null) {
+    function wp_date($format, $timestamp = null, $timezone = null) {
         if ($timestamp === null) {
             $timestamp = time();
         }
-        return date($format, $timestamp);
+        return (new \DateTimeImmutable('@' . $timestamp))->setTimezone($timezone ?? wp_timezone())->format($format);
     }
 }
 
@@ -136,9 +147,11 @@ if (!function_exists('date_i18n')) {
     }
 }
 
+// Options are whatever a test sets (see TestCase::setOption()), with WordPress's defaults for the formats it has.
 if (!function_exists('get_option')) {
     function get_option($option, $default = false) {
-        return $default;
+        $defaults = ['time_format' => 'g:i a', 'date_format' => 'F j, Y', 'timezone_string' => ''];
+        return $GLOBALS['_wp_options'][$option] ?? $defaults[$option] ?? $default;
     }
 }
 
