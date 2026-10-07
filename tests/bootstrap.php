@@ -203,6 +203,27 @@ if (!function_exists('wp_kses_post')) {
     }
 }
 
+// Usernames that are already taken (see TestCase::setTakenUsernames()).  WordPress returns the user's ID, or false.
+if (!function_exists('username_exists')) {
+    function username_exists($username) {
+        return in_array($username, $GLOBALS['_wp_usernames'] ?? [], true) ? 1 : false;
+    }
+}
+
+// Accented letters are replaced with plain ones.  This only knows the common ones, where WordPress knows them all.
+if (!function_exists('remove_accents')) {
+    function remove_accents($text) {
+        return strtr($text, [
+            'á' => 'a', 'à' => 'a', 'â' => 'a', 'ä' => 'a', 'ã' => 'a', 'å' => 'a', 'Á' => 'A', 'À' => 'A', 'Ä' => 'A',
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e', 'É' => 'E', 'È' => 'E',
+            'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i', 'Í' => 'I',
+            'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'ö' => 'o', 'õ' => 'o', 'Ó' => 'O', 'Ö' => 'O',
+            'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'Ú' => 'U', 'Ü' => 'U',
+            'ñ' => 'n', 'Ñ' => 'N', 'ç' => 'c', 'Ç' => 'C',
+        ]);
+    }
+}
+
 if (!function_exists('current_user_can')) {
     function current_user_can($capability) {
         return false;
@@ -211,6 +232,8 @@ if (!function_exists('current_user_can')) {
 
 // Load WordPress class mocks
 require_once __DIR__ . '/mocks/WP_Error.php';
+require_once __DIR__ . '/mocks/WP_Post.php';
+require_once __DIR__ . '/mocks/WP_User.php';
 
 // Autoload Yoast PHPUnit Polyfills
 require_once dirname(__DIR__) . '/vendor/yoast/phpunit-polyfills/phpunitpolyfills-autoload.php';

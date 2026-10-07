@@ -102,7 +102,7 @@ Tests are organized in the `tests/` directory:
 
 - `tests/Unit/` - Unit tests for individual classes and methods
 - `tests/Integration/` - Integration tests that exercise WordPress filters together with the code that applies them
-- `tests/mocks/` - Minimal stand-ins for WordPress classes, such as `WP_Error`
+- `tests/mocks/` - Minimal stand-ins for WordPress classes, such as `WP_Error`, `WP_Post`, and `WP_User`
 - `tests/Support/` - Helpers shared by tests.  For example, `MeetingFixtures` builds meetings and involvements shaped like the TouchPoint API's, so the meeting logic can be tested without the API or WordPress
 - `tests/TestCase.php` - Base test case class
 - `tests/bootstrap.php` - Bootstrap file with the WordPress function implementations
@@ -207,7 +207,8 @@ test, so a test doesn't have to.
 
 **Protected code and settings.**  Many of the plugin's helpers are protected static methods.  `TestCase` has
 `callStatic($class, $method, ...$arguments)` and `setStatic($class, $property, $value)` for calling and setting them with
-reflection.  `useGroupingSettings([...])` provides the Meeting Grouping settings without reading them from WordPress.
+reflection.  `useGroupingSettings([...])` provides the Meeting Grouping settings without reading them from WordPress, and
+`setTakenUsernames([...])` says which WordPress usernames already exist.
 (Static state that a test sets itself is the test's to put back.)
 
 **Test data.**  `tests/Support/MeetingFixtures.php` builds meetings and involvements shaped like the TouchPoint API's.

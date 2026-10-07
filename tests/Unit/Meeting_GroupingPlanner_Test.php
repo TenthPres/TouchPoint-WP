@@ -10,6 +10,7 @@ namespace tp\TouchPointWP\Tests\Unit;
 use stdClass;
 use tp\TouchPointWP\MeetingArray;
 use tp\TouchPointWP\Meeting_GroupingPlanner;
+use tp\TouchPointWP\Meeting_GroupingSettings;
 use tp\TouchPointWP\Tests\Support\MeetingFixtures;
 use tp\TouchPointWP\Tests\TestCase;
 
@@ -530,5 +531,82 @@ class Meeting_GroupingPlanner_Test extends TestCase
         ]);
 
         $this->assertSame([10, 11], self::shape($this->plan($owner, [], false, false)));
+    }
+
+    ///////////////////
+    // fromSettings  //
+    ///////////////////
+
+    /**
+     * Plan a structure with the planner that Meeting_GroupingPlanner::fromSettings() makes from the settings for all
+     * types.
+     *
+     * @param array      $settings Settings for useGroupingSettings().
+     * @param stdClass   $owner
+     * @param stdClass[] $children
+     *
+     * @return array
+     */
+    private function planFromSettings(array $settings, stdClass $owner, array $children = []): array
+    {
+        $this->useGroupingSettings($settings);
+
+        $rule = Meeting_GroupingSettings::forOtherTypes();
+
+        return Meeting_GroupingPlanner::fromSettings($owner, [$owner, ...$children], $rule)->plan();
+    }
+
+    public function test_fromSettings_usesTheEditionAndClusterSettings(): void
+    {
+        $owner = self::involvement(1, 'Retreat', [
+            self::meeting(1, 1, '2026-03-14 09:00', '2026-03-14 10:00'),
+            self::meeting(2, 1, '2026-03-14 10:00', '2026-03-14 11:00'),
+            self::meeting(3, 1, '2026-03-15 09:00', '2026-03-15 10:00'),
+        ]);
+
+        $this->assertSame([1, 2, 3], self::shape($this->planFromSettings([], $owner)));
+        $this->assertSame([['cluster' => [1, 2]], 3], self::shape($this->planFromSettings(['otherTypes' => ['clusters' => true]], $owner)));
+        $this->assertSame([['edition' => [1, 2, 3]]], self::shape($this->planFromSettings(['otherTypes' => ['editions' => true]], $owner)));
+        $this->assertSame(
+            [['edition' => [['cluster' => [1, 2]], 3]]],
+            self::shape($this->planFromSettings(['otherTypes' => ['editions' => true, 'clusters' => true]], $owner))
+        );
+    }
+
+    public function test_fromSettings_childrensMeetingsAreOnlyIncludedIfTheSettingsSayTo(): void
+    {
+        $child = self::involvement(2, 'Child', [self::meeting(2, 2, '2026-03-14 11:00')]);
+        $owner = self::involvement(1, 'Owner', [self::meeting(1, 1, '2026-03-14 09:00')]);
+
+        $without = $this->planFromSettings([], $owner, [$child]);
+        $with    = $this->planFromSettings(['otherTypes' => ['includeChildren' => true]], $owner, [$child]);
+
+        $this->assertSame([1], self::shape($without));
+        $this->assertSame([1, 2], self::shape($with));
+    }
+
+    public function test_fromSettings_theGapFiltersApply(): void
+    {
+        $owner = self::involvement(1, 'Event', [
+            self::meeting(1, 1, '2026-03-01 09:00', '2026-03-01 10:00'),
+            self::meeting(2, 1, '2026-03-04 09:00', '2026-03-04 10:00'),   // Three days later.
+            self::meeting(3, 1, '2026-03-04 11:30', '2026-03-04 12:30'),   // An hour and a half after meeting 2.
+        ]);
+        $settings = ['otherTypes' => ['editions' => true, 'clusters' => true]];
+
+        $this->assertSame(
+            [['edition' => [1, ['cluster' => [2, 3]]]]],
+            self::shape($this->planFromSettings($settings, $owner)),
+            'By default, the Edition gap is 25 days and the Cluster gap is 2 hours.'
+        );
+
+        add_filter('tp_meeting_edition_gap', fn($seconds) => 86400);
+        add_filter('tp_meeting_cluster_gap', fn($seconds) => 600);
+
+        $this->assertSame(
+            [1, ['edition' => [2, 3]]],
+            self::shape($this->planFromSettings($settings, $owner)),
+            'A one-day Edition gap splits meeting 1 off, and a ten-minute Cluster gap keeps meetings 2 and 3 apart.'
+        );
     }
 }

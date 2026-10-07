@@ -64,7 +64,8 @@ abstract class TestCase extends PolyfillsTestCase
         global $_wp_filters;
         $_wp_filters = [];
 
-        $GLOBALS['_wp_options'] = [];
+        $GLOBALS['_wp_options']   = [];
+        $GLOBALS['_wp_usernames'] = [];
         unset($GLOBALS['_wp_now']);
         $this->resetUtilitiesCaches();
 
@@ -116,6 +117,16 @@ abstract class TestCase extends PolyfillsTestCase
         }
         $GLOBALS['_wp_now'] = $dateTime;
         $this->resetUtilitiesCaches();
+    }
+
+    /**
+     * Set which usernames are already taken, as username_exists() will report.
+     *
+     * @param string[] $usernames
+     */
+    protected function setTakenUsernames(array $usernames): void
+    {
+        $GLOBALS['_wp_usernames'] = $usernames;
     }
 
     /**

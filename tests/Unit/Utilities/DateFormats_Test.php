@@ -201,16 +201,6 @@ class DateFormats_Test extends TestCase
         $this->assertSame('SAT, DEC 20 2025', DateFormats::DateStringFormattedShort(self::dt(self::FAR)));
     }
 
-    /**
-     * The long and short forms decide whether a date is in "this year" differently: the short form compares with today's
-     * year, and the long form compares with tomorrow's.  The two only differ on December 31, when every date in the
-     * current year gets its year added in the long form, and not in the short one.
-     *
-     * Both forms used tomorrow's year when they were written, and the short form was later changed to today's.  It isn't
-     * known whether the long form was meant to stay as it is.  If it was, this test should say so.
-     *
-     * @group known-issue
-     */
     public function test_DateStringFormatted_andTheShortFormAgreeAboutTheYearOnNewYearsEve(): void
     {
         $this->setNow('2025-12-31 12:00');

@@ -1599,11 +1599,11 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			return null;
 		}
 
-		$standingLastName = $family[0]->LastName ?? $family[0]->last_name;
-		$string           = "";
-
 		// TODO use something a little more intelligent (head first)
 		usort($family, fn($a, $b) => ($a->GenderId ?? 0) <=> ($b->GenderId ?? 0));
+
+        $standingLastName = $family[0]->LastName ?? $family[0]->last_name;
+        $string           = "";
 
 		$isFirst = true;
 		$hasLink = false;
@@ -1612,12 +1612,12 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			if ($standingLastName != $last) {
 				$string .= " " . $standingLastName;
 
-				if ($hasLink) {
-					$string .= "</a>";
-				}
-
 				$standingLastName = $last;
 			}
+
+            if ($hasLink) {
+                $string .= "</a>";
+            }
 
 			if (!$isFirst && count($family) > 1) {
 				$string .= " & ";
