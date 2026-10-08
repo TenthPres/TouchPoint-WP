@@ -796,8 +796,17 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 			exit;
 		}
 
+		// This endpoint is public; only meeting ID numbers are allowed through.
+		$mtgRefs = Utilities::idArrayToIntArray($_GET['mtgRefs'] ?? '', false);
+		$mtgRefs = trim(preg_replace('/,{2,}/', ',', $mtgRefs), ',');
+
+		if ($mtgRefs === '') {
+			echo json_encode(['success' => []]);
+			exit;
+		}
+
 		try {
-			$data = self::getMeetingInfoForRsvp($_GET);
+			$data = self::getMeetingInfoForRsvp(['mtgRefs' => $mtgRefs]);
 		} catch (TouchPointWP_Exception $ex) {
 			http_response_code(Http::SERVER_ERROR);
 			echo json_encode(['error' => $ex->getMessage()]);

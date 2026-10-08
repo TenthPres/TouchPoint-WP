@@ -1427,14 +1427,17 @@ class TouchPointWP
 			throw new TouchPointWP_Exception("IP Geolocation Error: Rate Limited. Backing off for 5 minutes.", 178001);
 		}
 
-		try {
-			json_decode($return, flags: JSON_THROW_ON_ERROR);
-		} catch (JsonException) {
-			throw new TouchPointWP_Exception("IP Geolocation Error: Invalid JSON", 178001);
+		$decoded = json_decode($return);
+
+		if ( ! is_object($decoded)) {
+			// Probably a block or error page rather than an API response.  Back off, so that this isn't repeated
+			// (and logged) on every request while the service is unavailable.
+			$this->settings->set('ipapi_ratelimit_exp', time() + 60);
+			throw new TouchPointWP_Exception("IP Geolocation Error: Invalid JSON. Backing off for 1 minute.", 178001);
 		}
 
-		if (property_exists($return, 'error')) {
-			throw new TouchPointWP_Exception("IP Geolocation Error: " . $return->error . " " . $return->reason ?? "", 178001);
+		if (property_exists($decoded, 'error')) {
+			throw new TouchPointWP_Exception("IP Geolocation Error: " . ($decoded->reason ?? ""), 178001);
 		}
 
 		$this->ipData = $return;

@@ -18,6 +18,9 @@ if ( ! defined('ABSPATH')) {
  */
 class TouchPointWP_Exception extends Exception
 {
+	/** Size at which the debug log is rotated. */
+	public const DEBUG_LOG_MAX_BYTES = 5 * 1024 * 1024;
+
 	static ?bool $_debugMode = null;
 
 	/**
@@ -74,8 +77,15 @@ class TouchPointWP_Exception extends Exception
 	{
 		if (self::debugMode()) {
 			$message = str_replace("\n", "<br />", $message);
+			$logFile = TouchPointWP::$dir . '/TouchPointWP_ErrorLog.txt';
+
+			// Keep the log from growing without limit: keep one previous log, and start over.
+			if (@filesize($logFile) > self::DEBUG_LOG_MAX_BYTES) {
+				@rename($logFile, $logFile . '.1');
+			}
+
 			file_put_contents(
-				TouchPointWP::$dir . '/TouchPointWP_ErrorLog.txt',
+				$logFile,
 				time() . "\t" . TouchPointWP::VERSION . "\t" . $code . "\t" . $file . "#" . $line . "\t" . $message . "\n",
 				FILE_APPEND | LOCK_EX
 			);

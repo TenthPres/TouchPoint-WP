@@ -1002,8 +1002,16 @@ if "mtg" in Data.a and model.HttpMethod == "post":
     inData = model.JsonDeserialize(Data.data).inputData
 
     Data.success = []
+
+    # This value comes from a public URL, so it is reduced to ID numbers.  It's also absent when nothing was requested.
+    try:
+        mtgRefs = str(inData.mtgRefs)
+    except AttributeError:
+        mtgRefs = ""
+    mtgIds = ",".join([r for r in "".join([c for c in mtgRefs if c.isdigit() or c == ","]).split(",") if r != ""])
+
     # noinspection SqlResolve
-    for mtg in q.QuerySql('''
+    for mtg in ([] if mtgIds == "" else q.QuerySql('''
     SELECT  m.meetingId as mtgId,
             m.organizationId as invId,
             m.location,
@@ -1013,7 +1021,7 @@ if "mtg" in Data.a and model.HttpMethod == "post":
             o.organizationName as invName
     FROM Meetings m LEFT JOIN Organizations o ON m.organizationId = o.organizationId
     WHERE MeetingId IN ({})
-    '''.format(inData.mtgRefs)):
+    '''.format(mtgIds))):
         mtg.description = mtg.description.strip()
         if mtg.description == "":
             mtg.description = None
