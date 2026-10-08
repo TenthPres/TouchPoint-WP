@@ -753,4 +753,206 @@ class Utilities_Test extends TestCase
 
 		$this->assertSame('192.0.2.5', Utilities::getClientIp());
 	}
+
+	///////////////////////////////////////////////////////////////
+	// How things should behave, where they don't yet (known-issue) //
+	///////////////////////////////////////////////////////////////
+
+	/**
+	 * The addresses (the href values) of the links in some HTML, with entities decoded and whitespace and control
+	 * characters removed, the way a browser reads them.
+	 *
+	 * @param string $html
+	 *
+	 * @return string[]
+	 */
+	private static function hrefs(string $html): array
+	{
+		preg_match_all('/href\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))/i', $html, $matches, PREG_SET_ORDER);
+
+		return array_map(
+			fn($m) => preg_replace('/[\s\x00-\x1f]+/', '', html_entity_decode($m[1] . ($m[2] ?? '') . ($m[3] ?? ''))),
+			$matches
+		);
+	}
+
+	/**
+	 * @group known-issue
+	 */
+	public function test_standardizeHtml_scriptAndStyleContentsAreRemoved(): void
+	{
+		$this->assertSame('<p>Hello there</p>', Utilities::standardizeHtml('<p>Hello <script>alert(1)</script>there</p>'));
+		$this->assertSame('<p>Hello there</p>', Utilities::standardizeHtml('<p>Hello <style>p { color: red; }</style>there</p>'));
+	}
+
+	/**
+	 * @return array[] [HTML with a link that runs code or loads a document]
+	 */
+	public static function provider_unsafeLinks(): array
+	{
+		return [
+			'javascript'              => ['<a href="javascript:alert(1)">Click</a>'],
+			'javascript, mixed case'  => ['<a href="JaVaScRiPt:alert(1)">Click</a>'],
+			'javascript, leading space' => ['<a href="  javascript:alert(1)">Click</a>'],
+			'javascript, a tab inside' => ["<a href=\"java\tscript:alert(1)\">Click</a>"],
+			'javascript, an entity'   => ['<a href="&#106;avascript:alert(1)">Click</a>'],
+			'javascript, single quotes' => ["<a href='javascript:alert(1)'>Click</a>"],
+			'javascript, no quotes'   => ['<a href=javascript:alert(1)>Click</a>'],
+			'data'                    => ['<a href="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==">Click</a>'],
+			'vbscript'                => ['<a href="vbscript:msgbox(1)">Click</a>'],
+		];
+	}
+
+	/**
+	 * @group known-issue
+	 * @dataProvider provider_unsafeLinks
+	 */
+	public function test_standardizeHtml_linksThatRunCodeAreNotKept(string $html): void
+	{
+		$result = Utilities::standardizeHtml($html);
+
+		foreach (self::hrefs($result) as $href) {
+			$this->assertDoesNotMatchRegularExpression('/^(javascript|vbscript|data):/i', $href, "Unsafe link kept: $result");
+		}
+		$this->assertStringContainsString('Click', $result, 'The text of the link is kept.');
+	}
+
+	public function test_standardizeHtml_ordinaryLinksAreKept(): void
+	{
+		foreach (['https://example.com/a?b=1&amp;c=2', 'http://example.com', 'mailto:someone@example.com', 'tel:+15555550100', '/events/', '#top'] as $href) {
+			$html = "<a href=\"$href\">Link</a>";
+
+			$this->assertSame($html, Utilities::standardizeHtml($html), $href);
+		}
+	}
+
+	/**
+	 * @return array[] [HTML with an event handler]
+	 */
+	public static function provider_eventHandlers(): array
+	{
+		return [
+			'on a paragraph'       => ['<p onclick="alert(1)">Click</p>'],
+			'on a link'            => ['<a href="https://example.com" onmouseover="alert(1)">Click</a>'],
+			'in capitals'          => ['<b ONCLICK="alert(1)">Click</b>'],
+			'in a table'           => ['<table><tr><td onmouseenter="alert(1)">Click</td></tr></table>'],
+			'single quotes'        => ["<p onclick='alert(1)'>Click</p>"],
+			'no quotes'            => ['<p onclick=alert(1)>Click</p>'],
+		];
+	}
+
+	/**
+	 * @group known-issue
+	 * @dataProvider provider_eventHandlers
+	 */
+	public function test_standardizeHtml_eventHandlersAreRemoved(string $html): void
+	{
+		$result = Utilities::standardizeHtml($html);
+
+		$this->assertDoesNotMatchRegularExpression('/<[^>]*\son\w+\s*=/i', $result);
+		$this->assertStringContainsString('Click', $result);
+	}
+
+	/**
+	 * @return array[] [highest heading allowed, HTML, expected]
+	 */
+	public static function provider_uppercaseHeadings(): array
+	{
+		return [
+			'in capitals'                   => [2, '<H1>A</H1>', '<h2>A</h2>'],
+			'in capitals with attributes'   => [2, '<H1 class="x">A</H1>', '<h2 class="x">A</h2>'],
+			'mixed with lower case'         => [2, '<H1>A</H1><h2>B</h2>', '<h2>A</h2><h3>B</h3>'],
+			'past h6'                       => [6, '<H1>A</H1><H2>B</H2>', '<h6>A</h6><p><strong>B</strong></p>'],
+		];
+	}
+
+	/**
+	 * @group known-issue
+	 * @dataProvider provider_uppercaseHeadings
+	 */
+	public function test_standardizeHTags_tagNamesInCapitalsCountAsHeadings(int $maxAllowed, string $html, string $expected): void
+	{
+		$this->assertSame($expected, Utilities::standardizeHTags($maxAllowed, $html));
+	}
+
+	/**
+	 * @group known-issue
+	 */
+	public function test_standardizeHtml_headingsInCapitalsAreMovedDown(): void
+	{
+		$this->assertSame('<h2>Title</h2><p>Text</p>', Utilities::standardizeHtml('<H1>Title</H1><p>Text</p>'));
+	}
+
+	/**
+	 * @return array[] [title, slug]
+	 */
+	public static function provider_slugsWithPunctuationAtTheEdges(): array
+	{
+		return [
+			'at the start'                     => ['...Hello', 'hello'],
+			'a leading period, then a title'   => ['. Hello World', 'hello-world'],
+			'in parentheses'                   => ['(Hello)', 'hello'],
+			'a trailing symbol'                => ['Hello &', 'hello'],
+			'a leading symbol'                 => ['& Hello', 'hello'],
+			'dashes at both ends'              => ['--Hello--', 'hello'],
+			'only symbols'                     => ['???', ''],
+		];
+	}
+
+	/**
+	 * @group known-issue
+	 * @dataProvider provider_slugsWithPunctuationAtTheEdges
+	 */
+	public function test_stringToSlug_neverStartsOrEndsWithADash(string $title, string $slug): void
+	{
+		$this->assertSame($slug, Utilities::stringToSlug($title));
+	}
+
+	/**
+	 * A request can include headers that say whatever its sender wants, so the address of the connection is the only
+	 * one that can be relied on, unless the connection is from a proxy the site is set to trust.
+	 *
+	 * @group known-issue
+	 */
+	public function test_getClientIp_headersFromTheRequestAreNotTrustedByDefault(): void
+	{
+		$this->requestFrom([
+			'HTTP_CLIENT_IP'       => '203.0.113.9',
+			'HTTP_X_FORWARDED_FOR' => '198.51.100.4',
+			'REMOTE_ADDR'          => '192.0.2.5',
+		]);
+
+		$this->assertSame('192.0.2.5', Utilities::getClientIp());
+	}
+
+	public function test_getClientIp_forwardingHeadersAreUsedWhenTheConnectionIsFromATrustedProxy(): void
+	{
+		add_filter('tp_trusted_proxies', fn($proxies) => ['10.0.0.1']);
+		$this->requestFrom(['HTTP_X_FORWARDED_FOR' => '203.0.113.9', 'REMOTE_ADDR' => '10.0.0.1']);
+
+		$this->assertSame('203.0.113.9', Utilities::getClientIp());
+	}
+
+	/**
+	 * @group known-issue
+	 */
+	public function test_getClientIp_forwardingHeadersAreNotUsedWhenTheConnectionIsNotFromATrustedProxy(): void
+	{
+		add_filter('tp_trusted_proxies', fn($proxies) => ['10.0.0.1']);
+		$this->requestFrom(['HTTP_X_FORWARDED_FOR' => '203.0.113.9', 'REMOTE_ADDR' => '192.0.2.5']);
+
+		$this->assertSame('192.0.2.5', Utilities::getClientIp());
+	}
+
+	/**
+	 * @group known-issue
+	 */
+	public function test_getClientIp_aProxyAddsTheClientToTheEndOfAForwardedList(): void
+	{
+		add_filter('tp_trusted_proxies', fn($proxies) => ['10.0.0.1', '10.0.0.2']);
+		// The client claimed to be 198.51.100.200.  The first proxy saw it was really 203.0.113.9, and the second added the first.
+		$this->requestFrom(['HTTP_X_FORWARDED_FOR' => '198.51.100.200, 203.0.113.9, 10.0.0.1', 'REMOTE_ADDR' => '10.0.0.2']);
+
+		$this->assertSame('203.0.113.9', Utilities::getClientIp());
+	}
 }

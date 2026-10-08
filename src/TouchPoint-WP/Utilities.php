@@ -695,7 +695,7 @@ abstract class Utilities
 		$i       = 1;
 		for (; $i <= 6;) {
 			$deltas[$i - 1] = 0;
-			if (str_contains($input, "<h$i ") || str_contains($input, "<h$i>")) {
+			if (stripos($input, "<h$i ") !== false || stripos($input, "<h$i>") !== false) {
 				$deltas[$i - 1]  = $maxAllowed - $i + $o;
 				$indexes[$i - 1] = $deltas[$i - 1] * $i;
 				$o++;
