@@ -315,9 +315,6 @@ class Person_Test extends WPTestCase
         $this->assertSame('North Side', $person->rescode->name);
     }
 
-    /**
-     * @group known-issue
-     */
     public function test_aPersonWithoutAResidentCodeHasNone(): void
     {
         $person = $this->import(self::personData(1041, ['ResCode' => null]));
@@ -325,9 +322,6 @@ class Person_Test extends WPTestCase
         $this->assertNull($person->rescode);
     }
 
-    /**
-     * @group known-issue
-     */
     public function test_aPersonWithoutAResidentCodeIsNotGivenTheFirstOne(): void
     {
         Taxonomies::insertTermsForLookupBasedTaxonomy(
@@ -339,11 +333,9 @@ class Person_Test extends WPTestCase
         $person = $this->import(self::personData(1042, ['ResCode' => null]));
 
         $this->assertEmpty($person->rescode_term_id);
+        $this->assertNull($person->rescode);
     }
 
-    /**
-     * @group known-issue
-     */
     public function test_aPersonWithoutACampusIsNotGivenTheFirstOne(): void
     {
         $this->setSetting('enable_campuses', 'on');
@@ -357,6 +349,7 @@ class Person_Test extends WPTestCase
         $person = $this->import(self::personData(1043, ['CampusId' => null]));
 
         $this->assertEmpty($person->campus_term_id);
+        $this->assertNull($person->campus);
     }
 
     public function test_aPersonsCampusIsFoundFromItsTouchPointId(): void
@@ -379,6 +372,138 @@ class Person_Test extends WPTestCase
         $person = $this->import(self::personData(1045, ['CampusId' => 2]));
 
         $this->assertNull($person->campus);
+    }
+
+    /**
+     * Resident codes, as TouchPoint provides them, are in WordPress.
+     */
+    private function makeResidentCodes(): void
+    {
+        Taxonomies::insertTermsForLookupBasedTaxonomy(
+            [(object)['id' => 7, 'name' => 'North Side'], (object)['id' => 8, 'name' => 'South Side']],
+            Taxonomies::TAX_RESCODE,
+            false
+        );
+    }
+
+    /**
+     * Campuses, as TouchPoint provides them, are in WordPress, and the Campus feature is on.
+     */
+    private function makeCampuses(): void
+    {
+        $this->setSetting('enable_campuses', 'on');
+        Taxonomies::registerTaxonomies(TouchPointWP::instance());
+        Taxonomies::insertTermsForLookupBasedTaxonomy(
+            [(object)['id' => 1, 'name' => 'Main Campus'], (object)['id' => 2, 'name' => 'East Campus']],
+            Taxonomies::TAX_CAMPUS,
+            false
+        );
+    }
+
+    /**
+     * @return array[] [a value TouchPoint might provide in place of an ID]
+     */
+    public static function provider_blankIds(): array
+    {
+        return [
+            'null'         => [null],
+            'nothing'      => [''],
+            'only spaces'  => ['   '],
+        ];
+    }
+
+    /**
+     * @dataProvider provider_blankIds
+     */
+    public function test_aBlankResidentCodeIsNoResidentCodeEvenWhenThereAreSome($blank): void
+    {
+        $this->makeResidentCodes();
+
+        $person = $this->import(self::personData(1090, ['ResCode' => $blank]));
+
+        $this->assertNull($person->rescode);
+    }
+
+    /**
+     * @dataProvider provider_blankIds
+     */
+    public function test_aBlankCampusIsNoCampusEvenWhenThereAreSome($blank): void
+    {
+        $this->makeCampuses();
+
+        $person = $this->import(self::personData(1091, ['CampusId' => $blank]));
+
+        $this->assertNull($person->campus);
+    }
+
+    public function test_aResidentCodeThatTouchPointNoLongerHasIsRemoved(): void
+    {
+        $this->makeResidentCodes();
+        $first = $this->import(self::personData(1092, ['ResCode' => 7]));
+        $this->assertSame('North Side', $first->rescode->name);
+
+        $second = $this->import(self::personData(1092, ['ResCode' => null]));
+
+        $this->assertSame($first->ID, $second->ID);
+        $this->assertNull($second->rescode);
+        $this->assertEmpty($second->rescode_term_id);
+    }
+
+    public function test_aResidentCodeCanChange(): void
+    {
+        $this->makeResidentCodes();
+        $this->import(self::personData(1093, ['ResCode' => 7]));
+
+        $person = $this->import(self::personData(1093, ['ResCode' => 8]));
+
+        $this->assertSame('South Side', $person->rescode->name);
+    }
+
+    public function test_aCampusThatTouchPointNoLongerHasIsRemoved(): void
+    {
+        $this->makeCampuses();
+        $first = $this->import(self::personData(1094, ['CampusId' => 2]));
+        $this->assertSame('East Campus', $first->campus->name);
+
+        $second = $this->import(self::personData(1094, ['CampusId' => null]));
+
+        $this->assertNull($second->campus);
+        $this->assertEmpty($second->campus_term_id);
+    }
+
+    public function test_aResidentCodeThatIsNotInWordPressIsNotUsed(): void
+    {
+        $this->makeResidentCodes();
+
+        $person = $this->import(self::personData(1095, ['ResCode' => 99]));
+
+        $this->assertNull($person->rescode);
+        $this->assertEmpty($person->rescode_term_id);
+    }
+
+    public function test_aResidentCodeThatWasDeletedAfterItWasAssignedIsNone(): void
+    {
+        $this->makeResidentCodes();
+        $person = $this->import(self::personData(1096, ['ResCode' => 7]));
+        wp_delete_term(Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, 7), Taxonomies::TAX_RESCODE);
+
+        // A request later, when nothing is remembered about the person.
+        self::setStatic(Person::class, '_instances', []);
+        $later = Person::fromId($person->ID);
+
+        $this->assertNull($later->rescode);
+    }
+
+    public function test_aCampusThatWasDeletedAfterItWasAssignedIsNone(): void
+    {
+        $this->makeCampuses();
+        $person = $this->import(self::personData(1097, ['CampusId' => 1]));
+        wp_delete_term(Taxonomies::getTaxTermId(Taxonomies::TAX_CAMPUS, 1), Taxonomies::TAX_CAMPUS);
+
+        self::setStatic(Person::class, '_instances', []);
+        $later = Person::fromId($person->ID);
+
+        $this->assertNull($later->campus);
     }
 
     ///////////////////

@@ -463,4 +463,60 @@ class Taxonomies_Test extends WPTestCase
         $this->assertNotNull(Taxonomies::termExists('Adults', Taxonomies::TAX_AGEGROUP));
         $this->assertNull(Taxonomies::termExists('Adults', Taxonomies::TAX_DIV, 0));
     }
+
+    ////////////////////////////////
+    // Finding a term for a value //
+    ////////////////////////////////
+
+    private function makeResidentCodes(): void
+    {
+        Taxonomies::insertTermsForLookupBasedTaxonomy(
+            [(object)['id' => 7, 'name' => 'North Side'], (object)['id' => 8, 'name' => 'South Side']],
+            Taxonomies::TAX_RESCODE,
+            false
+        );
+    }
+
+    public function test_getTaxTermId_findsATermByItsTouchPointId(): void
+    {
+        $this->makeResidentCodes();
+
+        $this->assertSame(get_term_by('name', 'South Side', Taxonomies::TAX_RESCODE)->term_id, Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, 8));
+        $this->assertSame(get_term_by('name', 'North Side', Taxonomies::TAX_RESCODE)->term_id, Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, '7'));
+    }
+
+    public function test_getTaxTermId_findsATermByItsNameOrSlug(): void
+    {
+        $this->makeResidentCodes();
+        $north = get_term_by('name', 'North Side', Taxonomies::TAX_RESCODE)->term_id;
+
+        $this->assertSame($north, Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, 'North Side'));
+        $this->assertSame($north, Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, 'north-side'));
+    }
+
+    public function test_getTaxTermId_isNullForAValueThatIsNotATerm(): void
+    {
+        $this->makeResidentCodes();
+
+        $this->assertNull(Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, 99));
+        $this->assertNull(Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, 'West Side'));
+    }
+
+    public function test_getTaxTermId_aBlankValueIsNotATermEvenWhenThereAreTerms(): void
+    {
+        $this->makeResidentCodes();
+
+        $this->assertNull(Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, null));
+        $this->assertNull(Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, ''));
+        $this->assertNull(Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, '  '));
+        $this->assertNull(Taxonomies::getTaxTermId(Taxonomies::TAX_RESCODE, []));
+    }
+
+    public function test_getTaxTermId_looksOnlyInTheTaxonomyItIsGiven(): void
+    {
+        $this->makeResidentCodes();
+
+        $this->assertNull(Taxonomies::getTaxTermId(Taxonomies::TAX_DIV, 7));
+        $this->assertNull(Taxonomies::getTaxTermId(Taxonomies::TAX_DIV, 'North Side'));
+    }
 }

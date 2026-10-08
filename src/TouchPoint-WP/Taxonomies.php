@@ -173,14 +173,21 @@ abstract class Taxonomies
 	 * Get the term id for a given taxonomy and value.
 	 *
 	 * @param $taxonomy string Taxonomy name
-	 * @param $value int|string The Lookup ID or name or slug of the term.
+	 * @param $value int|string|null The Lookup ID or name or slug of the term.  A blank value (null, or an empty string)
+	 *                             doesn't identify any term.
 	 *
-	 * @return ?int
+	 * @return ?int The term's ID, or null if there isn't a term for the value.
 	 *
 	 * @since 0.0.32 Added
+	 * @since 0.2.2 Changed to return null for a blank value.  It used to return the first term in the taxonomy.
 	 */
 	public static function getTaxTermId(string $taxonomy, $value): ?int
 	{
+		// Without a name or slug to look for, the query would return every term, and the first would be used.
+		if ($value === null || ! is_scalar($value) || trim((string)$value) === '') {
+			return null;
+		}
+
 		$args = [
 			'taxonomy'   => $taxonomy,
 			'hide_empty' => false,

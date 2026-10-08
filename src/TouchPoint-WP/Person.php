@@ -1203,6 +1203,27 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
+	 * Get a term from the ID stored for a person.  The ID is empty if the person doesn't have one, and the term can be
+	 * gone if it was deleted after the ID was stored.
+	 *
+	 * @param mixed  $termId   The stored term ID.  Null, an empty string, and 0 mean there isn't one.
+	 * @param string $taxonomy
+	 *
+	 * @return WP_Term|null The term, or null if there isn't one.
+	 */
+	private static function termForId(mixed $termId, string $taxonomy): ?WP_Term
+	{
+		$termId = intval($termId);
+		if ($termId < 1) {
+			return null;
+		}
+
+		$term = WP_Term::get_instance($termId, $taxonomy);
+
+		return $term instanceof WP_Term ? $term : null;
+	}
+
+	/**
 	 * Get the WP_Term for the Campus taxonomy connected to this person.
 	 *
 	 * @return WP_Term|null  The term, or null of there isn't one.
@@ -1213,11 +1234,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			return null;
 		}
 		if ($this->_campusLoaded === false) {
-			if ($this->campus_term_id === null) {
-				$this->_campus = null;
-			} else {
-				$this->_campus = WP_Term::get_instance($this->campus_term_id, Taxonomies::TAX_CAMPUS);
-			}
+			$this->_campus       = self::termForId($this->campus_term_id, Taxonomies::TAX_CAMPUS);
 			$this->_campusLoaded = true;
 		}
 
@@ -1232,11 +1249,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	protected function resCode(): ?WP_Term
 	{
 		if ($this->_resCodeLoaded === false) {
-			if ($this->rescode_term_id === null) {
-				$this->_resCode = null;
-			} else {
-				$this->_resCode = WP_Term::get_instance($this->rescode_term_id, Taxonomies::TAX_RESCODE);
-			}
+			$this->_resCode       = self::termForId($this->rescode_term_id, Taxonomies::TAX_RESCODE);
 			$this->_resCodeLoaded = true;
 		}
 
