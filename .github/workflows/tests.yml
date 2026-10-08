@@ -30,7 +30,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           extensions: json, zip, dom
-          coverage: xdebug
+          coverage: none
 
       - name: Validate composer.json
         run: composer validate --strict --no-check-version
@@ -50,20 +50,134 @@ jobs:
       - name: Run test suite
         run: composer test
 
-      - name: Measure code coverage (PHP 8.4 only)
-        if: matrix.php-version == '8.4'
-        run: ./vendor/bin/phpunit --coverage-clover coverage.xml --coverage-text
+  wordpress:
+    name: Run WordPress Tests
+    runs-on: ubuntu-latest
 
-      - name: Submit coverage to Coveralls (PHP 8.4 only)
-        if: matrix.php-version == '8.4'
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.0', '8.4', '8.5']
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: touchpoint_wp_tests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      # See tests/WordPress/wp-tests-config.php.  WordPress's test library empties this database.
+      TP_TESTS_DB_HOST: 127.0.0.1:3306
+      TP_TESTS_DB_NAME: touchpoint_wp_tests
+      TP_TESTS_DB_USER: root
+      TP_TESTS_DB_PASSWORD: ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: json, zip, dom, mysqli, mbstring
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v6
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-wp-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-wp-
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-progress  # use update to allow for different php versions in matrix.
+
+      - name: Run WordPress test suite
+        run: bash bin/test-wp.sh --exclude-group known-issue
+
+      - name: Report known issues (informational)
+        # These tests describe how things should work, and fail until they do.  See TESTING.md.
+        continue-on-error: true
+        run: bash bin/test-wp.sh --group known-issue
+
+  coverage:
+    # Measures the unit tests and the WordPress tests together, so the total reflects everything the tests cover.  (PHPUnit
+    # can only record one run at a time, so each is recorded to a file, and phpcov merges them.)
+    name: Measure Code Coverage
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: touchpoint_wp_tests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      # See tests/WordPress/wp-tests-config.php.  WordPress's test library empties this database.
+      TP_TESTS_DB_HOST: 127.0.0.1:3306
+      TP_TESTS_DB_NAME: touchpoint_wp_tests
+      TP_TESTS_DB_USER: root
+      TP_TESTS_DB_PASSWORD: ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: json, zip, dom, mysqli, mbstring
+          coverage: xdebug
+
+      - name: Cache Composer packages
+        uses: actions/cache@v6
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-8.4-coverage-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-8.4-coverage-
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-progress
+
+      - name: Measure coverage of the unit tests
+        run: |
+          mkdir -p coverage
+          ./vendor/bin/phpunit --exclude-group known-issue --coverage-php coverage/unit.cov
+
+      - name: Measure coverage of the WordPress tests
+        run: bash bin/test-wp.sh --exclude-group known-issue --coverage-php coverage/wordpress.cov
+
+      - name: Merge the coverage
+        run: ./vendor/bin/phpcov merge --clover coverage.xml coverage
+
+      - name: Submit coverage to Coveralls
         uses: coverallsapp/github-action@v2
         with:
           file: coverage.xml
           format: clover
           fail-on-error: false # A problem with Coveralls shouldn't fail the tests.
 
-      - name: Report overall coverage (PHP 8.4 only)
-        if: matrix.php-version == '8.4'
+      - name: Report overall coverage
         run: |
           php <<'PHP'
           <?php
@@ -78,15 +192,14 @@ jobs:
           echo str_repeat('=', 60), PHP_EOL, $headline, PHP_EOL, $methodLine, PHP_EOL, str_repeat('=', 60), PHP_EOL;
 
           // A notice shows at the top of the run page, and the summary shows on the run's Summary tab.
-          echo "::notice title=Code coverage (PHP 8.4)::$headline", PHP_EOL;
+          echo "::notice title=Code coverage::$headline", PHP_EOL;
           $summaryFile = getenv('GITHUB_STEP_SUMMARY');
           if ($summaryFile) {
-              file_put_contents($summaryFile, "## Code coverage (PHP 8.4)\n\n**$headline**\n\n$methodLine\n", FILE_APPEND);
+              file_put_contents($summaryFile, "## Code coverage (unit and WordPress tests)\n\n**$headline**\n\n$methodLine\n", FILE_APPEND);
           }
           PHP
 
-      - name: Upload coverage to artifact (PHP 8.4 only)
-        if: matrix.php-version == '8.4'
+      - name: Upload coverage to artifact
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report

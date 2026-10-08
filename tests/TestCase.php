@@ -7,9 +7,8 @@
 
 namespace tp\TouchPointWP\Tests;
 
-use ReflectionMethod;
-use ReflectionProperty;
 use tp\TouchPointWP\Meeting_GroupingSettings;
+use tp\TouchPointWP\Tests\Support\ReflectionHelpers;
 use tp\TouchPointWP\Utilities;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase as PolyfillsTestCase;
 
@@ -22,6 +21,8 @@ use Yoast\PHPUnitPolyfills\TestCases\TestCase as PolyfillsTestCase;
  */
 abstract class TestCase extends PolyfillsTestCase
 {
+    use ReflectionHelpers;
+
     /**
      * The static properties in which Utilities keeps the current time and the client's IP address.
      */
@@ -142,39 +143,5 @@ abstract class TestCase extends PolyfillsTestCase
 
         self::callStatic(Meeting_GroupingSettings::class, 'applyData', json_decode(json_encode($settings)));
         self::setStatic(Meeting_GroupingSettings::class, '_loaded', true);
-    }
-
-    /**
-     * Set a static property, even if it's protected or private.
-     *
-     * @param string $class
-     * @param string $property
-     * @param mixed  $value
-     */
-    protected static function setStatic(string $class, string $property, mixed $value): void
-    {
-        $reflection = new ReflectionProperty($class, $property);
-        if (PHP_VERSION_ID < 80100) {
-            $reflection->setAccessible(true);
-        }
-        $reflection->setValue(null, $value);
-    }
-
-    /**
-     * Call a static method, even if it's protected or private.
-     *
-     * @param string $class
-     * @param string $method
-     * @param mixed  ...$arguments
-     *
-     * @return mixed
-     */
-    protected static function callStatic(string $class, string $method, mixed ...$arguments): mixed
-    {
-        $reflection = new ReflectionMethod($class, $method);
-        if (PHP_VERSION_ID < 80100) {
-            $reflection->setAccessible(true);
-        }
-        return $reflection->invokeArgs(null, $arguments);
     }
 }

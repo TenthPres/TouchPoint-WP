@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Tests that run within WordPress, with a database.  See TESTING.md.  The tests that run without WordPress are
+     configured by phpunit.xml. -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
-         bootstrap="tests/bootstrap.php"
+         bootstrap="tests/WordPress/bootstrap.php"
+         backupGlobals="false"
          colors="true"
          verbose="true">
     <testsuites>
-        <testsuite name="TouchPoint-WP Test Suite">
-            <directory>tests</directory>
-            <!-- These run within WordPress.  See phpunit.wordpress.xml. -->
-            <exclude>tests/WordPress</exclude>
+        <testsuite name="TouchPoint-WP WordPress Test Suite">
+            <directory>tests/WordPress</directory>
         </testsuite>
     </testsuites>
     <coverage pathCoverage="true" disableCodeCoverageIgnore="true">
@@ -16,7 +17,4 @@
             <directory suffix=".php">src</directory>
         </include>
     </coverage>
-    <php>
-        <const name="WP_TESTS_PHPUNIT_POLYFILLS_PATH" value="vendor/yoast/phpunit-polyfills"/>
-    </php>
 </phpunit>
