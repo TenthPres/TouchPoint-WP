@@ -9,9 +9,12 @@ namespace tp\TouchPointWP\Tests\WordPress;
 
 use DateInterval;
 use DateTimeImmutable;
+use ReflectionProperty;
 use tp\TouchPointWP\Involvement;
 use tp\TouchPointWP\Involvement_PostTypeSettings;
 use tp\TouchPointWP\Meeting_GroupingSettings;
+use tp\TouchPointWP\Person;
+use tp\TouchPointWP\Settings;
 use tp\TouchPointWP\Taxonomies;
 use tp\TouchPointWP\Tests\Support\MeetingFixtures;
 use tp\TouchPointWP\Tests\Support\ReflectionHelpers;
@@ -47,9 +50,10 @@ abstract class WPTestCase extends WP_UnitTestCase
 
     public function set_up(): void
     {
-        parent::set_up();
+        parent::set_up();   // Puts the options back, and clears WordPress's cache of them.
 
         $this->resetPluginState();
+        $this->rebuildSettingsFields();
     }
 
     public function tear_down(): void
@@ -72,6 +76,25 @@ abstract class WPTestCase extends WP_UnitTestCase
         self::setStatic(Involvement_PostTypeSettings::class, 'settings', []);
         self::setStatic(Taxonomies::class, 'termExistsCache', []);
         self::setStatic(TouchPointWP::class, 'divisionTerms', []);
+        self::setStatic(Person::class, '_instances', []);
+    }
+
+    /**
+     * Make the settings work out which fields exist again, as they do when the plugin starts.  A setting's field (and so
+     * its default) only exists while the feature it belongs to is enabled, and the settings remember what they worked
+     * out, so a test that turns a feature on has to call this before the setting's field exists.
+     */
+    protected function rebuildSettingsFields(): void
+    {
+        $settings = TouchPointWP::instance()->settings;
+
+        $property = new ReflectionProperty(Settings::class, 'settings');
+        if (PHP_VERSION_ID < 80100) {
+            $property->setAccessible(true);
+        }
+        $property->setValue($settings, []);
+
+        $settings->initSettings();
     }
 
     /**

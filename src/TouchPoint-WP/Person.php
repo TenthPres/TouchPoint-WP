@@ -133,7 +133,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		$this->peopleId = intval($this->get(self::META_PEOPLEID));
 		$this->familyId = intval($this->get(self::META_FAMILYID));
 
-		self::$_instances[$this->ID] = $this;
+		// A user that doesn't exist has an ID of 0, and isn't remembered as the person for ID 0.
+		if ($this->ID > 0) {
+			self::$_instances[$this->ID] = $this;
+		}
 	}
 
 	/**
@@ -159,7 +162,9 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *
 	 * @param $id int|array|object The WordPress user ID, or an object/array with an ID property representing that ID.
 	 *
-	 * @return Person|null
+	 * @return Person|null The person, or null if no ID is provided, or if there's no user with that ID.
+	 *
+	 * @since 0.2.2 Changed to return null if the user doesn't exist, rather than a Person with no user.
 	 */
 	public static function fromId($id): ?Person
 	{
@@ -178,7 +183,9 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			return self::$_instances[$id];
 		}
 
-		return new Person($id);
+		$person = new Person($id);
+
+		return $person->exists() ? $person : null;
 	}
 
 	/**

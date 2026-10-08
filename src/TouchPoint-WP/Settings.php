@@ -127,6 +127,20 @@ class Settings
 	public const UNDEFINED_PLACEHOLDER = INF;
 
 	/**
+	 * Defaults for settings that are read by features other than the one they belong to.  A setting's field, and so its
+	 * default, is only defined when its own feature is enabled, so without these, a setting that hasn't been saved would
+	 * be false for those other features.  For example, signing in with TouchPoint imports people, and that reads which
+	 * of their Extra Values to import, even if the People Lists feature (which has the setting) is off.
+	 *
+	 * These should match the defaults in the fields' definitions.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private const DEFAULTS_WITHOUT_FIELD = [
+		'people_ev_custom' => [],
+	];
+
+	/**
 	 * Constructor function.
 	 *
 	 * @param TouchPointWP $parent Parent object.
@@ -1484,6 +1498,9 @@ class Settings
 
 		if ($v === self::UNDEFINED_PLACEHOLDER && $meta !== null) {
 			$v = $this->getDefaultValueForSetting($what, $meta);
+		}
+		if ($v === self::UNDEFINED_PLACEHOLDER && $meta === null && array_key_exists($what, self::DEFAULTS_WITHOUT_FIELD)) {
+			$v = self::DEFAULTS_WITHOUT_FIELD[$what];
 		}
 		if ($v === self::UNDEFINED_PLACEHOLDER) {
 			$v = false;

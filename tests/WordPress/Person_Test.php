@@ -32,7 +32,6 @@ class Person_Test extends WPTestCase
         add_filter('pre_http_request', fn() => new WP_Error('http_request_failed', 'Not allowed in tests.'));
 
         $this->setSetting('meta_personEvFields', json_encode(['_updated' => date('c'), 'personEvFields' => []]));
-        $this->setSetting('people_ev_custom', []);
         self::setStatic(Person::class, '_peopleWhoNeedWpIdUpdatedInTouchPoint', []);
 
         Taxonomies::registerTaxonomies(TouchPointWP::instance());
@@ -468,5 +467,200 @@ class Person_Test extends WPTestCase
         $html = Person::arrangeNamesForPeople([$withPage, $without], true);
 
         $this->assertSame('<a href="' . get_author_posts_url($withPage->ID) . '">John</a> & Jane Smith', $html);
+    }
+
+    ///////////////////////////////////////////////////
+    // The Extra Values to import, when none are set //
+    ///////////////////////////////////////////////////
+
+    public function test_aPersonCanBeImportedWhenTheExtraValuesToImportWereNeverSaved(): void
+    {
+        // A site that uses TouchPoint to sign in, but doesn't have People Lists.
+        $this->assertFalse(get_option(TouchPointWP::SETTINGS_PREFIX . 'people_ev_custom', false));
+
+        $person = $this->import(self::personData(1070));
+
+        $this->assertInstanceOf(Person::class, $person);
+        $this->assertSame('jtest1070', get_userdata($person->ID)->user_login);
+    }
+
+    ////////////////////////////
+    // Finding a person by ID //
+    ////////////////////////////
+
+    public function test_fromId_aUserThatExistsIsAPerson(): void
+    {
+        $id = self::factory()->user->create();
+
+        $this->assertInstanceOf(Person::class, Person::fromId($id));
+        $this->assertSame($id, Person::fromId($id)->ID);
+        $this->assertSame($id, Person::fromId((string)$id)->ID, 'An ID as text.');
+        $this->assertSame($id, Person::fromId((object)['ID' => $id])->ID, 'An object with an ID.');
+        $this->assertSame($id, Person::fromId(['ID' => $id])->ID, 'An array with an ID.');
+    }
+
+    public function test_fromId_aUserThatDoesNotExistIsNull(): void
+    {
+        $this->assertNull(Person::fromId(99999999));
+        $this->assertNull(Person::fromId('99999999'));
+        $this->assertNull(Person::fromId((object)['ID' => 99999999]));
+        $this->assertNull(Person::fromId(['ID' => 99999999]));
+    }
+
+    public function test_fromId_noIdIsNull(): void
+    {
+        $this->assertNull(Person::fromId(0));
+        $this->assertNull(Person::fromId(null));
+        $this->assertNull(Person::fromId(''));
+        $this->assertNull(Person::fromId((object)['ID' => 0]));
+    }
+
+    public function test_fromId_theSamePersonIsReturnedEachTime(): void
+    {
+        $id = self::factory()->user->create();
+
+        $this->assertSame(Person::fromId($id), Person::fromId($id));
+    }
+
+    public function test_fromId_aUserThatDoesNotExistIsNotRememberedAsAPerson(): void
+    {
+        Person::fromId(99999999);
+        Person::fromId(99999999);
+
+        $remembered = self::getStatic(Person::class, '_instances');
+
+        $this->assertArrayNotHasKey(0, $remembered);
+        $this->assertArrayNotHasKey(99999999, $remembered);
+    }
+
+    public function test_fromId_aUserThatIsMadeAfterALookupIsFound(): void
+    {
+        global $wpdb;
+
+        $this->assertNull(Person::fromId(88888888));
+
+        $wpdb->insert($wpdb->users, [
+            'ID'              => 88888888,
+            'user_login'      => 'arrives-later',
+            'user_pass'       => 'not-a-real-hash',
+            'user_nicename'   => 'arrives-later',
+            'user_email'      => 'later@example.org',
+            'user_registered' => '2026-01-01 00:00:00',
+            'display_name'    => 'Arrives Later',
+        ]);
+        clean_user_cache(88888888);
+
+        $this->assertSame(88888888, Person::fromId(88888888)->ID);
+    }
+
+    public function test_fromId_aUserThatWasDeletedIsNull(): void
+    {
+        require_once ABSPATH . 'wp-admin/includes/user.php';
+
+        $id = self::factory()->user->create();
+        wp_delete_user($id);
+
+        $this->assertNull(Person::fromId($id));
+    }
+
+    public function test_fromId_aLookupByUsernameStillWorks(): void
+    {
+        $id = self::factory()->user->create(['user_login' => 'someone-special']);
+
+        $this->assertSame($id, Person::fromId('someone-special')->ID);
+    }
+
+    public function test_currentUserPerson_isNullWhenNobodyIsSignedIn(): void
+    {
+        wp_set_current_user(0);
+
+        $this->assertNull(TouchPointWP::currentUserPerson());
+    }
+
+    public function test_currentUserPerson_isTheUserWhoIsSignedIn(): void
+    {
+        $id = self::factory()->user->create();
+        wp_set_current_user($id);
+
+        $this->assertSame($id, TouchPointWP::currentUserPerson()->ID);
+
+        wp_set_current_user(0);
+    }
+
+    /////////////////////////////
+    // Pictures, as avatars    //
+    /////////////////////////////
+
+    private const PICTURE = [
+        'large'  => 'https://example.org/large.jpg',
+        'medium' => 'https://example.org/medium.jpg',
+        'small'  => 'https://example.org/small.jpg',
+        'thumb'  => 'https://example.org/thumb.jpg',
+    ];
+
+    private function importWithPicture(int $peopleId): Person
+    {
+        return $this->import(self::personData($peopleId, ['Picture' => (object)self::PICTURE]));
+    }
+
+    public function test_aPersonsPictureIsUsedAtTheSizeThatFits(): void
+    {
+        $id = $this->importWithPicture(1080)->ID;
+
+        $this->assertSame(self::PICTURE['large'], Person::getPictureForPerson($id));
+        $this->assertSame(self::PICTURE['large'], Person::getPictureForPerson($id, ['size' => 500]));
+        $this->assertSame(self::PICTURE['medium'], Person::getPictureForPerson($id, ['width' => 300, 'height' => 300]));
+        $this->assertSame(self::PICTURE['small'], Person::getPictureForPerson($id, ['size' => 100]));
+        $this->assertSame(self::PICTURE['thumb'], Person::getPictureForPerson($id, ['size' => 40]));
+    }
+
+    public function test_aPictureCanBeFoundFromAnIdAnObjectOrAPerson(): void
+    {
+        $person = $this->importWithPicture(1081);
+
+        $this->assertSame(self::PICTURE['large'], Person::getPictureForPerson($person));
+        $this->assertSame(self::PICTURE['large'], Person::getPictureForPerson((string)$person->ID));
+        $this->assertSame(self::PICTURE['large'], Person::getPictureForPerson((object)['ID' => $person->ID]));
+        $this->assertSame(self::PICTURE['large'], Person::getPictureForPerson((object)['user_id' => $person->ID]));
+        $this->assertSame(self::PICTURE['large'], Person::getPictureForPerson(get_userdata($person->ID)->user_email));
+    }
+
+    public function test_aPictureCanBeUsedAsAnAvatar(): void
+    {
+        $person = $this->importWithPicture(1082);
+        add_filter('get_avatar_url', [Person::class, 'pictureFilter'], 10, 3);
+
+        $this->assertSame(self::PICTURE['large'], get_avatar_url($person->ID, ['size' => 500]));
+    }
+
+    public function test_aPersonWithoutAPictureHasNone(): void
+    {
+        $person = $this->import(self::personData(1083, ['Picture' => null]));
+
+        $this->assertNull(Person::getPictureForPerson($person->ID));
+    }
+
+    public function test_aUserThatDoesNotExistHasNoPicture(): void
+    {
+        $this->assertNull(Person::getPictureForPerson(99999999));
+        $this->assertNull(Person::getPictureForPerson('99999999'));
+        $this->assertNull(Person::getPictureForPerson((object)['ID' => 99999999]));
+        $this->assertNull(Person::getPictureForPerson((object)['user_id' => 99999999]));
+        $this->assertNull(Person::getPictureForPerson('nobody@example.org'));
+    }
+
+    /**
+     * A filter for avatar addresses gets the address WordPress has chosen, and returns what to use.  Returning null
+     * for someone without a TouchPoint picture removes WordPress's own choice (such as a Gravatar), so that person, or a
+     * commenter who isn't a user at all, gets no avatar.
+     *
+     * @group known-issue
+     */
+    public function test_pictureFilter_leavesTheAvatarAloneWhenThereIsNoTouchPointPicture(): void
+    {
+        $person = $this->import(self::personData(1084, ['Picture' => null]));
+
+        $this->assertSame('https://example.org/gravatar.jpg', Person::pictureFilter('https://example.org/gravatar.jpg', $person->ID, []));
+        $this->assertSame('https://example.org/gravatar.jpg', Person::pictureFilter('https://example.org/gravatar.jpg', 'stranger@example.org', []));
     }
 }
