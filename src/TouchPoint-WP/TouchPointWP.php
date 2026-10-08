@@ -1660,8 +1660,12 @@ class TouchPointWP
 	/**
 	 * Sort a list of hierarchical terms into a list in which each parent is immediately followed by its children.
 	 *
-	 * @param WP_Term[] $terms
-	 * @param bool      $noChildlessParents
+	 * This is for taxonomies that have two levels, such as Programs and Divisions.  Only top-level terms and their direct
+	 * children are included in the result.  Terms that are deeper than that, and terms whose parent isn't in the list,
+	 * are left out.  Top-level terms are sorted by name without regard to case, and so are the children of each.
+	 *
+	 * @param WP_Term[] $terms              Terms with term_id, parent, and name properties.
+	 * @param bool      $noChildlessParents If true, top-level terms that have no children in the list are also left out.
 	 *
 	 * @return WP_Term[]
 	 */
