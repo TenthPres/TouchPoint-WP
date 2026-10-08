@@ -776,9 +776,6 @@ class Utilities_Test extends TestCase
 		);
 	}
 
-	/**
-	 * @group known-issue
-	 */
 	public function test_standardizeHtml_scriptAndStyleContentsAreRemoved(): void
 	{
 		$this->assertSame('<p>Hello there</p>', Utilities::standardizeHtml('<p>Hello <script>alert(1)</script>there</p>'));
@@ -867,7 +864,6 @@ class Utilities_Test extends TestCase
 	}
 
 	/**
-	 * @group known-issue
 	 * @dataProvider provider_uppercaseHeadings
 	 */
 	public function test_standardizeHTags_tagNamesInCapitalsCountAsHeadings(int $maxAllowed, string $html, string $expected): void
@@ -875,9 +871,6 @@ class Utilities_Test extends TestCase
 		$this->assertSame($expected, Utilities::standardizeHTags($maxAllowed, $html));
 	}
 
-	/**
-	 * @group known-issue
-	 */
 	public function test_standardizeHtml_headingsInCapitalsAreMovedDown(): void
 	{
 		$this->assertSame('<h2>Title</h2><p>Text</p>', Utilities::standardizeHtml('<H1>Title</H1><p>Text</p>'));
@@ -954,5 +947,156 @@ class Utilities_Test extends TestCase
 		$this->requestFrom(['HTTP_X_FORWARDED_FOR' => '198.51.100.200, 203.0.113.9, 10.0.0.1', 'REMOTE_ADDR' => '10.0.0.2']);
 
 		$this->assertSame('203.0.113.9', Utilities::getClientIp());
+	}
+
+	///////////////////////////////////////
+	// Tags removed along with contents //
+	///////////////////////////////////////
+
+	public function test_standardizeHtml_contentTagsAreRemovedWithTheirContents(): void
+	{
+		$html = '<p>A</p><script type="text/javascript">alert(1)</script><style>p { color: red; }</style>'
+			. '<iframe src="x">Fallback</iframe><object data="x">Fallback</object><p>B</p>';
+
+		$this->assertSame('<p>A</p><p>B</p>', Utilities::standardizeHtml($html));
+	}
+
+	public function test_standardizeHtml_contentTagsAreRemovedWhateverTheCaseOrSpacing(): void
+	{
+		$this->assertSame('<p>A</p>', Utilities::standardizeHtml("<p>A</p><SCRIPT >alert(1)</Script >"));
+		$this->assertSame('<p>A</p>', Utilities::standardizeHtml("<p>A</p><script\n src=\"x\">alert(1)</script>"));
+		$this->assertSame('<p>A</p>', Utilities::standardizeHtml("<p>A</p><script>\nalert(1);\n</script>"));
+	}
+
+	public function test_standardizeHtml_eachContentTagIsRemovedSeparately(): void
+	{
+		$this->assertSame('<p>A  B</p>', Utilities::standardizeHtml('<p>A <script>one()</script> <script>two()</script>B</p>'));
+	}
+
+	public function test_standardizeHtml_aContentTagThatIsNeverClosedTakesTheRestOfTheHtml(): void
+	{
+		$this->assertSame('<p>A</p>', Utilities::standardizeHtml('<p>A</p><script>alert(1)<p>B</p>'));
+	}
+
+	public function test_standardizeHtml_aClosingContentTagAloneIsRemoved(): void
+	{
+		$this->assertSame('<p>A</p><p>B</p>', Utilities::standardizeHtml('<p>A</p></script><p>B</p>'));
+	}
+
+	public function test_standardizeHtml_imagesAreRemovedWithoutTheTextAroundThem(): void
+	{
+		$this->assertSame('<p>Before  after</p><p>More</p>', Utilities::standardizeHtml('<p>Before <img src="x.png" alt="x"> after</p><p>More</p>'));
+		$this->assertSame('<p>A</p><p>B</p>', Utilities::standardizeHtml('<p>A</p><img src="x.png"/><p>B</p>'));
+	}
+
+	public function test_standardizeHtml_tagsWhoseNamesStartLikeAContentTagAreKept(): void
+	{
+		// <scripture> isn't a script, and isn't an allowed tag, so only the tag itself goes.
+		$this->assertSame('<p>Text</p>', Utilities::standardizeHtml('<p><scripture>Text</scripture></p>'));
+		$this->assertSame('<p>Text</p>', Utilities::standardizeHtml('<p><styles>Text</styles></p>'));
+	}
+
+	public function test_standardizeHtml_theTagsToRemoveWithTheirContentsCanBeChanged(): void
+	{
+		add_filter('tp_standardize_strip_content_tags', fn($tags, $context) => ['aside', 'script'], 10, 2);
+		add_filter('tp_standardize_allowed_tags', fn($tags) => [...$tags, 'aside', 'img']);
+
+		$this->assertSame(
+			'<p>A</p><img src="x"><p>B</p>',
+			Utilities::standardizeHtml('<p>A</p><aside>Gone</aside><img src="x"><script>x()</script><p>B</p>')
+		);
+	}
+
+	public function test_standardizeHtml_aListOfTagsToRemoveWithTheirContentsIsToleratedWhenItHasJunkInIt(): void
+	{
+		add_filter('tp_standardize_strip_content_tags', fn($tags) => ['script', '', 5, 'bad name', '(x', 'style']);
+
+		$this->assertSame('<p>A</p>', Utilities::standardizeHtml('<p>A<script>x()</script><style>y</style></p>'));
+	}
+
+	public function test_standardizeHtml_quotedMarkupInsideAScriptDoesNotEndIt(): void
+	{
+		$this->assertSame('<p>Keep</p>', Utilities::standardizeHtml('<script>var s = "</b>"; alert(1)</script><p>Keep</p>'));
+		$this->assertSame('<p>Keep</p>', Utilities::standardizeHtml('<script>if (a < b && c > d) { x = "<p>"; }</script><p>Keep</p>'));
+		$this->assertSame('<p>Keep</p>', Utilities::standardizeHtml('<style>a::after { content: "</p>"; }</style><p>Keep</p>'));
+	}
+
+	public function test_standardizeHtml_aTagInsideAnAttributeIsNotAnElement(): void
+	{
+		$result = Utilities::standardizeHtml('<p title="<script>">Keep</p><p>Also keep</p>');
+
+		$this->assertStringContainsString('Keep</p>', $result);
+		$this->assertStringContainsString('<p>Also keep</p>', $result, 'Nothing after the attribute is lost.');
+		$this->assertStringNotContainsString('<script', $result);
+	}
+
+	public function test_standardizeHtml_aTagInsideACommentIsNotAnElement(): void
+	{
+		$this->assertSame('<p>Keep</p>', Utilities::standardizeHtml('<!-- <script> --><p>Keep</p>'));
+		$this->assertSame('<p>Keep</p>', Utilities::standardizeHtml('<p>Keep</p><!-- </script> -->'));
+	}
+
+	public function test_standardizeHtml_escapedMarkupInTextIsStillText(): void
+	{
+		$html = '<p>Use &lt;script&gt;alert(1)&lt;/script&gt; for scripts.</p>';
+
+		$this->assertSame($html, Utilities::standardizeHtml($html));
+	}
+
+	public function test_standardizeHtml_aTagRebuiltFromWhatsLeftOverIsNotAScript(): void
+	{
+		foreach (['<scr<script></script>ipt>alert(1)</scr<script></script>ipt>', '<<script></script>script>alert(1)<</script></script>/script>'] as $html) {
+			$result = Utilities::standardizeHtml($html . '<p>Keep</p>');
+
+			$this->assertDoesNotMatchRegularExpression('/<\s*\/?\s*script/i', $result, $html);
+		}
+	}
+
+	public function test_standardizeHtml_aNullCharacterDoesNotHideAScriptOrTruncateTheText(): void
+	{
+		$result = Utilities::standardizeHtml('<scr' . chr(0) . 'ipt>alert(1)</script><p>Keep' . chr(0) . '</p>');
+
+		$this->assertSame('<p>Keep</p>', $result);
+	}
+
+	public function test_standardizeHtml_elementsHiddenInsideOtherElementsAreRemoved(): void
+	{
+		$this->assertSame('<p>A</p><p>B</p>', Utilities::standardizeHtml('<p>A</p><svg><script>x()</script></svg><noscript><script>y()</script></noscript><p>B</p>'));
+		$this->assertSame('<table><tr><td>A</td></tr></table>', Utilities::standardizeHtml('<table><tr><td>A<script>x()</script></td></tr></table>'));
+	}
+
+	public function test_standardizeHtml_aScriptAfterAClosingBodyTagStillDoesNotSurvive(): void
+	{
+		// Text after a closing body tag may not be kept, but a script in it must not be.
+		$result = Utilities::standardizeHtml('<p>A</p></body><script>alert(1)</script><p>B</p></html><script>alert(2)</script>');
+
+		$this->assertStringNotContainsString('alert', $result);
+		$this->assertStringContainsString('<p>A</p>', $result);
+	}
+
+	public function test_standardizeHtml_aScriptInTheHeadDoesNotSurvive(): void
+	{
+		$result = Utilities::standardizeHtml('<html><head><script>alert(1)</script></head><body><p>Keep</p></body></html>');
+
+		$this->assertStringNotContainsString('alert', $result);
+		$this->assertStringContainsString('<p>Keep</p>', $result);
+	}
+
+	public function test_standardizeHtml_nonAsciiTextIsKept(): void
+	{
+		$html = '<p>Café — “quotes” 日本語 😀</p>';
+
+		$this->assertSame($html, Utilities::standardizeHtml($html . '<script>x()</script>'));
+	}
+
+	public function test_standardizeHtml_looseTextIsNotWrappedInAParagraph(): void
+	{
+		$this->assertSame('Just text', Utilities::standardizeHtml('Just text<script>x()</script>'));
+		$this->assertSame('Text <strong>and</strong> more', Utilities::standardizeHtml('Text <strong>and</strong> more'));
+	}
+
+	public function test_standardizeHtml_aLessThanSignInTextIsKeptAsText(): void
+	{
+		$this->assertSame('<p>1 &lt; 2 and 3 &gt; 2</p>', Utilities::standardizeHtml('<p>1 &lt; 2 and 3 &gt; 2</p><script>x()</script>'));
 	}
 }

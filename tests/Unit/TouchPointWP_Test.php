@@ -191,4 +191,49 @@ class TouchPointWP_Test extends TestCase
         $this->assertSame(['' => '', 'h2' => 'Campus'], self::evs('Code', true));
         $this->assertSame(['' => ''], self::callStatic(TouchPointWP::class, 'standardizeExtraValuesForKVArray', [], null, true));
     }
+
+    /**
+     * @group known-issue
+     */
+    public function test_orderHierarchicalTerms_aTermWhoseParentIsNotInTheListIsKept(): void
+    {
+        // For example, the parent was left out of the list because it has no posts.  The term is listed with the top-level terms.
+        $terms = [self::term(1, 0, 'A'), self::term(2, 99, 'Orphan'), self::term(3, 0, 'Z')];
+
+        $this->assertSame([1, 2, 3], self::ids(TouchPointWP::orderHierarchicalTerms($terms)));
+    }
+
+    /**
+     * @group known-issue
+     */
+    public function test_orderHierarchicalTerms_grandchildrenFollowTheirParents(): void
+    {
+        $terms = [
+            self::term(1, 0, 'Root'),
+            self::term(2, 1, 'Child'),
+            self::term(3, 2, 'Grandchild'),
+            self::term(4, 1, 'Second Child'),
+            self::term(5, 0, 'Another Root'),
+            self::term(6, 4, 'Second Grandchild'),
+        ];
+
+        $this->assertSame([5, 1, 2, 3, 4, 6], self::ids(TouchPointWP::orderHierarchicalTerms($terms)));
+        $this->assertSame([1, 2, 3, 4, 6], self::ids(TouchPointWP::orderHierarchicalTerms(array_filter($terms, fn($t) => $t->term_id !== 5), true)));
+    }
+
+    /**
+     * @group known-issue
+     */
+    public function test_orderHierarchicalTerms_noTermIsLost(): void
+    {
+        $terms = [
+            self::term(1, 0, 'Root'),
+            self::term(2, 1, 'Child'),
+            self::term(3, 2, 'Grandchild'),
+            self::term(4, 77, 'Orphan'),
+            self::term(5, 4, 'Child of the orphan'),
+        ];
+
+        $this->assertEqualsCanonicalizing(self::ids($terms), self::ids(TouchPointWP::orderHierarchicalTerms($terms)));
+    }
 }

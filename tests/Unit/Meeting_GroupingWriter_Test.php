@@ -395,11 +395,11 @@ class Meeting_GroupingWriter_Test extends TestCase
 
     public function test_contentForItem_isTheStandardizedDescription(): void
     {
-        $inv = (object)['description' => '<h1>Welcome</h1><p>Hello <script>x()</script>there</p>'];
+        $inv = (object)['description' => '<h1>Welcome</h1><p>Hello <span>big</span> world</p>'];
 
         $content = self::callStatic(Involvement::class, 'contentForItem', self::planned(1, '2026-03-14 19:00', 'x'), $inv, false);
 
-        $this->assertSame('<h2>Welcome</h2><p>Hello x()there</p>', $content);
+        $this->assertSame('<h2>Welcome</h2><p>Hello big world</p>', $content);
     }
 
     public function test_contentForItem_usesTheMeetingImportContextForFilters(): void

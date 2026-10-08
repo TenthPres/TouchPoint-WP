@@ -51,7 +51,6 @@ class Location_Test extends TestCase
 
         $this->assertNull($result[0]['lat']);
         $this->assertNull($result[0]['lng']);
-        $this->assertNull($result[0]['radius']);
     }
 
     public function test_validateSetting_theRadiusIsRoundedToTwoPlaces(): void
@@ -101,5 +100,28 @@ class Location_Test extends TestCase
     public function test_validateSetting_noLocations(): void
     {
         $this->assertSame('[]', Location::validateSetting('[]'));
+    }
+
+    public function test_validateSetting_aLocationWithoutSomePropertiesIsFilledIn(): void
+    {
+        $result = self::validate([['name' => 'A']]);
+
+        $this->assertNull($result[0]['lat']);
+        $this->assertNull($result[0]['lng']);
+        $this->assertNotNull($result[0]['radius']);
+        $this->assertSame([], $result[0]['ipAddresses']);
+    }
+
+    public function test_validateSetting_textThatIsNotJsonIsEmptyArray(): void
+    {
+        $this->assertSame('[]', Location::validateSetting('not json'));
+        $this->assertSame('[]', Location::validateSetting(''));
+    }
+
+    public function test_validateSetting_jsonThatIsNotAListIsEmptyArray(): void
+    {
+        $this->assertSame('[]', Location::validateSetting('5'));
+        $this->assertSame('[]', Location::validateSetting('"text"'));
+        $this->assertSame('[]', Location::validateSetting('null'));
     }
 }

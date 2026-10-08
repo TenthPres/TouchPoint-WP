@@ -6,6 +6,7 @@
 namespace tp\TouchPointWP;
 
 use DateInterval;
+use DOMDocument;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
@@ -767,25 +768,34 @@ abstract class Utilities
 		 * @return string The standardized HTML.
 		 */
 		$html      = apply_filters('tp_pre_standardize_html', $html, $context);
-		$maxHeader = 2;
 
-		/**
-		 * The maximum header level to allow in an HTML string.  Default is 2.
-		 *
-		 * @since 0.0.25 Added
-		 *
-		 * @param int    $maxHeader The highest header level (lowest number) to allow in the HTML. (e.g. 2 for <h2> tags)
-		 * @param string $context A context string to pass to hooks.
-		 *
-		 * @return int The maximum header level to allow in the HTML.
-		 */
-		$maxHeader = intval(apply_filters('tp_standardize_h_tags_max_h', $maxHeader, $context));
 
-		$allowedTags = [
-			'p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li',
-			'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-			'table', 'tr', 'th', 'td', 'thead', 'tbody', 'tfoot'
-		];
+        $stripContentTags = [
+            'script', 'style', 'img', 'iframe', 'object', 'embed', 'head'
+        ];
+
+        /**
+         * The tags who will be stripped *with their content* in the HTML standardization process.  Default is a set
+         * of common tags whose content could introduce security vulnerabilities or would cause code to render visibly,
+         * such as script and style.
+         *
+         * @since 0.2.2 Added
+         *
+         * @param string[] $stripContentTags The tags to be removed with their content from the HTML.
+         * @param string   $context A context string to pass to hooks.
+         *
+         * @return string[] The tags to be removed with their content from the HTML.
+         */
+        $stripContentTags = apply_filters('tp_standardize_strip_content_tags', $stripContentTags, $context);
+
+		$html = self::stripTagsWithContent($html, $stripContentTags);
+
+
+        $allowedTags = [
+            'p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li',
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'table', 'tr', 'th', 'td', 'thead', 'tbody', 'tfoot'
+        ];
 
 		/**
 		 * The allowed tags in the HTML standardization process.  Default is a set of common tags, but tags such as script, style, img, and others are stripped.
@@ -799,9 +809,25 @@ abstract class Utilities
 		 */
 		$allowedTags = apply_filters('tp_standardize_allowed_tags', $allowedTags, $context);
 
-		$html = self::standardizeHTags($maxHeader, $html);
-		$html = strip_tags($html, $allowedTags);
-		$html = trim($html);
+        $html = strip_tags($html, $allowedTags);
+
+        $maxHeader = 2;
+
+		/**
+		 * The maximum header level to allow in an HTML string.  Default is 2.
+		 *
+		 * @since 0.0.25 Added
+		 *
+		 * @param int    $maxHeader The highest header level (lowest number) to allow in the HTML. (e.g. 2 for <h2> tags)
+		 * @param string $context A context string to pass to hooks.
+		 *
+		 * @return int The maximum header level to allow in the HTML.
+		 */
+		$maxHeader = intval(apply_filters('tp_standardize_h_tags_max_h', $maxHeader, $context));
+
+        $html = self::standardizeHTags($maxHeader, $html);
+
+        $html = trim($html);
 
 		/**
 		 * Make any adjustments to HTML content after the rest of the standardization process happens.
@@ -814,6 +840,57 @@ abstract class Utilities
 		 * @return string The standardized HTML.
 		 */
 		return apply_filters('tp_post_standardize_html', $html, $context);
+	}
+
+	/**
+	 * Remove some kinds of elements from HTML, along with everything inside them.  The HTML is read the way a browser
+	 * reads it (by a parser, not by pattern matching), so quoted text, comments, and attribute values that look like tags
+	 * are treated as what they are.  An element that is never closed takes the rest of its parent with it.
+	 *
+	 * Everything that's left is written out again from what the parser read, so it may be formatted a little
+	 * differently than it was: for example, tag names are lower case, entities like &nbsp; become characters, and
+	 * addresses in links are percent-encoded.  Text that can't be read as HTML at all is removed.
+	 *
+	 * @param string   $html The HTML to remove the elements from.
+	 * @param string[] $tags The names of the elements to remove, without angle brackets.  Case doesn't matter.
+	 *
+	 * @return string
+	 */
+	private static function stripTagsWithContent(string $html, array $tags): string
+	{
+		$tags = array_filter($tags, fn($tag) => is_string($tag) && $tag !== '');
+		if ($html === '' || count($tags) === 0) {
+			return $html;
+		}
+
+		// The parser stops reading at a null character, which would drop everything after it.
+		$html = str_replace("\0", '', $html);
+
+		// The declaration makes the parser read the text as UTF-8.  Without the body, loose text would be put in a paragraph.
+		$previousErrorSetting = libxml_use_internal_errors(true);
+		$doc                  = new DOMDocument();
+		$loaded               = $doc->loadHTML('<?xml encoding="utf-8" ?><body>' . $html . '</body>', LIBXML_NONET);
+		libxml_clear_errors();
+		libxml_use_internal_errors($previousErrorSetting);
+
+		$body = $loaded ? $doc->getElementsByTagName('body')->item(0) : null;
+		if ($body === null) {
+			return '';
+		}
+
+		foreach ($tags as $tag) {
+			// A copy of the list, because the live one changes as elements are removed.
+			foreach (iterator_to_array($doc->getElementsByTagName($tag), false) as $element) {
+				$element->parentNode?->removeChild($element);
+			}
+		}
+
+		$out = '';
+		foreach ($body->childNodes as $child) {
+			$out .= $doc->saveHTML($child);
+		}
+
+		return $out;
 	}
 
 	/**
@@ -847,8 +924,8 @@ abstract class Utilities
 		if ($pos > 0) {
 			$s = substr($s, 0, $pos);
 		}
-		$s = trim($s);
 		$s = preg_replace("/[^a-zA-Z0-9]/", "-", $s);
+        $s = trim($s, " \t\n\r\0\x0B-_");
 		$s = strtolower($s);
 		return preg_replace("/-+/", "-", $s);
 	}
