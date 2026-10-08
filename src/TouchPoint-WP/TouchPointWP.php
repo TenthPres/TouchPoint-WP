@@ -31,7 +31,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.97";
+	public const VERSION = "0.2.1";
 
 	/**
 	 * The Token
@@ -583,9 +583,7 @@ class TouchPointWP
 
 			// Cleanup endpoints
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_CLEANUP) {
-				if ( ! Cleanup::api($reqUri)) {
-					return $continue;
-				}
+				Cleanup::api($reqUri);
 			}
 
 			// Geolocate via IP
@@ -846,7 +844,8 @@ class TouchPointWP
 				partnerPosts int(10) DEFAULT 0,
 				userAuths int(10) DEFAULT 0,
 				softAuths int(10) DEFAULT 0,
-				
+				meetingGroupingLegacy tinyint(1) DEFAULT 0,
+
 				PRIMARY KEY  (installId)
 			)";
 			dbDelta($sql);
@@ -1092,7 +1091,7 @@ class TouchPointWP
 //			Auth::registerScriptsAndStyles();
 //		}
 
-		if ( ! ! $this->rsvp) {
+		if ( ! ! $this->rsvp || ! ! $this->involvements) {
 			Meeting::registerScriptsAndStyles();
 		}
 	}
@@ -1428,14 +1427,17 @@ class TouchPointWP
 			throw new TouchPointWP_Exception("IP Geolocation Error: Rate Limited. Backing off for 5 minutes.", 178001);
 		}
 
-		try {
-			json_decode($return, flags: JSON_THROW_ON_ERROR);
-		} catch (JsonException) {
-			throw new TouchPointWP_Exception("IP Geolocation Error: Invalid JSON", 178001);
+		$decoded = json_decode($return);
+
+		if ( ! is_object($decoded)) {
+			// Probably a block or error page rather than an API response.  Back off, so that this isn't repeated
+			// (and logged) on every request while the service is unavailable.
+			$this->settings->set('ipapi_ratelimit_exp', time() + 60);
+			throw new TouchPointWP_Exception("IP Geolocation Error: Invalid JSON. Backing off for 1 minute.", 178001);
 		}
 
-		if (property_exists($return, 'error')) {
-			throw new TouchPointWP_Exception("IP Geolocation Error: " . $return->error . " " . $return->reason ?? "", 178001);
+		if (property_exists($decoded, 'error')) {
+			throw new TouchPointWP_Exception("IP Geolocation Error: " . ($decoded->reason ?? ""), 178001);
 		}
 
 		$this->ipData = $return;
@@ -1983,6 +1985,24 @@ class TouchPointWP
 		}
 
 		return $cObj->campuses;
+	}
+
+
+	/**
+	 * Returns an array of objects that correspond to TouchPoint Involvement Types.  Each Involvement Type has an id and
+	 * a description.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @returns object[]
+	 */
+	public function getInvolvementTypes(): array
+	{
+		try {
+			return Lookup::getLookup('OrganizationTypes');
+		} catch (TouchPointWP_Exception) {
+			return [];
+		}
 	}
 
 

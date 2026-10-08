@@ -36,6 +36,19 @@ TouchPointWP::enqueuePartialsStyle("involvement-single");
 
     <div class="archive-header-inner section-inner medium">
         <h1 class="archive-title page-title"><?php echo the_title() ?></h1>
+        <?php
+        $parent = $obj->getParent();
+        if ($parent !== null && $parent->post_id() !== $p->ID) {
+            $parentPost = get_post($parent->post_id());
+            if ($parentPost !== null && $parentPost->post_status === 'publish') {
+                $parentLink = "<a href=\"" . esc_url(get_permalink($parentPost)) . "\">" . esc_html(get_the_title($parentPost)) . "</a>";
+                echo "<p class=\"parent-link\">";
+                // Translators: %s is a link to the event or involvement this one is part of.
+                echo wp_sprintf(__('Part of %s', 'TouchPoint-WP'), $parentLink);
+                echo "</p>";
+            }
+        }
+        ?>
     </div>
     <?php
 
@@ -99,62 +112,87 @@ TouchPointWP::enqueuePartialsStyle("involvement-single");
     </div>
 </article>
 
-<?php if ($settings->hierarchical) {
-	$single_children = get_children([
-		                         'post_parent' => $p->ID,
-		                         'orderby' => 'title',
-		                         'order' => 'ASC',
-		                         'meta_key'     => TouchPointWP::INVOLVEMENT_META_KEY,
-		                         'meta_value'   => 0,
-		                         'meta_compare' => '>'
-	                         ]);
-	if (count($single_children) > 0) {
-		echo "<div class='involvement-list child-involvements'>";
+<?php
+// Children of this post: child involvements, meetings, and groups of meetings (Editions, Clusters), in one
+// list.  Hidden posts aren't included, since get_children() leaves out statuses that are excluded from search.
+if ($settings->hierarchical || ($settings->importMeetings && $tps->enable_meeting_cal === "on")) {
+	$now     = time();
+	$current = [];
+	$past    = [];
+
+	foreach (get_children(['post_parent' => $p->ID, 'post_type' => $postType]) as $child) {
+		/** @var WP_Post $child */
+		if (Meeting::isSpanningMeetingOf($child, $p)) {
+			continue; // An Edition's spanning meeting is the Edition itself, as far as visitors are concerned.
+		}
+
+		$start = intval(get_post_meta($child->ID, Meeting::MEETING_START_META_KEY, true));
+		$end   = intval(get_post_meta($child->ID, Meeting::MEETING_END_META_KEY, true)) ?: $start;
+
+		if ($start === 0) {
+			// Child involvements have no dates of their own.  They come first, as before.
+			$current[] = [0, $child->post_title, $child];
+		} elseif ($end >= $now) {
+			$current[] = [1, $start, $child];
+		} else {
+			$past[] = [$start, $child];
+		}
 	}
-	foreach ($single_children as $post) {
-		/** @var WP_Post $post */
-		$loadedPart = get_template_part('list-item', 'involvement-list-item');
+
+	usort($current, fn($a, $b) => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
+	usort($past, fn($a, $b) => $b[0] <=> $a[0]); // Newest first
+
+	$renderChild = function (WP_Post $child) use ($settings) {
+		global $post;
+		$post = $child;
+		setup_postdata($post);
+
+		$loadedPart = false;
+		if (Meeting::postIsType($child)) {
+			$loadedPart = get_template_part('list-item', 'event-list-item');
+		}
 		if ($loadedPart === false) {
-			TouchPointWP::enqueuePartialsStyle("involvement-single child-item");
+			$loadedPart = get_template_part('list-item', 'involvement-list-item');
+		}
+		if ($loadedPart === false) {
 			require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
 		}
-	}
-	if (count($single_children) > 0) {
-		echo "</div>";
-	}
-}
+	};
 
-if ($settings->importMeetings && $tps->enable_meeting_cal === "on") {
-	$meetings = get_children([
-		                         'post_parent'  => $p->ID,
-		                         'order'        => 'ASC',
-		                         'orderby'      => 'meta_value_num',
-		                         'meta_key'     => Meeting::MEETING_START_META_KEY,
-		                         'meta_value'   => time(),
-		                         'meta_compare' => '>'
-	                         ]);
-	$count = count($meetings);
-	if ($count > 0) {
-		echo "<div class='event-list'>";
-		$heading = sprintf(
-		// translators: %1$s is the singular name of the event type, %2$s is the plural name of the event type
-			_n('Upcoming %1$s', 'Upcoming %2$s', 'TouchPoint-WP'),
-			TouchPointWP::instance()->settings->mc_name_singular,
-			TouchPointWP::instance()->settings->mc_name_plural
-		);
-		echo "<h3>$heading</h3>";
+	if (count($current) + count($past) > 0) {
+		TouchPointWP::enqueuePartialsStyle("involvement-single child-item");
 	}
-	foreach ($meetings as $post) {
-		/** @var WP_Post $post */
-		$loadedPart = get_template_part('list-item', 'event-list-item');
-		if ($loadedPart === false) {
-			TouchPointWP::enqueuePartialsStyle("involvement-single event-item");
-			require TouchPointWP::$dir . "/src/templates/parts/meeting-list-item.php";
+
+	if (count($current) > 0) {
+		echo "<div class='inv-list child-items child-items-current'>";
+		foreach ($current as $c) {
+			$renderChild($c[2]);
 		}
-	}
-	if (count($meetings) > 0) {
 		echo "</div>";
 	}
+
+	if (count($past) > 0 && count($current) === 0) {
+		// Nothing else is listed, so there's nothing to tuck the past items away from.
+		echo "<div class='inv-list child-items child-items-past'>";
+		foreach ($past as $c) {
+			$renderChild($c[1]);
+		}
+		echo "</div>";
+	} elseif (count($past) > 0) {
+		$heading = wp_sprintf(
+			// Translators: %s is the plural name of Meetings, such as "Events".
+			__('Past %s', 'TouchPoint-WP'),
+			$tps->mc_name_plural
+		);
+		echo "<details class='child-items-past'><summary><h2 class='inline'>$heading</h2></summary>";
+		echo "<div class='inv-list child-items'>";
+		foreach ($past as $c) {
+			$renderChild($c[1]);
+		}
+		echo "</div></details>";
+	}
+
+	wp_reset_postdata();
 } ?>
 
 <?php get_footer();
