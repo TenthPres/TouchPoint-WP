@@ -53,6 +53,7 @@ jobs:
   wordpress:
     name: Run WordPress Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     strategy:
       fail-fast: false
@@ -115,6 +116,7 @@ jobs:
     # can only record one run at a time, so each is recorded to a file, and phpcov merges them.)
     name: Measure Code Coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     services:
       mysql:

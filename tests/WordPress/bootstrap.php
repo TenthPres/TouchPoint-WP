@@ -20,6 +20,15 @@ if ( ! defined('WP_TESTS_PHPUNIT_POLYFILLS_PATH')) {
 }
 define('WP_TESTS_CONFIG_FILE_PATH', __DIR__ . '/wp-tests-config.php');
 
+// When code coverage is being measured with Xdebug, only record it for the plugin's own code.  WordPress is large, and
+// recording coverage for all of it (with path coverage, which the configuration turns on) makes the tests take
+// dozens of minutes.  The filter has to be set before coverage starts, which PHPUnit does for each test, after this file.
+$tpXdebugModes = function_exists('xdebug_info') ? (array)xdebug_info('mode') : explode(',', (string)ini_get('xdebug.mode'));
+if (function_exists('xdebug_set_filter') && defined('XDEBUG_FILTER_CODE_COVERAGE') && in_array('coverage', array_map('trim', $tpXdebugModes), true)) {
+    xdebug_set_filter(XDEBUG_FILTER_CODE_COVERAGE, XDEBUG_PATH_INCLUDE, [realpath($tpRoot . '/src') . DIRECTORY_SEPARATOR]);
+}
+unset($tpXdebugModes);
+
 $tpWpTestsDir = getenv('WP_PHPUNIT__DIR');
 if ( ! $tpWpTestsDir || ! file_exists($tpWpTestsDir . '/includes/functions.php')) {
 	fwrite(STDERR, "WordPress's test library wasn't found.  Run `composer install`.\n");
