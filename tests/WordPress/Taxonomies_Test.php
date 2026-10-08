@@ -71,12 +71,10 @@ class Taxonomies_Test extends WPTestCase
     }
 
     /**
-     * Run the sync until it has settled.  (When a program is new, it takes two runs to make all of its divisions.  See
-     * test_aSingleSyncMakesEveryDivision.)
+     * Run the sync once, as a new request.
      */
     private function syncTerms(): void
     {
-        $this->syncOnce();
         $this->syncOnce();
     }
 
@@ -146,22 +144,6 @@ class Taxonomies_Test extends WPTestCase
     //////////////////////
     // Syncing terms    //
     //////////////////////
-
-    /**
-     * @group known-issue
-     */
-    public function test_aSingleSyncMakesEveryDivision(): void
-    {
-        $this->syncOnce();
-
-        $this->assertSame(
-            [
-                'Adults' => ['Bible Study', 'Prayer'],
-                'Youth'  => ['High School', 'Middle School'],
-            ],
-            $this->divisionTree()
-        );
-    }
 
     public function test_syncMakesATermForEachProgramWithItsDivisionsInside(): void
     {
@@ -387,5 +369,98 @@ class Taxonomies_Test extends WPTestCase
                 $this->assertContains($term->parent, array_map(fn($t) => $t->term_id, $this->dropdownTerms()), $term->name);
             }
         }
+    }
+
+    //////////////////////////////////////
+    // Syncing in the middle of a request //
+    //////////////////////////////////////
+
+    public function test_aProgramWithSeveralNewDivisionsGetsAllOfThemInOneSync(): void
+    {
+        $this->syncOnce();
+
+        // The first division of a program made the program, and the rest used it.
+        $this->assertNotNull($this->termForDivision(101));
+        $this->assertNotNull($this->termForDivision(102));
+        $this->assertNotNull($this->termForDivision(201));
+        $this->assertNotNull($this->termForDivision(202));
+        $this->assertSame($this->termForDivision(101)->parent, $this->termForDivision(102)->parent);
+        $this->assertCount(2, get_terms(['taxonomy' => Taxonomies::TAX_DIV, 'hide_empty' => false, 'parent' => 0]), 'Two programs.');
+    }
+
+    public function test_syncingTwiceInOneRequestChangesNothing(): void
+    {
+        // As when the plugin is activated and migrated in the same request.
+        $this->syncOnce();
+        $tree = $this->divisionTree();
+
+        Taxonomies::insertTerms(TouchPointWP::instance());   // Without forgetting anything.
+
+        $this->assertSame($tree, $this->divisionTree());
+    }
+
+    ///////////////////////////////////
+    // Remembering which terms exist //
+    ///////////////////////////////////
+
+    public function test_aTermIsFoundRightAfterItIsInserted(): void
+    {
+        $this->assertNull(Taxonomies::termExists('Adults', Taxonomies::TAX_DIV, 0), 'Not there yet.');
+
+        $made = Taxonomies::insertTerm('Adults', Taxonomies::TAX_DIV);
+
+        $this->assertEquals($made['term_id'], Taxonomies::termExists('Adults', Taxonomies::TAX_DIV, 0)['term_id'], 'At the top level.');
+        $this->assertEquals($made['term_id'], Taxonomies::termExists('Adults', Taxonomies::TAX_DIV)['term_id'], 'Under any parent.');
+    }
+
+    public function test_aTermLookedForAtTheTopLevelAndNotFoundIsFoundOnceItIsInserted(): void
+    {
+        // The order the division sync does it in: look for the program, don't find it, make it, and look again.
+        $this->assertNull(Taxonomies::termExists('Adults', Taxonomies::TAX_DIV, 0));
+        Taxonomies::insertTerm('Adults', Taxonomies::TAX_DIV, ['slug' => 'adults']);
+
+        $this->assertNotNull(Taxonomies::termExists('Adults', Taxonomies::TAX_DIV, 0));
+    }
+
+    public function test_aTermLookedForUnderAnyParentAndNotFoundIsFoundOnceItIsInserted(): void
+    {
+        $this->assertNull(Taxonomies::termExists('Adults', Taxonomies::TAX_DIV));
+        Taxonomies::insertTerm('Adults', Taxonomies::TAX_DIV);
+
+        $this->assertNotNull(Taxonomies::termExists('Adults', Taxonomies::TAX_DIV));
+    }
+
+    public function test_aTermInsertedUnderAParentIsFoundUnderThatParentAndNotAtTheTopLevel(): void
+    {
+        $program = Taxonomies::insertTerm('Adults', Taxonomies::TAX_DIV);
+        $this->assertNull(Taxonomies::termExists('Prayer', Taxonomies::TAX_DIV, intval($program['term_id'])));
+        $this->assertNull(Taxonomies::termExists('Prayer', Taxonomies::TAX_DIV, 0));
+
+        $division = Taxonomies::insertTerm('Prayer', Taxonomies::TAX_DIV, ['parent' => $program['term_id']]);
+
+        $this->assertEquals($division['term_id'], Taxonomies::termExists('Prayer', Taxonomies::TAX_DIV, intval($program['term_id']))['term_id']);
+        $this->assertNull(Taxonomies::termExists('Prayer', Taxonomies::TAX_DIV, 0), 'It has a parent, so it is not at the top level.');
+        $this->assertNotNull(Taxonomies::termExists('Prayer', Taxonomies::TAX_DIV), 'But it exists under some parent.');
+    }
+
+    public function test_aTermThatCouldNotBeInsertedIsNotRemembered(): void
+    {
+        Taxonomies::insertTerm('Adults', Taxonomies::TAX_DIV);
+
+        $again = Taxonomies::insertTerm('Adults', Taxonomies::TAX_DIV);   // WordPress won't make a duplicate.
+
+        $this->assertInstanceOf(WP_Error::class, $again);
+        $this->assertNotNull(Taxonomies::termExists('Adults', Taxonomies::TAX_DIV, 0), 'The term that is there is still found.');
+    }
+
+    public function test_termsWithTheSameNameInOtherTaxonomiesAreKeptApart(): void
+    {
+        $this->assertNull(Taxonomies::termExists('Adults', Taxonomies::TAX_DIV, 0));
+        $this->assertNull(Taxonomies::termExists('Adults', Taxonomies::TAX_AGEGROUP));
+
+        Taxonomies::insertTerm('Adults', Taxonomies::TAX_AGEGROUP);
+
+        $this->assertNotNull(Taxonomies::termExists('Adults', Taxonomies::TAX_AGEGROUP));
+        $this->assertNull(Taxonomies::termExists('Adults', Taxonomies::TAX_DIV, 0));
     }
 }
