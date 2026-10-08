@@ -7,6 +7,7 @@ namespace tp\TouchPointWP;
 
 use DateInterval;
 use DOMDocument;
+use DOMElement;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
@@ -730,7 +731,25 @@ abstract class Utilities
 	}
 
 	/**
-	 * @param ?string  $html The HTML to be standardized.
+	 * Standardize HTML, typically as it is imported from TouchPoint, so that it is safe to publish and is rendered
+	 * consistently within your theme.  The steps, in order, are:
+	 *
+	 *  1. Elements that shouldn't be shown or run, like script and style, are removed along with their content.
+	 *  2. Attributes that could run code, like onclick, are removed, as are addresses (the href of a link, the src of an
+	 *     image, etc.) that have a protocol that isn't allowed, like "javascript:".
+	 *  3. Tags that aren't allowed, like section and font, are removed.  Their content is kept.
+	 *  4. Headings are shifted so that the highest heading is at the highest level allowed (h2, by default), and
+	 *     the headings below it keep their relationships.
+	 *  5. Whitespace at the start and end is removed.
+	 *
+	 * Steps 1 and 2 read the HTML and write it out again, so the formatting of what's left may change a little: for
+	 * example, tag names become lower case, entities like &nbsp; become characters, and addresses in links are
+	 * percent-encoded.
+	 *
+	 * Each step can be adjusted with filters, and the whole process can be replaced with the `tp_standardize_html`
+	 * filter.
+	 *
+	 * @param ?string $html    The HTML to be standardized.
 	 * @param ?string $context A context string to pass to hooks.
 	 *
 	 * @return string
@@ -771,38 +790,61 @@ abstract class Utilities
 
 
         $stripContentTags = [
-            'script', 'style', 'img', 'iframe', 'object', 'embed', 'head'
+            'script', 'style', 'iframe', 'object', 'embed', 'head'
         ];
 
-        /**
-         * The tags who will be stripped *with their content* in the HTML standardization process.  Default is a set
-         * of common tags whose content could introduce security vulnerabilities or would cause code to render visibly,
-         * such as script and style.
-         *
-         * @since 0.2.2 Added
-         *
-         * @param string[] $stripContentTags The tags to be removed with their content from the HTML.
-         * @param string   $context A context string to pass to hooks.
-         *
-         * @return string[] The tags to be removed with their content from the HTML.
-         */
-        $stripContentTags = apply_filters('tp_standardize_strip_content_tags', $stripContentTags, $context);
+		/**
+		 * The tags that will be removed *with their content* in the HTML standardization process.  Default is script,
+		 * style, iframe, object, embed, and head: tags whose content could run code, load something unexpected, or
+		 * show up as text on the page.  These are removed even if the tag is also allowed by `tp_standardize_allowed_tags`.
+		 *
+		 * @since 0.2.2 Added
+		 *
+		 * @param string[] $stripContentTags The tags to be removed with their content from the HTML.
+		 * @param string   $context A context string to pass to hooks.
+		 *
+		 * @return string[] The tags to be removed with their content from the HTML.
+		 */
+		$stripContentTags = apply_filters('tp_standardize_strip_content_tags', $stripContentTags, $context);
 
-		$html = self::stripTagsWithContent($html, $stripContentTags);
+		/**
+		 * The protocols that are allowed in the addresses within the HTML attributes, such as the href of a link.  The
+		 * default is a set of common protocols that can't run code.  Addresses without a protocol, such as "/about" or
+		 * "#top", are always allowed.  Attributes with other protocols are removed during the HTML standardization process.
+		 *
+		 * @since 0.2.2 Added
+		 *
+		 * @param string[] $allowedProtocols The allowed protocols, without colons. (e.g. "https")
+		 * @param string   $context A context string to pass to hooks.
+		 *
+		 * @return string[] The allowed protocols.
+		 */
+		$allowedProtocols = apply_filters('tp_standardize_allowed_protocols', ['http', 'https', 'mailto', 'tel'], $context);
+
+		$html = self::removeUnsafeMarkup($html, $stripContentTags, $allowedProtocols);
 
 
         $allowedTags = [
             'p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li',
             'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-            'table', 'tr', 'th', 'td', 'thead', 'tbody', 'tfoot'
+            'table', 'tr', 'th', 'td', 'thead', 'tbody', 'tfoot',
+            'img', 'figure', 'figcaption', 'blockquote', 'code', 'pre', 'span', 'div'
         ];
 
 		/**
-		 * The allowed tags in the HTML standardization process.  Default is a set of common tags, but tags such as script, style, img, and others are stripped.
+		 * The allowed tags in the HTML standardization process.  Default is a set of common tags: paragraphs, line breaks,
+		 * links, emphasis, lists, headings, tables, images, figures and captions, block quotes, code, and the generic
+		 * containers div and span.  Tags that aren't listed, such as section and font, are removed, but their content is
+		 * kept.  The intent is to provide a simple subset of HTML that will be rendered consistently within your theme.
+		 *
+		 * Attributes that could run code, and addresses with protocols that aren't allowed (see
+		 * `tp_standardize_allowed_protocols`), are removed from allowed tags.  Tags in `tp_standardize_strip_content_tags`
+		 * are removed along with their content, even if they're allowed here.
 		 *
 		 * @since 0.0.25 Added
+		 * @since 0.2.2 Changed the default to also allow img, figure, figcaption, blockquote, code, pre, span, and div.
 		 *
-		 * @param string[] $allowedTags The allowed tags in the HTML.
+		 * @param string[] $allowedTags The allowed tags in the HTML.  (Names only, without angle brackets.)
 		 * @param string   $context A context string to pass to hooks.
 		 *
 		 * @return string[] The allowed tags in the HTML.
@@ -811,6 +853,7 @@ abstract class Utilities
 
         $html = strip_tags($html, $allowedTags);
 
+        
         $maxHeader = 2;
 
 		/**
@@ -843,28 +886,43 @@ abstract class Utilities
 	}
 
 	/**
-	 * Remove some kinds of elements from HTML, along with everything inside them.  The HTML is read the way a browser
-	 * reads it (by a parser, not by pattern matching), so quoted text, comments, and attribute values that look like tags
-	 * are treated as what they are.  An element that is never closed takes the rest of its parent with it.
+	 * Attributes whose values are addresses, and so could be used to run code or load a document.
 	 *
-	 * Everything that's left is written out again from what the parser read, so it may be formatted a little
-	 * differently than it was: for example, tag names are lower case, entities like &nbsp; become characters, and
-	 * addresses in links are percent-encoded.  Text that can't be read as HTML at all is removed.
+	 * @var string[]
+	 */
+	private const URL_ATTRIBUTES = [
+		'href', 'src', 'srcset', 'action', 'formaction', 'xlink:href', 'poster', 'background', 'cite', 'data',
+		'longdesc', 'usemap', 'manifest', 'ping', 'codebase', 'classid', 'profile', 'icon', 'dynsrc', 'lowsrc',
+	];
+
+	/**
+	 * Remove markup that could run code or load something unexpected from HTML: some kinds of elements, along with
+	 * everything inside them, and any attributes that could run code, such as onclick, or that have an address that
+	 * could, such as a link to "javascript:".  Everything else is kept.
 	 *
-	 * @param string   $html The HTML to remove the elements from.
-	 * @param string[] $tags The names of the elements to remove, without angle brackets.  Case doesn't matter.
+	 * The HTML is read the way a browser reads it (by a parser, not by pattern matching), so quoted text, comments, and
+	 * attribute values that look like tags are treated as what they are.  An element that is never closed takes the rest
+	 * of its parent with it.
+	 *
+	 * What's left is written out again from what the parser read, so it may be formatted a little differently than it
+	 * was: for example, tag names are lower case, entities like &nbsp; become characters, and addresses in links are
+	 * percent-encoded.  Text that can't be read as HTML at all is removed.
+	 *
+	 * @param string   $html              The HTML to clean.
+	 * @param string[] $stripTags         The names of the elements to remove, without angle brackets.  Case doesn't matter.
+	 * @param string[] $allowedProtocols  The protocols (such as "https") that addresses are allowed to have.  Addresses
+	 *                                    without a protocol, like "/about" or "#top", are always allowed.
 	 *
 	 * @return string
 	 */
-	private static function stripTagsWithContent(string $html, array $tags): string
+	private static function removeUnsafeMarkup(string $html, array $stripTags, array $allowedProtocols): string
 	{
-		$tags = array_filter($tags, fn($tag) => is_string($tag) && $tag !== '');
-		if ($html === '' || count($tags) === 0) {
+		if ($html === '') {
 			return $html;
 		}
 
 		// The parser stops reading at a null character, which would drop everything after it.
-		$html = str_replace("\0", '', $html);
+		$html = str_replace(chr(0), '', $html);
 
 		// The declaration makes the parser read the text as UTF-8.  Without the body, loose text would be put in a paragraph.
 		$previousErrorSetting = libxml_use_internal_errors(true);
@@ -878,11 +936,20 @@ abstract class Utilities
 			return '';
 		}
 
-		foreach ($tags as $tag) {
+		foreach ($stripTags as $tag) {
+			if ( ! is_string($tag) || $tag === '') {
+				continue;
+			}
+
 			// A copy of the list, because the live one changes as elements are removed.
 			foreach (iterator_to_array($doc->getElementsByTagName($tag), false) as $element) {
 				$element->parentNode?->removeChild($element);
 			}
+		}
+
+		$allowedProtocols = array_map('strtolower', array_filter($allowedProtocols, 'is_string'));
+		foreach (iterator_to_array($body->getElementsByTagName('*'), false) as $element) {
+			self::removeUnsafeAttributes($element, $allowedProtocols);
 		}
 
 		$out = '';
@@ -891,6 +958,60 @@ abstract class Utilities
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Remove the attributes of an element that could run code: event handlers (onclick, onerror, ...), anything that
+	 * isn't a plausible attribute name (a browser could read it as something else), and addresses that have a protocol
+	 * that isn't allowed.
+	 *
+	 * @param DOMElement $element
+	 * @param string[]   $allowedProtocols Lower case.
+	 *
+	 * @return void
+	 */
+	private static function removeUnsafeAttributes(DOMElement $element, array $allowedProtocols): void
+	{
+		$unsafe = [];
+		foreach ($element->attributes as $attribute) {
+			$name = strtolower($attribute->name);
+
+			if (preg_match('/^[a-z][a-z0-9_.:-]*$/', $name) !== 1
+				|| str_starts_with($name, 'on')
+				|| $name === 'srcdoc'
+				|| (in_array($name, self::URL_ATTRIBUTES, true) && ! self::addressesAreSafe($attribute->value, $allowedProtocols, $name === 'srcset'))) {
+				$unsafe[] = $attribute;
+			}
+		}
+
+		foreach ($unsafe as $attribute) {
+			$element->removeAttributeNode($attribute);
+		}
+	}
+
+	/**
+	 * Determine whether an address (or, for a list of images, all of the addresses) has no protocol or an allowed one.
+	 *
+	 * @param string   $value
+	 * @param string[] $allowedProtocols Lower case.
+	 * @param bool     $isList           True if the value is a list of addresses with sizes, like the srcset of an image.
+	 *
+	 * @return bool
+	 */
+	private static function addressesAreSafe(string $value, array $allowedProtocols, bool $isList = false): bool
+	{
+		foreach ($isList ? explode(',', $value) : [$value] as $candidate) {
+			// Browsers ignore whitespace and control characters anywhere in a protocol, like "java\tscript:".
+			$address = $isList ? (string)strtok(trim($candidate), " \t\r\n\f") : $candidate;
+			$address = preg_replace('/[\x00-\x20\x7f]+/', '', $address);
+
+			if (preg_match('/^([a-z][a-z0-9+.-]*):/i', $address, $protocol) === 1
+				&& ! in_array(strtolower($protocol[1]), $allowedProtocols, true)) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -1091,6 +1212,14 @@ abstract class Utilities
 
 	protected static ?string $_clientIp = null;
 
+	/**
+	 * Get the IP address of the client making the request, as best as it can be determined.  Headers that proxies add to
+	 * forward the client's address are used if they're present, but a request can include those headers with any value
+	 * its sender chooses, so the result is only suitable for approximate purposes, like geolocation.  It must not be
+	 * used for authentication or access control.
+	 *
+	 * @return ?string The address, or null if there isn't a valid one.
+	 */
 	public static function getClientIp(): ?string
 	{
 		if (self::$_clientIp === null) {

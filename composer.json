@@ -32,7 +32,8 @@
     "composer/installers": "^2.0",
     "ext-json": "*",
     "ext-zip": "*",
-    "ext-dom": "*"
+    "ext-dom": "*",
+    "ext-libxml": "*"
   },
   "autoload-dev": {
     "psr-4": {

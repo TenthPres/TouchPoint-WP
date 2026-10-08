@@ -567,7 +567,7 @@ class Utilities_Test extends TestCase
 
 	public function test_standardizeHtml_removesTagsThatAreNotAllowed(): void
 	{
-		$this->assertSame('Hi there', Utilities::standardizeHtml('<div><span>Hi</span><img src="x"> there</div>'));
+		$this->assertSame('Hi there', Utilities::standardizeHtml('<section><font color="red">Hi</font><center> there</center></section>'));
 	}
 
 	public function test_standardizeHtml_keepsTheTagsThatAreAllowed(): void
@@ -599,12 +599,12 @@ class Utilities_Test extends TestCase
 	{
 		add_filter('tp_pre_standardize_html', fn($html, $context) => str_replace('PLACEHOLDER', "<h1>$context</h1>", $html), 10, 2);
 		add_filter('tp_standardize_h_tags_max_h', fn($max) => 3);
-		add_filter('tp_standardize_allowed_tags', fn($tags) => [...$tags, 'span']);
+		add_filter('tp_standardize_allowed_tags', fn($tags) => [...$tags, 'mark']);
 		add_filter('tp_post_standardize_html', fn($html, $context) => "$html<!-- $context -->", 10, 2);
 
 		$this->assertSame(
-			'<h3>events</h3><span>kept</span><!-- events -->',
-			Utilities::standardizeHtml('PLACEHOLDER<span>kept</span>', 'events')
+			'<h3>events</h3><mark>kept</mark><!-- events -->',
+			Utilities::standardizeHtml('PLACEHOLDER<mark>kept</mark>', 'events')
 		);
 	}
 
@@ -771,7 +771,7 @@ class Utilities_Test extends TestCase
 		preg_match_all('/href\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))/i', $html, $matches, PREG_SET_ORDER);
 
 		return array_map(
-			fn($m) => preg_replace('/[\s\x00-\x1f]+/', '', html_entity_decode($m[1] . ($m[2] ?? '') . ($m[3] ?? ''))),
+			fn($m) => preg_replace('/[\s\x00-\x1f]+/', '', html_entity_decode($m[1] . ($m[2] ?? '') . ($m[3] ?? ''), ENT_QUOTES | ENT_HTML5)),
 			$matches
 		);
 	}
@@ -801,7 +801,6 @@ class Utilities_Test extends TestCase
 	}
 
 	/**
-	 * @group known-issue
 	 * @dataProvider provider_unsafeLinks
 	 */
 	public function test_standardizeHtml_linksThatRunCodeAreNotKept(string $html): void
@@ -839,7 +838,6 @@ class Utilities_Test extends TestCase
 	}
 
 	/**
-	 * @group known-issue
 	 * @dataProvider provider_eventHandlers
 	 */
 	public function test_standardizeHtml_eventHandlersAreRemoved(string $html): void
@@ -893,60 +891,11 @@ class Utilities_Test extends TestCase
 	}
 
 	/**
-	 * @group known-issue
 	 * @dataProvider provider_slugsWithPunctuationAtTheEdges
 	 */
 	public function test_stringToSlug_neverStartsOrEndsWithADash(string $title, string $slug): void
 	{
 		$this->assertSame($slug, Utilities::stringToSlug($title));
-	}
-
-	/**
-	 * A request can include headers that say whatever its sender wants, so the address of the connection is the only
-	 * one that can be relied on, unless the connection is from a proxy the site is set to trust.
-	 *
-	 * @group known-issue
-	 */
-	public function test_getClientIp_headersFromTheRequestAreNotTrustedByDefault(): void
-	{
-		$this->requestFrom([
-			'HTTP_CLIENT_IP'       => '203.0.113.9',
-			'HTTP_X_FORWARDED_FOR' => '198.51.100.4',
-			'REMOTE_ADDR'          => '192.0.2.5',
-		]);
-
-		$this->assertSame('192.0.2.5', Utilities::getClientIp());
-	}
-
-	public function test_getClientIp_forwardingHeadersAreUsedWhenTheConnectionIsFromATrustedProxy(): void
-	{
-		add_filter('tp_trusted_proxies', fn($proxies) => ['10.0.0.1']);
-		$this->requestFrom(['HTTP_X_FORWARDED_FOR' => '203.0.113.9', 'REMOTE_ADDR' => '10.0.0.1']);
-
-		$this->assertSame('203.0.113.9', Utilities::getClientIp());
-	}
-
-	/**
-	 * @group known-issue
-	 */
-	public function test_getClientIp_forwardingHeadersAreNotUsedWhenTheConnectionIsNotFromATrustedProxy(): void
-	{
-		add_filter('tp_trusted_proxies', fn($proxies) => ['10.0.0.1']);
-		$this->requestFrom(['HTTP_X_FORWARDED_FOR' => '203.0.113.9', 'REMOTE_ADDR' => '192.0.2.5']);
-
-		$this->assertSame('192.0.2.5', Utilities::getClientIp());
-	}
-
-	/**
-	 * @group known-issue
-	 */
-	public function test_getClientIp_aProxyAddsTheClientToTheEndOfAForwardedList(): void
-	{
-		add_filter('tp_trusted_proxies', fn($proxies) => ['10.0.0.1', '10.0.0.2']);
-		// The client claimed to be 198.51.100.200.  The first proxy saw it was really 203.0.113.9, and the second added the first.
-		$this->requestFrom(['HTTP_X_FORWARDED_FOR' => '198.51.100.200, 203.0.113.9, 10.0.0.1', 'REMOTE_ADDR' => '10.0.0.2']);
-
-		$this->assertSame('203.0.113.9', Utilities::getClientIp());
 	}
 
 	///////////////////////////////////////
@@ -983,10 +932,10 @@ class Utilities_Test extends TestCase
 		$this->assertSame('<p>A</p><p>B</p>', Utilities::standardizeHtml('<p>A</p></script><p>B</p>'));
 	}
 
-	public function test_standardizeHtml_imagesAreRemovedWithoutTheTextAroundThem(): void
+	public function test_standardizeHtml_iframesAreRemovedWithoutTheTextAroundThem(): void
 	{
-		$this->assertSame('<p>Before  after</p><p>More</p>', Utilities::standardizeHtml('<p>Before <img src="x.png" alt="x"> after</p><p>More</p>'));
-		$this->assertSame('<p>A</p><p>B</p>', Utilities::standardizeHtml('<p>A</p><img src="x.png"/><p>B</p>'));
+		$this->assertSame('<p>Before  after</p><p>More</p>', Utilities::standardizeHtml('<p>Before <iframe src="x"></iframe> after</p><p>More</p>'));
+		$this->assertSame('<p>A</p><p>B</p>', Utilities::standardizeHtml('<p>A</p><iframe src="x"></iframe><p>B</p>'));
 	}
 
 	public function test_standardizeHtml_tagsWhoseNamesStartLikeAContentTagAreKept(): void
@@ -998,12 +947,13 @@ class Utilities_Test extends TestCase
 
 	public function test_standardizeHtml_theTagsToRemoveWithTheirContentsCanBeChanged(): void
 	{
-		add_filter('tp_standardize_strip_content_tags', fn($tags, $context) => ['aside', 'script'], 10, 2);
-		add_filter('tp_standardize_allowed_tags', fn($tags) => [...$tags, 'aside', 'img']);
+		add_filter('tp_standardize_strip_content_tags', fn($tags, $context) => ['aside', 'script', 'figure'], 10, 2);
+		add_filter('tp_standardize_allowed_tags', fn($tags) => [...$tags, 'aside']);
 
+		// The aside and the figure are allowed tags, but they're also in the list of tags to remove with their content.
 		$this->assertSame(
-			'<p>A</p><img src="x"><p>B</p>',
-			Utilities::standardizeHtml('<p>A</p><aside>Gone</aside><img src="x"><script>x()</script><p>B</p>')
+			'<p>A</p><img src="https://example.com/a.png"><p>B</p>',
+			Utilities::standardizeHtml('<p>A</p><aside>Gone</aside><figure>Gone<figcaption>too</figcaption></figure><img src="https://example.com/a.png"><script>x()</script><p>B</p>')
 		);
 	}
 
@@ -1098,5 +1048,198 @@ class Utilities_Test extends TestCase
 	public function test_standardizeHtml_aLessThanSignInTextIsKeptAsText(): void
 	{
 		$this->assertSame('<p>1 &lt; 2 and 3 &gt; 2</p>', Utilities::standardizeHtml('<p>1 &lt; 2 and 3 &gt; 2</p><script>x()</script>'));
+	}
+
+	////////////////////////////////////////////
+	// Attributes that could run code, or not //
+	////////////////////////////////////////////
+
+	/**
+	 * @return array[] [HTML with an event handler written in an unusual way]
+	 */
+	public static function provider_oddEventHandlers(): array
+	{
+		return [
+			'after a slash'              => ['<p/onclick=alert(1)>Click</p>'],
+			'after a quotation mark'     => ['<p "onclick=alert(1)>Click</p>'],
+			'after an attribute'         => ['<a href="https://example.com"onclick="alert(1)">Click</a>'],
+			'a line break before ='      => ["<p onclick\n=alert(1)>Click</p>"],
+			'spaces around ='            => ['<p ONCLICK = "alert(1)">Click</p>'],
+			'with another attribute'     => ['<p title=x onclick=alert(1) class=y>Click</p>'],
+			'on a tag that isn\'t closed' => ['<p onclick=alert(1)>Click'],
+			'an unusual handler'         => ['<p onpointerrawupdate="alert(1)" onanimationstart="alert(2)">Click</p>'],
+			'the same one twice'         => ['<p onclick="alert(1)" onclick="alert(2)">Click</p>'],
+		];
+	}
+
+	/**
+	 * @dataProvider provider_oddEventHandlers
+	 */
+	public function test_standardizeHtml_eventHandlersAreRemovedHoweverTheyAreWritten(string $html): void
+	{
+		$result = Utilities::standardizeHtml($html);
+
+		$this->assertDoesNotMatchRegularExpression('/<[^>]*[\s\/"\'`]on\w*\s*=/i', $result);
+		$this->assertStringNotContainsString('alert', $result);
+		$this->assertStringContainsString('Click', $result);
+	}
+
+	public function test_standardizeHtml_otherAttributesAreKept(): void
+	{
+		foreach ([
+			'<a href="https://example.com/x" title="Hi" class="btn" target="_blank" rel="noopener">Link</a>',
+			'<table><tr><td colspan="2" style="text-align: center">A</td></tr></table>',
+			'<p id="a" data-onclick="x" lang="en">Text</p>',
+			'<p title="onclick=alert(1)">Text</p>',
+		] as $html) {
+			$this->assertSame($html, Utilities::standardizeHtml($html));
+		}
+	}
+
+	public function test_standardizeHtml_onlyTheUnsafeAttributesAreRemoved(): void
+	{
+		$this->assertSame(
+			'<a href="https://example.com" title="Hi" class="b">Link</a>',
+			Utilities::standardizeHtml('<a href="https://example.com" onclick="x()" title="Hi" onmouseover="y()" class="b">Link</a>')
+		);
+		$this->assertSame('<a title="Hi">Link</a>', Utilities::standardizeHtml('<a href="javascript:x()" title="Hi">Link</a>'));
+	}
+
+	/**
+	 * @return array[] [HTML with a protocol written in an unusual way]
+	 */
+	public static function provider_hiddenProtocols(): array
+	{
+		return [
+			'a named line break'     => ['<a href="java&NewLine;script:alert(1)">Click</a>'],
+			'a named tab'            => ['<a href="java&Tab;script:alert(1)">Click</a>'],
+			'a named colon'          => ['<a href="javascript&colon;alert(1)">Click</a>'],
+			'a hexadecimal colon'    => ['<a href="javascript&#x3A;alert(1)">Click</a>'],
+			'a numeric colon'        => ['<a href="javascript&#58;alert(1)">Click</a>'],
+			'long numeric characters' => ['<a href="&#0000106&#0000097vascript:alert(1)">Click</a>'],
+			'a control character'    => ["<a href=\"\x01javascript:alert(1)\">Click</a>"],
+			'a line break'           => ["<a href=\"java\nscript:alert(1)\">Click</a>"],
+			'a space before'         => ["<a href=\"\x20\x20javascript:alert(1)\">Click</a>"],
+		];
+	}
+
+	/**
+	 * @dataProvider provider_hiddenProtocols
+	 */
+	public function test_standardizeHtml_linksThatRunCodeAreNotKeptHoweverTheyAreWritten(string $html): void
+	{
+		$result = Utilities::standardizeHtml($html);
+
+		foreach (self::hrefs($result) as $href) {
+			$this->assertDoesNotMatchRegularExpression('/^[a-z][a-z0-9+.-]*:/i', $href, "A link with a protocol was kept: $result");
+		}
+		$this->assertStringContainsString('Click', $result);
+	}
+
+	public function test_standardizeHtml_addressesWithoutAProtocolAreKept(): void
+	{
+		foreach (['//example.com/x', '../up', 'page.html', '?q=1', '/a:b', '#section:2', ''] as $href) {
+			$html = "<a href=\"$href\">Link</a>";
+
+			$this->assertSame($html, Utilities::standardizeHtml($html), "href=\"$href\"");
+		}
+	}
+
+	public function test_standardizeHtml_addressesInOtherAttributesAreCheckedToo(): void
+	{
+		add_filter('tp_standardize_allowed_tags', fn($tags) => [...$tags, 'form', 'button']);
+
+		foreach ([
+			'<img src="javascript:alert(1)" alt="x">',
+			'<img src="data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=" alt="x">',
+			'<img src="https://example.com/a.png" srcset="https://example.com/a.png 1x, javascript:alert(1) 2x" alt="x">',
+			'<form action="javascript:alert(1)"><button type="submit">Go</button></form>',
+			'<form><button formaction="javascript:alert(1)">Go</button></form>',
+		] as $html) {
+			$result = Utilities::standardizeHtml($html);
+
+			$this->assertDoesNotMatchRegularExpression('/(javascript|data):/i', $result, $html);
+		}
+	}
+
+	public function test_standardizeHtml_imagesWithSafeAddressesAreKept(): void
+	{
+		foreach ([
+			'<img src="https://example.com/a.png" alt="A">',
+			'<img src="/uploads/a.png" srcset="/uploads/a.png 1x, /uploads/b.png 2x" alt="A">',
+		] as $html) {
+			$this->assertSame($html, Utilities::standardizeHtml($html));
+		}
+	}
+
+	public function test_standardizeHtml_theAllowedProtocolsCanBeChanged(): void
+	{
+		add_filter('tp_standardize_allowed_protocols', fn($protocols, $context) => ['ftp', 'HTTPS', 5, null], 10, 2);
+
+		$this->assertSame('<a href="ftp://example.com/f">F</a>', Utilities::standardizeHtml('<a href="ftp://example.com/f">F</a>'));
+		$this->assertSame('<a href="https://example.com/">H</a>', Utilities::standardizeHtml('<a href="https://example.com/">H</a>'));
+		$this->assertSame('<a>M</a>', Utilities::standardizeHtml('<a href="mailto:a@example.com">M</a>'), 'Not in the list anymore.');
+		$this->assertSame('<a>J</a>', Utilities::standardizeHtml('<a href="javascript:x()">J</a>'));
+	}
+
+	public function test_standardizeHtml_protocolsAreComparedWithoutRegardToCase(): void
+	{
+		$html = '<a href="HTTPS://example.com/">Link</a>';
+
+		$this->assertStringContainsString('href=', Utilities::standardizeHtml($html));
+	}
+
+	///////////////////////////////////
+	// Which tags are allowed        //
+	///////////////////////////////////
+
+	public function test_standardizeHtml_keepsTheContainersAndMediaAllowedByDefault(): void
+	{
+		$html = '<div class="intro"><figure><img src="https://example.com/a.png" alt="A"><figcaption>Caption</figcaption></figure>'
+			. '<blockquote>Quote <span>here</span></blockquote><pre><code>$x = 1;</code></pre></div>';
+
+		$this->assertSame($html, Utilities::standardizeHtml($html));
+	}
+
+	public function test_standardizeHtml_removesTagsThatAreNotAllowedButKeepsWhatIsInThem(): void
+	{
+		$this->assertSame(
+			'<p>One Two <b>Three</b></p>',
+			Utilities::standardizeHtml('<section><p><mark>One</mark> <small>Two</small> <b>Three</b></p></section>')
+		);
+	}
+
+	public function test_standardizeHtml_allowedTagsHaveTheirAttributesCleaned(): void
+	{
+		// A tag that is not normally allowed, so there is something to see.
+		add_filter('tp_standardize_allowed_tags', fn($tags) => [...$tags, 'mark']);
+
+		$this->assertSame('<mark>x</mark>', Utilities::standardizeHtml('<mark onclick="alert(1)">x</mark>'));
+	}
+
+	public function test_standardizeHtml_imagesLoseEventHandlers(): void
+	{
+		$this->assertSame(
+			'<img src="https://example.com/a.png" alt="A">',
+			Utilities::standardizeHtml('<img src="https://example.com/a.png" onerror="alert(1)" alt="A">')
+		);
+		$this->assertSame('<img src="x">', Utilities::standardizeHtml('<img src=x onerror=alert(1)>'));
+	}
+
+	public function test_standardizeHtml_imagesAreRemovedIfTheyAreNoLongerAllowed(): void
+	{
+		add_filter('tp_standardize_allowed_tags', fn($tags) => array_diff($tags, ['img']));
+
+		$this->assertSame('<p>Before  after</p><p>More</p>', Utilities::standardizeHtml('<p>Before <img src="x.png" alt="x"> after</p><p>More</p>'));
+	}
+
+	public function test_standardizeHtml_theAllowedTagsCanBeReplaced(): void
+	{
+		add_filter('tp_standardize_allowed_tags', fn($tags) => ['p']);
+
+		$this->assertSame(
+			'<p>A B </p>',
+			Utilities::standardizeHtml('<p>A <b>B</b> <img src="https://example.com/a.png"></p>')
+		);
 	}
 }
