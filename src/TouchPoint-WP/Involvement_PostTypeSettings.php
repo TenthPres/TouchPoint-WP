@@ -23,7 +23,8 @@ if ( ! defined('ABSPATH')) {
  * @property-read bool     $useImages
  * @property-read bool     $useGeo
  * @property-read bool     $hierarchical
- * @property-read bool     $importMeetings
+ * @property-read bool     $importMeetings  Whether all of the type's meetings are imported.  This is always false while the
+ *                                        Meeting Calendar is off, whatever was saved.
  * @property-read string   $meetingGroupingMethod
  * @property-read string   $groupBy
  * @property-read string[] $excludeIf
@@ -37,7 +38,7 @@ if ( ! defined('ABSPATH')) {
  */
 class Involvement_PostTypeSettings
 {
-	protected static array $settings;
+	protected static ?array $settings = null;
 
 	// IMPORTANT: when adding new settings, they MUST have a default defined here, since they won't exist in the JSON yet.
 
@@ -68,16 +69,25 @@ class Involvement_PostTypeSettings
 	 */
 	final public static function &instance(): array
 	{
-		if (!isset(self::$settings)) {
+		if (self::$settings === null) {
 			// inv_json may be false (and decode to null) when the Involvements feature is not enabled.
 			$json        = json_decode(TouchPointWP::instance()->settings->inv_json);
 			$settingsArr = [];
 
+			$calendarEnabled = TouchPointWP::instance()->settings->enable_meeting_cal === 'on';
+
 			foreach ($json ?? [] as $o) {
+				// Importing all of a type's meetings is part of the Meeting Calendar, and the setting for it is only
+				// shown while the calendar is on.  A choice that was saved while the calendar was on is kept, so it
+				// applies again if the calendar is turned back on, but it doesn't apply while the calendar is off.
+				if ( ! $calendarEnabled) {
+					$o->importMeetings = false;
+				}
+
 				$settingsArr[] = new Involvement_PostTypeSettings($o);
 			}
 
-			if (TouchPointWP::instance()->settings->enable_meeting_cal === 'on') {
+			if ($calendarEnabled) {
 				$settingsArr[] = Meeting::getTypeSettings();
 			}
 

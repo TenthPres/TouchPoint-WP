@@ -130,7 +130,9 @@ class Settings
 	 * Defaults for settings that are read by features other than the one they belong to.  A setting's field, and so its
 	 * default, is only defined when its own feature is enabled, so without these, a setting that hasn't been saved would
 	 * be false for those other features.  For example, signing in with TouchPoint imports people, and that reads which
-	 * of their Extra Values to import, even if the People Lists feature (which has the setting) is off.
+	 * of their Extra Values to import, even if the People Lists feature (which has the setting) is off.  And Involvements
+	 * that import meetings use the number of days after which meetings are archived, even if the Meeting Calendar
+	 * feature (which has the setting) is off.
 	 *
 	 * These should match the defaults in the fields' definitions.
 	 *
@@ -138,6 +140,7 @@ class Settings
 	 */
 	private const DEFAULTS_WITHOUT_FIELD = [
 		'people_ev_custom' => [],
+		'mc_archive_days'  => 7,
 	];
 
 	/**
@@ -1510,6 +1513,9 @@ class Settings
 					case "number":
 						$v = intval($v);
 				}
+			} elseif ($meta === null && is_int(self::DEFAULTS_WITHOUT_FIELD[$what] ?? null)) {
+				// Without the field, there's no type to say the setting is a number.
+				$v = intval($v);
 			}
 		}
 

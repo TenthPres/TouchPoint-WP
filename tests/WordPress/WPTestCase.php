@@ -73,10 +73,11 @@ abstract class WPTestCase extends WP_UnitTestCase
         }
 
         self::setStatic(Meeting_GroupingSettings::class, '_loaded', false);
-        self::setStatic(Involvement_PostTypeSettings::class, 'settings', []);
+        self::setStatic(Involvement_PostTypeSettings::class, 'settings', null);
         self::setStatic(Taxonomies::class, 'termExistsCache', []);
         self::setStatic(TouchPointWP::class, 'divisionTerms', []);
         self::setStatic(Person::class, '_instances', []);
+        self::setStatic(Involvement::class, '_updateExpiry', null);
     }
 
     /**

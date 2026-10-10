@@ -2478,11 +2478,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		}
 	}
 
-	protected static DateTimeImmutable $_updateExpiry;
+	protected static ?DateTimeImmutable $_updateExpiry = null;
 
 	protected static function updateExpiry(): DateTimeImmutable
 	{
-		if (!isset(self::$_updateExpiry)) {
+		if (self::$_updateExpiry === null) {
 			$diff = TouchPointWP::instance()->settings->mc_archive_days;
 			try {
 				$interval = new DateInterval("P{$diff}D");

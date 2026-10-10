@@ -95,15 +95,48 @@ class Settings_Test extends WPTestCase
         $this->assertSame(30, $this->settings()->mc_archive_days);
     }
 
-    /**
-     * Involvements use the number of days to archive meetings after, even when the Meeting Calendar is off, but the
-     * setting (and so its default) only exists when the Meeting Calendar is on.  Without a default, nothing is archived
-     * after 7 days: it's archived right away, because the number of days is read as false.
-     *
-     * @group known-issue
-     */
-    public function test_aSettingThatOtherFeaturesReadHasItsDefaultWhenItsOwnFeatureIsOff(): void
+    ///////////////////////////////////////////////////
+    // The days after which meetings are archived    //
+    ///////////////////////////////////////////////////
+
+    // Involvements that import meetings use this, even when the Meeting Calendar is off.  The setting (and so its
+    // default) only has a field while the Meeting Calendar is on.
+
+    public function test_mcArchiveDays_isSevenWhenNothingWasSavedAndTheMeetingCalendarIsOff(): void
     {
         $this->assertSame(7, $this->settings()->mc_archive_days);
+    }
+
+    public function test_mcArchiveDays_isSevenWhenNothingWasSavedAndTheMeetingCalendarIsOn(): void
+    {
+        $this->setSetting('enable_meeting_cal', 'on');
+        $this->rebuildSettingsFields();
+
+        $this->assertSame(7, $this->settings()->mc_archive_days);
+    }
+
+    public function test_mcArchiveDays_isTheSavedNumberWhateverTheMeetingCalendarIs(): void
+    {
+        $this->setSetting('mc_archive_days', 30);
+        $this->assertSame(30, $this->settings()->mc_archive_days, 'The Meeting Calendar is off.');
+
+        $this->setSetting('enable_meeting_cal', 'on');
+        $this->rebuildSettingsFields();
+        $this->assertSame(30, $this->settings()->mc_archive_days, 'The Meeting Calendar is on.');
+    }
+
+    public function test_mcArchiveDays_isANumberEvenWhenItWasSavedAsText(): void
+    {
+        $this->setSetting('mc_archive_days', '14');
+
+        $this->assertSame(14, $this->settings()->mc_archive_days);
+    }
+
+    public function test_mcArchiveDays_zeroIsAValueAndNotAMissingOne(): void
+    {
+        // Archive meetings as soon as they're over.
+        $this->setSetting('mc_archive_days', 0);
+
+        $this->assertSame(0, $this->settings()->mc_archive_days);
     }
 }

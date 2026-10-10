@@ -174,6 +174,31 @@ class Involvement_ThumbnailInheritance_Test extends WPTestCase
         $this->assertSame($image, $this->imageOf($child));
     }
 
+    public function test_theNumberOfDaysBeforeArchivingIsSevenWhenNothingWasSaved(): void
+    {
+        // As on a site that imports meetings for Involvements, without the Meeting Calendar.
+        delete_option('tp_mc_archive_days');
+        $this->setNow('2026-03-10 12:00');
+        self::setStatic(Involvement::class, '_updateExpiry', null);
+
+        $this->assertSame(
+            (new \DateTimeImmutable('2026-03-03 12:00'))->getTimestamp(),
+            self::callStatic(Involvement::class, 'updateExpiry')->getTimestamp()
+        );
+    }
+
+    public function test_aMeetingThatEndedRecentlyIsNotArchivedYetWhenNothingWasSaved(): void
+    {
+        delete_option('tp_mc_archive_days');
+        $this->setNow('2026-03-10 12:00');
+        self::setStatic(Involvement::class, '_updateExpiry', null);
+        $image = $this->makeImage();
+        $child = $this->makePost($this->makePost(0, $image));
+        $this->setMeetingTimes($child, '2026-03-05 09:00', '2026-03-05 10:00');   // Five days ago.
+
+        $this->assertSame($image, $this->imageOf($child));
+    }
+
     public function test_aMeetingWithNoEndIsArchivedByItsStart(): void
     {
         $image = $this->makeImage();
