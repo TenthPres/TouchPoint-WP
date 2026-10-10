@@ -2755,7 +2755,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				$qOpts['divs'] = Utilities::idArrayToIntArray($typeSets->importDivs, false);
 			}
 
-			if (TouchPointWP::instance()->settings->enable_meeting_cal === 'on' || $typeSets->importMeetings) {
+			if (TouchPointWP::instance()->settings->enable_meeting_cal === 'on') {
 				// Meetings to be imported
 				$qOpts['mtgHist']   = TouchPointWP::instance()->settings->mc_hist_days;
 				$qOpts['mtgFuture'] = TouchPointWP::instance()->settings->mc_future_days;
@@ -2766,7 +2766,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			}
 
 			// Meeting Grouping: which involvements are structure owners, and whether to include hidden children.
-			$qOpts = [...$qOpts, ...Meeting_GroupingSettings::involvementQueryParameters()];
+			$qOpts = [...$qOpts, ...self::groupingQueryParameters()];
 
 			$response = TouchPointWP::instance()->api->pyGet("Invs", $qOpts, 180, $verbose);
 
@@ -2808,7 +2808,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 			self::standardizeApiData($inv, $siteTz, $verbose);
 			$inv->titleToUse = trim($inv->regTitle ?? $inv->name);
 		}
-		self::classifyForGrouping($invData, $verbose);
+		self::classifyInvolvements($invData, $verbose);
 
 		foreach ($invData as $inv) {
 			set_time_limit(15);
@@ -3492,6 +3492,63 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	}
 
 	/**
+	 * Whether an involvement's meetings are imported: that is, whether they become posts, and groups of posts.  That's
+	 * part of the Meeting Calendar, so it only happens while the calendar is enabled.  Then, it happens for every
+	 * involvement of a Post Type that's set to import all of its meetings, and for any involvement that's shown in sites.
+	 * Otherwise, the meetings are only used to describe the involvement's schedule.
+	 *
+	 * @param Involvement_PostTypeSettings $typeSets The settings of the involvement's Post Type.
+	 * @param object                       $inv      The involvement, as provided by the API.
+	 *
+	 * @return bool
+	 */
+	protected static function meetingsAreImported(Involvement_PostTypeSettings $typeSets, object $inv): bool
+	{
+		return TouchPointWP::instance()->settings->enable_meeting_cal === 'on'
+		       && ($typeSets->importMeetings || ! ! $inv->showInSites);
+	}
+
+	/**
+	 * The parameters that tell the API which involvements are structure owners and which are their children, for Meeting
+	 * Grouping.  Grouping is part of importing meetings, so while the Meeting Calendar is off, there isn't any.
+	 *
+	 * @return array
+	 */
+	protected static function groupingQueryParameters(): array
+	{
+		if (TouchPointWP::instance()->settings->enable_meeting_cal !== 'on') {
+			return ['childTypes' => '', 'listedTypes' => '', 'childOther' => 0, 'keepHidden' => 0];
+		}
+
+		return Meeting_GroupingSettings::involvementQueryParameters();
+	}
+
+	/**
+	 * Decide how each involvement's meetings are grouped, if meetings are being grouped.  While the Meeting Calendar is
+	 * off, nothing is: every involvement stands alone, whatever the Meeting Grouping settings say.
+	 *
+	 * @param object[] $invData Standardized API data.
+	 * @param bool     $verbose
+	 *
+	 * @return void
+	 *
+	 * @see classifyForGrouping()
+	 */
+	protected static function classifyInvolvements(array $invData, bool $verbose): void
+	{
+		if (TouchPointWP::instance()->settings->enable_meeting_cal === 'on') {
+			self::classifyForGrouping($invData, $verbose);
+			return;
+		}
+
+		foreach ($invData as $inv) {
+			$inv->_groupingStructure = [];
+			$inv->_grouping          = null;
+			$inv->_groupingRole      = self::GROUPING_ROLE_NORMAL;
+		}
+	}
+
+	/**
 	 * Decide how each involvement's meetings are grouped, and bring child involvements' meetings into their structure
 	 * owners.
 	 *
@@ -3616,7 +3673,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		}
 
 		// Return if meetings shouldn't be imported at all.
-		if ( ! $typeSets->importMeetings && ! $inv->showInSites) {
+		if ( ! self::meetingsAreImported($typeSets, $inv)) {
 			self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
 			return [$post->ID];
 		}
@@ -3739,7 +3796,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	{
 
 		// Return if meetings shouldn't be imported at all.
-		if (!$typeSets->importMeetings && !$inv->showInSites) {
+		if ( ! self::meetingsAreImported($typeSets, $inv)) {
 			/** @var $post WP_Post */
 			self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
 			return [$post->ID];
