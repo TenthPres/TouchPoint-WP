@@ -1020,15 +1020,23 @@ abstract class Utilities
 	 * THIS DOES NOT DO ANY KIND OF VALIDATION OR REPLACEMENT.  It is assumed that the input is already completely ready
 	 * to go and won't cause collisions.
 	 *
-	 * @param $postId
-	 * @param $newSlug
+	 * The slug is written directly to the database, so WordPress's cached copy of the post is cleared, and WordPress
+	 * sees the new slug right away.
+	 *
+	 * @param int|string $postId  The ID of the post.
+	 * @param string     $newSlug The slug to give the post, exactly as it is to be stored.
 	 *
 	 * @return void
+	 *
+	 * @since 0.2.2 Changed to clear WordPress's cached copy of the post.  Before, WordPress kept using the old slug until
+	 *              the next request.
 	 */
 	public static function forceSlugUpdate($postId, $newSlug): void
 	{
 		global $wpdb;
 		$wpdb->update($wpdb->posts, ['post_name' => $newSlug], ['ID' => $postId]);
+
+		clean_post_cache((int)$postId);
 	}
 
 	/**

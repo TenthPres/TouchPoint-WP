@@ -74,9 +74,6 @@ class Utilities_Test extends WPTestCase
         $this->assertSame('leave-me-alone', $this->storedSlug($other));
     }
 
-    /**
-     * @group known-issue
-     */
     public function test_forceSlugUpdate_isSeenByWordPressRightAway(): void
     {
         $id = $this->makePost();
@@ -86,6 +83,63 @@ class Utilities_Test extends WPTestCase
 
         $this->assertSame('new-slug', get_post($id)->post_name);
         $this->assertSame('new-slug', get_post_field('post_name', $id));
+    }
+
+    public function test_forceSlugUpdate_aSlugThatIsJustANumberIsSeenByWordPressRightAway(): void
+    {
+        // WordPress adds "-2" to a slug that's only a number, and remembers the post with that.
+        $id = self::factory()->post->create(['post_type' => 'page', 'post_name' => 'placeholder']);
+        wp_update_post(['ID' => $id, 'post_name' => '11']);
+        $this->assertSame('11-2', get_post($id)->post_name);
+
+        Utilities::forceSlugUpdate($id, '11');
+
+        $this->assertSame('11', get_post($id)->post_name);
+        $this->assertSame('11', get_post_field('post_name', $id));
+    }
+
+    public function test_forceSlugUpdate_wordPressDoesNotPutTheOldSlugBackWhenItNextUpdatesThePost(): void
+    {
+        // WordPress updates a post from its cached copy, so if that still had the old slug, the update would undo this.
+        $id = self::factory()->post->create(['post_type' => 'page', 'post_name' => 'old-slug']);
+        get_post($id);
+        Utilities::forceSlugUpdate($id, 'forced-slug');
+
+        wp_update_post(['ID' => $id, 'post_title' => 'A new title']);
+
+        $this->assertSame('forced-slug', $this->storedSlug($id), 'Only the title changed.');
+        $this->assertSame('A new title', get_post($id)->post_title);
+    }
+
+    public function test_forceSlugUpdate_aPostThatWasNotCachedIsFine(): void
+    {
+        $id = $this->makePost();
+        wp_cache_flush();
+
+        Utilities::forceSlugUpdate($id, 'new-slug');
+
+        $this->assertSame('new-slug', get_post($id)->post_name);
+    }
+
+    public function test_forceSlugUpdate_aPostIdAsTextWorks(): void
+    {
+        $id = $this->makePost();
+        get_post($id);
+
+        Utilities::forceSlugUpdate((string)$id, 'new-slug');
+
+        $this->assertSame('new-slug', get_post($id)->post_name);
+    }
+
+    public function test_forceSlugUpdate_otherPostsStayInWordPressesCache(): void
+    {
+        $id    = $this->makePost();
+        $other = $this->makePost();
+        get_post($other);
+
+        Utilities::forceSlugUpdate($id, 'new-slug');
+
+        $this->assertNotFalse(wp_cache_get($other, 'posts'));
     }
 
     //////////////////////////////////

@@ -580,6 +580,19 @@ class Meeting_GroupingWriter_Test extends WPTestCase
         $this->assertSame('12', $this->storedSlug($this->postOfMeeting(12)->ID));
     }
 
+    public function test_aSlugThatIsJustANumberIsKeptWhenThePlanIsWrittenAgainInTheSameRequest(): void
+    {
+        // Nothing is forgotten between the two, as when something imports twice in one request.
+        $meetings = [self::hourLong(11, '2026-04-10 09:00'), self::hourLong(12, '2026-04-10 09:00')];
+
+        $this->write(self::owner($meetings), false, false);
+        $this->write(self::owner($meetings), false, false);
+
+        $this->assertSame('11', $this->storedSlug($this->postOfMeeting(11)->ID));
+        $this->assertSame('12', $this->storedSlug($this->postOfMeeting(12)->ID));
+        $this->assertSame('11', $this->postOfMeeting(11)->post_name, 'What WordPress has agrees with what is stored.');
+    }
+
     ///////////////////////
     // Images            //
     ///////////////////////
