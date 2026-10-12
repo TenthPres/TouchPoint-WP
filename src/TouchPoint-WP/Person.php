@@ -640,10 +640,14 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
-	 * @param mixed  $idEmailUserOrPerson
-	 * @param ?array $args
+	 * Get the address of a person's TouchPoint picture, at the size that fits the arguments.
 	 *
-	 * @return string|null
+	 * @param mixed  $idEmailUserOrPerson A WordPress user ID, a Person, an email address, or an object that WordPress
+	 *                                    gives to avatar filters: a user, a comment (which is its user's), or a post
+	 *                                    (which is its author's).
+	 * @param ?array $args                'size', or 'width' and 'height', as used by get_avatar_url().
+	 *
+	 * @return string|null The address, or null if there isn't a person with a picture.
 	 */
 	public static function getPictureForPerson($idEmailUserOrPerson, ?array $args = []): ?string
 	{
@@ -652,6 +656,9 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 			$p = Person::fromId($idEmailUserOrPerson);
 		} elseif (is_object($idEmailUserOrPerson) && get_class($idEmailUserOrPerson) === self::class) {
 			$p = $idEmailUserOrPerson;
+		} elseif ($idEmailUserOrPerson instanceof \WP_Post) {
+			// A post's ID is the post's, not a user's.  The person is its author.
+			$p = Person::fromId($idEmailUserOrPerson->post_author);
 		} elseif (is_object($idEmailUserOrPerson) && ! empty($idEmailUserOrPerson->user_id)) {
 			$p = Person::fromId($idEmailUserOrPerson->user_id);
 		} elseif (is_object($idEmailUserOrPerson) && ! empty($idEmailUserOrPerson->ID)) {
@@ -692,16 +699,51 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	}
 
 	/**
-	 * @param string|mixed $url The URL of the avatar.  Type is not guaranteed.
+	 * Make the address of an avatar follow the site's "Show Avatars" setting.  WordPress only checks that setting in
+	 * get_avatar(), not in get_avatar_url(), so without this, turning avatars off would still leave Gravatar addresses
+	 * for code that uses get_avatar_url(), such as People Lists.
+	 *
+	 * This is on the `get_avatar_url` filter at the lowest priority, so it runs before every other filter, and the only
+	 * thing it discards is the Gravatar address that WordPress made.  Any filter, including pictureFilter() (which
+	 * provides TouchPoint pictures), can still provide an address after it.
+	 *
+	 * @param string|mixed $url The address of the avatar that WordPress chose, such as a Gravatar.
+	 *
+	 * @return string|mixed|false The address, or false (no avatar) if "Show Avatars" is off.
+	 *
+	 * @since 0.2.2 Added
+	 */
+	public static function showAvatarsFilter($url)
+	{
+		return get_option('show_avatars') ? $url : false;
+	}
+
+	/**
+	 * @param string|mixed $url The URL of the avatar that WordPress chose, such as a Gravatar.  Type is not guaranteed.
 	 * @param mixed        $idEmailOrObject The person for whom to retrieve. Accepts a user_id, gravatar md5 hash, user
 	 *     email, WP_User object, WP_Post object, or WP_Comment object.
 	 * @param array|mixed  $args Arguments passed to get_avatar_data(…), after processing.  Type is not guaranteed.
 	 *
-	 * @noinspection PhpUnusedParameterInspection
+	 * @return string|mixed The address of the person's TouchPoint picture.  If there isn't one, the $url it was given,
+	 *                      unchanged.
+	 *
+	 * This is on the `get_avatar_url` filter at the default priority, 10, so other plugins can choose whether to come
+	 * before or after it:
+	 * - At a higher number (such as 20), a plugin runs after this, and has the last word, even for people who have a
+	 *   TouchPoint picture.
+	 * - At a lower number (such as 5), a plugin runs before this.  Its address is kept for people who don't have a
+	 *   TouchPoint picture, and is replaced by the TouchPoint picture for people who do.
+	 *
+	 * Plugins that provide avatars with the `pre_get_avatar_data` filter, which WordPress uses before it gets to
+	 * `get_avatar_url`, are not affected by this.
+	 *
+	 * @since 0.2.2 Changed to return the $url it's given if there's no TouchPoint picture.  It returned null, which
+	 *              removed the avatar of everyone who didn't have a picture in TouchPoint, including any that a plugin
+	 *              that ran before this had provided.
 	 */
-	public static function pictureFilter($url, $idEmailOrObject, $args = []): ?string
+	public static function pictureFilter($url, $idEmailOrObject, $args = []): mixed
 	{
-		return self::getPictureForPerson($idEmailOrObject, $args);
+		return self::getPictureForPerson($idEmailOrObject, is_array($args) ? $args : []) ?? $url;
 	}
 
 	/**
@@ -2060,6 +2102,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		// Add filter for TouchPoint pictures to be used as avatars.  Priority is high so this can be easily overridden by
 		// another plugin if desired.
 		add_filter('get_avatar_url', [self::class, 'pictureFilter'], 10, 3);
+
+		// Make avatar addresses follow the site's "Show Avatars" setting.  This is first, so that all it can discard is
+		// the Gravatar WordPress made, and every other filter, including the one above, can still provide a picture.
+		add_filter('get_avatar_url', [self::class, 'showAvatarsFilter'], PHP_INT_MIN);
 
 		// Add filter to allow admins to set a TouchPoint PeopleId
 		add_filter('user_contactmethods', [self::class, 'userContactMethods'], 10);

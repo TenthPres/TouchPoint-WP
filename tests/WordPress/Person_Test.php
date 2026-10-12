@@ -774,18 +774,359 @@ class Person_Test extends WPTestCase
         $this->assertNull(Person::getPictureForPerson('nobody@example.org'));
     }
 
-    /**
-     * A filter for avatar addresses gets the address WordPress has chosen, and returns what to use.  Returning null
-     * for someone without a TouchPoint picture removes WordPress's own choice (such as a Gravatar), so that person, or a
-     * commenter who isn't a user at all, gets no avatar.
-     *
-     * @group known-issue
-     */
+    ///////////////////////////////////
+    // The avatar filter, for WordPress //
+    ///////////////////////////////////
+
+    private const WORDPRESS_AVATAR = 'https://example.org/wordpress-avatar.jpg';
+
+    public function test_pictureFilter_usesTheTouchPointPictureWhenThereIsOne(): void
+    {
+        $person = $this->importWithPicture(1085);
+
+        $this->assertSame(self::PICTURE['large'], Person::pictureFilter(self::WORDPRESS_AVATAR, $person->ID, []));
+        $this->assertSame(self::PICTURE['thumb'], Person::pictureFilter(self::WORDPRESS_AVATAR, $person->ID, ['size' => 40]));
+    }
+
     public function test_pictureFilter_leavesTheAvatarAloneWhenThereIsNoTouchPointPicture(): void
     {
+        // A filter for avatar addresses gets the address WordPress has chosen, such as a Gravatar, and returns what to
+        // use.  Without a TouchPoint picture, that's what WordPress chose.
         $person = $this->import(self::personData(1084, ['Picture' => null]));
 
-        $this->assertSame('https://example.org/gravatar.jpg', Person::pictureFilter('https://example.org/gravatar.jpg', $person->ID, []));
-        $this->assertSame('https://example.org/gravatar.jpg', Person::pictureFilter('https://example.org/gravatar.jpg', 'stranger@example.org', []));
+        $this->assertSame(self::WORDPRESS_AVATAR, Person::pictureFilter(self::WORDPRESS_AVATAR, $person->ID, []));
+    }
+
+    public function test_pictureFilter_leavesTheAvatarAloneForSomeoneWhoIsNotAUser(): void
+    {
+        $this->assertSame(self::WORDPRESS_AVATAR, Person::pictureFilter(self::WORDPRESS_AVATAR, 'stranger@example.org', []));
+        $this->assertSame(self::WORDPRESS_AVATAR, Person::pictureFilter(self::WORDPRESS_AVATAR, 99999999, []));
+        $this->assertSame(self::WORDPRESS_AVATAR, Person::pictureFilter(self::WORDPRESS_AVATAR, md5('stranger@example.org'), []));
+    }
+
+    public function test_pictureFilter_whateverWordPressChoseIsLeftAloneWhenThereIsNoPicture(): void
+    {
+        // Including nothing, which is what WordPress uses when avatars are turned off.
+        $this->assertFalse(Person::pictureFilter(false, 'stranger@example.org', []));
+        $this->assertNull(Person::pictureFilter(null, 'stranger@example.org', []));
+    }
+
+    ///////////////////////////////////////////////////////////
+    // Other plugins' avatar filters, and the order they run in //
+    ///////////////////////////////////////////////////////////
+
+    private const AVATAR_FROM_ANOTHER_PLUGIN = 'https://avatars.example.org/the-other-plugins-avatar.jpg';
+
+    public function test_theAvatarFilterIsRegisteredAtTheDefaultPriority(): void
+    {
+        // The plugin registers it when Person is loaded.
+        self::setStatic(Person::class, '_isLoaded', false);
+        Person::load();
+        self::setStatic(Person::class, '_isLoaded', false);
+
+        $this->assertSame(10, has_filter('get_avatar_url', [Person::class, 'pictureFilter']));
+    }
+
+    public function test_theShowAvatarsFilterIsRegisteredAtTheLowestPriority(): void
+    {
+        self::setStatic(Person::class, '_isLoaded', false);
+        Person::load();
+        self::setStatic(Person::class, '_isLoaded', false);
+
+        $this->assertSame(PHP_INT_MIN, has_filter('get_avatar_url', [Person::class, 'showAvatarsFilter']));
+    }
+
+    public function test_aPluginThatRunsBeforeTheAvatarFilterKeepsItsAvatarForPeopleWithoutATouchPointPicture(): void
+    {
+        add_filter('get_avatar_url', fn() => self::AVATAR_FROM_ANOTHER_PLUGIN, 5);
+        add_filter('get_avatar_url', [Person::class, 'pictureFilter'], 10, 3);
+        $person = $this->import(self::personData(1092, ['Picture' => null]));
+
+        $this->assertSame(self::AVATAR_FROM_ANOTHER_PLUGIN, get_avatar_url($person->ID));
+    }
+
+    public function test_aPluginThatRunsBeforeTheAvatarFilterIsReplacedForPeopleWithATouchPointPicture(): void
+    {
+        add_filter('get_avatar_url', fn() => self::AVATAR_FROM_ANOTHER_PLUGIN, 5);
+        add_filter('get_avatar_url', [Person::class, 'pictureFilter'], 10, 3);
+        $person = $this->importWithPicture(1093);
+
+        $this->assertSame(self::PICTURE['large'], get_avatar_url($person->ID, ['size' => 500]));
+    }
+
+    public function test_aPluginThatRunsAfterTheAvatarFilterHasTheLastWordForEveryone(): void
+    {
+        add_filter('get_avatar_url', [Person::class, 'pictureFilter'], 10, 3);
+        add_filter('get_avatar_url', fn() => self::AVATAR_FROM_ANOTHER_PLUGIN, 20);
+        $withPicture    = $this->importWithPicture(1094);
+        $withoutPicture = $this->import(self::personData(1095, ['Picture' => null]));
+
+        $this->assertSame(self::AVATAR_FROM_ANOTHER_PLUGIN, get_avatar_url($withPicture->ID));
+        $this->assertSame(self::AVATAR_FROM_ANOTHER_PLUGIN, get_avatar_url($withoutPicture->ID));
+    }
+
+    public function test_aPluginThatRunsAfterTheAvatarFilterIsGivenTheTouchPointPicture(): void
+    {
+        $received = null;
+        add_filter('get_avatar_url', [Person::class, 'pictureFilter'], 10, 3);
+        add_filter('get_avatar_url', function ($url) use (&$received) {
+            $received = $url;
+
+            return $url;
+        }, 20);
+        $person = $this->importWithPicture(1096);
+
+        get_avatar_url($person->ID, ['size' => 500]);
+
+        $this->assertSame(self::PICTURE['large'], $received, 'So it can decide whether to replace it.');
+    }
+
+    public function test_aPluginThatRunsAfterTheAvatarFilterIsGivenWordPressesAvatarForPeopleWithoutATouchPointPicture(): void
+    {
+        $received = null;
+        add_filter('get_avatar_url', [Person::class, 'pictureFilter'], 10, 3);
+        add_filter('get_avatar_url', function ($url) use (&$received) {
+            $received = $url;
+
+            return $url;
+        }, 20);
+        $person = $this->import(self::personData(1097, ['Picture' => null]));
+
+        get_avatar_url($person->ID);
+
+        $this->assertStringContainsString('gravatar.com', $received, 'The address WordPress chose, which it can use or replace.');
+    }
+
+    public function test_aPluginThatProvidesAvatarsBeforeWordPressLooksIsNotAffectedByTheAvatarFilter(): void
+    {
+        add_filter('pre_get_avatar_data', function ($args) {
+            $args['url'] = self::AVATAR_FROM_ANOTHER_PLUGIN;
+
+            return $args;
+        });
+        add_filter('get_avatar_url', [Person::class, 'pictureFilter'], 10, 3);
+        $person = $this->importWithPicture(1098);
+
+        $this->assertSame(self::AVATAR_FROM_ANOTHER_PLUGIN, get_avatar_url($person->ID), 'WordPress never gets as far as the filter.');
+    }
+
+    ////////////////////////////////////
+    // The site's "Show Avatars" setting //
+    ////////////////////////////////////
+
+    /**
+     * Register the filters as Person does, and set whether the site shows avatars.
+     */
+    private function siteShowsAvatars(bool $shows): void
+    {
+        update_option('show_avatars', $shows ? 1 : 0);
+        add_filter('get_avatar_url', [Person::class, 'showAvatarsFilter'], PHP_INT_MIN);
+        add_filter('get_avatar_url', [Person::class, 'pictureFilter'], 10, 3);
+    }
+
+    public function test_showAvatarsFilter_passesTheAddressThroughWhenTheSiteShowsAvatars(): void
+    {
+        update_option('show_avatars', 1);
+
+        $this->assertSame(self::WORDPRESS_AVATAR, Person::showAvatarsFilter(self::WORDPRESS_AVATAR));
+    }
+
+    public function test_showAvatarsFilter_isFalseWhenTheSiteDoesNotShowAvatars(): void
+    {
+        update_option('show_avatars', 0);
+
+        $this->assertFalse(Person::showAvatarsFilter(self::WORDPRESS_AVATAR));
+    }
+
+    public function test_whenTheSiteShowsAvatarsNothingChanges(): void
+    {
+        $this->siteShowsAvatars(true);
+        $with    = $this->importWithPicture(1100);
+        $without = $this->import(self::personData(1101, ['Picture' => null]));
+
+        $this->assertSame(self::PICTURE['large'], get_avatar_url($with->ID, ['size' => 500]));
+        $this->assertStringContainsString('gravatar.com', get_avatar_url($without->ID));
+        $this->assertStringContainsString('gravatar.com', get_avatar_url('stranger@example.org'));
+    }
+
+    public function test_whenTheSiteDoesNotShowAvatarsThereIsNoGravatar(): void
+    {
+        $this->siteShowsAvatars(false);
+        $without = $this->import(self::personData(1102, ['Picture' => null]));
+
+        $this->assertFalse(get_avatar_url($without->ID));
+        $this->assertFalse(get_avatar_url('stranger@example.org'));
+    }
+
+    public function test_whenTheSiteDoesNotShowAvatarsPeopleWithATouchPointPictureStillHaveIt(): void
+    {
+        $this->siteShowsAvatars(false);
+        $with = $this->importWithPicture(1103);
+
+        $this->assertSame(self::PICTURE['large'], get_avatar_url($with->ID, ['size' => 500]));
+        $this->assertSame(self::PICTURE['thumb'], get_avatar_url($with->ID, ['size' => 40]));
+    }
+
+    /**
+     * @return array[] [the priority of another plugin's filter]
+     */
+    public static function provider_priorities(): array
+    {
+        return [
+            'lowest'       => [PHP_INT_MIN + 1],
+            'negative'     => [-5],
+            'zero'         => [0],
+            'one'          => [1],
+            'before ours'  => [5],
+            'the default'  => [10],
+            'after ours'   => [20],
+            'highest'      => [PHP_INT_MAX],
+        ];
+    }
+
+    /**
+     * @dataProvider provider_priorities
+     */
+    public function test_whenTheSiteDoesNotShowAvatarsAnotherPluginCanStillProvideThemAtAnyPriority(int $priority): void
+    {
+        $this->siteShowsAvatars(false);
+        add_filter('get_avatar_url', fn() => self::AVATAR_FROM_ANOTHER_PLUGIN, $priority);
+        $without = $this->import(self::personData(1104, ['Picture' => null]));
+
+        $this->assertSame(self::AVATAR_FROM_ANOTHER_PLUGIN, get_avatar_url($without->ID));
+    }
+
+    public function test_whenTheSiteDoesNotShowAvatarsAPluginThatProvidesThemBeforeWordPressLooksIsNotAffected(): void
+    {
+        $this->siteShowsAvatars(false);
+        add_filter('pre_get_avatar_data', function ($args) {
+            $args['url'] = self::AVATAR_FROM_ANOTHER_PLUGIN;
+
+            return $args;
+        });
+        $without = $this->import(self::personData(1105, ['Picture' => null]));
+
+        $this->assertSame(self::AVATAR_FROM_ANOTHER_PLUGIN, get_avatar_url($without->ID));
+    }
+
+    public function test_whenTheSiteDoesNotShowAvatarsAPersonWithoutAPictureIsListedWithoutOne(): void
+    {
+        // The template of a person in a People List, which uses get_avatar_url().
+        $this->siteShowsAvatars(false);
+        $person   = $this->import(self::personData(1106, ['Picture' => null]));
+        $btnClass = '';
+
+        ob_start();
+        include TouchPointWP::$dir . '/src/templates/parts/person-list-item.php';
+        $html = ob_get_clean();
+
+        $this->assertStringNotContainsString('background-image', $html);
+        $this->assertStringNotContainsString('gravatar', $html);
+        $this->assertStringContainsString('Jane Testperson', $html, 'They are still listed.');
+    }
+
+    public function test_whenTheSiteDoesNotShowAvatarsAPersonWithAPictureIsListedWithIt(): void
+    {
+        $this->siteShowsAvatars(false);
+        $person   = $this->importWithPicture(1107);
+        $btnClass = '';
+
+        ob_start();
+        include TouchPointWP::$dir . '/src/templates/parts/person-list-item.php';
+        $html = ob_get_clean();
+
+        $this->assertStringContainsString("background-image: url('" . self::PICTURE['medium'] . "')", $html);
+    }
+
+    public function test_getAvatarStillGivesNothingWhenTheSiteDoesNotShowAvatars(): void
+    {
+        $this->siteShowsAvatars(false);
+        $person = $this->importWithPicture(1108);
+
+        $this->assertFalse(get_avatar($person->ID), 'WordPress checks the setting here itself.');
+    }
+
+    public function test_pictureFilter_arguments_thatAreNotAnArrayAreIgnored(): void
+    {
+        // Filters get whatever other code gives them.
+        $person = $this->importWithPicture(1091);
+
+        $this->assertSame(self::PICTURE['large'], Person::pictureFilter(self::WORDPRESS_AVATAR, $person->ID, 'not an array'));
+        $this->assertSame(self::WORDPRESS_AVATAR, Person::pictureFilter(self::WORDPRESS_AVATAR, 99999999, null));
+    }
+
+    public function test_aPersonWithoutAPictureStillHasAWordPressAvatar(): void
+    {
+        $person = $this->import(self::personData(1086, ['Picture' => null]));
+        add_filter('get_avatar_url', [Person::class, 'pictureFilter'], 10, 3);
+
+        $this->assertStringContainsString('gravatar.com', get_avatar_url($person->ID));
+    }
+
+    public function test_aCommenterWhoIsNotAUserStillHasAWordPressAvatar(): void
+    {
+        add_filter('get_avatar_url', [Person::class, 'pictureFilter'], 10, 3);
+
+        $this->assertStringContainsString('gravatar.com', get_avatar_url('stranger@example.org'));
+    }
+
+    public function test_aPersonWithAPictureHasThatAsTheirAvatar(): void
+    {
+        $person = $this->importWithPicture(1087);
+        add_filter('get_avatar_url', [Person::class, 'pictureFilter'], 10, 3);
+
+        $this->assertSame(self::PICTURE['large'], get_avatar_url($person->ID, ['size' => 500]));
+        $this->assertSame(self::PICTURE['thumb'], get_avatar_url($person->ID, ['size' => 40]));
+    }
+
+    ///////////////////////////////////////////////////////
+    // Who an avatar is for, when WordPress says by object //
+    ///////////////////////////////////////////////////////
+
+    public function test_aPostsAvatarIsItsAuthorsPicture(): void
+    {
+        $author = $this->importWithPicture(1088);
+        $post   = get_post(self::factory()->post->create(['post_author' => $author->ID]));
+
+        $this->assertSame(self::PICTURE['large'], Person::getPictureForPerson($post));
+    }
+
+    public function test_aPostsAvatarIsNotThePictureOfTheUserWhoseIdIsThePostsId(): void
+    {
+        global $wpdb;
+
+        $author = $this->import(self::personData(1089, ['Picture' => null]));
+        $post   = get_post(self::factory()->post->create(['post_author' => $author->ID]));
+
+        // A user whose ID happens to be the same number as the post's, and who has a picture.
+        $wpdb->insert($wpdb->users, [
+            'ID'              => $post->ID,
+            'user_login'      => 'same-number-as-the-post',
+            'user_pass'       => 'not-a-real-hash',
+            'user_nicename'   => 'same-number-as-the-post',
+            'user_email'      => 'same-number@example.org',
+            'user_registered' => '2026-01-01 00:00:00',
+            'display_name'    => 'Same Number',
+        ]);
+        update_user_option($post->ID, Person::META_PEOPLEID, 9999, true);
+        update_user_option($post->ID, 'tp_picture', (object)self::PICTURE, true);
+        clean_user_cache($post->ID);
+
+        $this->assertNull(Person::getPictureForPerson($post), 'The post is by someone who has no picture.');
+    }
+
+    public function test_aCommentsAvatarIsItsUsersPicture(): void
+    {
+        $user    = $this->importWithPicture(1090);
+        $comment = get_comment(self::factory()->comment->create(['user_id' => $user->ID, 'comment_post_ID' => self::factory()->post->create()]));
+
+        $this->assertSame(self::PICTURE['large'], Person::getPictureForPerson($comment));
+    }
+
+    public function test_aGuestCommentHasNoTouchPointPicture(): void
+    {
+        $comment = get_comment(self::factory()->comment->create(['user_id' => 0, 'comment_post_ID' => self::factory()->post->create()]));
+
+        $this->assertNull(Person::getPictureForPerson($comment));
     }
 }
