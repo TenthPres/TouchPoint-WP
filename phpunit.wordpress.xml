@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Tests that run within WordPress, with a database.  See TESTING.md.  The tests that run without WordPress are
+     configured by phpunit.xml. -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
+         bootstrap="tests/WordPress/bootstrap.php"
+         backupGlobals="false"
+         colors="true"
+         verbose="true">
+    <testsuites>
+        <testsuite name="TouchPoint-WP WordPress Test Suite">
+            <directory>tests/WordPress</directory>
+        </testsuite>
+    </testsuites>
+    <coverage pathCoverage="true" disableCodeCoverageIgnore="true">
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+    </coverage>
+</phpunit>

@@ -30,6 +30,12 @@ abstract class BlocksController implements api
 		// Hook the enqueue function
 		add_action('enqueue_block_editor_assets', [BlocksController::class, 'enqueueBlockAssets']);
 
+		// The manifest is made by the build.  Without it (as in a source checkout that hasn't been built), there is
+		// nothing to register.
+		if ( ! file_exists($blocksRoot . 'blocks-manifest.php')) {
+			return;
+		}
+
 		/**
 		 * Registers the block(s) metadata from the `blocks-manifest.php` and registers the block type(s)
 		 * based on the registered block metadata.

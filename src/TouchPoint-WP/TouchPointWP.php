@@ -31,7 +31,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.97";
+	public const VERSION = "0.2.1";
 
 	/**
 	 * The Token
@@ -583,9 +583,7 @@ class TouchPointWP
 
 			// Cleanup endpoints
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_CLEANUP) {
-				if ( ! Cleanup::api($reqUri)) {
-					return $continue;
-				}
+				Cleanup::api($reqUri);
 			}
 
 			// Geolocate via IP
@@ -846,7 +844,8 @@ class TouchPointWP
 				partnerPosts int(10) DEFAULT 0,
 				userAuths int(10) DEFAULT 0,
 				softAuths int(10) DEFAULT 0,
-				
+				meetingGroupingLegacy tinyint(1) DEFAULT 0,
+
 				PRIMARY KEY  (installId)
 			)";
 			dbDelta($sql);
@@ -1092,7 +1091,7 @@ class TouchPointWP
 //			Auth::registerScriptsAndStyles();
 //		}
 
-		if ( ! ! $this->rsvp) {
+		if ( ! ! $this->rsvp || ! ! $this->involvements) {
 			Meeting::registerScriptsAndStyles();
 		}
 	}
@@ -1661,8 +1660,12 @@ class TouchPointWP
 	/**
 	 * Sort a list of hierarchical terms into a list in which each parent is immediately followed by its children.
 	 *
-	 * @param WP_Term[] $terms
-	 * @param bool      $noChildlessParents
+	 * This is for taxonomies that have two levels, such as Programs and Divisions.  Only top-level terms and their direct
+	 * children are included in the result.  Terms that are deeper than that, and terms whose parent isn't in the list,
+	 * are left out.  Top-level terms are sorted by name without regard to case, and so are the children of each.
+	 *
+	 * @param WP_Term[] $terms              Terms with term_id, parent, and name properties.
+	 * @param bool      $noChildlessParents If true, top-level terms that have no children in the list are also left out.
 	 *
 	 * @return WP_Term[]
 	 */
@@ -1983,6 +1986,24 @@ class TouchPointWP
 		}
 
 		return $cObj->campuses;
+	}
+
+
+	/**
+	 * Returns an array of objects that correspond to TouchPoint Involvement Types.  Each Involvement Type has an id and
+	 * a description.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @returns object[]
+	 */
+	public function getInvolvementTypes(): array
+	{
+		try {
+			return Lookup::getLookup('OrganizationTypes');
+		} catch (TouchPointWP_Exception) {
+			return [];
+		}
 	}
 
 

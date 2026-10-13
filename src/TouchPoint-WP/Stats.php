@@ -33,6 +33,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
  * @property int $partnerPosts
  * @property int $userAuths
  * @property int $softAuths
+ * @property int $meetingGroupingLegacy 1 if the previous behavior for collecting meetings is in use, otherwise 0.
  */
 class Stats implements api, \JsonSerializable, updatesViaCron
 {
@@ -53,6 +54,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	protected array $involvementCounts = []; // updated by query
 	protected int $userAuths = 0;
 	protected int $softAuths = 0;
+	protected int $meetingGroupingLegacy = 0; // updated by query
 
 	/**
 	 * @var string A GUID representing the installation of this plugin.  A site with multiple Tenth plugins may have one
@@ -396,6 +398,8 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 			$invCounts[$type] = intval($wpdb->get_var($wpdb->prepare($invQuery, $type))) ?? 0;
 		}
 		$this->involvementCounts = $invCounts;
+
+		$this->meetingGroupingLegacy = Meeting_GroupingSettings::previousBehaviorInUse() ? 1 : 0;
 
 		$this->_dirty = true;
 

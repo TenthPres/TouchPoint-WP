@@ -257,3 +257,7 @@ header .tpwp-warn-block {
     background: #ff03;
     padding: 1em;
 }
+
+details.child-items-past > summary {
+    padding: 0 0.8em;
+}

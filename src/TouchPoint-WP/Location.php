@@ -23,13 +23,18 @@ class Location implements hasGeo
 
 	protected function __construct($data)
 	{
-		$this->ipAddresses = $data->ipAddresses ?? [];
-		$this->lat         = Utilities::toFloatOrNull($data->lat);
-		$this->lng         = Utilities::toFloatOrNull($data->lng);
+		$this->lat         = Utilities::toFloatOrNull($data->lat ?? null);
+		$this->lng         = Utilities::toFloatOrNull($data->lng ?? null);
+		$this->name        = $data->name;
+		$this->radius      = Utilities::toFloatOrNull($data->radius ?? null, 2) ?? 0.1;
 
-		$this->name = $data->name;
-
-		$this->radius = $data->radius ?? 0.1;
+        if (isset($data->ipAddresses) && is_array($data->ipAddresses)) {
+            $this->ipAddresses = array_values(
+                array_filter($data->ipAddresses, fn($ip) => filter_var($ip, FILTER_VALIDATE_IP))
+            );
+        } else {
+            $this->ipAddresses = [];
+        }
 	}
 
 	/**
@@ -121,27 +126,22 @@ class Location implements hasGeo
 	 *
 	 * @param string $settings
 	 *
-	 * @return false|string
+	 * @return string
 	 */
-	public static function validateSetting(string $settings)
-	{
+	public static function validateSetting(string $settings): string
+    {
 		$d = json_decode($settings);
-		foreach ($d as $l) {
-			foreach ($l as $k => $v) {
-				if ( ! property_exists(self::class, $k)) {
-					unset($l->$k);
-				}
-			}
-			$l->lat    = Utilities::toFloatOrNull($l->lat);
-			$l->lng    = Utilities::toFloatOrNull($l->lng);
-			$l->radius = Utilities::toFloatOrNull($l->radius, 2);
+        $do = [];
 
-			$l->ipAddresses = array_values(
-				array_filter($l->ipAddresses, fn($ip) => filter_var($ip, FILTER_VALIDATE_IP))
-			);
+        if (!is_array($d)) {
+            return json_encode([]);
+        }
+
+		foreach ($d as $l) {
+            $do[] = new self($l);
 		}
 
-		return json_encode($d);
+		return json_encode($do);
 	}
 
 	/**

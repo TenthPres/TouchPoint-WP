@@ -22,6 +22,8 @@
 node_modules
 
 .phpunit.result.cache
+/.phpunit.cache/
+/coverage/
 
 /i18n/*.json
 /i18n/*.mo

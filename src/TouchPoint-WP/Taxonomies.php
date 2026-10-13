@@ -173,14 +173,21 @@ abstract class Taxonomies
 	 * Get the term id for a given taxonomy and value.
 	 *
 	 * @param $taxonomy string Taxonomy name
-	 * @param $value int|string The Lookup ID or name or slug of the term.
+	 * @param $value int|string|null The Lookup ID or name or slug of the term.  A blank value (null, or an empty string)
+	 *                             doesn't identify any term.
 	 *
-	 * @return ?int
+	 * @return ?int The term's ID, or null if there isn't a term for the value.
 	 *
 	 * @since 0.0.32 Added
+	 * @since 0.2.2 Changed to return null for a blank value.  It used to return the first term in the taxonomy.
 	 */
 	public static function getTaxTermId(string $taxonomy, $value): ?int
 	{
+		// Without a name or slug to look for, the query would return every term, and the first would be used.
+		if ($value === null || ! is_scalar($value) || trim((string)$value) === '') {
+			return null;
+		}
+
 		$args = [
 			'taxonomy'   => $taxonomy,
 			'hide_empty' => false,
@@ -465,7 +472,8 @@ abstract class Taxonomies
 	 *
 	 * @param int|string $term The term to check. Accepts term ID, slug, or name.
 	 * @param string     $taxonomy Optional. The taxonomy name to use.
-	 * @param int|null   $parent Optional. ID of parent term under which to confine the exists search.
+	 * @param int|null   $parent Optional. ID of parent term under which to confine the exists search.  Null looks for the
+	 *                           term under any parent, and 0 looks for it only at the top level, as in term_exists().
 	 *
 	 * @return mixed Returns null if the term does not exist.
 	 *			   Returns the term ID if no taxonomy is specified and the term ID exists.
@@ -477,7 +485,7 @@ abstract class Taxonomies
 	 */
 	public static function termExists($term, string $taxonomy = "", ?int $parent = null)
 	{
-		$key = $term . "|" . $taxonomy . "|" . $parent;
+		$key = self::termCacheKey($term, $taxonomy, $parent);
 		if ( ! array_key_exists($key, self::$termExistsCache)) {
 			self::$termExistsCache[$key] = term_exists($term, $taxonomy, $parent);
 		}
@@ -534,14 +542,36 @@ abstract class Taxonomies
 	 */
 	public static function insertTerm(string $term, string $taxonomy, $args = [])
 	{
-		$parent = $args['parent'] ?? null;
-		$key    = $term . "|" . $taxonomy . "|" . $parent;
-		$r      = wp_insert_term($term, $taxonomy, $args);
+		$r = wp_insert_term($term, $taxonomy, $args);
 		if ( ! is_wp_error($r)) {
-			self::$termExistsCache[$key] = $r;
+			// Any lookup of this term that found nothing, whatever the parent it was looked for under, is out of date now.
+			$prefix = $term . "|" . $taxonomy . "|";
+			foreach (self::$termExistsCache as $key => $found) {
+				if ( ! $found && str_starts_with($key, $prefix)) {
+					unset(self::$termExistsCache[$key]);
+				}
+			}
+
+			// A term without a parent is at the top level, which is what a lookup under parent 0 looks for.
+			self::$termExistsCache[self::termCacheKey($term, $taxonomy, intval($args['parent'] ?? 0))] = $r;
 		}
 
 		return $r;
+	}
+
+	/**
+	 * The key under which to remember whether a term exists.  Looking for a term under any parent (null) isn't the same
+	 * as looking for it at the top level (0), so they have different keys.
+	 *
+	 * @param int|string $term
+	 * @param string     $taxonomy
+	 * @param int|null   $parent
+	 *
+	 * @return string
+	 */
+	private static function termCacheKey($term, string $taxonomy, ?int $parent): string
+	{
+		return $term . "|" . $taxonomy . "|" . ($parent === null ? "any" : $parent);
 	}
 
 	/**

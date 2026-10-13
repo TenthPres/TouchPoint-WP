@@ -47,6 +47,16 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	public const MEETING_INV_ID_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgInvId";
 	public const MEETING_IS_GROUP_MEMBER = TouchPointWP::SETTINGS_PREFIX . "isGroupMember";
 
+	/** The grouping type of a structural post: one of the MeetingArray::ROLE_ constants.  Not set on the previous behavior's collections. */
+	public const MEETING_GROUP_ROLE_META_KEY = TouchPointWP::SETTINGS_PREFIX . "mtgGroupRole";
+	/** The meeting IDs of all meetings in a structural post, including nested ones.  One meta row per meeting. */
+	public const MEETING_GROUP_MEMBERS_META_KEY = TouchPointWP::SETTINGS_PREFIX . "groupMtgId";
+	/**
+	 * On an Edition, the meeting ID of its spanning meeting: one of the structure owner's own meetings that covers the
+	 * whole Edition.  The Edition takes its name, and it isn't listed within the Edition.  Not set if there isn't one.
+	 */
+	public const EDITION_MEETING_META_KEY = TouchPointWP::SETTINGS_PREFIX . "editionMtgId";
+
 	public const GROUP_NONE = "none";
 	public const GROUP_UNSCHEDULED = "unscheduled";
 	public const GROUP_ALL = "all";
@@ -62,6 +72,9 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 
 	private static bool $_isLoaded = false;
 	private static array $_instances = [];
+
+	/** @var array[] Edition years, by parent post ID, then by Edition post ID.  See editionYearForTitle(). */
+	private static array $_editionYears = [];
 	private static ?Involvement_PostTypeSettings $_typeSet = null;
 
 	public ?DateTimeImmutable $startDt = null;
@@ -294,7 +307,8 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 				'useGeo'                => false,
 				'hierarchical'          => true,
 				'postType'              => self::POST_TYPE_WO_PRE,
-				'meetingGroupingMethod' => TouchPointWP::instance()->settings->mc_grouping_method
+				// Previous behavior.  The setting no longer has a UI, so it may not be stored.
+				'meetingGroupingMethod' => TouchPointWP::instance()->settings->mc_grouping_method ?: self::GROUP_UNSCHEDULED
 			]);
 		}
 		return self::$_typeSet;
@@ -318,11 +332,14 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 			throw new TouchPointWP_Exception("Invalid Meeting ID provided.", 171003);
 		}
 
-		if ( ! isset(self::$_instances[$mid])) {
-			self::$_instances[$mid] = new Meeting($post);
+		// Groups don't have unique meeting IDs (an Edition and its first Cluster share one), so cache them by post.
+		$key = $mid > 0 ? $mid : "p" . $post->ID;
+
+		if ( ! isset(self::$_instances[$key])) {
+			self::$_instances[$key] = new Meeting($post);
 		}
 
-		return self::$_instances[$mid];
+		return self::$_instances[$key];
 	}
 
 	/**
@@ -363,19 +380,38 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 *
 	 * In cases where a meeting post is also an involvement post, it will return the involvement, which has the same post_id.
 	 *
+	 * Otherwise, the parent is the post this meeting is under: the group (Edition or Cluster) it's in, or
+	 * the involvement whose post it's under.  With Meeting Grouping, that involvement can be a structure owner rather
+	 * than the meeting's own involvement, which may be hidden.  If neither applies, the meeting's own involvement is
+	 * returned.
+	 *
+	 * @since 0.0.98 Follows the parent post, so Editions and Clusters can be nested.
+	 *
 	 * @return ?Involvement|Meeting
 	 */
 	public function getParent(): Involvement|Meeting|null
 	{
-		if (!$this->isMeetingGroup() && $this->isMeetingGroupMember()) {
-			$parent = get_post($this->post->post_parent);
-			if ($parent) {
-				try {
-					return Meeting::fromPost($parent);
-				} catch (TouchPointWP_Exception) {
-				}
+		if (Involvement::postIsType($this->post)) {
+			try {
+				return $this->involvement();
+			} catch (TouchPointWP_Exception) {
+				return null;
 			}
 		}
+
+		$parent = $this->post->post_parent ? get_post($this->post->post_parent) : null;
+		if ($parent) {
+			try {
+				if (intval(get_post_meta($parent->ID, self::MEETING_META_KEY, true)) < 0) {
+					return Meeting::fromPost($parent);
+				}
+				if ($parent->post_status === 'publish' && Involvement::postIsType($parent)) {
+					return Involvement::fromPost($parent);
+				}
+			} catch (TouchPointWP_Exception) {
+			}
+		}
+
 		try {
 			return $this->involvement();
 		} catch (TouchPointWP_Exception) {
@@ -413,9 +449,63 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 * @return StringableArray
 	 *
 	 * @since 0.0.90 Added
+	 * @since 0.0.98 Editions are described by whole days, without times.  Clusters are described by their meetings'
+	 *               dates and times: consecutive meetings with different names are parts of one event, and are shown
+	 *               as one range; meetings with identical names are separate occurrences.
 	 */
 	public function scheduleStringArray(): StringableArray
 	{
+		$role = $this->groupRole();
+
+		if ($role === MeetingArray::ROLE_EDITION) {
+			return DateFormats::DurationToStringArray($this->startDt, $this->endDt, null, true);
+		}
+
+		// Only Clusters made by Meeting Grouping; the previous behavior's collections (no stored role) are unchanged.
+		if ($role === MeetingArray::ROLE_CLUSTER &&
+			get_post_meta($this->post_id, self::MEETING_GROUP_ROLE_META_KEY, true) === MeetingArray::ROLE_CLUSTER) {
+			$occurrences = [];
+			foreach (get_children(['post_parent' => $this->post_id, 'post_type' => get_post_type($this->post_id)]) as $child) {
+				try {
+					$m = self::fromPost($child);
+				} catch (TouchPointWP_Exception) {
+					continue;
+				}
+				if ($m->isMeetingGroup() || $m->startDt === null || $m->status() === self::STATUS_CANCELLED) {
+					continue;
+				}
+				$occurrences[] = [$m->startDt, $m->endDt, $m->isAllDay(), trim($m->name ?? "")];
+			}
+			usort($occurrences, fn($a, $b) => $a[0] <=> $b[0]);
+
+			// Consecutive meetings with different names are parts of one event, such as a dinner and then caroling, so
+			// they're combined into one range.  A meeting with the same name as the one before it is another occurrence
+			// of the same thing, such as a second performance or service.
+			$combined = [];
+			foreach ($occurrences as $o) {
+				$last = count($combined) - 1;
+				if ($last >= 0 && $combined[$last][3] !== $o[3]) {
+					$end = $o[1] ?? $o[0];
+					if ($combined[$last][1] === null || $end > $combined[$last][1]) {
+						$combined[$last][1] = $end;
+					}
+					$combined[$last][2] = $combined[$last][2] && $o[2];
+					$combined[$last][3] = $o[3];
+				} else {
+					$combined[] = $o;
+				}
+			}
+
+			$r = DateFormats::OccurrencesToStringArray(
+				array_map(fn($o) => [$o[0], $o[1], $o[2]], $combined),
+				3,
+				true
+			);
+			if (count($r) > 0) {
+				return $r;
+			}
+		}
+
 		return DateFormats::DurationToStringArray($this->startDt, $this->endDt, $this->isMultiDay(), $this->isAllDay());
 	}
 
@@ -520,7 +610,9 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 
 		if ($this->status() !== self::STATUS_CANCELLED) {
 			if ($inv->getRegistrationType() === RegistrationType::RSVP) {
-				if ($absoluteLinks) {
+				if ($this->isMeetingGroup()) {
+					// An RSVP is for a particular meeting, so a group doesn't have its own.
+				} elseif ($absoluteLinks) {
 					$ret['register'] = $this->getRsvpLink($btnClass);
 				} else {
 					$ret['register'] = $this->getRsvpButton($btnClass);
@@ -564,6 +656,24 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 		return $this->mtgId < 0;
 	}
 
+	/**
+	 * Get the grouping type of this group: one of the MeetingArray::ROLE_ constants.  The previous behavior's
+	 * collections have no stored role, and are treated as Clusters.  Returns null if this isn't a group.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @return ?string
+	 */
+	public function groupRole(): ?string
+	{
+		if ( ! $this->isMeetingGroup()) {
+			return null;
+		}
+		$role = get_post_meta($this->post_id, self::MEETING_GROUP_ROLE_META_KEY, true);
+
+		return $role !== "" ? $role : MeetingArray::ROLE_CLUSTER;
+	}
+
 	public function isMeetingGroupMember(): bool
 	{
 		return !!get_post_meta($this->post_id, Meeting::MEETING_IS_GROUP_MEMBER, true);
@@ -605,49 +715,6 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 			1 => $excludeScheduled ? null : __("Scheduled", "TouchPoint-WP"),
 			default => _x("Unknown", "Event Status is not a recognized value.", "TouchPoint-WP"),
 		};
-	}
-
-	/**
-	 * Filters the post thumbnail ID.  Allows meetings to have the image of their parent without having an image themselves.
-	 *
-	 * @param int|false        $thumbnail_id Post thumbnail ID or false if the post does not exist.
-	 * @param int|WP_Post|null $post         Post ID or WP_Post object. Default is global `$post`.
-	 */
-	public static function filterThumbnailId(int|false $thumbnail_id, int|WP_Post|null $post): bool|int
-	{
-		if ($thumbnail_id > 0) { // If already set, we have nothing to do.
-			return $thumbnail_id;
-		}
-
-		if (is_numeric($post)) {
-			$post = get_post($post);
-		}
-
-		if (!$post instanceof WP_Post) { // Something went wrong because we don't have a post.
-			return $thumbnail_id;
-		}
-
-		if (!self::postIsType($post) || Involvement::postIsType($post)) {
-			// Second condition is necessary to prevent loops when meeting post == involvement post
-			return $thumbnail_id;
-		}
-
-		try {
-			$meeting = Meeting::fromPost($post);
-			$involvementPostId = $meeting->involvement()?->post_id();
-			if (!$involvementPostId) {
-				return $thumbnail_id;
-			}
-
-			if (get_the_content(post: $involvementPostId) !== get_the_content(post: $meeting->post_id())) {
-				return $thumbnail_id;
-			}
-
-			return get_post_thumbnail_id($involvementPostId);
-		} catch (TouchPointWP_Exception) {
-		}
-
-		return $thumbnail_id;
 	}
 
 	/**
@@ -879,7 +946,102 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 
 	public static function init(): void
 	{
-		add_filter('post_thumbnail_id', [self::class, 'filterThumbnailId'], 10, 3);
+		add_filter('the_title', [self::class, 'filterTitle'], 10, 2);
+	}
+
+	/**
+	 * Whether a post is the spanning meeting of the post it's listed under, and so shouldn't be listed there.  The
+	 * parent is then an Edition, whose title and dates already come from that meeting.
+	 *
+	 * @param WP_Post $child  A post being listed.
+	 * @param WP_Post $parent The post it's listed under.
+	 *
+	 * @return bool
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public static function isSpanningMeetingOf(WP_Post $child, WP_Post $parent): bool
+	{
+		$spanningId = intval(get_post_meta($parent->ID, self::EDITION_MEETING_META_KEY, true));
+
+		return $spanningId > 0 && intval(get_post_meta($child->ID, self::MEETING_META_KEY, true)) === $spanningId;
+	}
+
+	/**
+	 * Filters the titles of Editions.  An Edition's title gets its year when two or more Editions under the same parent
+	 * have the same title, so they can be told apart (e.g. "Christmas at Tenth 2025" and "Christmas at Tenth 2026").
+	 * If two of them start in the same year, the year wouldn't tell them apart, so none of them gets it.  The stored
+	 * title isn't changed.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @param string $title
+	 * @param int    $postId
+	 *
+	 * @return string
+	 */
+	public static function filterTitle(string $title, int $postId = 0): string
+	{
+		if ($postId === 0) {
+			return $title;
+		}
+
+		if (get_post_meta($postId, self::MEETING_GROUP_ROLE_META_KEY, true) !== MeetingArray::ROLE_EDITION) {
+			return $title;
+		}
+
+		$year = self::editionYearForTitle($postId);
+		if ($year === null) {
+			return $title;
+		}
+		// Translators: %1$s is the title of an event that happens every year, and %2$s is the year of this occurrence.
+		return wp_sprintf(_x('%1$s %2$s', 'Edition title with year', 'TouchPoint-WP'), $title, $year);
+	}
+
+	/**
+	 * Get the year to add to an Edition's title, or null if none should be added.  See filterTitle().
+	 *
+	 * @param int $postId An Edition's post ID.
+	 *
+	 * @return ?string
+	 */
+	private static function editionYearForTitle(int $postId): ?string
+	{
+		$post = get_post($postId);
+		if ($post === null || ! $post->post_parent) {
+			return null;
+		}
+
+		$parentId = $post->post_parent;
+		if ( ! isset(self::$_editionYears[$parentId])) {
+			$siblings = get_children([
+				'post_parent' => $parentId,
+				'post_type'   => $post->post_type,
+				'meta_key'    => self::MEETING_GROUP_ROLE_META_KEY,
+				'meta_value'  => MeetingArray::ROLE_EDITION,
+			]);
+
+			// Group the Editions by title, with the year each starts.
+			$byTitle = [];
+			foreach ($siblings as $s) {
+				$start = intval(get_post_meta($s->ID, self::MEETING_START_META_KEY, true));
+				if ($start === 0) {
+					continue;
+				}
+				$byTitle[trim($s->post_title)][$s->ID] = wp_date('Y', $start);
+			}
+
+			// Only titles shared by two or more Editions, all starting in different years, get years.
+			$years = [];
+			foreach ($byTitle as $editions) {
+				if (count($editions) > 1 && count(array_unique($editions)) === count($editions)) {
+					$years += $editions;
+				}
+			}
+			self::$_editionYears[$parentId] = $years;
+		}
+
+		return self::$_editionYears[$parentId][$postId] ?? null;
 	}
 
 	/**
