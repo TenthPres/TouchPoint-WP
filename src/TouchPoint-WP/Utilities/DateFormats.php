@@ -400,4 +400,73 @@ abstract class DateFormats
 		return $r;
 
 	}
+
+	/**
+	 * Describe a set of separate occurrences, such as the meetings of a Cluster, rather than one continuous span.
+	 *
+	 * - If they're all at the same time of day, the result is a list of dates and one time, such as "Wed, Dec 23 & Thu,
+	 *   Dec 24" and "7:30 pm – 9:00 pm".
+	 * - If they're all on the same date, it's one date and a list of times, such as "Sun, Dec 24" and "9:00 am & 11:00 am".
+	 * - Otherwise, or if any occurrence spans more than one day, it's a list of dates with times.
+	 *
+	 * @since 0.0.98 Added
+	 *
+	 * @param array $occurrences Each an array of [DateTimeInterface $start, ?DateTimeInterface $end, bool $allDay].
+	 * @param int   $limit       The maximum number of dates, times, or dates with times to list before "& others".
+	 * @param bool  $shortDates  Whether to use the short date format (e.g. "Wed, Dec 23").
+	 *
+	 * @return StringableArray With 'date' and 'time', or with 'datetime'.  Empty if there are no occurrences.
+	 */
+	public static function OccurrencesToStringArray(array $occurrences, int $limit = PHP_INT_MAX, bool $shortDates = false): StringableArray
+	{
+		$r             = new StringableArray();
+		$dates         = [];
+		$times         = [];
+		$dateTimes     = [];
+		$forceDateTime = false;
+
+		foreach ($occurrences as [$start, $end, $allDay]) {
+			if ($start === null) {
+				continue;
+			}
+
+			$multiDay = $end !== null && $start->format('Ymd') !== $end->format('Ymd');
+			if ($multiDay) {
+				$forceDateTime = true;
+				$dateTimes[]   = self::DurationToStringArray($start, $end, true, $allDay)['datetime'];
+				continue;
+			}
+
+			$date = $shortDates ? self::DateStringFormattedShort($start) : self::DateStringFormatted($start);
+			if ($allDay) {
+				$time = __('All Day', 'TouchPoint-WP');
+			} elseif ($end === null || $end == $start) {
+				$time = self::TimeStringFormatted($start);
+			} else {
+				$time = self::TimeRangeStringFormatted($start, $end);
+			}
+
+			// translators: %1$s is the date(s), %2$s is the time(s).
+			$dateTimes[] = wp_sprintf(__('%1$s at %2$s', 'TouchPoint-WP'), $date, $time);
+			if ( ! in_array($date, $dates, true)) {
+				$dates[] = $date;
+			}
+			if ( ! in_array($time, $times, true)) {
+				$times[] = $time;
+			}
+		}
+
+		if (count($dateTimes) === 0) {
+			return $r;
+		}
+
+		if ( ! $forceDateTime && (count($times) === 1 || count($dates) === 1)) {
+			$r['date'] = Utilities::stringArrayToListString($dates, $limit);
+			$r['time'] = Utilities::stringArrayToListString($times, $limit);
+		} else {
+			$r['datetime'] = Utilities::stringArrayToListString($dateTimes, $limit);
+		}
+
+		return $r;
+	}
 }

@@ -1208,8 +1208,8 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 				} catch (TouchPointWP_Exception $e) {
 				}
 			} else {
-				$e = new TouchPointWP_Exception("Unexpected Date/Time Format.  The date string \"$format\" can't be used in this situation.", 172001);
-				$theDate = "<!-- {$e->getMessage()} -->";
+				// Not an exception: this is expected when themes request a formatted date, and it shouldn't be logged.
+				$theDate = "<!-- Unexpected Date/Time Format.  The date string \"" . esc_html($format) . "\" can't be used in this situation. -->";
 			}
 		}
 

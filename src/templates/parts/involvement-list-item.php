@@ -2,6 +2,7 @@
 
 use tp\TouchPointWP\Involvement;
 use tp\TouchPointWP\Involvement_PostTypeSettings;
+use tp\TouchPointWP\Meeting;
 use tp\TouchPointWP\PostTypeCapable;
 use tp\TouchPointWP\TouchPointWP;
 
@@ -25,10 +26,10 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
 <article id="<?php echo $postTypeClass; ?>-<?php the_ID(); ?>" <?php post_class($postItemClass); ?> data-tp-involvement="<?php echo $post->ID ?>">
     <header class="entry-header">
         <div class="entry-header-inner">
-        <?php
-        /** @noinspection HtmlUnknownTarget */
-        the_title(sprintf('<h2 class="entry-title default-max-width heading-size-1"><a href="%s">', esc_url(get_permalink())), '</a></h2>');
-        ?>
+        <?php $listTitle = $inv->titleInList(); ?>
+        <?php if ($listTitle !== '') { ?>
+            <h2 class="entry-title default-max-width heading-size-1"><a href="<?php echo esc_url($inv->permalink()); ?>"><?php echo $listTitle; ?></a></h2>
+        <?php } ?>
         </div>
         <div class="post-meta-single post-meta-single-top">
             <span class="post-meta">
@@ -52,18 +53,22 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
             'order' => 'ASC',
             'post_type' => get_post_type($post)
         ]);
+        // Child involvements (which have no start) first, by title; then meetings and groups, chronologically.
+        usort($children, function ($a, $b) {
+            $aStart = intval(get_post_meta($a->ID, Meeting::MEETING_START_META_KEY, true));
+            $bStart = intval(get_post_meta($b->ID, Meeting::MEETING_START_META_KEY, true));
+            return [$aStart, $a->post_title] <=> [$bStart, $b->post_title];
+        });
         if (count($children) > 0) {
             echo "<div class='child-involvements'>";
         }
         foreach ($children as $child) {
             /** @var WP_Post $child */
+            $childInv = PostTypeCapable::fromPost($child);
+
             echo "<div>";
-            $link = get_permalink($child);
-            echo "<h3 class='inline'><a href=\"$link\" class='small'>$child->post_title</a></h3>";
-
-	        $childInv = PostTypeCapable::fromPost($child);
+            echo "<h3 class='inline'><a href=\"{$childInv->permalink()}\" class='small'>{$childInv->titleWithinParent($post)}</a></h3>";
             echo $childInv->notableAttributes($notableAttributes);
-
             echo "</div>";
         }
         if (count($children) > 0) {

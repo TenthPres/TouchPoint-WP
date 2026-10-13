@@ -81,7 +81,8 @@ if ( ! defined('ABSPATH')) {
  * @property-read int          mc_future_days     Number of days into the future to import.
  * @property-read int          mc_archive_days    Number of days to wait to move something to history.
  * @property-read int|string   mc_hist_days       Number of days of history to keep.  (Can be '' if module isn't enabled.)
- * @property-read string       mc_grouping_method Whether and how to collect meetings into groups.
+ * @property-read string       mc_grouping_method Previous behavior for collecting meetings into groups.  Superseded by mc_grouping_json, but still used when the "previous behavior" option is selected.  (No setting UI.)
+ * @property-read string       mc_grouping_json   JSON string describing how Meetings are grouped, by Involvement Type.  (No direct setting UI.)
  *
  * @property-read string       rc_name_plural     What resident codes should be called, plural (e.g. "Resident Codes" or "Zones")
  * @property-read string       rc_name_singular   What a resident code should be called, singular (e.g. "Resident Code" or "Zone")
@@ -889,7 +890,7 @@ class Settings
 		}
 
 		if (get_option(TouchPointWP::SETTINGS_PREFIX . 'enable_meeting_cal') === "on") { // TODO MULTI
-//			$includeThis = $includeDetail === true || $includeDetail === 'events';
+			$includeThis = $includeDetail === true || $includeDetail === 'meetCal';
 			$tribe = TouchPointWP::useTribeCalendar();
 			$settings['meetCal'] = [
 				'title'       => $this->__('Meeting Calendars', 'TouchPoint-WP'),
@@ -974,20 +975,22 @@ class Settings
 						'auto'
 					],
 					[
-						'id'          => 'mc_grouping_method',
-						'label'       => $this->__("Collect Meetings for Larger Events", "TouchPoint-WP"),
-						'description' => $this->__("Allows multiple meetings that are part of one larger event to be grouped together, such as sessions within a conference.  For meetings to be collected, they must be in the same involvement and must not have gaps between them larger than 23 hours.", "TouchPoint-WP"),
-						'type'        => 'select',
-						'options'     => [
-							Meeting::GROUP_NONE => $this->__("No Collecting", "TouchPoint-WP"),
-							Meeting::GROUP_UNSCHEDULED => $this->__(
-								"Collect Meetings only from Involvements without Schedules",
-								"TouchPoint-WP"
-							),
-							Meeting::GROUP_ALL => $this->__("Collect Meetings for all Involvements", "TouchPoint-WP"),
-						],
-						'default'     => Meeting::GROUP_UNSCHEDULED,
-						'autoload'    => false
+						'id'          => 'mc_grouping_json', // meeting grouping settings json (stored as a json string)
+						'type'        => 'textarea',
+						'label'       => $this->__('Meeting Grouping', 'TouchPoint-WP'),
+						'default'     => '',
+						'autoload'    => false,
+						'hidden'      => true,
+						'description' => !$includeThis ? "" : function () {
+							TouchPointWP::requireScript("base");
+							TouchPointWP::requireScript("knockout-defer");
+
+							ob_start();
+							include TouchPointWP::$dir . "/src/templates/admin/mtgGroupingKoForm.php";
+
+							return ob_get_clean();
+						},
+						'callback'    => fn($new) => Meeting_GroupingSettings::validateNewSettings($new)
 					],
 				],
 			];
@@ -1542,6 +1545,14 @@ class Settings
 			if (is_admin()) {
 				TouchPointWP_AdminAPI::showError($e->getMessage());
 			}
+		}
+
+		// 0.0.98 -- Meeting Grouping is set by Involvement Type.  Existing sites keep their previous behavior until
+		// it's changed; new sites start with Clusters.
+		if ($this->getWithoutDefault('mc_grouping_json') === self::UNDEFINED_PLACEHOLDER) {
+			$isNewSite = $this->getWithoutDefault('version') === self::UNDEFINED_PLACEHOLDER;
+			$grouping  = $isNewSite ? Meeting_GroupingSettings::defaultsForNewSite() : Meeting_GroupingSettings::toObject();
+			$this->set('mc_grouping_json', json_encode($grouping), false);
 		}
 
 		// 0.0.97 -- Remove the old Genders meta

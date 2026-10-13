@@ -391,15 +391,11 @@ class CalendarGrid {
 				],
 				'relation' => 'OR'
 			],
-			[
+			[ // Individual meetings only.  Groups of meetings (which have negative meeting IDs) aren't listed; their meetings are.
 				'key' => Meeting::MEETING_META_KEY,
 				'value' => 0,
-				'compare' => "!="
-			],
-			[
-				'key' => Meeting::MEETING_IS_GROUP_MEMBER,
-				'value' => 0,
-				'compare' => "="
+				'compare' => ">",
+				'type' => 'NUMERIC'
 			],
 			'relation' => 'AND'
 		];

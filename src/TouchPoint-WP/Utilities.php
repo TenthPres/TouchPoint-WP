@@ -532,20 +532,48 @@ abstract class Utilities
 	}
 
 	/**
+	 * Get the attachment ID of a post's own featured image, ignoring any image inherited from an ancestor.
+	 *
+	 * Sync code should use this, not get_post_thumbnail_id(), which returns an inherited image for involvement and
+	 * meeting posts.  Otherwise, a child could be taken to own (and then delete or replace) its parent's image.
+	 *
+	 * @param int $postId
+	 *
+	 * @return int 0 if the post has no image of its own.
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public static function ownThumbnailId(int $postId): int
+	{
+		return intval(get_post_meta($postId, '_thumbnail_id', true));
+	}
+
+	/**
 	 * Updates or removes a post's featured image from a URL (e.g. from TouchPoint).
 	 *
 	 * If the $newUrl is blank or null, the image is removed.
+	 *
+	 * The image that's replaced is deleted from the media library right away, unless an array is provided for
+	 * $replacedAttIds.  Then, it's left in place, and its attachment ID is added to the array, so the caller can use
+	 * deleteAttachmentIfUnused() once other posts using it have been updated.
 	 *
 	 * @param int         $postId
 	 * @param string|null $newUrl
 	 * @param string      $title
 	 * @param bool        $verbose
+	 * @param array|null  $replacedAttIds Provide an array to defer deleting the replaced image.
 	 *
 	 * @return int The attachmentId for the image.  Can be reused for other posts.
 	 * @since 0.0.24 Added
+	 * @since 0.0.98 Added $replacedAttIds
 	 */
-	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title, bool $verbose = false): int
-	{
+	public static function updatePostImageFromUrl(
+		int $postId,
+		?string $newUrl,
+		string $title,
+		bool $verbose = false,
+		?array &$replacedAttIds = null
+	): int {
 		// Required for image handling
 		require_once(ABSPATH . 'wp-admin/includes/media.php');
 		require_once(ABSPATH . 'wp-admin/includes/file.php');
@@ -574,12 +602,16 @@ abstract class Utilities
 		}
 
 		// get existing post image, if any
-		$oldAttId = get_post_thumbnail_id($postId);
+		$oldAttId = self::ownThumbnailId($postId);
 
 		// determine if a change is needed
 		if ($newAttId !== $oldAttId || ($newUrl !== "" && $oldAttId === 0)) {
 			if ($oldAttId > 0) { // Remove and delete old one.
-				wp_delete_attachment($oldAttId, true);
+				if ($replacedAttIds === null) {
+					wp_delete_attachment($oldAttId, true);
+				} else {
+					$replacedAttIds[] = $oldAttId;
+				}
 			}
 			if ($newAttId === 0 && $newUrl !== "") { // New image isn't in media yet.
 				set_time_limit(60);
@@ -606,6 +638,38 @@ abstract class Utilities
 		}
 
 		return $newAttId;
+	}
+
+	/**
+	 * Delete an image from the media library, unless a post still uses it as its featured image.  Archived meetings keep
+	 * the image they had, so an image that was replaced is only deleted when nothing is holding on to it.
+	 *
+	 * @param int  $attachmentId
+	 * @param bool $verbose
+	 *
+	 * @return bool True if the image was deleted.
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public static function deleteAttachmentIfUnused(int $attachmentId, bool $verbose = false): bool
+	{
+		global $wpdb;
+
+		$usedBy = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_thumbnail_id' AND meta_value = %s LIMIT 1",
+				(string)$attachmentId
+			)
+		);
+
+		if ($usedBy !== null) {
+			if ($verbose) {
+				echo "<p>Image $attachmentId was replaced, but is still used by Post $usedBy.  It will be kept.</p>";
+			}
+			return false;
+		}
+
+		return ! ! wp_delete_attachment($attachmentId, true);
 	}
 
 	/**
@@ -780,6 +844,51 @@ abstract class Utilities
 		$s = preg_replace("/[^a-zA-Z0-9]/", "-", $s);
 		$s = strtolower($s);
 		return preg_replace("/-+/", "-", $s);
+	}
+
+	/**
+	 * Remove a prefix from the start of a title, such as a parent event's title from the titles of its parts.  For
+	 * example, "Global Outreach Conference: Q&A Luncheon" becomes "Q&A Luncheon" when the prefix is "Global Outreach
+	 * Conference".
+	 *
+	 * The prefix is only removed if it's followed by a separator (a colon, bar, middle dot, bullet, en dash, em dash,
+	 * or a hyphen with a space beside it), so "Christmas Eve Service" isn't shortened to "Eve Service" by "Christmas".  Case,
+	 * and whether quotation marks and apostrophes are straight or curly, don't matter.
+	 *
+	 * @param string $title  The full title.
+	 * @param string $prefix The prefix to remove.
+	 *
+	 * @return string The title without the prefix and separator.  If the title doesn't start with them, or nothing
+	 *                would be left, the title is returned as it was (trimmed).
+	 *
+	 * @since 0.0.98 Added
+	 */
+	public static function titleWithoutPrefix(string $title, string $prefix): string
+	{
+		$title  = trim($title);
+		$prefix = trim($prefix);
+
+		$length = mb_strlen($prefix);
+		if ($length === 0 || mb_strlen($title) <= $length) {
+			return $title;
+		}
+
+		$normalize = fn(string $s): string => mb_strtolower(strtr($s, ["’" => "'", "‘" => "'", "“" => '"', "”" => '"']));
+		if ($normalize(mb_substr($title, 0, $length)) !== $normalize($prefix)) {
+			return $title;
+		}
+
+		$rest = mb_substr($title, $length);
+		if ( ! preg_match('/^(?:\s*[:|·•–—]\s*|\s+-\s*|\s*-\s+)/u', $rest, $separator)) {
+			return $title;
+		}
+
+		$rest = mb_substr($rest, mb_strlen($separator[0]));
+		if ( ! preg_match('/[\p{L}\p{N}]/u', $rest)) {
+			return $title;
+		}
+
+		return $rest;
 	}
 
 	/**
