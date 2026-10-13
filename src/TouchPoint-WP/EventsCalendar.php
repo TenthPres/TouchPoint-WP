@@ -94,7 +94,7 @@ abstract class EventsCalendar implements api, module
 			// Android
 			$eO['image'] = get_the_post_thumbnail_url($eQ->ID, 'large');
 			// iOS
-			$eO['RelatedImageFileKey'] = $eO['image'];
+			$eO['RelatedImageFileKey'] = $eO['image'] === false ? "" : $eO['image'];
 
 			// iOS
 			$eO['Description'] = str_replace("{{MOBILE_OS}}", "iOS", $content_ios);
@@ -321,7 +321,7 @@ abstract class EventsCalendar implements api, module
 			// Android
 			$eO['image'] = get_the_post_thumbnail_url($eQ, 'large');
 			// iOS
-			$eO['RelatedImageFileKey'] = $eO['image'];
+			$eO['RelatedImageFileKey'] = $eO['image'] === false ? "" : $eO['image'];
 
 			// iOS
 			$eO['Description'] = str_replace("{{MOBILE_OS}}", "iOS", $content_ios);
