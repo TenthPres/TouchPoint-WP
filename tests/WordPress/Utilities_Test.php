@@ -181,16 +181,112 @@ class Utilities_Test extends WPTestCase
     }
 
     /**
-     * @group known-issue
+     * What a search finds, as the content of the posts it found, in order.
+     *
+     * @param string $search
+     *
+     * @return string[]
      */
+    private function found(string $search): array
+    {
+        $content = array_map(fn($r) => $r->post_content, Utilities::getPostContentWithShortcode($search));
+        sort($content);
+
+        return $content;
+    }
+
     public function test_getPostContentWithShortcode_aQuotationMarkInTheSearchIsJustText(): void
     {
         self::factory()->post->create(['post_content' => "A [tp_it's] shortcode"]);
         self::factory()->post->create(['post_content' => 'Something else']);
 
-        $content = array_map(fn($r) => $r->post_content, Utilities::getPostContentWithShortcode("[tp_it's]"));
+        $this->assertSame(["A [tp_it's] shortcode"], $this->found("[tp_it's]"));
+        $this->assertSame(['A [tp_it"s] shortcode'], (function () {
+            self::factory()->post->create(['post_content' => 'A [tp_it"s] shortcode']);
 
-        $this->assertSame(["A [tp_it's] shortcode"], $content);
+            return $this->found('[tp_it"s]');
+        })());
+    }
+
+    public function test_getPostContentWithShortcode_anUnderscoreInTheSearchIsOnlyAnUnderscore(): void
+    {
+        // In a database search, _ stands for any one character.
+        self::factory()->post->create(['post_content' => 'Right: [tp_list]']);
+        self::factory()->post->create(['post_content' => 'Wrong: [tpXlist]']);
+        self::factory()->post->create(['post_content' => 'Wrong: [tp-list]']);
+
+        $this->assertSame(['Right: [tp_list]'], $this->found('[tp_list]'));
+    }
+
+    public function test_getPostContentWithShortcode_aPercentSignInTheSearchIsOnlyAPercentSign(): void
+    {
+        // In a database search, % stands for anything at all.
+        self::factory()->post->create(['post_content' => 'Right: 100% [tp_pct]']);
+        self::factory()->post->create(['post_content' => 'Wrong: 100 [tp_other]']);
+
+        $this->assertSame(['Right: 100% [tp_pct]'], $this->found('100%'));
+    }
+
+    public function test_getPostContentWithShortcode_aBackslashInTheSearchIsOnlyABackslash(): void
+    {
+        $withBackslashes = 'Right: C:\dir\file [tp_path]';
+
+        // WordPress takes content with its backslashes doubled, and removes one of each pair.
+        self::factory()->post->create(['post_content' => wp_slash($withBackslashes)]);
+        self::factory()->post->create(['post_content' => 'Wrong: C:dirfile [tp_path]']);
+
+        $this->assertSame($withBackslashes, get_posts(['post_status' => 'any', 'numberposts' => 1, 'orderby' => 'ID', 'order' => 'ASC'])[0]->post_content);
+        $this->assertSame([$withBackslashes], $this->found('C:\dir\file'));
+    }
+
+    /**
+     * @return array[] [text that is a search for a shortcode, and is also SQL]
+     */
+    public static function provider_searchesThatLookLikeSql(): array
+    {
+        return [
+            'an always-true condition'  => ["x' OR '1'='1"],
+            'a closing and a comment'   => ["%' OR post_status <> 'x' -- "],
+            'a second statement'        => ["'; DROP TABLE wptests_posts; --"],
+            'a union'                   => ["' UNION SELECT user_pass FROM wptests_users -- "],
+            'wildcards only'            => ['%_%_%'],
+        ];
+    }
+
+    /**
+     * @dataProvider provider_searchesThatLookLikeSql
+     */
+    public function test_getPostContentWithShortcode_aSearchThatLooksLikeSqlFindsOnlyPostsThatContainIt(string $search): void
+    {
+        global $wpdb;
+        self::factory()->post->create(['post_content' => 'An ordinary post']);
+        self::factory()->post->create(['post_content' => 'Another [tp_list] post']);
+
+        $this->assertSame([], $this->found($search));
+        $this->assertSame('', $wpdb->last_error, 'The search was valid SQL.');
+        $this->assertCount(2, get_posts(['numberposts' => -1, 'post_status' => 'any', 'fields' => 'ids', 'post_type' => 'post']), 'Nothing was changed.');
+    }
+
+    public function test_getPostContentWithShortcode_aSearchThatCouldNotBeMadeFindsNothing(): void
+    {
+        global $wpdb;
+        self::factory()->post->create(['post_content' => '[tp_list]']);
+        add_filter('query', fn($sql) => str_contains($sql, 'post_content LIKE') ? 'SELECT post_content FROM table_that_is_not_there' : $sql);
+        $wpdb->suppress_errors(true);
+
+        $this->assertSame([], Utilities::getPostContentWithShortcode('[tp_list'));
+
+        $wpdb->suppress_errors(false);
+    }
+
+    public function test_getPostContentWithShortcode_theShortcodesThePluginLooksForAreFound(): void
+    {
+        // As the People List and Report features look for them.
+        self::factory()->post->create(['post_content' => 'Staff: [TP-People invId=1]']);
+        self::factory()->post->create(['post_content' => 'A report: [TP-Report name="x"]']);
+
+        $this->assertSame(['Staff: [TP-People invId=1]'], $this->found(\tp\TouchPointWP\Person::SHORTCODE_PEOPLE_LIST));
+        $this->assertSame(['A report: [TP-Report name="x"]'], $this->found(\tp\TouchPointWP\Report::SHORTCODE_REPORT));
     }
 
     /////////////////////////////

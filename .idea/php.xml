@@ -80,6 +80,9 @@
       <path value="$PROJECT_DIR$/vendor/skayo/phpdoc-md" />
       <path value="$PROJECT_DIR$/vendor/twig/twig" />
       <path value="$PROJECT_DIR$/vendor/evert/phpdoc-md" />
+      <path value="$PROJECT_DIR$/vendor/johnpbloch/wordpress-core" />
+      <path value="$PROJECT_DIR$/vendor/wp-phpunit/wp-phpunit" />
+      <path value="$PROJECT_DIR$/vendor/phpunit/phpcov" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.0">

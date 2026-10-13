@@ -352,18 +352,30 @@ abstract class Utilities
 	/**
 	 * Gets the post content for all posts that contain a particular shortcode.
 	 *
-	 * @param $shortcode
+	 * @param string $shortcode The text to look for, such as the shortcode's name.
 	 *
 	 * TODO MULTI: does not update for all sites in the network.
 	 *
-	 * @return object[]
+	 * @return object[] An object with a post_content property for each post.  Empty if there are none, or the search
+	 *                  couldn't be made.
+	 *
+	 * @since 0.2.2 Changed to escape special chars in SQL
 	 */
 	public static function getPostContentWithShortcode($shortcode): array
 	{
 		global $wpdb;
 
+		$like = '%' . $wpdb->esc_like((string)$shortcode) . '%';
+
 		/** @noinspection SqlResolve */
-		return $wpdb->get_results("SELECT post_content FROM $wpdb->posts WHERE post_content LIKE '%$shortcode%' AND post_status <> 'inherit'");
+		$posts = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT post_content FROM $wpdb->posts WHERE post_content LIKE %s AND post_status <> 'inherit'",
+				$like
+			)
+		);
+
+		return $posts ?? [];
 	}
 
 	protected static array $colorAssignments = [];
