@@ -12,13 +12,21 @@ if (!empty($image)) {
     $image = " style=\"background-image: url('$image');\"";
 }
 
+$actions = $person->getActionButtons("person-list", $btnClass);
+$classList = "person-list-item";
+if ($actions->count() === 0) {
+    $classList .= " no-actions";
+} else {
+    $classList .= " has-actions";
+}
+
 ?>
 
-<article id="person-<?php echo $person->peopleId; ?>" class="person-list-item" data-tp-person="<?php echo $person->peopleId ?>"<?php echo $image ?>>
+<article id="person-<?php echo $person->peopleId; ?>" class="<?php echo $classList; ?>" data-tp-person="<?php echo $person->peopleId ?>"<?php echo $image ?>>
     <header class="entry-header">
         <div class="entry-header-inner">
             <?php
-            $link = $person->getProfileUrl();
+            $link = $person->getUserUrl();
             $useLink = $link !== null;
             if ($useLink) {
                 /** @noinspection HtmlUnknownTarget */
@@ -52,6 +60,6 @@ if (!empty($image)) {
         <?php //echo wp_trim_words($person->description, 20, "..."); ?>
     </div>
     <div class="actions person-actions">
-        <?php echo $person->getActionButtons("person-list", $btnClass); ?>
+        <?php echo $actions ?>
     </div>
 </article>

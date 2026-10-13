@@ -28,3 +28,36 @@ div.swal2-content table.tp-radio-list {
 button[data-tp-action]:not([disabled]) {
     cursor: pointer;
 }
+
+i.tenth-icons {
+    margin: -2em 0;
+}
+
+i.tenth-icons::before {
+    content: '';
+    width: 1em;
+    height: 1.2em;
+    margin-top: -.25em;
+    margin-bottom: -0.24em;
+    display: inline-block;
+    vertical-align: middle;
+    background-color: currentColor;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+}
+
+i.tenth-icons.map-marker::before {
+    -webkit-mask-image: url("../icons/map-marker.svg");
+    mask-image: url("../icons/map-marker.svg");
+    /*background-image: url("../icons/map-marker.svg");*/
+}
+
+i.tenth-icons.touchpoint-icon::before {
+    -webkit-mask-image: url("../icons/touchpoint.svg");
+    mask-image: url("../icons/touchpoint.svg");
+    /*background-image: url("../icons/touchpoint.svg");*/
+}

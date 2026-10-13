@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "touchpoint-wp/people-list",
+  "version": "0.0.97",
+  "title": "People List",
+  "category": "widgets",
+  "icon": "groups",
+  "description": "A list of People from a TouchPoint Involvement",
+  "supports": {
+    "html": false,
+    "ariaLabel": true,
+    "reusable": false
+  },
+  "textdomain": "TouchPoint-WP",
+  "editorScript": "file:./index.js"
+}

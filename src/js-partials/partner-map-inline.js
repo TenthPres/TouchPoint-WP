@@ -1,3 +1,3 @@
 tpvm.addEventListener('Partner_fromObjArray', function() {
-    TP_Partner.initMap('{$mapDivId}');
+    tpvm.TP_Partner.initMap('{$mapDivId}');
 });

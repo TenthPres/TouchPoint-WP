@@ -22,26 +22,6 @@
       <envs />
     </TaskOptions>
     <TaskOptions isEnabled="true">
-      <option name="arguments" value="$/FilePathRelativeToProjectRoot$ -o build/$/FileDirRelativeToProjectRoot$/$FileNameWithoutAllExtensions$.min.js --source-map" />
-      <option name="checkSyntaxErrors" value="true" />
-      <option name="description" />
-      <option name="exitCodeBehavior" value="ERROR" />
-      <option name="fileExtension" value="js" />
-      <option name="immediateSync" value="true" />
-      <option name="name" value="UglifyJS to Build" />
-      <option name="output" value="build/$/FileDirRelativeToProjectRoot$/" />
-      <option name="outputFilters">
-        <array />
-      </option>
-      <option name="outputFromStdout" value="false" />
-      <option name="program" value="uglifyjs" />
-      <option name="runOnExternalChanges" value="true" />
-      <option name="scopeName" value="Project Files" />
-      <option name="trackOnlyRoot" value="true" />
-      <option name="workingDir" value="$ProjectFileDir$" />
-      <envs />
-    </TaskOptions>
-    <TaskOptions isEnabled="true">
       <option name="arguments" value="cmd /c &quot;type $FilePath$&quot;" />
       <option name="checkSyntaxErrors" value="true" />
       <option name="description" />
@@ -58,6 +38,46 @@
       <option name="runOnExternalChanges" value="true" />
       <option name="scopeName" value="Project Files" />
       <option name="trackOnlyRoot" value="false" />
+      <option name="workingDir" value="$ProjectFileDir$" />
+      <envs />
+    </TaskOptions>
+    <TaskOptions isEnabled="true">
+      <option name="arguments" value="cmd /c &quot;type $FilePath$&quot;" />
+      <option name="checkSyntaxErrors" value="true" />
+      <option name="description" />
+      <option name="exitCodeBehavior" value="ERROR" />
+      <option name="fileExtension" value="py" />
+      <option name="immediateSync" value="true" />
+      <option name="name" value="Python to Build (win)" />
+      <option name="output" value="$ProjectFileDir$\build\$FileDirRelativeToProjectRoot$\$FileName$" />
+      <option name="outputFilters">
+        <array />
+      </option>
+      <option name="outputFromStdout" value="true" />
+      <option name="program" value="cmd.exe" />
+      <option name="runOnExternalChanges" value="true" />
+      <option name="scopeName" value="Project Files" />
+      <option name="trackOnlyRoot" value="false" />
+      <option name="workingDir" value="$ProjectFileDir$" />
+      <envs />
+    </TaskOptions>
+    <TaskOptions isEnabled="false">
+      <option name="arguments" value="$/FilePathRelativeToProjectRoot$ -o build/$/FileDirRelativeToProjectRoot$/$FileNameWithoutAllExtensions$.min.js --source-map" />
+      <option name="checkSyntaxErrors" value="true" />
+      <option name="description" />
+      <option name="exitCodeBehavior" value="ERROR" />
+      <option name="fileExtension" value="js" />
+      <option name="immediateSync" value="true" />
+      <option name="name" value="UglifyJS to Build" />
+      <option name="output" value="build/$/FileDirRelativeToProjectRoot$/" />
+      <option name="outputFilters">
+        <array />
+      </option>
+      <option name="outputFromStdout" value="false" />
+      <option name="program" value="uglifyjs" />
+      <option name="runOnExternalChanges" value="true" />
+      <option name="scopeName" value="Project Files" />
+      <option name="trackOnlyRoot" value="true" />
       <option name="workingDir" value="$ProjectFileDir$" />
       <envs />
     </TaskOptions>
@@ -79,6 +99,46 @@
       <option name="scopeName" value="Project Files" />
       <option name="trackOnlyRoot" value="true" />
       <option name="workingDir" value="$FileDir$" />
+      <envs />
+    </TaskOptions>
+    <TaskOptions isEnabled="true">
+      <option name="arguments" value="cmd /c &quot;type $FilePath$&quot;" />
+      <option name="checkSyntaxErrors" value="true" />
+      <option name="description" />
+      <option name="exitCodeBehavior" value="ERROR" />
+      <option name="fileExtension" value="css" />
+      <option name="immediateSync" value="true" />
+      <option name="name" value="CSS to Build (win)" />
+      <option name="output" value="$ProjectFileDir$\build\$FileDirRelativeToProjectRoot$\$FileName$" />
+      <option name="outputFilters">
+        <array />
+      </option>
+      <option name="outputFromStdout" value="true" />
+      <option name="program" value="cmd.exe" />
+      <option name="runOnExternalChanges" value="true" />
+      <option name="scopeName" value="Project Files" />
+      <option name="trackOnlyRoot" value="false" />
+      <option name="workingDir" value="$ProjectFileDir$" />
+      <envs />
+    </TaskOptions>
+    <TaskOptions isEnabled="true">
+      <option name="arguments" value="run build-blocks" />
+      <option name="checkSyntaxErrors" value="true" />
+      <option name="description" />
+      <option name="exitCodeBehavior" value="ERROR" />
+      <option name="fileExtension" value="js" />
+      <option name="immediateSync" value="true" />
+      <option name="name" value="Build Blocks from JS" />
+      <option name="output" value="" />
+      <option name="outputFilters">
+        <array />
+      </option>
+      <option name="outputFromStdout" value="false" />
+      <option name="program" value="npm" />
+      <option name="runOnExternalChanges" value="false" />
+      <option name="scopeName" value="Project Files" />
+      <option name="trackOnlyRoot" value="true" />
+      <option name="workingDir" value="$ProjectFileDir$" />
       <envs />
     </TaskOptions>
   </component>

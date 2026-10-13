@@ -5,9 +5,11 @@
 
 namespace tp\TouchPointWP;
 
+use Exception;
+use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Utilities\Http;
 use tp\TouchPointWP\Utilities\PersonQuery;
-use tp\TouchPointWP\Utilities\Session;
 use WP_Error;
 use WP_User;
 
@@ -16,25 +18,20 @@ if ( ! defined('ABSPATH')) {
 }
 
 /**
- * Allows users to login to WordPress with their TouchPoint credentials, and provides other user management
+ * Allows users to log in to WordPress with their TouchPoint credentials, and provides other user management
  * functionality.
  */
 abstract class Auth implements api, module
 {
-	/** @const Number of seconds during which the user login tokens are valid. */
-	protected const LOGIN_TIMEOUT_STANDARD = 30;
+	/** @noinspection SpellCheckingInspection */
+	protected const LOGIN_PARAMETER = 'tptoken';
 
-	/** @const How long until an API key needs to be replaced. */
-	protected const API_KEY_TIMEOUT = 86400;
-
-	/** @const number of seconds during which the login link is valid (amount of time before the login page (silently) expires). */
-	protected const SESSION_TIMEOUT = 600;
 	private static bool $_isLoaded = false;
 
 	public static function init(): void
 	{
 		// Start the session
-		add_action('login_init', [self::class, 'startSession'], 10);
+//		add_action('login_init', [self::class, 'startSession'], 10);  TODO remove
 
 		// The authentication filter
 		add_filter('authenticate', [self::class, 'authenticate'], 1, 3);
@@ -54,9 +51,13 @@ abstract class Auth implements api, module
 		// If configured, bypass the login form and redirect straight to TouchPoint
 		add_action('login_init', [self::class, 'redirectLoginFormMaybe'], 20);
 
+		// If configured, upon login, if no redirect is specified, redirect to the homepage
+		add_filter('login_redirect', [self::class, 'redirectLoginCompleteMaybe'], 10, 3);
+
 		// If configured, prevent admin bar from appearing for subscribers
-		add_action('after_setup_theme', [self::class, 'removeAdminBarMaybe']);
+		self::removeAdminBarMaybe();
 	}
+
 
 	/**
 	 * Loads the module and initializes the other actions.
@@ -73,6 +74,9 @@ abstract class Auth implements api, module
 
 		add_action(TouchPointWP::INIT_ACTION_HOOK, [self::class, 'init']);
 
+		// If configured, prevent user from accessing the admin area
+		add_action('admin_init', [self::class, 'preventAdminAccessMaybe']);
+
 		//////////////////
 		/// Shortcodes ///
 		//////////////////
@@ -81,32 +85,17 @@ abstract class Auth implements api, module
 		/// Syncing ///
 		///////////////
 
-		if (is_admin()) {
-			try {
-				self::createApiKeyIfNeeded();
-			} catch (TouchPointWP_Exception $e) {
-			}
-		}
-
 		return true;
 	}
 
-	/**
-	 * Starts a new session.
-	 */
-	public static function startSession()
-	{
-		Session::startSession();
-	}
 
 	/**
 	 * Clear variables and potentially create a flag for the logout of TouchPoint.
-	 *
-	 * Does NOT actually log out of WordPress as this should be called by wp_logout, which accomplishes that.
 	 */
-	public static function logout()
+	public static function logout(): void
 	{
-		Session::sessionDestroy();
+		wp_set_current_user(0);
+
 		$tpwp = TouchPointWP::instance();
 		if ($tpwp->settings->auth_full_logout === "on") {
 			$redir = $tpwp->host() . '/PyScript/' . $tpwp->settings->api_script_name . '?' . http_build_query([
@@ -114,56 +103,54 @@ abstract class Auth implements api, module
 				'a' => "logout"
 			]);
 
-			wp_redirect($redir, 307);
+			header("X-Redirected-By: TouchPoint-WP");
+			wp_redirect($redir, Http::SEE_OTHER_TEMP);
 			exit;
 		}
 	}
 
+
 	/**
 	 * Placeholder for automatic login.
+	 *
+	 * TODO: this
 	 */
 	public static function footer()
 	{
 		// echo to print in footer
 	}
 
+
 	/**
 	 * Renders the link used to log in through TouchPoint.
 	 */
-	public static function printLoginLink()
+	public static function printLoginLink(): void
 	{
-		$html = '<p class="touchpoint-wp-auth-form-text">';
+		$html = '<p class="touchpoint-wp-auth-form">';
+		$url = self::getLoginUrl();
+
+		TouchPointWP::enqueueActionsStyle('login');
+
 		/** @noinspection HtmlUnknownTarget */
-		$html .= '<a href="%s">';
+		$html .= "<a href=\"$url\" class=\"button button-secondary button-large\" style=\"width: 100%; text-align: center; margin-bottom: 1em;\">";
+		$html .= "<i class=\"tenth-icons touchpoint-icon\"></i>&nbsp;&nbsp;";
 		$html .= sprintf(
-		// translators: %s is "what you call TouchPoint at your church", which is a setting
-			__('Sign in with your %s account', 'TouchPoint-WP'),
+			// translators: %s is "what you call TouchPoint at your church", which is a setting
+			__('Sign in with %s', 'TouchPoint-WP'),
 			htmlentities(TouchPointWP::instance()->settings->system_name)
 		);
-		printf(
-			$html,
-			self::getLoginUrl()
-		);
+		$html .= '</a></p>';
+		echo $html;
 	}
+
 
 	/**
 	 * Generates the URL used to initiate a sign-in with TouchPoint.
 	 *
 	 * @return string The authorization URL used for a TouchPoint login.
-	 * @noinspection SpellCheckingInspection
 	 */
 	public static function getLoginUrl(): string
 	{
-		try {
-			self::createApiKeyIfNeeded();
-		} catch (TouchPointWP_Exception $e) {
-		}
-
-		$antiforgeryId = self::generateAntiForgeryId();
-
-		$s                    = Session::instance();
-		$s->auth_sessionToken = $antiforgeryId;
-
 		$tpwp = TouchPointWP::instance();
 
 		$redirectTo = $_GET['redirect_to'] ?? get_site_url();
@@ -171,128 +158,125 @@ abstract class Auth implements api, module
 		return $tpwp->host() . '/PyScript/' . $tpwp->settings->api_script_name . '?' . http_build_query(
 				[
 					'r'      => $redirectTo,
-					'sToken' => $antiforgeryId,
 					'a'      => "login"
 				]
 			);
 	}
 
-	/**
-	 * Get a random string with a timestamp on the end.
-	 *
-	 * @return string
-	 */
-	public static function generateAntiForgeryId(): string
-	{
-		return strtolower(substr(Utilities::createGuid(), 0, 36) . "-" . dechex(time()));
-	}
-
-	/**
-	 * @param ?string $key The api key to test against.  If no key is provided, validates the saved key.
-	 * @param ?string $host The http hostname to use for this key. Will use $_SERVER['HTTP_HOST'] if no value is
-	 *     provided.
-	 *
-	 * @return string|bool
-	 * Returns true if the key is valid.
-	 * Returns false is the key is invalid.
-	 * Returns a new key if the provided key is valid, but expired. (Does not send it to the server -- that needs to be
-	 *     handled separately.)
-	 */
-	public static function validateApiKey(string $key = null, string $host = null)
-	{
-		if ($host === null) {
-			$host = $_SERVER['HTTP_HOST'];
-		}
-
-		$host = str_replace('.', '_', $host);
-		$tpwp = TouchPointWP::instance();
-
-		$k = $tpwp->settings->get('api_key_' . $host);
-		if ($k === false) {
-			return self::replaceApiKey($host);
-		}
-
-		if ($key !== null && $key !== $k) {
-			return false;
-		}
-
-		if ( ! self::AntiForgeryTimestampIsValid($k, self::API_KEY_TIMEOUT)) {
-			return self::replaceApiKey($host);
-		}
-
-		return true;
-	}
-
-	/**
-	 * Generates a key and saves it.
-	 *
-	 * @param $host
-	 *
-	 * @return string
-	 */
-	public static function replaceApiKey($host): string
-	{
-		$tpwp = TouchPointWP::instance();
-		$host = str_replace('.', '_', $host);
-
-		$key = Auth::generateAntiForgeryId();
-		$tpwp->settings->set('api_key_' . $host, $key);
-
-		return $key;
-	}
-
-	/**
-	 * @return void
-	 * @throws TouchPointWP_Exception
-	 */
-	private static function createApiKeyIfNeeded(): void
-	{
-		$host = $_SERVER['HTTP_HOST'];
-		$k    = self::validateApiKey(null, $host); // will return true or a new key.
-
-		if ($k !== true) {  // Only if the saved key is unset or invalid.  (
-			TouchPointWP::instance()->apiPost("auth_key_set", [
-				'apiKey' => $k,
-				'host'   => $host
-			]);
-		}
-	}
 
 	/**
 	 * Determines whether to redirect to the TouchPoint login automatically, and does so if appropriate.
 	 */
-	public static function redirectLoginFormMaybe()
+	public static function redirectLoginFormMaybe(): void
 	{
-		$redirect = apply_filters(
-			TouchPointWP::HOOK_PREFIX . 'auto_redirect_login',
-			(TouchPointWP::instance()->settings->auth_default === 'on')
-		);
+		$redirect = TouchPointWP::instance()->settings->auth_default === 'on';
+		/**
+		 * Controls whether to redirect to the TouchPoint login automatically.
+		 *
+		 * @param bool $redirect Value preset from setting TouchPoint login as default.
+		 */
+		$redirect = apply_filters('tp_auto_redirect_login', $redirect);
 
 		if (isset($_GET[TouchPointWP::HOOK_PREFIX . 'no_redirect'])) {
 			$redirect = false;
 		}
 
 		if (self::wantsToLogin() && $redirect && $_SERVER['REQUEST_METHOD'] === "GET") {
-			wp_redirect(self::getLoginUrl(), 307);
-			die();
+			header("X-Redirected-By: TouchPoint-WP");
+			wp_redirect(self::getLoginUrl(), Http::SEE_OTHER_TEMP);
+			exit();
 		}
 	}
+
+
+	/**
+	 * Determines whether to redirect to allow the user to continue to the destination page after logging in.
+	 */
+	public static function redirectLoginCompleteMaybe(string $redirect_to, ?string $requested_redirect_to = null, WP_User|WP_Error|null $user = null): string
+	{
+		if (!is_a($user, 'WP_User')) {
+			return $redirect_to;
+		}
+
+		$redirect = TouchPointWP::instance()->settings->auth_change_profile_urls === 'on';
+		$redirect &= !TouchPointWP::userHasEditingPermissions($user);
+
+		/**
+		 * Controls whether to redirect to the TouchPoint login automatically.
+		 *
+		 * @param bool $redirect Value preset from setting TouchPoint login as default.
+		 */
+		$redirect = apply_filters('tp_redirect_after_login', $redirect);
+
+		// if there is no defined redirect page, redirect to the home page
+		if ($redirect && $redirect_to == '') {
+			return home_url();
+		}
+
+		return $redirect_to;
+	}
+
 
 	/**
 	 * Prevents the admin bar from being displayed for users who can't edit or change anything.
 	 */
-	public static function removeAdminBarMaybe()
+	public static function removeAdminBarMaybe(): void
 	{
 		$removeBar = (TouchPointWP::instance()->settings->auth_prevent_admin_bar === 'on')
-		             && ! is_admin()
-		             && ! current_user_can('edit_posts');
+					 && !is_admin()
+					 && !TouchPointWP::userHasEditingPermissions();
 
-		$removeBar = apply_filters(TouchPointWP::HOOK_PREFIX . 'prevent_admin_bar', $removeBar);
+		/**
+		 * Allows for hiding the WordPress-provided Admin bar.
+		 *
+		 * @param bool $removeBar True if bar should be removed.
+		 */
+		$removeBar = apply_filters('tp_prevent_admin_bar', $removeBar);
 
 		if ($removeBar) {
 			show_admin_bar(false);
 		}
 	}
+
+
+	/**
+	 * Prevents access to the WordPress admin area for users who can't edit or change anything.
+	 *
+	 * @return void
+	 */
+	public static function preventAdminAccessMaybe(): void
+	{
+		$preventAdmin = (TouchPointWP::instance()->settings->auth_change_profile_urls === 'on')
+					 && is_admin()  // means: request is in the admin area, not that user is an admin.
+					 && !TouchPointWP::userHasEditingPermissions();
+
+
+		$destination = null;
+
+		if ($preventAdmin) {
+			// if profile.php, redirect to the profile page
+			if (isset($_SERVER['REQUEST_URI']) && str_contains($_SERVER['REQUEST_URI'], 'profile.php')) {
+				$destination = self::getProfileUrl();
+			} else {
+				// otherwise, redirect to the home page
+				$destination = home_url();
+			}
+		}
+
+		/**
+		 * Allows for preventing access to the WordPress admin area.
+		 *
+		 * @param ?string $destination The url to which the user should be redirected, or null to allow default behavior.
+		 */
+		$destination = apply_filters('tp_admin_area_redirect', $destination);
+
+		if ($destination) {
+			header("X-Redirected-By: TouchPoint-WP");
+			wp_redirect($destination, Http::SEE_OTHER_TEMP);
+			exit;
+		}
+	}
+
 
 	/**
 	 * Checks to determine if the user wants to log in.
@@ -303,9 +287,9 @@ abstract class Auth implements api, module
 	 */
 	private static function wantsToLogin(): bool
 	{
-		$wants_to_login = false;
+		$wantsToLogin = false;
 		// redirect back from TouchPoint after a successful login
-		if (isset($_GET['loginToken'])) {
+		if (isset($_GET[self::LOGIN_PARAMETER])) {
 			return false;
 		}
 
@@ -315,11 +299,12 @@ abstract class Auth implements api, module
 		// Exceptions
 		$action = isset($_GET['loggedout']) ? 'loggedout' : $action;
 		if ('login' == $action) {
-			$wants_to_login = true;
+			$wantsToLogin = true;
 		}
 
-		return $wants_to_login;
+		return $wantsToLogin;
 	}
+
 
 	/**
 	 * Replace the default WordPress profile link with a link to the user's TouchPoint profile.
@@ -332,15 +317,36 @@ abstract class Auth implements api, module
 	{
 		$tpwp = TouchPointWP::instance();
 		if ($tpwp->settings->auth_change_profile_urls === 'on') {
-			$userId   = get_current_user_id();
-			$peopleId = (int)(get_user_meta($userId, Person::META_PEOPLEID, true));
-			if ($peopleId > 0) { // make sure we have a PeopleId.  Users aren't necessarily TouchPoint users.
-				return $tpwp->host() . '/Person2/' . $peopleId . "#tab-personal";
-			}
+			$newUrl = self::getProfileUrl();
+			if ($newUrl)
+				return $newUrl;
 		}
 
 		return $url;
 	}
+
+	/**
+	 * Assembles the URL to the TouchPoint profile for a given People ID.  Assumes current user if no peopleId is given.
+	 *
+	 * @param int|null $peopleId
+	 *
+	 * @return string|null
+	 */
+	public static function getProfileUrl(?int $peopleId = null): ?string
+	{
+		$tpwp = TouchPointWP::instance();
+		if ($peopleId === null) {
+			$userId   = get_current_user_id();
+			$peopleId = (int)(get_user_meta($userId, Person::META_PEOPLEID, true));
+		}
+		$peopleId = intval($peopleId);
+		if ($peopleId >= 0) {  // 0 is a valid peopleId for the purpose of this URL, but not elsewhere.
+			return $tpwp->host() . '/Person2/' . $peopleId . "#tab-personal";
+		}
+
+		return null;
+	}
+
 
 	/**
 	 * Handle API requests
@@ -356,17 +362,9 @@ abstract class Auth implements api, module
 		}
 
 		switch (strtolower($uri['path'][2])) {
-			case "token":
-				if ($_SERVER['REQUEST_METHOD'] !== "POST") {
-					http_response_code(Http::METHOD_NOT_ALLOWED);
-
-					return false;
-				}
-				self::handlePostFromTouchPoint();
-				exit;
-
 			case "login.js":   // Some hosts bypass PHP for js extensions, so this doesn't work.
 			case "login.jsr":
+				header("X-Redirected-By: TouchPoint-WP");
 				wp_redirect(content_url('/plugins/touchpoint-wp/ext/login.js'), Http::SEE_OTHER_TEMP);
 				exit;
 		}
@@ -374,156 +372,116 @@ abstract class Auth implements api, module
 		return false;
 	}
 
+
 	/**
 	 * Authenticates the user with TouchPoint
 	 *
-	 * @param WP_User|WP_Error $user A WP_User, if the user has already authenticated.
-	 * @param mixed            $username The username provided during form-based sign in. Not used.
-	 * @param mixed            $password The password provided during form-based sign in. Not used.
+	 * @param WP_Error|WP_User|null $user A WP_User, if the user has already authenticated.
+	 * @param mixed                 $username The username provided during form-based sign in. Not used.
+	 * @param mixed                 $password The password provided during form-based sign in. Not used.
 	 *
-	 * @return WP_User|WP_Error The authenticated WP_User, or a WP_Error if there were errors.  The WP API expects
+	 * @return WP_Error|WP_User|null The authenticated WP_User, or a WP_Error if there were errors.  The WP API expects
 	 *     WP_Error
 	 *
 	 * @noinspection PhpUnusedParameterInspection  We don't use the username or password, but they're in the WP API.
 	 */
-	public static function authenticate($user, $username, $password)
+	public static function authenticate(WP_Error|WP_User|null $user, mixed $username, mixed $password): WP_Error|WP_User|null
 	{
 		// Don't re-authenticate if already authenticated
 		if (is_a($user, 'WP_User')) {
 			return $user;
 		}
 
-		// If 'loginToken' is present, this is the Authorization Response looping back through TouchPoint.
-		if (isset($_GET['loginToken'])) {
+		// If parameter token is present, this is the Authorization Response looping back through TouchPoint.
+		if (isset($_GET[self::LOGIN_PARAMETER])) {
 			// Verify that the login token is valid.
-			if ( ! self::AntiForgeryTimestampIsValid($_GET['loginToken'], self::LOGIN_TIMEOUT_STANDARD)) {
-				return new WP_Error(
-					177002,
-					__('Your login token expired.', 'TouchPoint-WP') . "<br />" . $_GET['loginToken']
-				);
+			$api = TouchPointWP::instance()->api;
+
+			try {
+				$r = $api->post("v1/Account/ValidateOneTimeLogin", data: $_GET[self::LOGIN_PARAMETER]);
+			} catch (TouchPointWP_Exception $e) {
+				return $e->toWpError();
 			}
 
-			// Find the user with the loginToken in their meta.
+			if (is_wp_error($r)) {
+				return $r;
+			}
+
+			if ($r['response']['code'] !== Http::OK) {
+				$e = new TouchPointWP_Exception(__('Your login token is invalid.', 'TouchPoint-WP'), 177003);
+				return $e->toWpError();
+			}
+
+			// other than peopleId and email addresses, this probably shouldn't really be used.  Run through WebPublicPerson.
+			$userData = json_decode($r['body']);
+
+			if (!isset($userData->peopleId)) {
+				$e = new TouchPointWP_Exception(__('Your login token is invalid.', 'TouchPoint-WP'), 177003);
+				return $e->toWpError();
+			}
+
+			// Find person by TouchPoint People ID, $userData->PeopleId
 			$q = new PersonQuery(
 				[
-					'meta_key'     => TouchPointWP::SETTINGS_PREFIX . 'loginToken',
-					'meta_value'   => $_GET['loginToken'],
+					'meta_key'     => Person::META_PEOPLEID,
+					'meta_value'   => $userData->peopleId,
 					'meta_compare' => '='
 				]
 			);
-			if ($q->get_total() !== 1) {
-				return new WP_Error(
-					177003,
-					__('Your login token is invalid.', 'TouchPoint-WP')
+			if ($q->get_total() > 0) {
+				$p = $q->get_first_result();
+				$user = $p->toNewWpUser();
+
+				self::incrementUserAuthStat();
+				return $user;
+			}
+
+			$pq = TouchPointWP::newQueryObject();
+			$pq['pid'] = [(string)($userData->peopleId)];
+			$pq['context'] = 'users';
+
+			try {
+				$pData = TouchPointWP::instance()->doPersonQuery($pq)->people;
+			} catch (TouchPointWP_Exception $e) {
+				return $e->toWpError();
+			}
+
+			if (count($pData) < 1) {
+				$e = new TouchPointWP_Exception(__('No user account found.', 'TouchPoint-WP'), 177008);
+				return $e->toWpError();
+			}
+
+			$allowCreation = TouchPointWP::instance()->settings->auth_auto_provision === 'on';
+			$person        = Person::updatePersonFromApiData($pData[0], $allowCreation);
+
+			if ($person === null) {
+				$e = new TouchPointWP_Exception(
+					'No user account found.  If you\'re a site administrator, consider enabling auto-provisioning.',
+					177007
 				);
-			}
-
-			$p   = $q->get_results()[0];
-			$lst = $p->loginSessionToken;
-
-			// Verify that LST from Meta (from TouchPoint) matches Session.  Prevents login by link sharing.
-			$s = Session::instance();
-			if ( ! $lst === $s->auth_sessionToken) {
-				return new WP_Error([
-					                    177004,
-					                    __('Session could not be validated.', 'TouchPoint-WP')
-				                    ]);
-			}
-
-			$p->setLoginTokens(null, null);
-			$s->auth_sessionToken = null;
-
-			$user = $p->toNewWpUser();
-
-			// Preload Ident people for potential use with InformalAuth.  Skip if family is already loaded.
-			if ( ! in_array($p->familyId, $s->primaryFam ?? [])) {
-				Person::ident((object)[
-					'fid' => [$p->familyId]
-				]);
+				return $e->toWpError();
+			} else {
+				$user = $person->toNewWpUser();
+				self::incrementUserAuthStat();
 			}
 		}
 
 		return $user;
 	}
 
-	/**
-	 * @param string $afId Anti-forgery ID.
-	 *
-	 * @param int    $timeout
-	 *
-	 * @return bool True if the timestamp hasn't expired yet.
-	 */
-	protected static function AntiForgeryTimestampIsValid(string $afId, int $timeout): bool
-	{
-		$afIdTime = hexdec(substr($afId, 37));
-
-		return ($afIdTime >= time() - $timeout) && $afIdTime <= time();
-	}
 
 	/**
-	 * Handles the data POSTed by TouchPoint at the start of a login transaction
+	 * Increments the user authentication statistics.
 	 *
 	 * @return void
 	 */
-	protected static function handlePostFromTouchPoint()
+	protected static function incrementUserAuthStat(): void
 	{
 		try {
-			// Check that the application secret is valid.
-			$apiKeyValidation = self::validateApiKey(Utilities::getAllHeaders()['X-Api-Key']);
-			if ($apiKeyValidation === false) {
-				throw new TouchPointWP_Exception(
-					'Access denied.  API Key is not valid.',
-					177005
-				);
-			}
-
-			// Get data POSTed by TouchPoint
-			$data = file_get_contents('php://input');
-			$data = json_decode($data);
-
-			// Make sure session token is valid if present.
-			if (isset($data->sToken) && ! self::AntiForgeryTimestampIsValid($data->sToken, self::SESSION_TIMEOUT)) {
-				throw new TouchPointWP_Exception("No Session Exists", 177006);
-			}
-
-			// Get user.  Returns WP_User if one is found or created, false otherwise.
-			$allowCreation = TouchPointWP::instance()->settings->auth_auto_provision === 'on';
-			$person        = Person::updatePersonFromApiData($data->p, $allowCreation);
-
-			if ($person === null) {
-				throw new TouchPointWP_Exception(
-					'No user account found.  If you\'re a site administrator, consider enabling auto-provisioning.',
-					177007
-				);
-			}
-
-			// Generate login token and response.
-			$userLoginToken = self::generateAntiForgeryId();
-			$tpwp           = TouchPointWP::instance();
-
-			/** @noinspection SpellCheckingInspection */
-			$resp = [
-				'status'         => 'success',
-				'userLoginToken' => $userLoginToken,
-				'wpid'           => $person->ID,
-				'wpevk'          => $tpwp->settings->people_ev_wpId
-			];
-
-			if ($apiKeyValidation !== true) {
-				$resp['apiKey'] = $apiKeyValidation;
-			}
-
-			$person->setLoginTokens($data->sToken, $userLoginToken);
-
-			header('Content-Type: application/json');
-			echo json_encode($resp);
-
-			exit(0);
-		} catch (TouchPointWP_Exception $e) {
-			header('Content-Type: application/json');
-			http_response_code(Http::BAD_REQUEST);
-			echo $e->toJson();
-			exit(1);
+			$stats            = Stats::instance();
+			$stats->userAuths += 1;
+			$stats->updateDb();
+		} catch (Exception) {
 		}
 	}
 }

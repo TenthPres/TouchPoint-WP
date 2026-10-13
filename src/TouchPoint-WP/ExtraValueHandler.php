@@ -8,11 +8,13 @@ namespace tp\TouchPointWP;
 use DateTime;
 
 /**
- * Manages the handling of Extra Values.  Items that support Extra Values MUST use the ExtraValues Trait.
+ * Classes that have extra values should implement the ExtraValues trait, which provides a ExtraValues() method which
+ * returns an instance of this class and allows getting the values via its getter. That trait has the abstract methods
+ * that need to be implemented for Extra Values to be available.
  */
 class ExtraValueHandler
 {
-	/** @var object|extraValues $owner */
+	/** @var object|extraValues $owner The object that has extra values */
 	protected object $owner; // Must have the extraValues trait.
 
 	/**

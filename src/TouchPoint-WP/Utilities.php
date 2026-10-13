@@ -5,10 +5,11 @@
 
 namespace tp\TouchPointWP;
 
+use DateInterval;
 use DateTimeImmutable;
 use DateTimeInterface;
-use Exception;
-use WP_Error;
+use DateTimeZone;
+use WP_Post_Type;
 
 /**
  * A few tools for managing things.
@@ -45,16 +46,95 @@ abstract class Utilities
 	public static function dateTimeNow(): DateTimeImmutable
 	{
 		if (self::$_dateTimeNow === null) {
-			try {
-				self::$_dateTimeNow = new DateTimeImmutable('now', wp_timezone());
-			} catch (Exception $e) {
-			}
+			self::$_dateTimeNow = current_datetime();
 		}
 
 		return self::$_dateTimeNow;
 	}
 
+	/**
+	 * @return DateTimeImmutable
+	 */
+	public static function dateTimeTodayAtMidnight(): DateTimeImmutable
+	{
+		if (self::$_dateTimeTodayAtMidnight === null) {
+			self::$_dateTimeTodayAtMidnight = self::dateTimeNow()->setTime(0, 0);
+		}
+		return self::$_dateTimeTodayAtMidnight;
+	}
+
+	/**
+	 * @return DateTimeImmutable
+	 */
+	public static function dateTimeNowPlus1Y(): DateTimeImmutable
+	{
+		if (self::$_dateTimeNowPlus1Y === null) {
+			$aYear                    = new DateInterval('P1Y');
+			self::$_dateTimeNowPlus1Y = self::dateTimeNow()->add($aYear);
+		}
+
+		return self::$_dateTimeNowPlus1Y;
+	}
+
+	/**
+	 * @return DateTimeImmutable
+	 */
+	public static function dateTimeNowPlus90D(): DateTimeImmutable
+	{
+		if (self::$_dateTimeNowPlus90D === null) {
+			$someDays                  = new DateInterval('P90D');
+			self::$_dateTimeNowPlus90D = self::dateTimeNow()->add($someDays);
+		}
+
+		return self::$_dateTimeNowPlus90D;
+	}
+
+	/**
+	 * @return DateTimeImmutable
+	 */
+	public static function dateTimeNowPlus1D(): DateTimeImmutable
+	{
+		if (self::$_dateTimeNowPlus1D === null) {
+			$aDay                     = new DateInterval('P1D');
+			self::$_dateTimeNowPlus1D = self::dateTimeNow()->add($aDay);
+		}
+
+		return self::$_dateTimeNowPlus1D;
+	}
+
+	/**
+	 * @return DateTimeImmutable
+	 */
+	public static function dateTimeNowMinus1D(): DateTimeImmutable
+	{
+		if (self::$_dateTimeNowMinus1D === null) {
+			$aDay                     = new DateInterval('P1D');
+			$aDay->invert = 1;
+			self::$_dateTimeNowMinus1D = self::dateTimeNow()->add($aDay);
+		}
+
+		return self::$_dateTimeNowMinus1D;
+	}
+
+	/**
+	 * @return DateTimeZone
+	 */
+	public static function utcTimeZone(): DateTimeZone
+	{
+		if (self::$_utcTimeZone === null) {
+			self::$_utcTimeZone = new DateTimeZone('UTC');
+		}
+
+		return self::$_utcTimeZone;
+	}
+
 	private static ?DateTimeImmutable $_dateTimeNow = null;
+	private static ?DateTimeImmutable $_dateTimeTodayAtMidnight = null;
+	private static ?DateTimeImmutable $_dateTimeNowPlus1Y = null;
+	private static ?DateTimeImmutable $_dateTimeNowPlus90D = null;
+	private static ?DateTimeImmutable $_dateTimeNowPlus1D = null;
+	private static ?DateTimeImmutable $_dateTimeNowMinus1D = null;
+	private static ?DateTimeZone $_utcTimeZone = null;
 
 	/**
 	 * Gets the plural form of a weekday name.
@@ -107,17 +187,25 @@ abstract class Utilities
 	 */
 	public static function getDayOfWeekShortForNumber(int $dayNum): string
 	{
-		$names = [
-			_x('Sun', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Mon', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Tue', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Wed', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Thu', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Fri', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-			_x('Sat', 'e.g. event happens weekly on...', 'TouchPoint-WP'),
-		];
+		return self::getDaysOfWeekShort()[$dayNum % 7];
+	}
 
-		return $names[$dayNum % 7];
+	/**
+	 * Get the short form of the day of week, translated.  Assumed to be usable as both singular and plural.
+	 *
+	 * @return string[]
+	 */
+	public static function getDaysOfWeekShort(): array
+	{
+		return [
+			_x('Sun', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Mon', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Tue', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Wed', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Thu', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Fri', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+			_x('Sat', 'e.g. "Event happens weekly on..." or "This ..."', 'TouchPoint-WP'),
+		];
 	}
 
 	/**
@@ -155,7 +243,7 @@ abstract class Utilities
 	 */
 	public static function getTimeOfDayTermForTime(DateTimeInterface $dt, bool $i18n = true): string
 	{
-		$timeInt = intval($dt->format('Hi'));
+		$timeInt = intval($dt->format('Gi'));
 
 		if ($timeInt < 300 || $timeInt >= 2200) {
 			return $i18n ? _x('Late Night', 'Time of Day', 'TouchPoint-WP') : "Late Night";
@@ -187,28 +275,38 @@ abstract class Utilities
 	 * Turn ['apples', 'oranges', 'pears'] into "apples, oranges & pears"
 	 *
 	 * @param string[] $strings
+	 * @param int      $limit The maximum number of items to include.  Default is very, very high.
+	 * @param bool     $andOthers If true, the last item will be "others" instead of the actual last item.
 	 *
 	 * @return string
 	 */
-	public static function stringArrayToListString(array $strings): string
+	public static function stringArrayToListString(array $strings, int $limit = PHP_INT_MAX, bool $andOthers = false): string
 	{
+		if ($limit < count($strings)) {
+			$andOthers = true;
+			$strings = array_slice($strings, 0, $limit);
+		}
+
 		$concat = implode('', $strings);
 
 		$comma     = ', ';
 		$and       = ' & ';
 		$useOxford = false;
-		if (strpos($concat, ', ') !== false) {
+		if (str_contains($concat, ', ')) {
 			$comma     = '; ';
-			$useOxford = true;
 		}
-		if (strpos($concat, ' & ') !== false) {
+		if (str_contains($concat, ' & ')) {
 			$and       = ' ' . __('and', 'TouchPoint-WP') . ' ';
 			$useOxford = true;
 		}
 
-		$last = array_pop($strings);
+		if ($andOthers) {
+			$last = _x("others", "list of items, and *others*", "TouchPoint-WP");
+		} else {
+			$last = array_pop($strings);
+		}
 		$str  = implode($comma, $strings);
-		if (count($strings) > 0) {
+		if ((count($strings) + $andOthers) > 0) {
 			if ($useOxford) {
 				$str .= trim($comma);
 			}
@@ -222,11 +320,12 @@ abstract class Utilities
 	/**
 	 * Convert a list (string or array) to an int array.  Strips out non-numerics and explodes.
 	 *
-	 * @param string|array $r
+	 * @param array|string $r
+	 * @param bool         $explode
 	 *
 	 * @return int[]|string
 	 */
-	public static function idArrayToIntArray($r, $explode = true)
+	public static function idArrayToIntArray(array|string $r, bool $explode = true): array|string
 	{
 		if (is_array($r)) {
 			$r = implode(",", $r);
@@ -271,7 +370,22 @@ abstract class Utilities
 	 */
 	public static function getColorFor(string $itemName, string $setName): string
 	{
-		// TODO add hook for custom color algorithm.
+		$current = null;
+
+		/**
+		 * Allows for a custom color function to assign a color for a given value.
+		 *
+		 * @since 0.0.90 Added
+		 *
+		 * @param ?string $current The current value.  Null is provided to the function because the color hasn't otherwise been determined yet.
+		 * @param string $itemName The name of the current item.
+		 * @param string $setName The name of the set to which the item belongs.
+		 *
+		 * @return ?string The color in hex, starting with '#'.  Null to defer to the default color assignment.
+		 */
+		$r = apply_filters('tp_custom_color_function', $current, $itemName, $setName);
+		if ($r !== null)
+			return $r;
 
 		// If the set is new...
 		if ( ! isset(self::$colorAssignments[$setName])) {
@@ -285,6 +399,24 @@ abstract class Utilities
 		if ($idx === false) {
 			$idx                                = count(self::$colorAssignments[$setName]);
 			self::$colorAssignments[$setName][] = $itemName;
+		}
+
+		$array = [];
+		/**
+		 * Allows for a custom color set to be used for color assignment to match branding. This filter should return an
+		 * array of colors in hex format, starting with '#'.  The colors will be assigned in order, but it is not
+		 * deterministic which color will be assigned to which item.  If it needs to be, use the `tp_custom_color_function`
+		 * filter instead.
+		 *
+		 * @since 0.0.90 Added
+		 *
+		 * @param string[] $array The array of colors in hex format strings, starting with '#'.
+		 * @param string $setName The name of the set for which the colors are needed.
+		 */
+		$colorSet = apply_filters('tp_custom_color_set', $array, $setName);
+
+		if (count($colorSet) > 0) {
+			return $colorSet[$idx % count($colorSet)];
 		}
 
 		// Calc color! (This method generates 24 colors and then repeats. (8 hues * 3 lums)
@@ -312,104 +444,40 @@ abstract class Utilities
 		$a = $s * min($l, 1 - $l) / 100;
 
 		$f = function ($n) use ($h, $l, $a) {
-			$k     = ($n + $h / 30) % 12;
+			$k     = round($n + $h / 30) % 12;
 			$color = $l - $a * max(min($k - 3, 9 - $k, 1), -1);
 
 			return round(255 * $color);
 		};
 
 		return "#" .
-		       str_pad(dechex($f(0)), 2, 0, STR_PAD_LEFT) .
-		       str_pad(dechex($f(8)), 2, 0, STR_PAD_LEFT) .
-		       str_pad(dechex($f(4)), 2, 0, STR_PAD_LEFT);
+			   str_pad(dechex($f(0)), 2, 0, STR_PAD_LEFT) .
+			   str_pad(dechex($f(8)), 2, 0, STR_PAD_LEFT) .
+			   str_pad(dechex($f(4)), 2, 0, STR_PAD_LEFT);
 	}
 
 	/**
-	 * Wrapper for the WordPress term_exists function to reduce database calls
+	 * Get the registered post types as a Key-Value array.  Excludes post types that start with 'tp_'.
 	 *
-	 * @param int|string $term The term to check. Accepts term ID, slug, or name.
-	 * @param string     $taxonomy Optional. The taxonomy name to use.
-	 * @param int|null   $parent Optional. ID of parent term under which to confine the exists search.
-	 *
-	 * @return mixed Returns null if the term does not exist.
-	 *               Returns the term ID if no taxonomy is specified and the term ID exists.
-	 *               Returns an array of the term ID and the term taxonomy ID if the taxonomy is specified and the
-	 *                  pairing exists.
-	 *               Returns 0 if term ID 0 is passed to the function.
-	 *
-	 * @see term_exists()
+	 * @return string[]
 	 */
-	public static function termExists($term, string $taxonomy = "", ?int $parent = null)
-	{
-		$key = $term . "|" . $taxonomy . "|" . $parent;
-		if ( ! array_key_exists($key, self::$termExistsCache)) {
-			self::$termExistsCache[$key] = term_exists($term, $taxonomy, $parent);
+	public static function getRegisteredPostTypesAsKVArray(): array{
+		global $wp_post_types;
+		$r = [];
+		$strLen = strlen(TouchPointWP::HOOK_PREFIX);
+		foreach ($wp_post_types as $key => $object) {
+			/** @var $object WP_Post_Type */
+
+			if (substr($key, 0, 3) === 'wp_' ||
+				substr($key, 0, $strLen) === TouchPointWP::HOOK_PREFIX ||
+				$object->show_ui === false) {
+				continue;
+			}
+			$r[$key] = $object->label;
 		}
-
-		return self::$termExistsCache[$key];
-	}
-
-	private static array $termExistsCache = [];
-
-
-	/**
-	 * Wrapper for the WordPress wp_insert_term function to reduce database calls
-	 *
-	 * Add a new term to the database.
-	 *
-	 * A non-existent term is inserted in the following sequence:
-	 * 1. The term is added to the term table, then related to the taxonomy.
-	 * 2. If everything is correct, several actions are fired.
-	 * 3. The 'term_id_filter' is evaluated.
-	 * 4. The term cache is cleaned.
-	 * 5. Several more actions are fired.
-	 * 6. An array is returned containing the `term_id` and `term_taxonomy_id`.
-	 *
-	 * If the 'slug' argument is not empty, then it is checked to see if the term
-	 * is invalid. If it is not a valid, existing term, it is added and the term_id
-	 * is given.
-	 *
-	 * If the taxonomy is hierarchical, and the 'parent' argument is not empty,
-	 * the term is inserted and the term_id will be given.
-	 *
-	 * Error handling:
-	 * If `$taxonomy` does not exist or `$term` is empty,
-	 * a WP_Error object will be returned.
-	 *
-	 * If the term already exists on the same hierarchical level,
-	 * or the term slug and name are not unique, a WP_Error object will be returned.
-	 *
-	 * @param string       $term The term name to add.
-	 * @param string       $taxonomy The taxonomy to which to add the term.
-	 * @param array|string $args {
-	 *     Optional. Array or query string of arguments for inserting a term.
-	 *
-	 * @type string        $alias_of Slug of the term to make this term an alias of.
-	 *                               Default empty string. Accepts a term slug.
-	 * @type string        $description The term description. Default empty string.
-	 * @type int           $parent The id of the parent term. Default 0.
-	 * @type string        $slug The term slug to use. Default empty string.
-	 * }
-	 * @return array|WP_Error {
-	 *     An array of the new term data, WP_Error otherwise.
-	 *
-	 * @type int           $term_id The new term ID.
-	 * @type int|string    $term_taxonomy_id The new term taxonomy ID. Can be a numeric string.
-	 * }
-	 *
-	 * @see wp_insert_term()
-	 */
-	public static function insertTerm(string $term, string $taxonomy, $args = [])
-	{
-		$parent = $args['parent'] ?? null;
-		$key    = $term . "|" . $taxonomy . "|" . $parent;
-		$r      = wp_insert_term($term, $taxonomy, $args);
-		if ( ! is_wp_error($r)) {
-			self::$termExistsCache[$key] = $r;
-		}
-
 		return $r;
 	}
+
 
 	/**
 	 * Generates a Microsoft-friendly globally unique identifier (Guid).
@@ -418,15 +486,32 @@ abstract class Utilities
 	 */
 	public static function createGuid(): string
 	{
-		mt_srand(( double )microtime() * 10000);
+		mt_srand(intval(microtime(true) * 10000) % PHP_INT_MAX);
 		$char   = strtoupper(md5(uniqid(rand(), true)));
 		$hyphen = chr(45); // "-"
 
 		return substr($char, 0, 8) . $hyphen
-		       . substr($char, 8, 4) . $hyphen
-		       . substr($char, 12, 4) . $hyphen
-		       . substr($char, 16, 4) . $hyphen
-		       . substr($char, 20, 12);
+			   . substr($char, 8, 4) . $hyphen
+			   . substr($char, 12, 4) . $hyphen
+			   . substr($char, 16, 4) . $hyphen
+			   . substr($char, 20, 12);
+	}
+
+	/**
+	 * Do a var_dump, but within a container that can be expanded or contracted.
+	 *
+	 * @param ...$args
+	 *
+	 * @return void
+	 */
+	public static function var_dump_expandable(...$args): void
+	{
+		echo "<div>";
+		echo "<div style=\"display:none;\">";
+		var_dump(...$args);
+		echo "</div>";
+		echo "<a onclick=\"this.parentElement.firstElementChild.style.display = 'block'; this.style.display = 'none';\">" . __("Expand", "TouchPoint-WP") . "</a>";
+		echo "</div>";
 	}
 
 	/**
@@ -454,51 +539,73 @@ abstract class Utilities
 	 * @param int         $postId
 	 * @param string|null $newUrl
 	 * @param string      $title
+	 * @param bool        $verbose
 	 *
-	 * @return void
-	 * @since 0.0.24
+	 * @return int The attachmentId for the image.  Can be reused for other posts.
+	 * @since 0.0.24 Added
 	 */
-	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title): void
+	public static function updatePostImageFromUrl(int $postId, ?string $newUrl, string $title, bool $verbose = false): int
 	{
 		// Required for image handling
 		require_once(ABSPATH . 'wp-admin/includes/media.php');
 		require_once(ABSPATH . 'wp-admin/includes/file.php');
 		require_once(ABSPATH . 'wp-admin/includes/image.php');
 
-		// Post image
+		// some standardization
 		global $wpdb;
-		$oldAttId = get_post_thumbnail_id($postId);
-		$oldFName = $wpdb->get_var( "SELECT meta_value FROM $wpdb->postmeta WHERE post_id = '$oldAttId' AND meta_key = '_wp_attached_file'" );
-		$oldFName = substr($oldFName, strrpos($oldFName, '/') + 1);
-
 		$newUrl = trim((string)$newUrl); // nulls are now ""
+		$title = sprintf('%1$s Image', $title);
 
-		$newFName = "";
+		$newAttId = 0;
+
+		// check if target image already exists in media library
 		if ($newUrl !== "") {
-			$newFName = substr($newUrl, strrpos($newUrl, '/') + 1);
+			$newAttId = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT p.Id FROM $wpdb->posts p JOIN $wpdb->postmeta pm ON p.ID = pm.post_id WHERE post_type = 'attachment' AND meta_key = '_source_url' AND meta_value = %s",
+					$newUrl
+				)
+			);
+			$newAttId = (int)$newAttId;
+
+			if ($verbose) {
+				echo "<p>Existing Attachment ID with matching URL: $newAttId</p>";
+			}
 		}
 
-		// Compare image file names without extensions, versions, and increments.
-		$newFName = explode(".", $newFName, 2)[0];
-		if (strlen($newFName) > 5) {
-			$oldFName = substr($oldFName, 0, strlen($newFName));
-		}
+		// get existing post image, if any
+		$oldAttId = get_post_thumbnail_id($postId);
 
-		$attId = 0;
-		try {
-			if ($newFName !== $oldFName) {
-				if ($oldAttId > 0) { // Remove and delete old one.
-					wp_delete_attachment($oldAttId, true);
-				}
-				if ($newUrl !== "") { // Load and save new one
-					$attId = media_sideload_image($newUrl, $postId, $title, 'id');
-					set_post_thumbnail($postId, $attId);
+		// determine if a change is needed
+		if ($newAttId !== $oldAttId || ($newUrl !== "" && $oldAttId === 0)) {
+			if ($oldAttId > 0) { // Remove and delete old one.
+				wp_delete_attachment($oldAttId, true);
+			}
+			if ($newAttId === 0 && $newUrl !== "") { // New image isn't in media yet.
+				set_time_limit(60);
+				$newAttId = media_sideload_image($newUrl, $postId, $title, 'id');
+
+				if (is_wp_error($newAttId)) {
+					$newAttId->add('', "Error encountered while trying to import image: $newUrl");
+					new TouchPointWP_WPError($newAttId);
+					if ($verbose)
+						echo "Error occurred: " . $newAttId->get_error_message();
+					return 0;
+
 				}
 			}
-		} catch (Exception $e) {
-			echo "Exception occurred: " . $e->getMessage();
-			wp_delete_attachment($attId, true);
+			if ($newAttId > 0) { // New image is in media.
+				set_post_thumbnail($postId, $newAttId);
+			} else {
+				// If the image is blank, remove the post thumbnail.
+				if ($verbose) {
+					echo "<p>Image URL is blank.  Removing post thumbnail.</p>";
+				}
+				delete_post_thumbnail($postId);
+			}
 		}
+
+		return $newAttId;
 	}
 
 	/**
@@ -538,12 +645,12 @@ abstract class Utilities
 
 			if ($o < 7) {
 				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"],
-				                      ["<h$o ", "<h$o>", "</h$o>"],
-				                      $input);
+									  ["<h$o ", "<h$o>", "</h$o>"],
+									  $input);
 			} else {
 				$input = str_ireplace(["<h$i ", "<h$i>", "</h$i>"],
-				                      ["<p><strong ", "<p><strong>", "</strong></p>"],
-				                      $input);
+									  ["<p><strong ", "<p><strong>", "</strong></p>"],
+									  $input);
 			}
 		}
 
@@ -551,34 +658,128 @@ abstract class Utilities
 	}
 
 	/**
-	 * @param string  $html The HTML to be standardized.
+	 * @param ?string  $html The HTML to be standardized.
 	 * @param ?string $context A context string to pass to hooks.
 	 *
 	 * @return string
 	 */
-	public static function standardizeHtml(string $html, ?string $context = null): string
+	public static function standardizeHtml(?string $html, ?string $context = null): string
 	{
-		// The tp_standardize_html filter would completely replace the pre-defined process.
-		$o = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_html', $html, $context);
+		if ($html === null) {
+			$html = "";
+		}
+
+		/**
+		 * Allows for the standardization of HTML content, typically during the import from TouchPoint.  If this
+		 * filter is used, the default filtering will be bypassed. Use other filters for more precise control.
+		 *
+		 * @since 0.0.34 Added
+		 *
+		 * @param string $html The HTML to be standardized.
+		 * @param string $context A context string to pass to hooks.
+		 *
+		 * @return string The standardized HTML.
+		 */
+		$o = apply_filters('tp_standardize_html', $html, $context);
 		if ($o !== $html) {
 			return $o;
 		}
 
-		$html      = apply_filters(TouchPointWP::HOOK_PREFIX . 'pre_standardize_html', $html, $context);
-		$maxHeader = intval(apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_h_tags_max_h', 2, $context));
+		/**
+		 * Make any adjustments to HTML content before the rest of the standardization process happens.
+		 *
+		 * @since 0.0.25 Added
+		 *
+		 * @param string $html The HTML to be standardized.
+		 * @param string $context A context string to pass to hooks.
+		 *
+		 * @return string The standardized HTML.
+		 */
+		$html      = apply_filters('tp_pre_standardize_html', $html, $context);
+		$maxHeader = 2;
+
+		/**
+		 * The maximum header level to allow in an HTML string.  Default is 2.
+		 *
+		 * @since 0.0.25 Added
+		 *
+		 * @param int    $maxHeader The highest header level (lowest number) to allow in the HTML. (e.g. 2 for <h2> tags)
+		 * @param string $context A context string to pass to hooks.
+		 *
+		 * @return int The maximum header level to allow in the HTML.
+		 */
+		$maxHeader = intval(apply_filters('tp_standardize_h_tags_max_h', $maxHeader, $context));
 
 		$allowedTags = [
 			'p', 'br', 'a', 'em', 'strong', 'b', 'i', 'u', 'hr', 'ul', 'ol', 'li',
 			'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
 			'table', 'tr', 'th', 'td', 'thead', 'tbody', 'tfoot'
 		];
-		$allowedTags = apply_filters(TouchPointWP::HOOK_PREFIX . 'standardize_allowed_tags', $allowedTags, $context);
+
+		/**
+		 * The allowed tags in the HTML standardization process.  Default is a set of common tags, but tags such as script, style, img, and others are stripped.
+		 *
+		 * @since 0.0.25 Added
+		 *
+		 * @param string[] $allowedTags The allowed tags in the HTML.
+		 * @param string   $context A context string to pass to hooks.
+		 *
+		 * @return string[] The allowed tags in the HTML.
+		 */
+		$allowedTags = apply_filters('tp_standardize_allowed_tags', $allowedTags, $context);
 
 		$html = self::standardizeHTags($maxHeader, $html);
 		$html = strip_tags($html, $allowedTags);
 		$html = trim($html);
 
-		return apply_filters(TouchPointWP::HOOK_PREFIX . 'post_standardize_html', $html, $context);
+		/**
+		 * Make any adjustments to HTML content after the rest of the standardization process happens.
+		 *
+		 * @since 0.0.25 Added
+		 *
+		 * @param string $html The HTML to be standardized.
+		 * @param string $context A context string to pass to hooks.
+		 *
+		 * @return string The standardized HTML.
+		 */
+		return apply_filters('tp_post_standardize_html', $html, $context);
+	}
+
+	/**
+	 * Sometimes WordPress tries to be smarter than we want it to be.
+	 *
+	 * THIS DOES NOT DO ANY KIND OF VALIDATION OR REPLACEMENT.  It is assumed that the input is already completely ready
+	 * to go and won't cause collisions.
+	 *
+	 * @param $postId
+	 * @param $newSlug
+	 *
+	 * @return void
+	 */
+	public static function forceSlugUpdate($postId, $newSlug): void
+	{
+		global $wpdb;
+		$wpdb->update($wpdb->posts, ['post_name' => $newSlug], ['ID' => $postId]);
+	}
+
+	/**
+	 * Convert a string to something that's acceptable for use as a slug.
+	 *
+	 * @param string $s
+	 *
+	 * @return string
+	 */
+	public static function stringToSlug(string $s): string
+	{
+		// split $s to only include anything before punctuation
+		$pos = strcspn($s, ".,:;!|?");
+		if ($pos > 0) {
+			$s = substr($s, 0, $pos);
+		}
+		$s = trim($s);
+		$s = preg_replace("/[^a-zA-Z0-9]/", "-", $s);
+		$s = strtolower($s);
+		return preg_replace("/-+/", "-", $s);
 	}
 
 	/**
@@ -626,7 +827,7 @@ abstract class Utilities
 
 		return (object)[
 			'id'            => 'touchpoint-wp/touchpoint-wp.php',
-			'slug'          => 'touchpoint-wp',
+			'slug'          => TouchPointWP::SLUG,
 			'plugin'        => 'touchpoint-wp/touchpoint-wp.php',
 			'new_version'   => $newV,
 			'url'           => 'https://github.com/TenthPres/TouchPoint-WP/',
@@ -733,7 +934,7 @@ abstract class Utilities
 	public static function validateRegistrantEmailAddress(?string $nickname, ?string $emailAddress, ?string &$resultComment = null): bool {
 		// CleanTalk filter
 		if (file_exists(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php')
-		    || function_exists('ct_test_registration')) {
+			|| function_exists('ct_test_registration')) {
 
 			if ( ! function_exists('ct_test_registration')) {
 				include_once(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php');
@@ -767,7 +968,7 @@ abstract class Utilities
 	{
 		// CleanTalk filter
 		if (file_exists(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php')
-		    || function_exists('ct_test_message')) {
+			|| function_exists('ct_test_message')) {
 
 			if ( ! function_exists('ct_test_message')) {
 				include_once(ABSPATH . '/wp-content/plugins/cleantalk-spam-protect/cleantalk.php');
@@ -785,5 +986,4 @@ abstract class Utilities
 		}
 		return true;
 	}
-
 }

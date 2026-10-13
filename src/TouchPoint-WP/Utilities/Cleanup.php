@@ -6,13 +6,13 @@
 namespace tp\TouchPointWP\Utilities;
 
 use Exception;
-use tp\TouchPointWP\api;
 use tp\TouchPointWP\ExtraValueHandler;
+use tp\TouchPointWP\Interfaces\api;
 use tp\TouchPointWP\Partner;
 use tp\TouchPointWP\Person;
 use tp\TouchPointWP\TouchPointWP;
 use tp\TouchPointWP\TouchPointWP_Exception;
-use tp\TouchPointWP\TouchPointWP_Settings;
+use tp\TouchPointWP\Settings;
 
 if ( ! defined('ABSPATH')) {
 	exit(1);
@@ -24,7 +24,7 @@ if ( ! defined('ABSPATH')) {
 abstract class Cleanup implements api
 {
 	public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "cleanup_cron_hook";
-	private const CACHE_TTL = 24 * 7; // How long things should live before they're cleaned up.  Hours.
+	private const CACHE_TTL = WEEK_IN_SECONDS; // How long things should live before they're cleaned up.  Seconds.
 
 	/**
 	 * Called by the cron task. (and also by ::api() )
@@ -84,7 +84,7 @@ abstract class Cleanup implements api
 	 */
 	protected static function cleanMemberTypes(): ?bool
 	{
-		$mtObj       = TouchPointWP_Settings::instance()->get('meta_memberTypes');
+		$mtObj       = Settings::instance()->get('meta_memberTypes');
 		$needsUpdate = false;
 
 		if ($mtObj === false) {
@@ -93,7 +93,7 @@ abstract class Cleanup implements api
 		} else {
 			$mtObj = (array)json_decode($mtObj);
 			foreach ($mtObj as $key => $val) {
-				if (strtotime($val->_updated) < time() - 3600 * self::CACHE_TTL) {
+				if (strtotime($val->_updated) < time() - self::CACHE_TTL) {
 					$needsUpdate = true;
 					unset($mtObj[$key]);
 				}
@@ -102,7 +102,7 @@ abstract class Cleanup implements api
 		}
 
 		if ($needsUpdate) {
-			return TouchPointWP_Settings::instance()->set('meta_memberTypes', json_encode($mtObj));
+			return Settings::instance()->set('meta_memberTypes', json_encode($mtObj));
 		}
 
 		return null;

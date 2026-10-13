@@ -11,17 +11,30 @@ the_post();
 $pst   = get_post();
 $prtnr = Partner::fromPost($pst);
 
-TouchPointWP::enqueuePartialsStyle();
+TouchPointWP::enqueuePartialsStyle("partner-single");
 
 ?>
 
 <header class="archive-header has-text-align-center header-footer-group">
+	<?php
+	$image = get_the_post_thumbnail_url($pst, 'full');
+	$image = $image ? esc_url($image) : false;
+	$imageAlt = esc_html(get_post(get_post_thumbnail_id($pst))->post_title);
+	if ($image) {
+		echo "<div class=\"header-image-container\">";
+		echo "<div class=\"header-image partner-header-image\" style=\"background-image: url('$image');\">";
+		echo "<img src='$image' alt='$imageAlt' class='tpwp-accessibility-header-image'>";
+		echo "</div>";
+		echo "</div>";
+	}
+	?>
+
     <div class="archive-header-inner section-inner medium">
         <h1 class="archive-title page-title"><?php echo the_title() ?></h1>
     </div>
 </header>
 
-<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-partner="<?php echo $prtnr->post_id ?>">
+<article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-partner="<?php echo $prtnr->post_id() ?>">
     <div class="post-inner partner-inner">
         <div class="entry-content">
             <?php
@@ -33,14 +46,7 @@ TouchPointWP::enqueuePartialsStyle();
     <div class="section-inner TouchPointWP-detail">
         <div class="TouchPointWP-detail-cell">
             <div class="TouchPointWP-detail-cell-section partner-logistics" >
-                <?php
-                $metaStrings = [];
-                foreach ($prtnr->notableAttributes() as $a)
-                {
-                    $metaStrings[] = sprintf( '<span class="meta-text">%s</span>', $a);
-                }
-                echo implode("<br />", $metaStrings);
-                ?>
+                <?php echo $prtnr->notableAttributes()->join("<br />"); ?>
             </div>
             <div class="TouchPointWP-detail-cell-section partner-actions">
                 <?php echo $prtnr->getActionButtons('single-template', "btn button") ?>
