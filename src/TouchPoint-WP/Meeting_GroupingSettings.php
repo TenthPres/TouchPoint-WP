@@ -304,23 +304,6 @@ class Meeting_GroupingSettings
 	}
 
 	/**
-	 * Whether the previous behavior (collecting meetings less than 23 hours apart) can be selected.  Only sites that
-	 * had collections made by it when upgrading can select it.  It stays available even after other options are chosen.
-	 *
-	 * LEGACY-GROUPING: Nothing in the plugin calls this.  The settings form gets the value from toObject().
-	 *
-	 * @deprecated 0.2.1 Only used by the previous grouping behavior.  Remove it when that behavior is retired.
-	 *
-	 * @return bool
-	 */
-	public static function legacyAvailable(): bool
-	{
-		self::load();
-
-		return self::$_legacyAvailable;
-	}
-
-	/**
 	 * Whether archived meetings of child involvements are kept after the child involvement's "Show in Sites" is turned
 	 * off in TouchPoint.  If false, the child involvement's posts are removed when "Show in Sites" is turned off.  If
 	 * true, its archived meetings are kept, but not its upcoming ones.
