@@ -6,7 +6,7 @@ import linecache
 import sys
 import urllib
 
-VERSION = "0.0.97"
+VERSION = "0.2.1"
 
 sgContactEvName = "Contact"
 
@@ -209,6 +209,16 @@ if "Invs" in Data.a:
     if hostMemTypes == "":
         hostMemTypes = "NULL"
 
+    # Involvement Types whose meeting grouping includes child involvements.
+    childTypes = regex.sub('', Data.childTypes or "")
+    listedTypes = regex.sub('', Data.listedTypes or "")
+    if childTypes == "":
+        childTypes = "-1"
+    if listedTypes == "":
+        listedTypes = "-1"
+    childOther = 1 if Data.childOther == "1" else 0
+    keepHidden = 1 if Data.keepHidden == "1" else 0
+
     # noinspection SqlResolve,SqlUnusedCte,SqlRedundantOrderingDirection
     invSql = (('''
         -- Get all orgs that have meetings
@@ -240,6 +250,64 @@ if "Invs" in Data.a:
         UNION
         SELECT org4 oid, 1 as isParent FROM cteMeetingsQ
         ),
+        -- find the structure owner of each organization: the top-most of itself, its parent, and its grandparent whose
+        -- Involvement Type includes child involvements in its meeting grouping.  A null Involvement Type is treated as 0.
+        cteOrgTree as
+        (
+        SELECT o.OrganizationId,
+            CASE
+                WHEN o3.OrganizationId IS NOT NULL AND (COALESCE(o3.OrganizationTypeId, 0) IN ({7}) OR ({9} = 1 AND
+                    COALESCE(o3.OrganizationTypeId, 0) NOT IN ({8}))) THEN o3.OrganizationId
+                WHEN o2.OrganizationId IS NOT NULL AND (COALESCE(o2.OrganizationTypeId, 0) IN ({7}) OR ({9} = 1 AND
+                    COALESCE(o2.OrganizationTypeId, 0) NOT IN ({8}))) THEN o2.OrganizationId
+                WHEN COALESCE(o.OrganizationTypeId, 0) IN ({7}) OR ({9} = 1 AND
+                    COALESCE(o.OrganizationTypeId, 0) NOT IN ({8})) THEN o.OrganizationId
+            END as ownerInvId
+            FROM dbo.Organizations o
+                LEFT JOIN dbo.Organizations o2 ON o.ParentOrgId = o2.OrganizationId
+                LEFT JOIN dbo.Organizations o3 ON o2.ParentOrgId = o3.OrganizationId
+        ),
+        -- select the organizations that are targeted directly
+        cteBaseTargets as
+        (
+        SELECT DISTINCT o.OrganizationId
+        FROM dbo.Organizations o
+            LEFT JOIN cteMeetingL ml ON o.OrganizationId = ml.oid
+            WHERE ( o.OrganizationId = (
+                        SELECT MIN(OrgId) min
+                        FROM dbo.DivOrg do
+                        WHERE do.OrgId = o.OrganizationId
+                        AND do.DivId IN ({0})
+                    )
+                    AND o.organizationStatusId = 30
+                )
+            OR ( o.ShowInSites = {2}
+                AND ml.oid IS NOT NULL -- means it has meetings, or it has children that have meetings.
+                AND o.OrganizationId NOT IN (
+                        SELECT DISTINCT do.OrgId
+                        FROM dbo.DivOrg do
+                        WHERE do.OrgId = o.OrganizationId
+                        AND do.DivId IN ({5})
+                    )
+                )
+        ),
+        -- select the children and grandchildren of targeted structure owners, which are included in their structure
+        -- even if they aren't targeted directly.  Hidden ones are only included when keepHidden is set.
+        cteChildTargets as
+        (
+        SELECT ot.OrganizationId
+        FROM cteOrgTree ot
+            JOIN dbo.Organizations o ON ot.OrganizationId = o.OrganizationId
+            WHERE ot.ownerInvId IN (SELECT OrganizationId FROM cteBaseTargets)
+                AND ot.ownerInvId <> ot.OrganizationId
+                AND (o.ShowInSites = 1 OR {10} = 1)
+                AND EXISTS (
+                    SELECT 1 FROM dbo.Meetings cm
+                    WHERE cm.OrganizationId = o.OrganizationId
+                    AND cm.MeetingDate > DATEADD(day, {3}, GETDATE())
+                    AND cm.MeetingDate < DATEADD(day, {4}, GETDATE())
+                )
+        ),
         -- select all target organizations
         cteTargetOrgs as
         (
@@ -247,6 +315,8 @@ if "Invs" in Data.a:
                 o.OrganizationId,
                 o.ParentOrgId as parentInvId,
                 COALESCE(ml.isParent, 0) as isParent, -- indicates this is the parent (or grandparent) of an inv w/ mtgs
+                COALESCE(o.OrganizationTypeId, 0) as invTypeId,
+                ot.ownerInvId,
                 o.LeaderMemberTypeId,
                 o.Location,
                 o.OrganizationName AS name,
@@ -274,23 +344,16 @@ if "Invs" in Data.a:
                 FORMAT(o.LastMeetingDate, 'yyyy-MM-ddTHH:mm:ss') AS lastMeeting
         FROM dbo.Organizations o
             LEFT JOIN cteMeetingL ml ON o.OrganizationId = ml.oid
-            WHERE ( o.OrganizationId = (
-                        SELECT MIN(OrgId) min
-                        FROM dbo.DivOrg do
-                        WHERE do.OrgId = o.OrganizationId
-                        AND do.DivId IN ({0})
-                    )
-                    AND o.organizationStatusId = 30
-                )
-            OR ( o.ShowInSites = {2}
-                AND ml.oid IS NOT NULL -- means it has meetings, or it has children that have meetings.
-                AND o.OrganizationId NOT IN (
-                        SELECT DISTINCT do.OrgId
-                        FROM dbo.DivOrg do
-                        WHERE do.OrgId = o.OrganizationId
-                        AND do.DivId IN ({5})
+            LEFT JOIN cteOrgTree ot ON o.OrganizationId = ot.OrganizationId
+            -- Targeted involvements, except children whose structure owner isn't targeted here (it's handled in another post
+            -- type, or not at all).
+            WHERE ( o.OrganizationId IN (SELECT OrganizationId FROM cteBaseTargets)
+                    AND NOT ( ot.ownerInvId IS NOT NULL
+                        AND ot.ownerInvId <> o.OrganizationId
+                        AND ot.ownerInvId NOT IN (SELECT OrganizationId FROM cteBaseTargets)
                     )
                 )
+                OR o.OrganizationId IN (SELECT OrganizationId FROM cteChildTargets)
         ),
         -- select all members for these organizations to avoid multiple scans of Organization members table
         cteOrganizationMembers AS 
@@ -432,6 +495,8 @@ if "Invs" in Data.a:
             o.[OrganizationId]               AS [involvementId]
             , o.[parentInvId]                AS [parentInvId]
             , o.[isParent]                   AS [isParent]
+            , o.[invTypeId]                  AS [invTypeId]
+            , o.[ownerInvId]                 AS [ownerInvId]
             , o.[LeaderMemberTypeId]         AS [leaderMemberTypeId]
             , o.[Location]                   AS [location]
             , o.[name]                       AS [name]
@@ -486,7 +551,8 @@ if "Invs" in Data.a:
             LEFT JOIN lookup.Campus c
                 ON o.CampusId = c.Id
         ORDER BY o.parentInvId ASC, o.OrganizationId ASC''').
-              format(divs, hostMemTypes, featMtgs, mtgHist, mtgFuture, exDivs, camps))
+              format(divs, hostMemTypes, featMtgs, mtgHist, mtgFuture, exDivs, camps, childTypes, listedTypes,
+                     childOther, keepHidden))
 
     groups = model.SqlListDynamicData(invSql)
 

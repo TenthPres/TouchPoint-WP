@@ -31,7 +31,7 @@ class TouchPointWP
 	/**
 	 * Version number
 	 */
-	public const VERSION = "0.0.97";
+	public const VERSION = "0.2.1";
 
 	/**
 	 * The Token
@@ -583,9 +583,7 @@ class TouchPointWP
 
 			// Cleanup endpoints
 			if ($reqUri['path'][1] === TouchPointWP::API_ENDPOINT_CLEANUP) {
-				if ( ! Cleanup::api($reqUri)) {
-					return $continue;
-				}
+				Cleanup::api($reqUri);
 			}
 
 			// Geolocate via IP
@@ -813,6 +811,10 @@ class TouchPointWP
 		// Table for receiving info from other sites that use this plugin
 		if (self::isTenth()) {
 			$tableName = $wpdb->base_prefix . TouchPointWP::TABLE_STATS;
+			// LEGACY-GROUPING: The meetingGroupingApproach column is telemetry for retiring the previous grouping behavior.
+			// It can be dropped with that behavior.  (This isn't commented in the SQL, which dbDelta parses.)
+			// 0 means it wasn't reported, which is what versions that don't send it get.  1 is the previous approach, and
+			// 2 is the current one.  It replaces meetingGroupingLegacy, which dbDelta leaves in place and can be dropped.
 			$sql = "CREATE TABLE $tableName (
 				installId varchar(36) NOT NULL,
 				privateKey varchar(36) NOT NULL,
@@ -846,7 +848,8 @@ class TouchPointWP
 				partnerPosts int(10) DEFAULT 0,
 				userAuths int(10) DEFAULT 0,
 				softAuths int(10) DEFAULT 0,
-				
+				meetingGroupingApproach tinyint(1) DEFAULT 0,
+
 				PRIMARY KEY  (installId)
 			)";
 			dbDelta($sql);
@@ -1092,7 +1095,7 @@ class TouchPointWP
 //			Auth::registerScriptsAndStyles();
 //		}
 
-		if ( ! ! $this->rsvp) {
+		if ( ! ! $this->rsvp || ! ! $this->involvements) {
 			Meeting::registerScriptsAndStyles();
 		}
 	}
@@ -1983,6 +1986,24 @@ class TouchPointWP
 		}
 
 		return $cObj->campuses;
+	}
+
+
+	/**
+	 * Returns an array of objects that correspond to TouchPoint Involvement Types.  Each Involvement Type has an id and
+	 * a description.
+	 *
+	 * @since 0.2.1 Added
+	 *
+	 * @returns object[]
+	 */
+	public function getInvolvementTypes(): array
+	{
+		try {
+			return Lookup::getLookup('OrganizationTypes');
+		} catch (TouchPointWP_Exception) {
+			return [];
+		}
 	}
 
 
