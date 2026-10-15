@@ -34,6 +34,8 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
  * @property int $userAuths
  * @property int $softAuths
  * @property int $meetingGroupingLegacy 1 if the previous behavior for collecting meetings is in use, otherwise 0.
+ *                                      Versions before 0.2.0 don't send this, and it's NULL for them where submissions
+ *                                      are received.
  */
 class Stats implements api, \JsonSerializable, updatesViaCron
 {
