@@ -1547,8 +1547,10 @@ class Settings
 			}
 		}
 
-		// 0.2.1 -- Meeting Grouping is set by Involvement Type.  Existing sites keep their previous behavior until
-		// it's changed; new sites start with Clusters.
+		// 0.2.1 -- Meeting Grouping is set by Involvement Type.  Existing sites that had collections from the previous
+		// behavior keep it until it's changed; new sites, and existing sites that didn't have any, start with Clusters.
+		// LEGACY-GROUPING: The detection is in Meeting_GroupingSettings::defaultsForExistingSite(), and goes when the
+		// previous behavior is retired.
 		if ($this->getWithoutDefault('mc_grouping_json') === self::UNDEFINED_PLACEHOLDER) {
 			$isNewSite = $this->getWithoutDefault('version') === self::UNDEFINED_PLACEHOLDER;
 			$grouping  = $isNewSite ? Meeting_GroupingSettings::defaultsForNewSite() : Meeting_GroupingSettings::toObject();

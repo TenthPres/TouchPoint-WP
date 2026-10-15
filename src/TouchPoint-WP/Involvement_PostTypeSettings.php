@@ -50,6 +50,11 @@ class Involvement_PostTypeSettings
 	protected bool $useGeo = false;
 	protected bool $hierarchical = false;
 	protected bool $importMeetings = false;
+	/**
+	 * LEGACY-GROUPING: How the previous grouping behavior collects meetings: one of the Meeting::GROUP_ constants.
+	 *
+	 * @deprecated 0.2.1 Only used by the previous grouping behavior.  Remove it when that behavior is retired.
+	 */
 	protected string $meetingGroupingMethod = Meeting::GROUP_NONE;
 	protected string $groupBy = "";
 	protected array $excludeIf = [];

@@ -57,8 +57,12 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 */
 	public const EDITION_MEETING_META_KEY = TouchPointWP::SETTINGS_PREFIX . "editionMtgId";
 
+	// LEGACY-GROUPING: The methods of the previous grouping behavior.  Remove them when it's retired.
+	/** @deprecated 0.2.1 Previous grouping behavior only. */
 	public const GROUP_NONE = "none";
+	/** @deprecated 0.2.1 Previous grouping behavior only. */
 	public const GROUP_UNSCHEDULED = "unscheduled";
+	/** @deprecated 0.2.1 Previous grouping behavior only. */
 	public const GROUP_ALL = "all";
 
 	public const SHORTCODE_GRID = TouchPointWP::SHORTCODE_PREFIX . "Calendar";
@@ -307,7 +311,7 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 				'useGeo'                => false,
 				'hierarchical'          => true,
 				'postType'              => self::POST_TYPE_WO_PRE,
-				// Previous behavior.  The setting no longer has a UI, so it may not be stored.
+				// LEGACY-GROUPING: Previous behavior.  The setting no longer has a UI, so it may not be stored.
 				'meetingGroupingMethod' => TouchPointWP::instance()->settings->mc_grouping_method ?: self::GROUP_UNSCHEDULED
 			]);
 		}
@@ -671,6 +675,8 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 		}
 		$role = get_post_meta($this->post_id, self::MEETING_GROUP_ROLE_META_KEY, true);
 
+		// LEGACY-GROUPING: Collections made by the previous behavior have no stored role.  Once it's retired and Meeting
+		// Grouping has rewritten them, they all have one, and this fallback can go.
 		return $role !== "" ? $role : MeetingArray::ROLE_CLUSTER;
 	}
 

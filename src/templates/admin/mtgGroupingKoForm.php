@@ -63,6 +63,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
     </p>
     <p data-bind="visible: invTypes.length < 1"><?php _e("No Involvement Types could be loaded from TouchPoint, so only the settings for all Involvement Types can be changed.", "TouchPoint-WP"); ?></p>
 
+    <?php // LEGACY-GROUPING: This option, its help below, and the legacy bits of the script go when the previous behavior is retired. ?>
     <p data-bind="visible: legacyAvailable">
         <input id="tp-mg-legacy" type="checkbox" data-bind="checked: otherTypes.legacy" />
         <label for="tp-mg-legacy"><?php _e("Use the previous behavior for all other Involvement Types", "TouchPoint-WP"); ?></label>
@@ -120,6 +121,7 @@ echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; 
         this.includeChildren = ko.observable(!!data.includeChildren);
         this.editions = ko.observable(!!data.editions);
         this.clusters = ko.observable(!!data.clusters);
+        // LEGACY-GROUPING: Remove with the previous behavior.
         this.legacy = ko.observable(isOther && !!data.legacy);
 
         this.toJS = function() {

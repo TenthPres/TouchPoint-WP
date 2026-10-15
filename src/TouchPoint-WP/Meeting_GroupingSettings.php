@@ -16,6 +16,10 @@ if ( ! defined('ABSPATH')) {
  *
  * All settings are stored together in the mc_grouping_json setting.
  *
+ * LEGACY-GROUPING: The `legacy` setting, and the methods that decide whether a site gets it, are for sites that had
+ * collections from the previous grouping behavior when they upgraded.  They can be removed once that behavior is
+ * retired, which depends on the meetingGroupingLegacy telemetry.  Search for LEGACY-GROUPING to find the rest.
+ *
  * @since 0.2.1 Added
  *
  * @property-read ?int $invTypeId       The TouchPoint Involvement Type ID.  Null for the "all other types" settings.
@@ -44,12 +48,14 @@ class Meeting_GroupingSettings
 	protected static array $_types = [];
 	protected static Meeting_GroupingSettings $_otherTypes;
 	protected static bool $_keepHiddenChildren = false;
+	/** LEGACY-GROUPING: Whether the previous behavior can be selected.  Remove it when that behavior is retired. */
 	protected static bool $_legacyAvailable = false;
 
 	protected ?int $invTypeId = null;
 	protected bool $includeChildren = false;
 	protected bool $editions = false;
 	protected bool $clusters = false;
+	/** LEGACY-GROUPING: Whether the previous behavior is used.  Remove it when that behavior is retired. */
 	protected bool $legacy = false;
 
 	/**
@@ -67,6 +73,7 @@ class Meeting_GroupingSettings
 		$this->clusters        = ! ! ($o->clusters ?? false);
 		$this->legacy          = $allowLegacy && ! ! ($o->legacy ?? false);
 
+		// LEGACY-GROUPING: The previous behavior excludes the options of the current one.
 		if ($this->legacy) {
 			$this->includeChildren = false;
 			$this->editions        = false;
@@ -136,6 +143,10 @@ class Meeting_GroupingSettings
 	 * Whether the site used the previous behavior for collecting meetings.  This is true if the Meeting Calendar or
 	 * any Involvement Post Type that imports meetings was set to collect them.
 	 *
+	 * LEGACY-GROUPING: Only the upgrade uses this.
+	 *
+	 * @deprecated 0.2.1 Only used by the previous grouping behavior.  Remove it when that behavior is retired.
+	 *
 	 * @return bool
 	 */
 	protected static function previousBehaviorWasUsed(): bool
@@ -163,6 +174,10 @@ class Meeting_GroupingSettings
 	 * Whether any posts exist that were made by the previous behavior's collecting.  Those are meeting posts with a
 	 * negative meeting ID (a collection's ID is the negative of its first meeting's) and no group role, which only the
 	 * current behavior sets.
+	 *
+	 * LEGACY-GROUPING: Only the upgrade uses this.
+	 *
+	 * @deprecated 0.2.1 Only used by the previous grouping behavior.  Remove it when that behavior is retired.
 	 *
 	 * @return bool
 	 */
@@ -198,6 +213,9 @@ class Meeting_GroupingSettings
 	 *   to preserve.  The site gets the same settings as a new site.
 	 * - Otherwise, meetings weren't collected, and still aren't.
 	 *
+	 * LEGACY-GROUPING: When the previous behavior is retired, the first case goes, and previousBehaviorWasUsed() and
+	 * previousBehaviorGroupsExist() with it.  What's left is choosing between no collecting and defaultsForNewSite().
+	 *
 	 * @return object
 	 */
 	protected static function defaultsForExistingSite(): object
@@ -224,6 +242,10 @@ class Meeting_GroupingSettings
 	/**
 	 * Whether the previous behavior is selected, and so used for Involvement Types that don't have their own settings.
 	 * It's reported as telemetry, to show when it can be removed.
+	 *
+	 * LEGACY-GROUPING: Only the telemetry uses this.
+	 *
+	 * @deprecated 0.2.1 Only used by the previous grouping behavior.  Remove it when that behavior is retired.
 	 *
 	 * @return bool
 	 */
@@ -284,6 +306,10 @@ class Meeting_GroupingSettings
 	/**
 	 * Whether the previous behavior (collecting meetings less than 23 hours apart) can be selected.  Only sites that
 	 * had collections made by it when upgrading can select it.  It stays available even after other options are chosen.
+	 *
+	 * LEGACY-GROUPING: Nothing in the plugin calls this.  The settings form gets the value from toObject().
+	 *
+	 * @deprecated 0.2.1 Only used by the previous grouping behavior.  Remove it when that behavior is retired.
 	 *
 	 * @return bool
 	 */

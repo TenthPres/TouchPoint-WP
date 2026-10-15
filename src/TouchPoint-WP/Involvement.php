@@ -84,6 +84,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 
 	protected const MEETING_STRATEGY_NONE = 0;
 	protected const MEETING_STRATEGY_SINGLE = 1;
+	/** LEGACY-GROUPING: @deprecated 0.2.1 Only used by the previous grouping behavior.  Remove it when that behavior is retired. */
 	protected const MEETING_STRATEGY_MULTIPLE = 2;
 
 	public const CRON_HOOK = TouchPointWP::HOOK_PREFIX . "inv_cron_hook";
@@ -3410,6 +3411,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	/**
 	 * Compute the slug strategy for a set of meetings.
 	 *
+	 * LEGACY-GROUPING: Only the previous grouping behavior uses this.  The current behavior chooses slugs in
+	 * meeting_GroupingWriter::assignSlugs().
+	 *
+	 * @deprecated 0.2.1 Only used by the previous grouping behavior.  Remove it when that behavior is retired.
+	 *
 	 * @param apiMeeting[] $set An array of Meeting objects, grouped by their start date.
 	 *
 	 * @noinspection PhpUndefinedClassInspection
@@ -3611,6 +3617,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	): array {
 		/** @var ?Meeting_GroupingSettings $rule */
 		$rule = $inv->_grouping ?? null;
+		// LEGACY-GROUPING: Sites that had collections from the previous behavior when they upgraded can keep using it.
+		// When it's retired, this early return goes, and updateMeetingsForInvolvement() only handles zero or one meeting.
 		if ($rule === null || $rule->legacy) {
 			return self::updateMeetingsForInvolvement($post, $inv, $typeSets, $imagePostId, $verbose, $applyChanges);
 		}
@@ -3724,6 +3732,12 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	}
 
 	/**
+	 * Update the meetings of an involvement that has zero, one, or (for the previous grouping behavior) several meetings.
+	 *
+	 * LEGACY-GROUPING: This is also the previous grouping behavior's entire import for involvements with more than one
+	 * meeting.  The multiple-meeting branch, computeSlugs(), and updateMeeting() are only used by it.  When it's
+	 * retired, this only needs to handle zero or one meeting, where an involvement's post is also its meeting's post.
+	 *
 	 * @param object                       $post The parent post, which could be a group or Meeting.
 	 * @param object                       $inv The involvement object from the API.
 	 * @param Involvement_PostTypeSettings $typeSets
@@ -3758,6 +3772,8 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 		$postsToKeep = [];
 
 		if ($strategy === self::MEETING_STRATEGY_MULTIPLE) {
+
+			// LEGACY-GROUPING: Everything in this branch is only used by the previous grouping behavior.
 
 			// If the main post was previously a single, it needs to have the meeting info removed.
 			/** @var $post WP_Post */
@@ -3855,6 +3871,11 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 
 	/**
 	 * Update a meeting post, or create it if it doesn't exist.
+	 *
+	 * LEGACY-GROUPING: Only the previous grouping behavior uses this.  The current behavior writes its posts in
+	 * meeting_GroupingWriter.
+	 *
+	 * @deprecated 0.2.1 Only used by the previous grouping behavior.  Remove it when that behavior is retired.
 	 *
 	 * @param Interfaces\apiMeeting        $mtgO
 	 * @param object                       $inv

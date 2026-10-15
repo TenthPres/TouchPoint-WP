@@ -54,6 +54,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	protected array $involvementCounts = []; // updated by query
 	protected int $userAuths = 0;
 	protected int $softAuths = 0;
+	// LEGACY-GROUPING: Telemetry to learn when the previous grouping behavior can be retired.  Remove it with that behavior.
 	protected int $meetingGroupingLegacy = 0; // updated by query
 
 	/**
@@ -399,6 +400,7 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		}
 		$this->involvementCounts = $invCounts;
 
+		// LEGACY-GROUPING: See the meetingGroupingLegacy property.
 		$this->meetingGroupingLegacy = Meeting_GroupingSettings::previousBehaviorInUse() ? 1 : 0;
 
 		$this->_dirty = true;

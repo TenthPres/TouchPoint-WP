@@ -811,6 +811,8 @@ class TouchPointWP
 		// Table for receiving info from other sites that use this plugin
 		if (self::isTenth()) {
 			$tableName = $wpdb->base_prefix . TouchPointWP::TABLE_STATS;
+			// LEGACY-GROUPING: The meetingGroupingLegacy column is telemetry for retiring the previous grouping behavior.
+			// It can be dropped with that behavior.  (This isn't commented in the SQL, which dbDelta parses.)
 			$sql = "CREATE TABLE $tableName (
 				installId varchar(36) NOT NULL,
 				privateKey varchar(36) NOT NULL,
