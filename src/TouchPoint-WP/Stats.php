@@ -33,9 +33,9 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
  * @property int $partnerPosts
  * @property int $userAuths
  * @property int $softAuths
- * @property int $meetingGroupingLegacy 1 if the previous behavior for collecting meetings is in use, otherwise 0.
- *                                      Versions before 0.2.0 don't send this, and it's NULL for them where submissions
- *                                      are received.
+ * @property int $meetingGroupingApproach How meetings are collected into larger events: 1 for the previous approach,
+ *                                       or 2 for the current one.  0 means it wasn't reported, because the version
+ *                                       doesn't send it.
  */
 class Stats implements api, \JsonSerializable, updatesViaCron
 {
@@ -57,7 +57,11 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 	protected int $userAuths = 0;
 	protected int $softAuths = 0;
 	// LEGACY-GROUPING: Telemetry to learn when the previous grouping behavior can be retired.  Remove it with that behavior.
-	protected int $meetingGroupingLegacy = 0; // updated by query
+	/** LEGACY-GROUPING: A value of meetingGroupingApproach. */
+	public const GROUPING_APPROACH_PREVIOUS = 1;
+	/** LEGACY-GROUPING: A value of meetingGroupingApproach. */
+	public const GROUPING_APPROACH_CURRENT = 2;
+	protected int $meetingGroupingApproach = 0; // updated by query
 
 	/**
 	 * @var string A GUID representing the installation of this plugin.  A site with multiple Tenth plugins may have one
@@ -402,8 +406,9 @@ class Stats implements api, \JsonSerializable, updatesViaCron
 		}
 		$this->involvementCounts = $invCounts;
 
-		// LEGACY-GROUPING: See the meetingGroupingLegacy property.
-		$this->meetingGroupingLegacy = Meeting_GroupingSettings::previousBehaviorInUse() ? 1 : 0;
+		// LEGACY-GROUPING: See the meetingGroupingApproach property.
+		$this->meetingGroupingApproach = Meeting_GroupingSettings::previousBehaviorInUse() ?
+			self::GROUPING_APPROACH_PREVIOUS : self::GROUPING_APPROACH_CURRENT;
 
 		$this->_dirty = true;
 

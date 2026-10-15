@@ -811,11 +811,10 @@ class TouchPointWP
 		// Table for receiving info from other sites that use this plugin
 		if (self::isTenth()) {
 			$tableName = $wpdb->base_prefix . TouchPointWP::TABLE_STATS;
-			// LEGACY-GROUPING: The meetingGroupingLegacy column is telemetry for retiring the previous grouping behavior.
+			// LEGACY-GROUPING: The meetingGroupingApproach column is telemetry for retiring the previous grouping behavior.
 			// It can be dropped with that behavior.  (This isn't commented in the SQL, which dbDelta parses.)
-			// Its default is NULL, not 0, so that versions that don't send it (before 0.2.0) can be told apart from sites
-			// that report not using the previous behavior.  dbDelta only changes a default that's in quotes, so a table
-			// that already exists needs ALTER TABLE ... ALTER COLUMN meetingGroupingLegacy SET DEFAULT NULL, once.
+			// 0 means it wasn't reported, which is what versions that don't send it get.  1 is the previous approach, and
+			// 2 is the current one.  It replaces meetingGroupingLegacy, which dbDelta leaves in place and can be dropped.
 			$sql = "CREATE TABLE $tableName (
 				installId varchar(36) NOT NULL,
 				privateKey varchar(36) NOT NULL,
@@ -849,7 +848,7 @@ class TouchPointWP
 				partnerPosts int(10) DEFAULT 0,
 				userAuths int(10) DEFAULT 0,
 				softAuths int(10) DEFAULT 0,
-				meetingGroupingLegacy tinyint(1) DEFAULT NULL,
+				meetingGroupingApproach tinyint(1) DEFAULT 0,
 
 				PRIMARY KEY  (installId)
 			)";

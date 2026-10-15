@@ -18,7 +18,7 @@ if ( ! defined('ABSPATH')) {
  *
  * LEGACY-GROUPING: The `legacy` setting, and the methods that decide whether a site gets it, are for sites that had
  * collections from the previous grouping behavior when they upgraded.  They can be removed once that behavior is
- * retired, which depends on the meetingGroupingLegacy telemetry.  Search for LEGACY-GROUPING to find the rest.
+ * retired, which depends on the meetingGroupingApproach telemetry.  Search for LEGACY-GROUPING to find the rest.
  *
  * @since 0.2.1 Added
  *
