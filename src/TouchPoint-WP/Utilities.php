@@ -553,9 +553,10 @@ abstract class Utilities
 	 *
 	 * If the $newUrl is blank or null, the image is removed.
 	 *
-	 * The image that's replaced is deleted from the media library right away, unless an array is provided for
-	 * $replacedAttIds.  Then, it's left in place, and its attachment ID is added to the array, so the caller can use
-	 * deleteAttachmentIfUnused() once other posts using it have been updated.
+	 * The image that's replaced is deleted from the media library right away, unless another post uses it as its
+	 * featured image (see deleteAttachmentIfUnused()), or an array is provided for $replacedAttIds.  Then, it's left
+	 * in place, and its attachment ID is added to the array, so the caller can use deleteAttachmentIfUnused() once the
+	 * other posts that are meant to change have been updated.
 	 *
 	 * @param int         $postId
 	 * @param string|null $newUrl
@@ -606,13 +607,6 @@ abstract class Utilities
 
 		// determine if a change is needed
 		if ($newAttId !== $oldAttId || ($newUrl !== "" && $oldAttId === 0)) {
-			if ($oldAttId > 0) { // Remove and delete old one.
-				if ($replacedAttIds === null) {
-					wp_delete_attachment($oldAttId, true);
-				} else {
-					$replacedAttIds[] = $oldAttId;
-				}
-			}
 			if ($newAttId === 0 && $newUrl !== "") { // New image isn't in media yet.
 				set_time_limit(60);
 				$newAttId = media_sideload_image($newUrl, $postId, $title, 'id');
@@ -635,14 +629,26 @@ abstract class Utilities
 				}
 				delete_post_thumbnail($postId);
 			}
+
+			// The old image is dealt with last, so it's kept if the new one couldn't be added, and after this post stops
+			// using it, since a post that still uses an image keeps it from being deleted.
+			if ($oldAttId > 0) {
+				if ($replacedAttIds === null) {
+					self::deleteAttachmentIfUnused($oldAttId, $verbose);
+				} else {
+					$replacedAttIds[] = $oldAttId;
+				}
+			}
 		}
 
 		return $newAttId;
 	}
 
 	/**
-	 * Delete an image from the media library, unless a post still uses it as its featured image.  Archived meetings keep
-	 * the image they had, so an image that was replaced is only deleted when nothing is holding on to it.
+	 * Delete an image from the media library, unless a post still uses it as its featured image.  This includes posts
+	 * of any type and status, such as an article that was written by hand, and not only those that are imported from
+	 * TouchPoint.  Archived meetings keep the image they had, so an image that was replaced is only deleted when nothing
+	 * is holding on to it.
 	 *
 	 * @param int  $attachmentId
 	 * @param bool $verbose
