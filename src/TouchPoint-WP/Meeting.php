@@ -385,7 +385,7 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 * than the meeting's own involvement, which may be hidden.  If neither applies, the meeting's own involvement is
 	 * returned.
 	 *
-	 * @since 0.0.98 Follows the parent post, so Editions and Clusters can be nested.
+	 * @since 0.2.1 Follows the parent post, so Editions and Clusters can be nested.
 	 *
 	 * @return ?Involvement|Meeting
 	 */
@@ -449,7 +449,7 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 * @return StringableArray
 	 *
 	 * @since 0.0.90 Added
-	 * @since 0.0.98 Editions are described by whole days, without times.  Clusters are described by their meetings'
+	 * @since 0.2.1 Editions are described by whole days, without times.  Clusters are described by their meetings'
 	 *               dates and times: consecutive meetings with different names are parts of one event, and are shown
 	 *               as one range; meetings with identical names are separate occurrences.
 	 */
@@ -660,7 +660,7 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 * Get the grouping type of this group: one of the MeetingArray::ROLE_ constants.  The previous behavior's
 	 * collections have no stored role, and are treated as Clusters.  Returns null if this isn't a group.
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 *
 	 * @return ?string
 	 */
@@ -958,7 +958,7 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 *
 	 * @return bool
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 */
 	public static function isSpanningMeetingOf(WP_Post $child, WP_Post $parent): bool
 	{
@@ -973,7 +973,7 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 	 * If two of them start in the same year, the year wouldn't tell them apart, so none of them gets it.  The stored
 	 * title isn't changed.
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 *
 	 * @param string $title
 	 * @param int    $postId

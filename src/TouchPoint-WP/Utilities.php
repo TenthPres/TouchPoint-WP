@@ -541,7 +541,7 @@ abstract class Utilities
 	 *
 	 * @return int 0 if the post has no image of its own.
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 */
 	public static function ownThumbnailId(int $postId): int
 	{
@@ -565,7 +565,7 @@ abstract class Utilities
 	 *
 	 * @return int The attachmentId for the image.  Can be reused for other posts.
 	 * @since 0.0.24 Added
-	 * @since 0.0.98 Added $replacedAttIds
+	 * @since 0.2.1 Added $replacedAttIds
 	 */
 	public static function updatePostImageFromUrl(
 		int $postId,
@@ -649,7 +649,7 @@ abstract class Utilities
 	 *
 	 * @return bool True if the image was deleted.
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 */
 	public static function deleteAttachmentIfUnused(int $attachmentId, bool $verbose = false): bool
 	{
@@ -861,7 +861,7 @@ abstract class Utilities
 	 * @return string The title without the prefix and separator.  If the title doesn't start with them, or nothing
 	 *                would be left, the title is returned as it was (trimmed).
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 */
 	public static function titleWithoutPrefix(string $title, string $prefix): string
 	{

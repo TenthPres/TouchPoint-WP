@@ -22,9 +22,9 @@ if ( ! defined('ABSPATH')) {
  *
  * This is a trait of Involvement, so it can use Involvement's protected sync methods.
  *
- * @since 0.0.98 Added
+ * @since 0.2.1 Added
  */
-trait Meeting_GroupingWriter
+trait meeting_GroupingWriter
 {
 	/**
 	 * Slug formats for Editions, in increasing specificity.  A bare year isn't used, because WordPress reads a numeric

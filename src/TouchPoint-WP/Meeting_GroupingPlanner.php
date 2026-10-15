@@ -26,7 +26,7 @@ if ( ! defined('ABSPATH')) {
  * API) or a MeetingArray whose groupRole is one of the MeetingArray::ROLE_ constants.  A MeetingArray may contain
  * meetings and other MeetingArrays.
  *
- * @since 0.0.98 Added
+ * @since 0.2.1 Added
  */
 class Meeting_GroupingPlanner
 {

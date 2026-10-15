@@ -18,7 +18,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Involvement_PostTypeSettings.php";
 	require_once "MeetingArray.php";
 	require_once "Meeting_GroupingPlanner.php";
-	require_once "Meeting_GroupingWriter.php";
+	require_once "meeting_GroupingWriter.php";
 }
 
 use DateInterval;
@@ -52,7 +52,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 {
 	use jsInstantiation;
 	use jsonLd;
-	use Meeting_GroupingWriter;
+	use meeting_GroupingWriter;
 
 	public const SHORTCODE_MAP = TouchPointWP::SHORTCODE_PREFIX . "Inv-Map";
 	public const SHORTCODE_FILTER = TouchPointWP::SHORTCODE_PREFIX . "Inv-Filters";
@@ -69,7 +69,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	 * posts aren't shown anywhere; they exist so the child's Involvement object (for Register and RSVP buttons, for
 	 * example) can be created for its meetings.
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 */
 	public const POST_STATUS_HIDDEN = TouchPointWP::HOOK_PREFIX . "hidden_resource";
 
@@ -981,7 +981,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	 * Get the schedule of this involvement's current or next Edition, as whole days (such as "Fri, Nov 6 - Sun,
 	 * Nov 8").  Returns null if it has no Edition that hasn't ended.
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 *
 	 * @return ?string
 	 */
@@ -4176,7 +4176,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 	 *
 	 * @return int|false
 	 *
-	 * @since 0.0.98 Added, replacing Meeting::filterThumbnailId()
+	 * @since 0.2.1 Added, replacing Meeting::filterThumbnailId()
 	 */
 	public static function filterThumbnailId(int|false $thumbnailId, int|WP_Post|null $post = null): int|false
 	{
@@ -4209,7 +4209,7 @@ class Involvement extends PostTypeCapable implements api, updatesViaCron, module
 				 *
 				 * @see Involvement::filterThumbnailId()
 				 *
-				 * @since 0.0.98 Added
+				 * @since 0.2.1 Added
 				 *
 				 * @param bool    $inherit              Whether the post should use the ancestor's image.  Default true.
 				 * @param WP_Post $post                 The post that doesn't have an image of its own.

@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH')) {
  *
  * All settings are stored together in the mc_grouping_json setting.
  *
- * @since 0.0.98 Added
+ * @since 0.2.1 Added
  *
  * @property-read ?int $invTypeId       The TouchPoint Involvement Type ID.  Null for the "all other types" settings.
  * @property-read bool $includeChildren Whether meetings of child (and grandchild) involvements are included.
@@ -350,7 +350,7 @@ class Meeting_GroupingSettings
 		 * Adjust the gap after which a new Edition starts.  When Editions are used, meetings are split into a new
 		 * Edition wherever the time from the end of one meeting to the start of the next is more than this.
 		 *
-		 * @since 0.0.98 Added
+		 * @since 0.2.1 Added
 		 *
 		 * @param int $seconds The gap, in seconds.  Default is 25 days.
 		 */
@@ -372,7 +372,7 @@ class Meeting_GroupingSettings
 		 * grouped into a Cluster when the time from the end of one to the start of the next is no more than this, and
 		 * no other meeting is between them.
 		 *
-		 * @since 0.0.98 Added
+		 * @since 0.2.1 Added
 		 *
 		 * @param int $seconds The gap, in seconds.  Default is 2 hours.
 		 */

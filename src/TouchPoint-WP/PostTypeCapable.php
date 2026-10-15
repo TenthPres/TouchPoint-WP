@@ -90,7 +90,7 @@ abstract class PostTypeCapable implements module, storedAsPost, actionButtons
 	 *
 	 * @return string
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 */
 	public function titleWithinParent(?WP_Post $parent = null): string
 	{
@@ -116,7 +116,7 @@ abstract class PostTypeCapable implements module, storedAsPost, actionButtons
 		 *
 		 * @see PostTypeCapable::titleWithinParent()
 		 *
-		 * @since 0.0.98 Added
+		 * @since 0.2.1 Added
 		 *
 		 * @param string   $title     The title to display, filtered like any other title.
 		 * @param WP_Post  $post      The post whose title is displayed.
@@ -133,7 +133,7 @@ abstract class PostTypeCapable implements module, storedAsPost, actionButtons
 	 *
 	 * @return string
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 */
 	public function titleInList(): string
 	{

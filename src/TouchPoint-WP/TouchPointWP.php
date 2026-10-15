@@ -1989,7 +1989,7 @@ class TouchPointWP
 	 * Returns an array of objects that correspond to TouchPoint Involvement Types.  Each Involvement Type has an id and
 	 * a description.
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 *
 	 * @returns object[]
 	 */

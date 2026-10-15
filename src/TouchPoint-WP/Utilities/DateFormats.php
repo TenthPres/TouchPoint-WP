@@ -409,7 +409,7 @@ abstract class DateFormats
 	 * - If they're all on the same date, it's one date and a list of times, such as "Sun, Dec 24" and "9:00 am & 11:00 am".
 	 * - Otherwise, or if any occurrence spans more than one day, it's a list of dates with times.
 	 *
-	 * @since 0.0.98 Added
+	 * @since 0.2.1 Added
 	 *
 	 * @param array $occurrences Each an array of [DateTimeInterface $start, ?DateTimeInterface $end, bool $allDay].
 	 * @param int   $limit       The maximum number of dates, times, or dates with times to list before "& others".
