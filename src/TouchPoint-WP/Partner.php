@@ -11,6 +11,7 @@ if ( ! defined('ABSPATH')) {
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Interfaces/api.php";
+	require_once "Interfaces/listsPosts.php";
 	require_once "jsInstantiation.php";
 	require_once "Interfaces/updatesViaCron.php";
 	require_once "Utilities.php";
@@ -20,6 +21,7 @@ use Exception;
 use JsonSerializable;
 use stdClass;
 use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\listsPosts;
 use tp\TouchPointWP\Interfaces\hasGeo;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Interfaces\updatesViaCron;
@@ -33,7 +35,7 @@ use WP_Term;
 /**
  * An Outreach partner, corresponding to a family in TouchPoint.
  */
-class Partner extends PostTypeCapable implements api, JsonSerializable, updatesViaCron, hasGeo, module
+class Partner extends PostTypeCapable implements api, JsonSerializable, updatesViaCron, hasGeo, module, listsPosts
 {
 	use jsInstantiation {
 		jsInstantiation::enqueueForJsInstantiation as protected enqueueForJsInstantiationTrait;
@@ -739,37 +741,40 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 			TouchPointWP::enqueuePartialsStyle("partner-list attribute");
 		}
 
+		global $wp_the_query;
+
 		ob_start();
-		self::doList($params);
+		self::doList($wp_the_query, $params);
 
 		return apply_shortcodes("<div class=\"{$params['class']}\">" . ob_get_clean() . "</div>");
 	}
 
 	/**
-	 * Print the list items for all of the Partners in the main query, on one page, in order by title.  This is the
-	 * list for the Partner archive page and the list shortcode.
+	 * Print the list items for the Partners in a query, all on one page, in order by title.  This is the list for the
+	 * Partner archive page and the list shortcode.
 	 *
-	 * @param array $params The list's parameters, which the list item can use.  (e.g. `itemclass`)
+	 * @param WP_Query $q      The query whose Partners are listed.  This changes it, so it shows all of them, in order.
+	 * @param array    $params The list's parameters, which the list item can use.  (e.g. `itemclass`)
 	 *
 	 * @return void
 	 *
 	 * @since 0.2.2 Added
 	 */
-	public static function doList(array $params = []): void
+	public static function doList(WP_Query $q, array $params = []): void
 	{
-		global $the_query, $wp_the_query;
-		$the_query = $wp_the_query;
+		global $the_query;
+		$the_query = $q;
 
-		$the_query->set('posts_per_page', -1);
-		$the_query->set('nopaging', true);
-		$the_query->set('orderby', 'title');
-		$the_query->set('order', 'ASC');
+		$q->set('posts_per_page', -1);
+		$q->set('nopaging', true);
+		$q->set('orderby', 'title');
+		$q->set('order', 'ASC');
 
-		$the_query->get_posts();
-		$the_query->rewind_posts();
+		$q->get_posts();
+		$q->rewind_posts();
 
-		while ($the_query->have_posts()) {
-			$the_query->the_post();
+		while ($q->have_posts()) {
+			$q->the_post();
 
 			$loadedPart = get_template_part('list-item', 'partner-list-item');
 			if ($loadedPart === false) {

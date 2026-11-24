@@ -18,6 +18,8 @@ get_header($postType);
 $description = get_the_archive_description();
 
 if (have_posts()) {
+    global $wp_query;
+
     $tpwp = TouchPointWP::instance();
 
     TouchPointWP::enqueuePartialsStyle("partner-archive");
@@ -35,7 +37,7 @@ if (have_posts()) {
 
     <main class="TouchPointWP-main">
     <div class="partner-list">
-    <?php Partner::doList(); ?>
+    <?php Partner::doList($wp_query); ?>
     </div>
     </main>
     <?php

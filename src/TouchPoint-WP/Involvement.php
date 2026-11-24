@@ -13,6 +13,7 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "jsInstantiation.php";
 	require_once "jsonLd.php";
 	require_once "InvolvementOrMeeting.php";
+	require_once "Interfaces/listsPosts.php";
 	require_once "Interfaces/updatesViaCron.php";
 	require_once "Utilities.php";
 	require_once "Involvement_PostTypeSettings.php";
@@ -28,6 +29,7 @@ use Exception;
 use JsonSerializable;
 use stdClass;
 use tp\TouchPointWP\Interfaces\api;
+use tp\TouchPointWP\Interfaces\listsPosts;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\DateFormats;
@@ -47,7 +49,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, module, JsonSerializable
+class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, module, JsonSerializable, listsPosts
 {
 	use jsInstantiation;
 	use jsonLd;
@@ -1535,7 +1537,7 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 
 	/**
 	 * Print the list of involvements for an archive page, such as the default archive template.  This is
-	 * doInvolvementList(), and then returns the query to what it was before the list changed it, so the rest of the page
+	 * doList(), and then returns the query to what it was before the list changed it, so the rest of the page
 	 * doesn't take it for a taxonomy archive.
 	 *
 	 * @param WP_Query $q The archive's query.
@@ -1546,7 +1548,7 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 	 */
 	public static function doArchiveList(WP_Query $q): void
 	{
-		self::doInvolvementList($q);
+		self::doList($q);
 
 		wp_reset_query();
 		$taxQuery                   = [[]];
@@ -1556,7 +1558,18 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 	}
 
 
-	public static function doInvolvementList(WP_Query $q, $params = []): void
+	/**
+	 * Print the list items for the involvements in a query, grouped as the involvement type's settings say.  This
+	 * changes the query, so it can show all of the involvements, in order.
+	 *
+	 * @param WP_Query $q      The query whose involvements are listed.
+	 * @param array    $params The list's parameters, which the list item can use.  (e.g. `itemclass`)
+	 *
+	 * @return void
+	 *
+	 * @since 0.2.2 Renamed from doInvolvementList()
+	 */
+	public static function doList(WP_Query $q, array $params = []): void
 	{
 		$q->set('posts_per_page', -1);
 		$q->set('nopaging', true);
@@ -1694,6 +1707,19 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 	}
 
 	/**
+	 * @param WP_Query $q
+	 * @param array    $params
+	 *
+	 * @return void
+	 *
+	 * @deprecated 0.2.2 Use doList(), which this calls.
+	 */
+	public static function doInvolvementList(WP_Query $q, array $params = []): void
+	{
+		self::doList($q, $params);
+	}
+
+	/**
 	 * Get a WP_Post by the Involvement ID if it exists.  Return null if it does not.
 	 *
 	 * @param string|string[] $postType
@@ -1776,7 +1802,7 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 			$q = new WP_Query();
 		}
 		ob_start();
-		self::doInvolvementList($q, $params);
+		self::doList($q, $params);
 		$render = ob_get_clean();
 
 		if (trim($render) == "") {
