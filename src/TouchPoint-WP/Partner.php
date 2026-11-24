@@ -733,6 +733,30 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 			self::SHORTCODE_ACTIONS
 		);
 
+		$params['includecss'] = $params['includecss'] === true || $params['includecss'] === 'true';
+
+		if ($params['includecss']) {
+			TouchPointWP::enqueuePartialsStyle("partner-list attribute");
+		}
+
+		ob_start();
+		self::doList($params);
+
+		return apply_shortcodes("<div class=\"{$params['class']}\">" . ob_get_clean() . "</div>");
+	}
+
+	/**
+	 * Print the list items for all of the Partners in the main query, on one page, in order by title.  This is the
+	 * list for the Partner archive page and the list shortcode.
+	 *
+	 * @param array $params The list's parameters, which the list item can use.  (e.g. `itemclass`)
+	 *
+	 * @return void
+	 *
+	 * @since 0.2.2 Added
+	 */
+	public static function doList(array $params = []): void
+	{
 		global $the_query, $wp_the_query;
 		$the_query = $wp_the_query;
 
@@ -744,14 +768,6 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 		$the_query->get_posts();
 		$the_query->rewind_posts();
 
-		$params['includecss'] = $params['includecss'] === true || $params['includecss'] === 'true';
-
-		if ($params['includecss']) {
-			TouchPointWP::enqueuePartialsStyle("partner-list attribute");
-		}
-
-		ob_start();
-
 		while ($the_query->have_posts()) {
 			$the_query->the_post();
 
@@ -760,8 +776,6 @@ class Partner extends PostTypeCapable implements api, JsonSerializable, updatesV
 				require TouchPointWP::$dir . "/src/templates/parts/partner-list-item.php";
 			}
 		}
-
-		return apply_shortcodes("<div class=\"{$params['class']}\">" . ob_get_clean() . "</div>");
 	}
 
 	/**

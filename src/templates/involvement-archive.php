@@ -14,16 +14,6 @@ use tp\TouchPointWP\TouchPointWP;
 $postType = is_archive() ? get_queried_object()->name : false;
 $settings = Involvement::getSettingsForPostType($postType);
 
-if (have_posts()) {
-    $location = TouchPointWP::instance()->geolocate(false);
-
-    if ($location !== false) {
-        // we have a viable location. Use it for sorting by distance.
-        Involvement::setComparisonGeo($location);
-        TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
-    }
-}
-
 get_header($postType);
 
 $description = get_the_archive_description();
@@ -50,13 +40,7 @@ if (have_posts()) {
 
     <?php
 
-    Involvement::doInvolvementList($wp_query);
-
-    wp_reset_query();
-    $taxQuery = [[]];
-    $wp_query->tax_query->queries = $taxQuery;
-    $wp_query->query_vars['tax_query'] = $taxQuery;
-    $wp_query->is_tax = false;  // prevents templates from thinking this is a taxonomy archive
+    Involvement::doArchiveList($wp_query);
 } else {
     $loadedPart = get_template_part('list-none', 'involvement-list-none');
     if ($loadedPart === false) {

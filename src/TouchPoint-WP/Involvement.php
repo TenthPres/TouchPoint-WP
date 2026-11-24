@@ -533,6 +533,9 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 			if (is_post_type_archive($postTypesToFilter) && file_exists(
 					TouchPointWP::$dir . '/src/templates/involvement-archive.php'
 				)) {
+				if (have_posts()) {
+					self::useVisitorLocation(); // Before the template outputs anything, so the cache headers can be sent.
+				}
 				return TouchPointWP::$dir . '/src/templates/involvement-archive.php';
 			}
 
@@ -1508,6 +1511,51 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 	}
 
 
+	/**
+	 * Get ready to sort by distance from the visitor, if their location is already known.  A page that does is different
+	 * for each visitor, so it can only be cached privately.  That's sent in a header, so this needs to be called before
+	 * the page outputs anything.
+	 *
+	 * @return void
+	 *
+	 * @since 0.2.2 Added
+	 */
+	public static function useVisitorLocation(): void
+	{
+		$userLoc = TouchPointWP::instance()->geolocate(false);
+		if ($userLoc !== false) {
+			// we have a viable location. Use it for sorting by distance.
+			self::setComparisonGeo($userLoc);
+			if ( ! headers_sent()) { // Depending on when this was called, it may be too late.
+				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
+			}
+		}
+	}
+
+
+	/**
+	 * Print the list of involvements for an archive page, such as the default archive template.  This is
+	 * doInvolvementList(), and then returns the query to what it was before the list changed it, so the rest of the page
+	 * doesn't take it for a taxonomy archive.
+	 *
+	 * @param WP_Query $q The archive's query.
+	 *
+	 * @return void
+	 *
+	 * @since 0.2.2 Added
+	 */
+	public static function doArchiveList(WP_Query $q): void
+	{
+		self::doInvolvementList($q);
+
+		wp_reset_query();
+		$taxQuery                   = [[]];
+		$q->tax_query->queries      = $taxQuery;
+		$q->query_vars['tax_query'] = $taxQuery;
+		$q->is_tax                  = false;  // prevents templates from thinking this is a taxonomy archive
+	}
+
+
 	public static function doInvolvementList(WP_Query $q, $params = []): void
 	{
 		$q->set('posts_per_page', -1);
@@ -1583,15 +1631,7 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 			}
 		}
 
-		// Prepare to sort by distance if location is already cached.
-		$userLoc = TouchPointWP::instance()->geolocate(false);
-		if ($userLoc !== false) {
-			// we have a viable location. Use it for sorting by distance.
-			Involvement::setComparisonGeo($userLoc);
-			if ( ! headers_sent()) { // Depending on when this was called, it may be too late.
-				TouchPointWP::doCacheHeaders(TouchPointWP::CACHE_PRIVATE);
-			}
-		}
+		self::useVisitorLocation();
 
 		$containerClass = $params['class'] ?? [];
         if (is_array($containerClass)) {

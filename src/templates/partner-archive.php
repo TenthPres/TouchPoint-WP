@@ -18,17 +18,7 @@ get_header($postType);
 $description = get_the_archive_description();
 
 if (have_posts()) {
-    global $wp_the_query;
-
     $tpwp = TouchPointWP::instance();
-
-    $wp_the_query->set('posts_per_page', -1);
-    $wp_the_query->set('nopaging', true);
-    $wp_the_query->set('orderby', 'title');
-    $wp_the_query->set('order', 'ASC');
-
-    $wp_the_query->get_posts();
-    $wp_the_query->rewind_posts();
 
     TouchPointWP::enqueuePartialsStyle("partner-archive");
     ?>
@@ -45,16 +35,7 @@ if (have_posts()) {
 
     <main class="TouchPointWP-main">
     <div class="partner-list">
-    <?php
-
-    while ($wp_the_query->have_posts()) {
-        $wp_the_query->the_post();
-        $loadedPart = get_template_part('list-item', 'partner-list-item');
-        if ($loadedPart === false) {
-            require TouchPointWP::$dir . "/src/templates/parts/partner-list-item.php";
-        }
-    }
-    ?>
+    <?php Partner::doList(); ?>
     </div>
     </main>
     <?php
