@@ -1333,10 +1333,13 @@ elif ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r par
             [host, path] = r.split('/', 1)
             host = host.lower()
 
+            # The destination must be absolute.  A bare path (no leading slash) is treated by WordPress as relative to
+            # the directory of the request, which breaks sites where wp-login.php is served from a language or
+            # subdirectory prefix (e.g. /es/wp-login.php would send the user to /es/es/...).
+            siteRoot = ("https://" if useSsl else "http://") + host
             # noinspection PyUnresolvedReferences
-            redir = urllib.urlencode({'redirect_to': path, 'tptoken': 'TOKENJAWN'})
-            # noinspection HttpUrlsUsage
-            redir = ("https://" if useSsl else "http://") + host + "/wp-login.php?" + redir
+            redir = urllib.urlencode({'redirect_to': siteRoot + '/' + path.lstrip('/'), 'tptoken': 'TOKENJAWN'})
+            redir = siteRoot + "/wp-login.php?" + redir
             # noinspection PyUnresolvedReferences
             redir = urllib.urlencode({'destination': redir})
             redir = redir.replace("TOKENJAWN", "{token}")
