@@ -10,10 +10,14 @@ if ( ! defined('ABSPATH')) {
 }
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
-	require_once "Interfaces/involvementMeetingCommon.php";
+	require_once "Interfaces/hasGeo.php";
+	require_once "Interfaces/hierarchical.php";
+	require_once "Interfaces/scheduled.php";
 }
 
-use tp\TouchPointWP\Interfaces\involvementMeetingCommon;
+use tp\TouchPointWP\Interfaces\hasGeo;
+use tp\TouchPointWP\Interfaces\hierarchical;
+use tp\TouchPointWP\Interfaces\scheduled;
 use WP_Post;
 
 /**
@@ -24,8 +28,17 @@ use WP_Post;
  *
  * @since 0.2.2 Added
  */
-abstract class InvolvementOrMeeting extends PostTypeCapable implements involvementMeetingCommon
+abstract class InvolvementOrMeeting extends PostTypeCapable implements scheduled, hierarchical, hasGeo
 {
+	/**
+	 * Indicates if the post is in the past.
+     *
+	 * @return bool
+     *
+     * @since 0.2.2 Moved from a trait that no longer exists.
+	 */
+	public abstract function isPast(): bool;
+
 	/**
 	 * Get a link to the post's parent, such as the event this is a part of.  Only a parent that's published is linked.
 	 *
