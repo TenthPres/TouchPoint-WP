@@ -695,7 +695,7 @@ trait meeting_GroupingWriter
 
 	/**
 	 * A slug made from a title.  The parent's title is left out when the title starts with it, as it is when the title is
-	 * displayed (see PostTypeCapable::titleWithinParent()), since it's already in the parent's address.  Apostrophes are
+	 * displayed (see InvolvementOrMeeting::titleWithinParent()), since it's already in the parent's address.  Apostrophes are
 	 * dropped, and accents removed, so "God's House" becomes "gods-house", not "god-s-house".
 	 *
 	 * @param string  $title
