@@ -45,7 +45,10 @@ trait meeting_GroupingWriter
 	 * @param object[]                     $involvements The involvements in the structure, including the owner.
 	 * @param array                        $items        The plan, from Meeting_GroupingPlanner::plan().
 	 * @param Involvement_PostTypeSettings $typeSets
-	 * @param int                          $imagePostId  The image to use as the thumbnail, or 0 for none.
+	 * @param int                          $imagePostId  The structure owner's image, to use as the thumbnail, or 0 for none.
+	 * @param int[]                        $childImageIds The images of the child involvements that have one, by involvement ID.
+	 *                                                    A meeting or Cluster uses the image of its own involvement, if it
+	 *                                                    has one, and otherwise the owner's.
 	 * @param bool                         $verbose
 	 * @param bool                         $applyChanges
 	 *
@@ -58,6 +61,7 @@ trait meeting_GroupingWriter
 		array $items,
 		Involvement_PostTypeSettings $typeSets,
 		int $imagePostId,
+		array $childImageIds,
 		bool $verbose = false,
 		bool $applyChanges = true
 	): array {
@@ -67,6 +71,7 @@ trait meeting_GroupingWriter
 			'ownerPost'    => $ownerPost,
 			'involvements' => [],
 			'imagePostId'  => $imagePostId,
+			'imageIds'     => $childImageIds,
 			'cutoff'       => self::updateExpiry()->getTimestamp(),
 			'verbose'      => $verbose,
 			'apply'        => $applyChanges,
@@ -460,8 +465,9 @@ trait meeting_GroupingWriter
 				}
 
 				if ($isNew || ! $archived) {
-					if ($ctx->imagePostId > 0) {
-						set_post_thumbnail($post->ID, $ctx->imagePostId);
+					$imageId = $ctx->imageIds[$inv->involvementId] ?? $ctx->imagePostId;
+					if ($imageId > 0) {
+						set_post_thumbnail($post->ID, $imageId);
 					} else {
 						delete_post_thumbnail($post->ID);
 					}

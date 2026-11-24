@@ -3639,6 +3639,19 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 		// If the involvement's post was the meeting's post, it isn't anymore.
 		self::doMeetingMetaUpdates($post, null, false, $verbose, $applyChanges);
 
+		// Hidden posts for the included child involvements.  They come first, so that their images are known when the
+		// meeting posts are written.  A post that's also a meeting's post isn't treated as the child's post (see
+		// updateHiddenChildPost()), so it doesn't matter that the plan hasn't been written yet.
+		$keep          = [];
+		$childImageIds = [];
+		foreach ($structure as $child) {
+			$childImageId = 0;
+			$keep         = [...$keep, ...self::updateHiddenChildPost($child, $typeSets, $verbose, $applyChanges, $childImageId)];
+			if ($childImageId > 0) {
+				$childImageIds[$child->involvementId] = $childImageId;
+			}
+		}
+
 		$owner           = clone $inv;
 		$owner->meetings = $own;
 		$involvements    = [$owner, ...$structure];
@@ -3652,22 +3665,20 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 			Meeting_GroupingSettings::clusterGap()
 		);
 
-		$keep = self::writeGroupingPlan(
-			$post,
-			$owner,
-			$involvements,
-			$planner->plan(),
-			$typeSets,
-			$imagePostId,
-			$verbose,
-			$applyChanges
-		);
-
-		// Hidden posts for the included child involvements.  This comes after the plan is written, so that combined
-		// posts adopted as meeting posts are no longer found as the child's post.
-		foreach ($structure as $child) {
-			$keep = [...$keep, ...self::updateHiddenChildPost($child, $typeSets, $verbose, $applyChanges)];
-		}
+		$keep = [
+			...$keep,
+			...self::writeGroupingPlan(
+				$post,
+				$owner,
+				$involvements,
+				$planner->plan(),
+				$typeSets,
+				$imagePostId,
+				$childImageIds,
+				$verbose,
+				$applyChanges
+			)
+		];
 
 		return [$post->ID, ...$keep];
 	}
@@ -3680,6 +3691,7 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 	 * @param Involvement_PostTypeSettings $typeSets
 	 * @param bool                         $verbose
 	 * @param bool                         $applyChanges
+	 * @param int                          $imageId Set to the attachment ID of the hidden post's own image, or 0 if it has none.
 	 *
 	 * @return int[] The IDs of posts to keep.
 	 */
@@ -3687,7 +3699,8 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 		object $child,
 		Involvement_PostTypeSettings $typeSets,
 		bool $verbose = false,
-		bool $applyChanges = true
+		bool $applyChanges = true,
+		int &$imageId = 0
 	): array {
 		$post = self::getWpPostByInvolvementId($typeSets->postType, $child->involvementId);
 
@@ -3726,6 +3739,8 @@ class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, m
 				Utilities::forceSlugUpdate($post->ID, $slug);
 			}
 		}
+
+		$imageId = $post instanceof WP_Post && $post->ID ? Utilities::ownThumbnailId($post->ID) : 0;
 
 		return $keep;
 	}
