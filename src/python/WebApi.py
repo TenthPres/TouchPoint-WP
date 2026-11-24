@@ -1338,7 +1338,7 @@ elif ("login" in Data.a or Data.r != '') and model.HttpMethod == "get":  # r par
             # subdirectory prefix (e.g. /es/wp-login.php would send the user to /es/es/...).
             siteRoot = ("https://" if useSsl else "http://") + host
             # noinspection PyUnresolvedReferences
-            redir = urllib.urlencode({'redirect_to': siteRoot + '/' + path, 'tptoken': 'TOKENJAWN'})
+            redir = urllib.urlencode({'redirect_to': siteRoot + '/' + path.lstrip('/'), 'tptoken': 'TOKENJAWN'})
             redir = siteRoot + "/wp-login.php?" + redir
             # noinspection PyUnresolvedReferences
             redir = urllib.urlencode({'destination': redir})
