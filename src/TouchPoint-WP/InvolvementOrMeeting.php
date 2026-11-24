@@ -248,8 +248,6 @@ abstract class InvolvementOrMeeting extends PostTypeCapable implements scheduled
 			$loadedPart = get_template_part('list-item', 'involvement-list-item');
 		}
 		if ($loadedPart === false) {
-			// The plugin's list item uses this to list its own children.  It can't work it out for a meeting.
-			$settings = Involvement::getSettingsForPostType($post->post_type);
 			require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
 		}
 	}

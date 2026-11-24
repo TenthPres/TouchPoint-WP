@@ -1,21 +1,13 @@
 <?php
 
-use tp\TouchPointWP\Involvement;
-use tp\TouchPointWP\Involvement_PostTypeSettings;
-use tp\TouchPointWP\Meeting;
 use tp\TouchPointWP\PostTypeCapable;
 use tp\TouchPointWP\TouchPointWP;
 
 global $post;
 
 /** @var $post WP_Post */
-/** @var $settings Involvement_PostTypeSettings */
 
 $inv = PostTypeCapable::fromPost($post);
-
-if (!isset($settings)) {
-    $settings = Involvement::getSettingsForPostType($inv->invType);
-}
 
 $postTypeClass = get_post_type($post);
 $postTypeClass = str_replace(TouchPointWP::HOOK_PREFIX, "", $postTypeClass);
@@ -46,33 +38,4 @@ $postItemClass = $params['itemclass'] ?? "inv-list-item";
     <div class="actions involvement-actions <?php echo $postTypeClass; ?>-actions">
         <?php echo $inv->getActionButtons('list-item', "btn button"); ?>
     </div>
-    <?php if (isset($settings) && $settings->hierarchical) {
-        $children = get_children([
-            'post_parent' => $post->ID,
-            'orderby' => 'title',
-            'order' => 'ASC',
-            'post_type' => get_post_type($post)
-        ]);
-        // Child involvements (which have no start) first, by title; then meetings and groups, chronologically.
-        usort($children, function ($a, $b) {
-            $aStart = intval(get_post_meta($a->ID, Meeting::MEETING_START_META_KEY, true));
-            $bStart = intval(get_post_meta($b->ID, Meeting::MEETING_START_META_KEY, true));
-            return [$aStart, $a->post_title] <=> [$bStart, $b->post_title];
-        });
-        if (count($children) > 0) {
-            echo "<div class='child-involvements'>";
-        }
-        foreach ($children as $child) {
-            /** @var WP_Post $child */
-            $childInv = PostTypeCapable::fromPost($child);
-
-            echo "<div>";
-            echo "<h3 class='inline'><a href=\"{$childInv->permalink()}\" class='small'>{$childInv->titleWithinParent($post)}</a></h3>";
-            echo $childInv->notableAttributes($notableAttributes);
-            echo "</div>";
-        }
-        if (count($children) > 0) {
-            echo "</div>";
-        }
-    } ?>
 </article>
