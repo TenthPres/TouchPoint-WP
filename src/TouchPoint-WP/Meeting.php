@@ -11,14 +11,13 @@ if ( ! defined('ABSPATH')) {
 
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "Interfaces/api.php";
-	require_once "Interfaces/involvementMeetingCommon.php";
+	require_once "InvolvementOrMeeting.php";
 }
 
 use DateTime;
 use DateTimeImmutable;
 use Exception;
 use tp\TouchPointWP\Interfaces\api;
-use tp\TouchPointWP\Interfaces\involvementMeetingCommon;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Utilities\DateFormats;
 use tp\TouchPointWP\Utilities\Http;
@@ -31,7 +30,7 @@ use WP_Term;
 /**
  * Handle meeting content, particularly RSVPs.
  */
-class Meeting extends PostTypeCapable implements api, module, involvementMeetingCommon
+class Meeting extends InvolvementOrMeeting implements api, module
 {
 	use jsInstantiation;
 //	use jsonLd; TODO
@@ -721,6 +720,42 @@ class Meeting extends PostTypeCapable implements api, module, involvementMeeting
 			1 => $excludeScheduled ? null : __("Scheduled", "TouchPoint-WP"),
 			default => _x("Unknown", "Event Status is not a recognized value.", "TouchPoint-WP"),
 		};
+	}
+
+	/**
+	 * Get a notice to show about the meeting's status: that it's cancelled, or that it's already happened.
+	 *
+	 * @return ?object An object with a `level`, which is "alert" or "info", and a `message`.  Null if there isn't a notice.
+	 *
+	 * @since 0.2.2 Added
+	 */
+	public function statusNotice(): ?object
+	{
+		$meetingsCalled = strtolower(__(TouchPointWP::instance()->settings->mc_name_singular)); // deliberately no domain
+
+		if ($this->status() === self::STATUS_CANCELLED) {
+			return (object)[
+				'level'   => 'alert',
+				'message' => wp_sprintf(
+					// Translators: %s is the singular name of the of a Meeting, such as "Event".
+					__('This %s has been cancelled.', 'TouchPoint-WP'),
+					$meetingsCalled
+				)
+			];
+		}
+
+		if ($this->isPast()) {
+			return (object)[
+				'level'   => 'info',
+				'message' => wp_sprintf(
+					// Translators: %s is the singular name of the of a Meeting, such as "Event".
+					__('This %s has already happened.', 'TouchPoint-WP'),
+					$meetingsCalled
+				)
+			];
+		}
+
+		return null;
 	}
 
 	/**

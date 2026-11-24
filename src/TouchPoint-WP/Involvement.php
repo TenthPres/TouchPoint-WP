@@ -12,7 +12,7 @@ if ( ! defined('ABSPATH')) {
 if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 	require_once "jsInstantiation.php";
 	require_once "jsonLd.php";
-	require_once "Interfaces/involvementMeetingCommon.php";
+	require_once "InvolvementOrMeeting.php";
 	require_once "Interfaces/updatesViaCron.php";
 	require_once "Utilities.php";
 	require_once "Involvement_PostTypeSettings.php";
@@ -28,7 +28,6 @@ use Exception;
 use JsonSerializable;
 use stdClass;
 use tp\TouchPointWP\Interfaces\api;
-use tp\TouchPointWP\Interfaces\involvementMeetingCommon;
 use tp\TouchPointWP\Interfaces\module;
 use tp\TouchPointWP\Interfaces\updatesViaCron;
 use tp\TouchPointWP\Utilities\DateFormats;
@@ -48,7 +47,7 @@ use WP_Term;
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
  */
-class Involvement extends PostTypeCapable implements api, updatesViaCron, module, JsonSerializable, involvementMeetingCommon
+class Involvement extends InvolvementOrMeeting implements api, updatesViaCron, module, JsonSerializable
 {
 	use jsInstantiation;
 	use jsonLd;

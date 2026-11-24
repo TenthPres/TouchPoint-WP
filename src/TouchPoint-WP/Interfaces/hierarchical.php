@@ -26,4 +26,23 @@ interface hierarchical
 	 * @return mixed
 	 */
 	public function getParent(): mixed;
+
+	/**
+	 * Get a link to the parent, such as the event this is a part of.  Only a parent that's published is linked.
+	 *
+	 * @return ?string The HTML for the link, with the parent's title.  Null if there's no parent to link to.
+	 *
+	 * @since 0.2.2 Added
+	 */
+	public function parentLink(): ?string;
+
+	/**
+	 * Get the children to list on this object's page, in one list.
+	 *
+	 * @return object An object with `current` and `past` lists of the children, which can be printed with
+	 *                printListItem().  Both are empty if this type of post doesn't list its children.
+	 *
+	 * @since 0.2.2 Added
+	 */
+	public function childItems(): object;
 }
