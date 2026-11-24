@@ -4,9 +4,9 @@
  * then review the diff and commit it with the change.
  */
 
-require_once __DIR__ . '/bootstrap.php';
-
 use tp\TouchPointWP\Tests\ApiSurface;
+
+require_once __DIR__ . '/bootstrap.php';
 
 file_put_contents(ApiSurface::SNAPSHOT_PATH, ApiSurface::encode(ApiSurface::build()));
 echo "Wrote " . ApiSurface::SNAPSHOT_PATH . "\n";
