@@ -3,8 +3,8 @@ namespace tp\TouchPointWP;
 
 /** @var Settings $this */
 
-$invTypes = json_encode($this->parent->getInvolvementTypes());
-$grouping = json_encode(Meeting_GroupingSettings::toObject());
+$invTypes = wp_json_encode($this->parent->getInvolvementTypes(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+$grouping = wp_json_encode(Meeting_GroupingSettings::toObject(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 echo "<script type=\"text/javascript\">tpvm._vmContext = tpvm._vmContext ?? {}; tpvm._vmContext.mtgGrouping = {invTypes: $invTypes, settings: $grouping }</script>";
 ?>
 <style>
