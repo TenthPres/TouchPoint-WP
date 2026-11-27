@@ -15,6 +15,8 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 
 /**
  * Enables a class with Extra Values
+ *
+ * @api
  */
 trait extraValues
 {
@@ -23,6 +25,7 @@ trait extraValues
 
 	/**
 	 * @return ?ExtraValueHandler
+	 * @api
 	 */
 	public function ExtraValues(): ?ExtraValueHandler
 	{

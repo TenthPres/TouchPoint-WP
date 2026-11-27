@@ -9,6 +9,8 @@ use DateTime;
 
 /**
  * Manages the handling of Extra Values.  Items that support Extra Values MUST use the ExtraValues Trait.
+ *
+ * @api
  */
 class ExtraValueHandler
 {
@@ -50,6 +52,15 @@ class ExtraValueHandler
 		return $evs;
 	}
 
+	/**
+	 * Get an Extra Value from the owning object.
+	 *
+	 * @param string $what The name of the Extra Value.
+	 *
+	 * @return mixed The value, or null if it doesn't exist.
+	 *
+	 * @api
+	 */
 	public function __get($what)
 	{
 		$what = self::standardizeExtraValueName($what);

@@ -25,6 +25,8 @@ use WP_Term;
 
 /**
  * An Outreach partner, corresponding to a family in TouchPoint.
+ *
+ * @api
  */
 class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 {
@@ -49,16 +51,32 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 	public static string $itemClass = 'partner-list-item';
 
 	private static bool $filterJsAdded = false;
+	/**
+	 * @var ?object The geographic location of the Partner, if it has one.
+	 * @api
+	 */
 	public ?object $geo = null;
+	/**
+	 * @var bool Whether the Partner's location is decoupled from its real location (e.g. for privacy), so it shouldn't be shown precisely.
+	 * @api
+	 */
 	public bool $decoupleLocation;
 
 	protected ?string $location = "";
 	protected array $category = [];
 	public ?string $color = "#999999";
 
+	/**
+	 * @var string The name of the Partner.
+	 * @api
+	 */
 	public string $name;
 	protected int $familyId;
 
+	/**
+	 * @var int The ID of the WordPress post that represents the Partner.
+	 * @api
+	 */
 	public int $post_id;
 	public string $post_excerpt;
 	protected WP_Post $post;
@@ -677,6 +695,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 	 * @param array|string $params
 	 *
 	 * @return string
+	 * @api
 	 */
 	public static function filterShortcode($params = []): string
 	{
@@ -807,6 +826,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 	 * @return Partner
 	 *
 	 * @throws TouchPointWP_Exception If the partner can't be created from the post, an exception is thrown.
+	 * @api
 	 */
 	public static function fromPost(WP_Post $post): Partner
 	{
@@ -1028,6 +1048,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 	 * @return string
 	 *
 	 * @noinspection PhpUnusedParameterInspection WordPress API
+	 * @api
 	 */
 	public static function mapShortcode($params = [], string $content = ""): string
 	{
@@ -1164,6 +1185,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 	 * Get notable attributes as strings.
 	 *
 	 * @return string[]
+	 * @api
 	 */
 	public function notableAttributes(): array
 	{
@@ -1212,6 +1234,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 	 *     elements.
 	 *
 	 * @return string
+	 * @api
 	 */
 	public function getActionButtons(string $context = null, string $btnClass = ""): string
 	{
@@ -1261,6 +1284,7 @@ class Partner implements api, JsonSerializable, updatesViaCron, geo, module
 	 * Return the Post ID as needed by the JS classes.  Typically, this will be the post_id, but this can be overridden.
 	 *
 	 * @return int
+	 * @api
 	 */
 	public function jsId(): int
 	{

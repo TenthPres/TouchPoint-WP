@@ -27,6 +27,8 @@ if ( ! TOUCHPOINT_COMPOSER_ENABLED) {
 
 /**
  * Main plugin class.
+ *
+ * @api
  */
 class TouchPointWP
 {
@@ -66,11 +68,15 @@ class TouchPointWP
 
 	/**
 	 * Prefix to use for all shortcodes.
+	 *
+	 * @api
 	 */
 	public const SHORTCODE_PREFIX = "TP-";
 
 	/**
 	 * Prefix to use for all filters and hooks.
+	 *
+	 * @api
 	 */
 	public const HOOK_PREFIX = "tp_";
 
@@ -78,6 +84,8 @@ class TouchPointWP
 
 	/**
 	 * Prefix to use for all settings.
+	 *
+	 * @api
 	 */
 	public const SETTINGS_PREFIX = "tp_";
 
@@ -108,14 +116,27 @@ class TouchPointWP
 
 	/**
 	 * Caching
+	 *
+	 * @api
 	 */
 	public const CACHE_PUBLIC = 0;
+	/**
+	 * Caching level: content that varies by visitor, and may be cached privately (e.g. in the browser), but not by shared caches.
+	 *
+	 * @api
+	 */
 	public const CACHE_PRIVATE = 10;
+	/**
+	 * Caching level: content that must never be cached.
+	 *
+	 * @api
+	 */
 	public const CACHE_NONE = 20;
 	private static int $cacheLevel = self::CACHE_PUBLIC;
 
 	/**
 	 * @var string Used for imploding arrays together in human-friendly formats.
+	 * @api
 	 */
 	public static string $joiner = " &nbsp;&#9702;&nbsp; ";
 
@@ -131,6 +152,8 @@ class TouchPointWP
 
 	/**
 	 * Settings object
+	 *
+	 * @api
 	 */
 	public ?TouchPointWP_Settings $settings = null;
 
@@ -141,6 +164,8 @@ class TouchPointWP
 
 	/**
 	 * The main plugin directory.
+	 *
+	 * @api
 	 */
 	public static string $dir;
 
@@ -338,6 +363,8 @@ class TouchPointWP
 
 	/**
 	 * Spit out headers that prevent caching.  Useful for API calls.
+	 *
+	 * @api
 	 */
 	public static function doCacheHeaders(int $cacheLevel = null): void
 	{
@@ -954,6 +981,7 @@ class TouchPointWP
 	 *
 	 * @return stdClass|false An object with 'lat', 'lng', and 'human' attributes, if a location could be identified.
 	 *     Or, false if not available.
+	 * @api
 	 */
 	public function geolocate(bool $useApi = true, bool $includeRaw = false)
 	{
@@ -1717,6 +1745,7 @@ class TouchPointWP
 	 *
 	 * @return TouchPointWP instance
 	 * @see TouchPointWP()
+	 * @api
 	 */
 	public static function instance($file = ''): TouchPointWP
 	{
@@ -2874,6 +2903,8 @@ class TouchPointWP
 	/**
 	 * This function enqueues the stylesheet for the default templates, to avoid registering the style on sites where
 	 * custom templates exist.
+	 *
+	 * @api
 	 */
 	public static function enqueuePartialsStyle()
 	{
