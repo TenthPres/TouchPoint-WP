@@ -31,6 +31,7 @@ if ( ! defined('ABSPATH')) {
  * @property-read int[]    $contactKeywords
  * @property-read int[]    $joinKeywords
  * @property-read string   $postType
+ * @api
  */
 class Involvement_PostTypeSettings
 {
@@ -106,6 +107,15 @@ class Involvement_PostTypeSettings
 		return $this->postType;
 	}
 
+	/**
+	 * Get a setting.  The settings listed in this class's @property-read tags are available this way.
+	 *
+	 * @param string $what The name of the setting.
+	 *
+	 * @return mixed The value of the setting, or TouchPointWP_Settings::UNDEFINED_PLACEHOLDER if there is no such setting.
+	 *
+	 * @api
+	 */
 	public function __get($what)
 	{
 		self::instance(); // ensures object has been instantiated.
@@ -125,6 +135,7 @@ class Involvement_PostTypeSettings
 	 * Gets an array of the postType strings.
 	 *
 	 * @return string[]
+	 * @api
 	 */
 	final public static function getPostTypes(): array
 	{

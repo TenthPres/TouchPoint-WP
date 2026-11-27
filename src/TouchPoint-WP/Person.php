@@ -43,6 +43,7 @@ use WP_User;
  * @property ?string       $loginSessionToken  A token that is saved on the Session variable and used to ensure links
  *     aren't used between sessions.
  * @property ?string       $loginToken    A token used to validate the user.
+ * @api
  */
 class Person extends WP_User implements api, JsonSerializable, module, updatesViaCron
 {
@@ -69,6 +70,10 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 
 	private static array $_peopleWhoNeedWpIdUpdatedInTouchPoint = [];
 
+	/**
+	 * @var int The person's PeopleId in TouchPoint.
+	 * @api
+	 */
 	public int $peopleId;
 	public int $familyId;
 
@@ -496,6 +501,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 * no membership exists.
 	 *
 	 * @return InvolvementMembership[]|InvolvementMembership
+	 * @api
 	 */
 	public function getInvolvementMemberships(?int $iid = null)
 	{
@@ -1171,6 +1177,7 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 	 *     elements.
 	 *
 	 * @return string
+	 * @api
 	 */
 	public function getActionButtons(string $context = null, string $btnClass = ""): string
 	{
@@ -1357,6 +1364,13 @@ class Person extends WP_User implements api, JsonSerializable, module, updatesVi
 		return count_user_posts($this->ID) > 0;
 	}
 
+	/**
+	 * Get the URL of the person's profile page, if they have one and profile links are enabled.
+	 *
+	 * @return ?string The URL, or null if the person doesn't have a profile page (or links to it are disabled).
+	 *
+	 * @api
+	 */
 	public function getProfileUrl(): ?string
 	{
 		if ( ! ! apply_filters(TouchPointWP::HOOK_PREFIX . 'use_person_link', $this->hasProfilePage(), $this)) {

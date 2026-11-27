@@ -2,9 +2,10 @@
 /**
  * Builds a description of the plugin's public API, for comparison against the committed snapshot.
  *
- * The "public API" is everything a theme, another plugin, or a site's custom code could depend on:
- *  - public and protected classes, interfaces, and traits in src/TouchPoint-WP (with their constants, properties,
- *    and methods, including signatures and types),
+ * The "public API" is what a theme, another plugin, or a site's custom code is meant to depend on:
+ *  - classes, interfaces, and traits in src/TouchPoint-WP that are tagged `@api` in their docblock, and the constants,
+ *    properties, and methods within them that are tagged `@api` (including signatures and types).  Members that are
+ *    merely public or protected, but not tagged, are internal and are not tracked,
  *  - the names of WordPress filters and actions the plugin provides (apply_filters / do_action), and
  *  - the template files that themes may override.
  */
@@ -59,6 +60,16 @@ class ApiSurface
         return str_replace('\\', '/', substr($path, strlen(self::root()) + 1));
     }
 
+    /**
+     * @param string|false|null $doc A docblock, as returned by Reflection*::getDocComment().
+     *
+     * @return bool Whether the docblock includes an `@api` tag.
+     */
+    private static function isApi($doc): bool
+    {
+        return is_string($doc) && preg_match('/^[\s\/*]*@api\b/m', $doc) === 1;
+    }
+
     private static function classes(): array
     {
         $before = array_merge(get_declared_classes(), get_declared_interfaces(), get_declared_traits());
@@ -73,30 +84,41 @@ class ApiSurface
             if ($rc->isInternal() || strpos($rc->getFileName(), self::root() . DIRECTORY_SEPARATOR . 'src') !== 0) {
                 continue;
             }
-            $out[$name] = self::describeClass($rc);
+            $desc = self::describeClass($rc);
+            if ($desc !== null) {
+                $out[$name] = $desc;
+            }
         }
         ksort($out);
         return $out;
     }
 
-    private static function describeClass(ReflectionClass $rc): array
+    /**
+     * @return ?array A description of the class's tagged API, or null if neither the class nor any of its members are
+     *                tagged `@api`.
+     */
+    private static function describeClass(ReflectionClass $rc): ?array
     {
-        $kind = $rc->isInterface() ? 'interface' : ($rc->isTrait() ? 'trait' : 'class');
-        $d    = [
-            'kind'       => $kind,
-            'file'       => self::rel($rc->getFileName()),
-            'abstract'   => $kind === 'class' && $rc->isAbstract(),
-            'final'      => $rc->isFinal(),
-            'parent'     => $rc->getParentClass() ? $rc->getParentClass()->getName() : null,
-            'interfaces' => $rc->getInterfaceNames(),
-            'traits'     => $rc->getTraitNames(),
-        ];
-        sort($d['interfaces']);
-        sort($d['traits']);
+        $tagged = self::isApi($rc->getDocComment());
+        $d      = ['api' => $tagged];
+
+        if ($tagged) {
+            $kind = $rc->isInterface() ? 'interface' : ($rc->isTrait() ? 'trait' : 'class');
+            $d    += [
+                'kind'       => $kind,
+                'abstract'   => $kind === 'class' && $rc->isAbstract(),
+                'final'      => $rc->isFinal(),
+                'parent'     => $rc->getParentClass() ? $rc->getParentClass()->getName() : null,
+                'interfaces' => $rc->getInterfaceNames(),
+                'traits'     => $rc->getTraitNames(),
+            ];
+            sort($d['interfaces']);
+            sort($d['traits']);
+        }
 
         $d['constants'] = [];
         foreach ($rc->getReflectionConstants() as $c) {
-            if ($c->isPrivate() || $c->getDeclaringClass()->getName() !== $rc->getName()) {
+            if ($c->isPrivate() || $c->getDeclaringClass()->getName() !== $rc->getName() || !self::isApi($c->getDocComment())) {
                 continue;
             }
             $d['constants'][$c->getName()] = [
@@ -110,7 +132,7 @@ class ApiSurface
         $defaults        = $rc->getDefaultProperties();
         $d['properties'] = [];
         foreach ($rc->getProperties() as $p) {
-            if ($p->isPrivate() || $p->getDeclaringClass()->getName() !== $rc->getName()) {
+            if ($p->isPrivate() || $p->getDeclaringClass()->getName() !== $rc->getName() || !self::isApi($p->getDocComment())) {
                 continue;
             }
             $d['properties'][$p->getName()] = self::describeProperty($p, $defaults);
@@ -119,12 +141,16 @@ class ApiSurface
 
         $d['methods'] = [];
         foreach ($rc->getMethods() as $m) {
-            if ($m->isPrivate() || $m->getDeclaringClass()->getName() !== $rc->getName()) {
+            if ($m->isPrivate() || $m->getDeclaringClass()->getName() !== $rc->getName() || !self::isApi($m->getDocComment())) {
                 continue;
             }
             $d['methods'][$m->getName()] = self::describeMethod($m);
         }
         ksort($d['methods']);
+
+        if (!$tagged && !$d['constants'] && !$d['properties'] && !$d['methods']) {
+            return null;
+        }
 
         return $d;
     }

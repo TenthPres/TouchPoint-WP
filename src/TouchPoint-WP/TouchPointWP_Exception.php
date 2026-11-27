@@ -18,6 +18,8 @@ if ( ! defined('ABSPATH')) {
 
 /**
  * An Exception class.
+ *
+ * @api
  */
 class TouchPointWP_Exception extends Exception
 {

@@ -1132,6 +1132,7 @@ class TouchPointWP_Settings
 	 * @param string $what The field to get a value for
 	 *
 	 * @return string|false  The value, if set.  False if not set.
+	 * @api
 	 */
 	public function __get(string $what)
 	{

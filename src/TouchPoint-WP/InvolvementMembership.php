@@ -11,6 +11,8 @@ if ( ! defined('ABSPATH')) {
 
 /**
  * Connect a Person to an Involvement
+ *
+ * @api
  */
 class InvolvementMembership
 {
@@ -18,6 +20,10 @@ class InvolvementMembership
 	public Involvement $involvement;
 	public ?string $mt;
 	public ?string $at;
+	/**
+	 * @var ?string The person's description within the Involvement, if any.
+	 * @api
+	 */
 	public ?string $description;
 
 	protected int $_iid;

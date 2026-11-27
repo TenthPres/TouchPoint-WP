@@ -4,15 +4,41 @@ These tests fail when the plugin's public API changes, so that changes are delib
 
 ## What counts as public API
 
-`tests/api-surface.json` is a committed snapshot of:
+Only what is deliberately offered to themes and other code. A class member being `public` or `protected` does not make it
+API: many are public only so that other classes in the plugin can use them, and they are free to change.
 
-- **Classes, interfaces, and traits** in `src/TouchPoint-WP`: kind, abstract/final, parent, interfaces, traits, and every
-  `public`/`protected` constant, property, and method (static/abstract/final, parameter names, types, defaults,
-  by-reference/variadic, and return types).
+Something is API when its docblock contains an `@api` tag. `tests/api-surface.json` is a committed snapshot of:
+
+- **Classes, interfaces, and traits** tagged `@api` in `src/TouchPoint-WP`: kind, abstract/final, parent, interfaces, and
+  traits. Tagging a class means the class itself is supported (instantiating it, extending it, calling its static entry
+  points); it does not cover its members.
+- **Constants, properties, and methods** tagged `@api`, each individually: visibility, static/abstract/final, parameter
+  names, types, defaults, by-reference/variadic, and return types. A class whose members are tagged but which is not
+  itself tagged is tracked for those members only.
 - **Hooks**: the filters and actions the plugin provides (`apply_filters` / `do_action` using `HOOK_PREFIX` or `TOKEN`).
-- **Templates**: files under `src/templates`, which themes may override.
+  These are all tracked, without tagging.
+- **Templates**: files under `src/templates`, which themes may override. These are all tracked, without tagging.
 
-Private members are ignored. Hooks are recorded by the name expression as written in the source.
+Removing an `@api` tag is a change to the API, and the tests treat it as one.
+
+## Marking something as API
+
+Add `@api` to the docblock, after the description and other tags:
+
+```php
+/**
+ * Get the Involvement that a post represents.
+ *
+ * @param WP_Post $post The post.
+ *
+ * @return Involvement
+ * @api
+ */
+public static function fromPost(WP_Post $post): Involvement
+```
+
+Tag a member when a theme, a shortcode-style template, or the documentation in `docs/` tells people to use it, and
+document it properly. New members are internal until someone tags them.
 
 ## Running
 

@@ -33,6 +33,8 @@ use WP_Term;
 
 /**
  * Fundamental object meant to correspond to an Involvement in TouchPoint
+ *
+ * @api
  */
 class Involvement implements api, updatesViaCron, geo, module
 {
@@ -59,6 +61,10 @@ class Involvement implements api, updatesViaCron, geo, module
 	public static string $itemClass = 'inv-list-item';
 
 	private static bool $filterJsAdded = false;
+	/**
+	 * @var ?object The geographic location of the Involvement, if it has one.
+	 * @api
+	 */
 	public ?object $geo = null;
 	static protected object $compareGeo;
 
@@ -75,14 +81,23 @@ class Involvement implements api, updatesViaCron, geo, module
 	protected ?int $genderId = null;
 	public ?string $color = "#999999";
 
+	/**
+	 * @var string The name of the Involvement.
+	 * @api
+	 */
 	public string $name;
 	public int $invId;
 
 	/**
 	 * @var string The Involvement Type is the post Type WITHOUT the possible prefix.
+	 * @api
 	 */
 	public string $invType;
 
+	/**
+	 * @var int The ID of the WordPress post that represents the Involvement.
+	 * @api
+	 */
 	public int $post_id;
 	public string $post_excerpt;
 	protected WP_Post $post;
@@ -827,6 +842,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 * @param ?string $postType Accepts either the post type string, or the inv type string
 	 *
 	 * @return ?Involvement_PostTypeSettings
+	 * @api
 	 */
 	public static function getSettingsForPostType(?string $postType): ?Involvement_PostTypeSettings
 	{
@@ -926,6 +942,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 * @param array|string $params
 	 *
 	 * @return string
+	 * @api
 	 */
 	public static function filterShortcode($params = []): string
 	{
@@ -992,6 +1009,15 @@ class Involvement implements api, updatesViaCron, geo, module
 	}
 
 
+	/**
+	 * Adjust the provided query so it lists Involvements, as appropriate for an archive or a shortcode.
+	 *
+	 * @param WP_Query $q      The query to modify.  Modified in place.
+	 * @param array    $params Shortcode-style parameters, such as 'type'.  If no type is given on a post type archive,
+	 *                         the archive's post type is used.
+	 *
+	 * @api
+	 */
 	public static function doInvolvementList(WP_Query $q, $params = []): void
 	{
 		$q->set('posts_per_page', -1);
@@ -1556,6 +1582,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 * @return Involvement
 	 *
 	 * @throws TouchPointWP_Exception If the involvement can't be created from the post, an exception is thrown.
+	 * @api
 	 */
 	public static function fromPost(WP_Post $post): Involvement
 	{
@@ -1911,6 +1938,7 @@ class Involvement implements api, updatesViaCron, geo, module
 
 	/**
 	 * @param object $geo Set a geo object to use for distance comparisons.  Needs to be called before getDistance()
+	 * @api
 	 */
 	public static function setComparisonGeo(object $geo): void
 	{
@@ -1953,6 +1981,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 * @param WP_Post $b
 	 *
 	 * @return int
+	 * @api
 	 */
 	public static function sortPosts(WP_Post $a, WP_Post $b): int
 	{
@@ -1981,6 +2010,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 * @return string
 	 *
 	 * @noinspection PhpUnusedParameterInspection WordPress API
+	 * @api
 	 */
 	public static function mapShortcode($params = [], string $content = ""): string
 	{
@@ -2042,6 +2072,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 * Indicates whether a map of a single Involvement can be displayed.
 	 *
 	 * @return bool
+	 * @api
 	 */
 	public function hasGeo(): bool
 	{
@@ -2747,6 +2778,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 *     here.)
 	 *
 	 * @return string[]
+	 * @api
 	 */
 	public function notableAttributes(array $exclude = []): array
 	{
@@ -2823,6 +2855,7 @@ class Involvement implements api, updatesViaCron, geo, module
 	 *     elements.
 	 *
 	 * @return string
+	 * @api
 	 */
 	public function getActionButtons(string $context = null, string $btnClass = ""): string
 	{
