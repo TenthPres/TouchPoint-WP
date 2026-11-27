@@ -3,7 +3,6 @@
 use tp\TouchPointWP\Involvement;
 use tp\TouchPointWP\Meeting;
 use tp\TouchPointWP\PostTypeCapable;
-use tp\TouchPointWP\Taxonomies;
 use tp\TouchPointWP\TouchPointWP;
 
 $postType = get_post_type();
@@ -14,59 +13,45 @@ get_header($postType);
 the_post();
 $p   = get_post();
 $tps = TouchPointWP::instance()->settings;
+/** @var Involvement|Meeting $obj */
 $obj = PostTypeCapable::fromPost($p);
 
 TouchPointWP::enqueuePartialsStyle("involvement-single");
 
+// What this page shows is worked out by the object, so a theme's version of this template can do the same:
+$headerImage = $obj->headerImage();   // An object with the image's url and alt text, or null.
+$parentLink  = $obj->parentLink();    // A link to the parent, or null.
+$notice      = $obj->statusNotice();  // An object with a level and a message, such as "This event has been cancelled", or null.
+$children    = $obj->childItems();    // An object with `current` and `past` lists, whose items have a printListItem() method.
+
 ?>
 
 <header class="archive-header has-text-align-center header-footer-group">
-    <?php
-    $image = get_the_post_thumbnail_url($p, 'full');
-    $image = $image ? esc_url($image) : false;
-    $imageAlt = esc_html(get_post(get_post_thumbnail_id($p))->post_title);
-    if ($image) {
-        echo "<div class=\"header-image-container\">";
-        echo "<div class=\"header-image involvement-header-image\" style=\"background-image: url('$image');\">";
-        echo "<img src='$image' alt='$imageAlt' class='tpwp-accessibility-header-image'>";
-        echo "</div>";
-        echo "</div>";
-    }
-    ?>
+    <?php if ($headerImage !== null) { ?>
+        <div class="header-image-container">
+            <div class="header-image involvement-header-image" style="background-image: url('<?php echo $headerImage->url; ?>');">
+                <img src="<?php echo $headerImage->url; ?>" alt="<?php echo $headerImage->alt; ?>" class="tpwp-accessibility-header-image">
+            </div>
+        </div>
+    <?php } ?>
 
     <div class="archive-header-inner section-inner medium">
         <h1 class="archive-title page-title"><?php echo the_title() ?></h1>
+        <?php if ($parentLink !== null) { ?>
+            <p class="parent-link">
+                <?php
+                // Translators: %s is a link to the event or involvement this one is part of.
+                echo wp_sprintf(__('Part of %s', 'TouchPoint-WP'), $parentLink);
+                ?>
+            </p>
+        <?php } ?>
     </div>
-    <?php
 
-    if ($obj instanceof Meeting) {
-        if ($obj->status() === Meeting::STATUS_CANCELLED) {
-            echo "<div class='section-inner tpwp-alert-block'>";
-
-            $meetingsCalled = $tps->mc_name_singular;
-
-            echo wp_sprintf(
-                // Translators: %s is the singular name of the of a Meeting, such as "Event".
-                __('This %s has been cancelled.', 'TouchPoint-WP'),
-                strtolower(__($meetingsCalled)) // deliberately no domain
-            );
-            echo "</div>";
-        } elseif ($obj->isPast()) {
-            echo "<div class='section-inner tpwp-alert-block tpwp-alert-info'>";
-
-            $meetingsCalled = $tps->mc_name_singular;
-
-            echo wp_sprintf(
-            // Translators: %s is the singular name of the of a Meeting, such as "Event".
-                    __('This %s has already happened.', 'TouchPoint-WP'),
-                    strtolower(__($meetingsCalled)) // deliberately no domain
-            );
-            echo "</div>";
-        }
-    }
-
-    ?>
-
+    <?php if ($notice !== null) { ?>
+        <div class="section-inner tpwp-alert-block<?php echo $notice->level === 'info' ? ' tpwp-alert-info' : ''; ?>">
+            <?php echo $notice->message; ?>
+        </div>
+    <?php } ?>
 </header>
 
 <article <?php post_class(); ?> id="post-<?php the_ID(); ?>" data-tp-involvement="<?php echo $p->ID ?>">
@@ -99,62 +84,45 @@ TouchPointWP::enqueuePartialsStyle("involvement-single");
     </div>
 </article>
 
-<?php if ($settings->hierarchical) {
-	$single_children = get_children([
-		                         'post_parent' => $p->ID,
-		                         'orderby' => 'title',
-		                         'order' => 'ASC',
-		                         'meta_key'     => TouchPointWP::INVOLVEMENT_META_KEY,
-		                         'meta_value'   => 0,
-		                         'meta_compare' => '>'
-	                         ]);
-	if (count($single_children) > 0) {
-		echo "<div class='involvement-list child-involvements'>";
-	}
-	foreach ($single_children as $post) {
-		/** @var WP_Post $post */
-		$loadedPart = get_template_part('list-item', 'involvement-list-item');
-		if ($loadedPart === false) {
-			TouchPointWP::enqueuePartialsStyle("involvement-single child-item");
-			require TouchPointWP::$dir . "/src/templates/parts/involvement-list-item.php";
-		}
-	}
-	if (count($single_children) > 0) {
-		echo "</div>";
-	}
-}
+<?php
+// Child involvements, meetings, and groups of meetings (Editions, Clusters), in one list, with the ones that are over
+// listed after the others.  If there's nothing else, they're listed without hiding them.
+$hasCurrent = count($children->current) > 0;
+$hasPast    = count($children->past) > 0;
+?>
 
-if ($settings->importMeetings && $tps->enable_meeting_cal === "on") {
-	$meetings = get_children([
-		                         'post_parent'  => $p->ID,
-		                         'order'        => 'ASC',
-		                         'orderby'      => 'meta_value_num',
-		                         'meta_key'     => Meeting::MEETING_START_META_KEY,
-		                         'meta_value'   => time(),
-		                         'meta_compare' => '>'
-	                         ]);
-	$count = count($meetings);
-	if ($count > 0) {
-		echo "<div class='event-list'>";
-		$heading = sprintf(
-		// translators: %1$s is the singular name of the event type, %2$s is the plural name of the event type
-			_n('Upcoming %1$s', 'Upcoming %2$s', 'TouchPoint-WP'),
-			TouchPointWP::instance()->settings->mc_name_singular,
-			TouchPointWP::instance()->settings->mc_name_plural
-		);
-		echo "<h3>$heading</h3>";
-	}
-	foreach ($meetings as $post) {
-		/** @var WP_Post $post */
-		$loadedPart = get_template_part('list-item', 'event-list-item');
-		if ($loadedPart === false) {
-			TouchPointWP::enqueuePartialsStyle("involvement-single event-item");
-			require TouchPointWP::$dir . "/src/templates/parts/meeting-list-item.php";
-		}
-	}
-	if (count($meetings) > 0) {
-		echo "</div>";
-	}
-} ?>
+<?php if ($hasCurrent) { ?>
+    <div class="inv-list child-items child-items-current">
+        <?php foreach ($children->current as $child) { ?>
+            <?php $child->printListItem(); ?>
+        <?php } ?>
+    </div>
+<?php } ?>
+
+<?php if ($hasPast && ! $hasCurrent) { ?>
+    <div class="inv-list child-items child-items-past">
+        <?php foreach ($children->past as $child) { ?>
+            <?php $child->printListItem(); ?>
+        <?php } ?>
+    </div>
+<?php } elseif ($hasPast) { ?>
+    <details class="child-items-past">
+        <summary>
+            <h2 class="inline">
+                <?php
+                // Translators: %s is the plural name of Meetings, such as "Events".
+                echo wp_sprintf(__('Past %s', 'TouchPoint-WP'), $tps->mc_name_plural);
+                ?>
+            </h2>
+        </summary>
+        <div class="inv-list child-items">
+            <?php foreach ($children->past as $child) { ?>
+                <?php $child->printListItem(); ?>
+            <?php } ?>
+        </div>
+    </details>
+<?php } ?>
+
+im<?php wp_reset_postdata(); // The list items change the current post. ?>
 
 <?php get_footer();

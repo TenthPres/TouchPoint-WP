@@ -3,7 +3,9 @@
 (function() {
 
 // noinspection JSUnresolvedVariable
-const { __, sprintf } = typeof __ === "undefined" ? wp.i18n : { __, _x, _n, _nx, sprintf };
+const { __, sprintf } = typeof globalThis.__ === "function" ?
+    { __: globalThis.__, sprintf: globalThis.sprintf } :
+    wp.i18n;
 
     function utilInit() {
         tpvm._utils.stringArrayToListString = function (strings) {

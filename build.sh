@@ -77,4 +77,38 @@ cd ..
 # get end time and calculate duration
 END_TIME=$SECONDS
 DURATION=$((END_TIME - START_TIME))
+
+show_wsl_notification() {
+  local message="$1"
+
+  if [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${CI:-}" ]; then
+    return 0
+  fi
+
+  if [ -n "${WSL_DISTRO_NAME:-}" ] || [ -n "${WSL_INTEROP:-}" ] || grep -qi microsoft /proc/version 2>/dev/null; then
+    if command -v wsl-notify-send >/dev/null 2>&1; then
+      wsl-notify-send --category im.received "TouchPoint WP Build" "$message" >/dev/null 2>&1 || true
+      return 0
+    fi
+
+    if command -v notify-send >/dev/null 2>&1; then
+      notify-send "TouchPoint WP Build" "$message" >/dev/null 2>&1 || true
+      return 0
+    fi
+
+    local win_powershell
+    for win_powershell in \
+      "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" \
+      "/mnt/c/Windows/System32/powershell.exe" \
+      "/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" \
+      "/c/Windows/System32/powershell.exe"; do
+      if [ -f "$win_powershell" ] || [ -x "$win_powershell" ]; then
+        "$win_powershell" -NoProfile -NonInteractive -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('$message', 'TouchPoint WP Build', 'OK', 'Information') | Out-Null" >/dev/null 2>&1 || true
+        return 0
+      fi
+    done
+  fi
+}
+
 echo -e "\e[34mBuild completed in $DURATION seconds.\e[0m"
+show_wsl_notification "Build completed in $DURATION seconds."

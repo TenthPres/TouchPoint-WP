@@ -79,6 +79,31 @@ abstract class PostTypeCapable implements module, storedAsPost, actionButtons
 	}
 
 	/**
+	 * Get the image to show at the top of the post's own page, if it has one.  This includes an image that it gets from
+	 * its parent.
+	 *
+	 * @return ?object An object with the image's `url` and `alt` text, which are both ready to put in HTML.  Null if
+	 *                 there isn't an image.
+	 *
+	 * @since 0.2.2 Added
+	 */
+	public function headerImage(): ?object
+	{
+		$post = $this->getPost();
+		$url  = get_the_post_thumbnail_url($post, 'full');
+		if ( ! $url) {
+			return null;
+		}
+
+		$image = get_post(get_post_thumbnail_id($post));
+
+		return (object)[
+			'url' => esc_url($url),
+			'alt' => esc_html($image?->post_title ?? ""),
+		];
+	}
+
+	/**
 	 * Get notable attributes.
 	 *
 	 * @param array|StringableArray $exclude Attributes listed here will be excluded.  (e.g. if shown for a parent, not needed here.)
